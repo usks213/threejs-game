@@ -29,3 +29,34 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  verify-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: production-verification
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Wait for Cloudflare to publish this exact commit
+        run: node scripts/check-deployment.mjs
+      - run: npx playwright install --with-deps chromium
+      - name: Test the deployed game
+        run: npm run e2e
+        env:
+          E2E_BASE_URL: https://threejs-game.usks213.workers.dev
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-browser-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

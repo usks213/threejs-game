@@ -46,3 +46,10 @@ mainは本番、featureブランチとPRはレビュー用Previewです。GitHub
 
 ## モバイルと性能
 Safe Areaと縦横画面に対応し、描画解像度を抑え、木の繰り返し描画にはInstancedMeshを使っています。重い影・post processing・外部アセットは使用しません。WebGL起動失敗や接続喪失は画面に表示します。
+
+## 既存のCloudflare Workers公開先
+ユーザーから共有されたURLは https://threejs-game.usks213.workers.dev です。公開成功・Git連携は自動チェックの結果で確認します。これはWorkersのURLで、Pagesの公開先とは別です。
+
+既存Workerでも同じゲームを配信できるよう、`wrangler.jsonc` に `dist` の静的配信を設定しています。WorkersのGit連携では対象リポジトリを `usks213/threejs-game`、本番ブランチを `main`、Build commandを `npm run build`、Deploy commandを `npx wrangler deploy` にします。Pagesの設定は上記のまま利用可能です。
+
+ビルドは `deployment.json` にソースコミットを記録します。mainのCI成功後、GitHub Actionsの `verify-production` が既存URLに対象コミットが配信されたことを確認し、公開ゲームへPlaywrightテストを実行します。更新待ちは最大約10分です。デプロイ未完了・バージョン違い・HTTPエラー・E2E失敗を成功として扱いません。Preview URLはCloudflareの実際のデプロイ結果から取得し、公開確認のために本番へ未検証コードを反映しないでください。
