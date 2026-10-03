@@ -10,10 +10,11 @@ export class GameSimulation {
   readonly fluid = new FluidGrid(this.world);
   readonly bodies: SphereBody[] = [];
   readonly player: PlayerState = { x: 0, y: terrainHeight(0, 8), z: 8, heading: 0, vy: 0, grounded: true };
-  readonly metrics = { tickMs: 0, fluidMs: 0, physicsMs: 0 };
+  readonly metrics = { tickMs: 0, fluidMs: 0, physicsMs: 0, jumpHeight: 0 };
   tick = 0;
   private lastAction = -100;
   private nextBody = 1;
+  private jumpOrigin: number | null = null;
   constructor(save?: WorldSave | null) {
     if (save) {
       const valid = validateSave(save);
@@ -41,7 +42,7 @@ export class GameSimulation {
       else { p.x = oldX; p.z = oldZ; }
     }
     if (this.world.density({ x: p.x, y: p.y + 1.15, z: p.z }) < 0.25) { p.x = oldX; p.z = oldZ; }
-    if (input.jump && p.grounded) { p.vy = 6; p.grounded = false; }
+    if (input.jump && p.grounded) { this.jumpOrigin = p.y; this.metrics.jumpHeight = 0; p.vy = 6; p.grounded = false; }
     p.vy = Math.max(-12, p.vy - 14 * dt); p.y += p.vy * dt; p.grounded = false;
     const foot = { x: p.x, y: p.y + 0.3, z: p.z };
     const d = this.world.density(foot);
@@ -50,6 +51,7 @@ export class GameSimulation {
       if (n.y > 0.45 && p.vy <= 0) { p.y += Math.min(0.8, (0.3 - d) / n.y); p.vy = 0; p.grounded = true; }
     }
     if (p.vy > 0 && this.world.density({ x: p.x, y: p.y + 1.4, z: p.z }) < 0.25) { p.y -= p.vy * dt; p.vy = 0; }
+    if (this.jumpOrigin !== null) { this.metrics.jumpHeight = Math.max(this.metrics.jumpHeight, p.y - this.jumpOrigin); if (p.grounded) this.jumpOrigin = null; }
     if (p.y < this.world.bounds.minY + 1) this.resetPlayer();
     const physics = performance.now();
     for (const body of this.bodies) stepSphere(body, this.world, dt);
@@ -77,7 +79,7 @@ export class GameSimulation {
     this.bodies.push({ id: this.nextBody++, position: { x: target.x, y: Math.min(this.world.bounds.maxY - 1, target.y + 4), z: target.z }, velocity: { x: 0, y: 0, z: 0 }, radius: 0.55, sleeping: false });
     return { dirty: [], message: '岩を落としました。地面を掘ると再び落ちます' };
   }
-  resetPlayer(): void { this.player.x = 0; this.player.z = 8; this.player.y = terrainHeight(0, 8) + 3; this.player.vy = 0; this.player.grounded = false; }
+  resetPlayer(): void { this.player.x = 0; this.player.z = 8; this.player.y = terrainHeight(0, 8) + 3; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
   save(): WorldSave {
     return { version: 1, generator: 1, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot(), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }

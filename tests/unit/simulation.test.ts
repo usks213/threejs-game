@@ -18,7 +18,7 @@ describe('browser/Node shared authority simulation', () => {
   const ground = sim.player.y; expect(sim.player.grounded).toBe(true);
   sim.step({ ...idle, jump: true }); expect(sim.player.y).toBeGreaterThan(ground);
   for (let i = 0; i < 120; i++) sim.step(idle);
-  expect(sim.player.grounded).toBe(true); expect(sim.player.y).toBeCloseTo(ground, 2);
+  expect(sim.player.grounded).toBe(true); expect(sim.player.y).toBeCloseTo(ground, 2); expect(sim.metrics.jumpHeight).toBeGreaterThan(1);
  });
  it('validates edit reach, cooldown and edit sequence', () => {
   const sim = new GameSimulation(), target = { x: 0, y: terrainHeight(0, 5), z: 5 };

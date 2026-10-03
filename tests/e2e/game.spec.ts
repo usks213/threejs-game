@@ -11,9 +11,9 @@ test('starts, moves with keyboard and stick, jumps, and rotates safely', async (
  await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(0.3); await page.mouse.up();
  await page.getByRole('button', { name:'出発点へ' }).click();
  await cooldown(page, 35); await expect(page.locator('#position')).toHaveAttribute('data-grounded','true');
- const y = Number(await page.locator('#position').getAttribute('data-y'));
  await page.getByRole('button', { name:'ジャンプ' }).click();
- await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-y'))).toBeGreaterThan(y + 0.4);
+ await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/ジャンプ ([\d.]+)m/)?.[1] ?? '0')).toBeGreaterThan(0.4);
+ await expect(page.locator('#position')).toHaveAttribute('data-grounded','true');
  await page.setViewportSize({width:844,height:390}); await expect(page.locator('canvas')).toHaveJSProperty('clientWidth',844);
  await expect(page.locator('#app')).toHaveAttribute('data-state','running'); await expect(page.locator('#error')).toBeHidden();
  const before = await page.locator('#position').getAttribute('data-x');
