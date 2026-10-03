@@ -37,7 +37,7 @@ describe('bounded streaming and mesh extraction', () => {
  it('streams a fixed vicinity and removes distant bricks as the player crosses chunks', () => {
   const a = visibleBricks({ x: 0, y: 3, z: 8 }), b = visibleBricks({ x: 100, y: 3, z: 8 });
   expect(a.size).toBe(800); expect([...a.keys()].some(k => b.has(k))).toBe(false);
-  expect([...a.values()].some(brick => brick.step === 2)).toBe(true);
+  expect([...a.values()].every(brick => brick.step === 1)).toBe(true);
   const edge = visibleBricks({ x: 999, y: 3, z: 999 });
   for (const brick of edge.values()) { expect(brick.origin.x + 8).toBeLessThanOrEqual(1000); expect(brick.origin.z + 8).toBeLessThanOrEqual(1000); }
  });
@@ -56,5 +56,21 @@ describe('bounded streaming and mesh extraction', () => {
   const right = meshBrick(world, { id: 'b', origin: { x: 8, y: 0, z: 0 }, step: 1 });
   const boundary = (data: Float32Array) => { const points = new Set<string>(); for (let i = 0; i < data.length; i += 3) if (data[i] === 8) points.add(`${data[i + 1].toFixed(4)}:${data[i + 2].toFixed(4)}`); return [...points].sort(); };
   expect(boundary(left.positions).length).toBeGreaterThan(0); expect(boundary(left.positions)).toEqual(boundary(right.positions));
+ });
+ it('keeps an edited brick boundary continuous and places vertices on the curved density surface', () => {
+  const world = new SdfWorld();
+  world.apply({ ...edit('add'), position: { x: 8, y: 3.5, z: 4 } });
+  const left = meshBrick(world, { id: 'edited-a', origin: { x: 0, y: 0, z: 0 }, step: 1 });
+  const right = meshBrick(world, { id: 'edited-b', origin: { x: 8, y: 0, z: 0 }, step: 1 });
+  const boundary = (mesh: typeof left) => {
+   const points = new Set<string>();
+   for (let i = 0; i < mesh.positions.length; i += 3) {
+    const p = { x: mesh.positions[i], y: mesh.positions[i + 1], z: mesh.positions[i + 2] };
+    expect(Math.abs(world.density(p))).toBeLessThan(0.015);
+    if (p.x === 8) points.add(`${p.y.toFixed(4)}:${p.z.toFixed(4)}`);
+   }
+   return [...points].sort();
+  };
+  expect(boundary(left)).toEqual(boundary(right));
  });
 });

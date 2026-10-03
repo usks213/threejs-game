@@ -53,6 +53,7 @@ export function startGame() {
       if (stopped) return;
       const message = event.data;
       if (message.type === 'mesh') terrain.update(message.mesh);
+      else if (message.type === 'mesh-batch') for (const mesh of message.meshes) terrain.update(mesh);
       else if (message.type === 'remove') terrain.remove(message.ids);
       else if (message.type === 'snapshot') { state = message.state; world.update(state); if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
       else if (message.type === 'ready') { status.textContent = 'プレイ中'; app.dataset.state = 'running'; send({ type: 'save' }); }

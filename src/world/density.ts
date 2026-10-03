@@ -49,13 +49,27 @@ export class SdfWorld {
     for (const id of affected) { const list = this.index.get(id) ?? []; list.push(operation); this.index.set(id, list); }
     return affected;
   }
-  normal(p: Vec3, out: Vec3): Vec3 {
-    const h = 0.12;
+  private gradient(p: Vec3, out: Vec3): number {
+    const h = 0.02;
     out.x = this.density({ x: p.x + h, y: p.y, z: p.z }) - this.density({ x: p.x - h, y: p.y, z: p.z });
     out.y = this.density({ x: p.x, y: p.y + h, z: p.z }) - this.density({ x: p.x, y: p.y - h, z: p.z });
     out.z = this.density({ x: p.x, y: p.y, z: p.z + h }) - this.density({ x: p.x, y: p.y, z: p.z - h });
-    const length = Math.hypot(out.x, out.y, out.z) || 1;
+    const length = Math.hypot(out.x, out.y, out.z);
+    if (length < 0.00001) { out.x = 0; out.y = 1; out.z = 0; return 1; }
     out.x /= length; out.y /= length; out.z /= length;
+    return length / (2 * h);
+  }
+  normal(p: Vec3, out: Vec3): Vec3 {
+    this.gradient(p, out);
     return out;
+  }
+  surfaceDistance(p: Vec3, normal: Vec3): number {
+    // The terrain density is an implicit field, not an exact Euclidean SDF.
+    // Normalize its slope before using it as a collision distance.
+    const density = this.density(p);
+    const slope = this.gradient(p, normal);
+    // At CSG creases, central differences can average opposing gradients.
+    // Never overestimate free space because that averaged gradient is small.
+    return density / Math.max(density >= 0 ? 1 : 0.25, slope);
   }
 }

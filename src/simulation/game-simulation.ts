@@ -1,12 +1,14 @@
 import { SdfWorld, terrainHeight } from '../world/density';
 import { FluidGrid } from '../fluid/fluid';
 import { stepSphere, type SphereBody } from '../physics/sphere';
+import { CharacterMotor } from '../physics/character';
 import { insideBounds, type Vec3 } from '../world/types';
 import { validateSave, type WorldSave } from '../save/format';
 import type { PlayerInput, PlayerState, Tool } from './protocol';
 export const TICK_RATE = 30;
 export class GameSimulation {
   readonly world = new SdfWorld();
+  private readonly character = new CharacterMotor(this.world);
   readonly fluid = new FluidGrid(this.world);
   readonly bodies: SphereBody[] = [];
   readonly player: PlayerState = { x: 0, y: terrainHeight(0, 8), z: 8, heading: 0, vy: 0, grounded: true };
@@ -20,6 +22,7 @@ export class GameSimulation {
       const valid = validateSave(save);
       for (const e of valid.edits) this.world.apply(e);
       Object.assign(this.player, valid.player);
+      this.player.grounded = false;
       for (const c of valid.fluids) this.fluid.add(c, c.volume);
       this.bodies.push(...valid.bodies);
       this.nextBody = Math.max(0, ...this.bodies.map(b => b.id)) + 1;
@@ -32,25 +35,12 @@ export class GameSimulation {
     const ix = Number.isFinite(input.x) ? input.x : 0, iz = Number.isFinite(input.z) ? input.z : 0;
     const length = Math.max(1, Math.hypot(ix, iz));
     const dx = ix / length * 4 * dt, dz = iz / length * 4 * dt;
-    const p = this.player, oldX = p.x, oldZ = p.z;
-    p.x = Math.max(this.world.bounds.minX + 1, Math.min(this.world.bounds.maxX - 1, p.x + dx));
-    p.z = Math.max(this.world.bounds.minZ + 1, Math.min(this.world.bounds.maxZ - 1, p.z + dz));
+    const p = this.player;
     if (dx || dz) p.heading = Math.atan2(dx, dz);
-    // A small automatic step, then body/head collision. No height-map dependency.
-    if (this.world.density({ x: p.x, y: p.y + 0.3, z: p.z }) < 0.25) {
-      if (p.grounded && this.world.density({ x: p.x, y: p.y + 0.8, z: p.z }) > 0.28) p.y += 0.35;
-      else { p.x = oldX; p.z = oldZ; }
-    }
-    if (this.world.density({ x: p.x, y: p.y + 1.15, z: p.z }) < 0.25) { p.x = oldX; p.z = oldZ; }
-    if (input.jump && p.grounded) { this.jumpOrigin = p.y; this.metrics.jumpHeight = 0; p.vy = 6; p.grounded = false; }
-    p.vy = Math.max(-12, p.vy - 14 * dt); p.y += p.vy * dt; p.grounded = false;
-    const foot = { x: p.x, y: p.y + 0.3, z: p.z };
-    const d = this.world.density(foot);
-    if (d < 0.3) {
-      const n = this.world.normal(foot, { x: 0, y: 0, z: 0 });
-      if (n.y > 0.45 && p.vy <= 0) { p.y += Math.min(0.8, (0.3 - d) / n.y); p.vy = 0; p.grounded = true; }
-    }
-    if (p.vy > 0 && this.world.density({ x: p.x, y: p.y + 1.4, z: p.z }) < 0.25) { p.y -= p.vy * dt; p.vy = 0; }
+    if (input.jump && p.grounded) { this.jumpOrigin = p.y; this.metrics.jumpHeight = 0; }
+    this.character.step(p, dx, dz, input.jump, dt);
+    p.x = Math.max(this.world.bounds.minX + 1, Math.min(this.world.bounds.maxX - 1, p.x));
+    p.z = Math.max(this.world.bounds.minZ + 1, Math.min(this.world.bounds.maxZ - 1, p.z));
     if (this.jumpOrigin !== null) { this.metrics.jumpHeight = Math.max(this.metrics.jumpHeight, p.y - this.jumpOrigin); if (p.grounded) this.jumpOrigin = null; }
     if (p.y < this.world.bounds.minY + 1) this.resetPlayer();
     const physics = performance.now();

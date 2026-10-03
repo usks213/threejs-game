@@ -18,18 +18,35 @@ export function meshBrick(world: SdfWorld, brick: Brick): MeshData {
     const key = a < b ? `${a}:${b}` : `${b}:${a}`;
     const cached = edges.get(key); if (cached !== undefined) return cached;
     const decode = (i: number) => point(i % side, Math.floor(i / side) % side, Math.floor(i / side ** 2));
-    const p = decode(a), q = decode(b), t = values[a] / (values[a] - values[b]);
-    p.x += (q.x - p.x) * t; p.y += (q.y - p.y) * t; p.z += (q.z - p.z) * t;
+    const start = decode(a), q = decode(b), p = { ...start };
+    let low = 0, high = 1, da = values[a], db = values[b];
+    for (let refinement = 0; refinement < 4; refinement++) {
+      const t = low + (high - low) * da / (da - db);
+      p.x = start.x + (q.x - start.x) * t;
+      p.y = start.y + (q.y - start.y) * t;
+      p.z = start.z + (q.z - start.z) * t;
+      const d = world.density(p);
+      if (Math.abs(d) < 0.00001) break;
+      if ((d < 0) === (da < 0)) { low = t; da = d; }
+      else { high = t; db = d; }
+    }
     world.normal(p, gradient);
     const id = positions.length / 3;
     positions.push(p.x, p.y, p.z); normals.push(gradient.x, gradient.y, gradient.z);
-    const palette = gradient.y > 0.6 ? meadow.grass : p.y > 1 ? meadow.stone : meadow.soil;
-    colors.push(...palette); edges.set(key, id); return id;
+    const smooth = (value: number) => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
+    const grass = smooth((gradient.y - 0.4) / 0.4), stone = smooth((p.y + 0.5) / 2);
+    for (let channel = 0; channel < 3; channel++) {
+      const base = meadow.soil[channel] + (meadow.stone[channel] - meadow.soil[channel]) * stone;
+      colors.push(base + (meadow.grass[channel] - base) * grass);
+    }
+    edges.set(key, id); return id;
   }
   function triangle(a: number, b: number, c: number) {
     const ax = positions[b * 3] - positions[a * 3], ay = positions[b * 3 + 1] - positions[a * 3 + 1], az = positions[b * 3 + 2] - positions[a * 3 + 2];
     const bx = positions[c * 3] - positions[a * 3], by = positions[c * 3 + 1] - positions[a * 3 + 1], bz = positions[c * 3 + 2] - positions[a * 3 + 2];
-    const dot = (ay * bz - az * by) * normals[a * 3] + (az * bx - ax * bz) * normals[a * 3 + 1] + (ax * by - ay * bx) * normals[a * 3 + 2];
+    const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+    if (nx * nx + ny * ny + nz * nz < 1e-12) return;
+    const dot = nx * normals[a * 3] + ny * normals[a * 3 + 1] + nz * normals[a * 3 + 2];
     indices.push(a, dot >= 0 ? b : c, dot >= 0 ? c : b);
   }
   for (let z = 0; z < n; z++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {

@@ -10,4 +10,4 @@ export interface Snapshot {
   metrics: { tickMs: number; fluidMs: number; physicsMs: number; jumpHeight: number; meshMs: number; editMs: number; bricks: number; pending: number; triangles: number };
 }
 export type ClientMessage = { type: 'init'; save: WorldSave | null } | { type: 'input'; input: PlayerInput } | { type: 'action'; tool: Tool; target: Vec3 } | { type: 'reset-player' } | { type: 'save' } | { type: 'pause'; paused: boolean };
-export type WorkerMessage = { type: 'snapshot'; state: Snapshot } | { type: 'mesh'; mesh: MeshData } | { type: 'remove'; ids: string[] } | { type: 'ready' } | { type: 'save'; save: WorldSave } | { type: 'notice'; message: string } | { type: 'error'; message: string };
+export type WorkerMessage = { type: 'snapshot'; state: Snapshot } | { type: 'mesh'; mesh: MeshData } | { type: 'mesh-batch'; meshes: MeshData[] } | { type: 'remove'; ids: string[] } | { type: 'ready' } | { type: 'save'; save: WorldSave } | { type: 'notice'; message: string } | { type: 'error'; message: string };

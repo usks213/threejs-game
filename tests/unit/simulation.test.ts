@@ -8,6 +8,7 @@ const idle = { x: 0, z: 0, jump: false };
 describe('browser/Node shared authority simulation', () => {
  it('moves at fixed ticks without diagonal acceleration and ignores invalid axes', () => {
   const axis = new GameSimulation(), diagonal = new GameSimulation();
+  axis.world.density = p => p.y; diagonal.world.density = p => p.y;
   axis.step({ ...idle, x: 1 }); diagonal.step({ ...idle, x: 1, z: 1 });
   expect(Math.hypot(diagonal.player.x, diagonal.player.z - 8)).toBeCloseTo(axis.player.x, 5);
   axis.step({ ...idle, x: NaN, z: 1 }); expect(Number.isFinite(axis.player.x)).toBe(true);
