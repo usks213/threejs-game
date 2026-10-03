@@ -18,7 +18,7 @@ export function validateSave(raw: unknown): WorldSave {
   }
   const ids = new Set<number>();
   for (const b of s.bodies) {
-    if (!b?.position || !b.velocity || !insideBounds(b.position, WORLD, 1) || !finiteVec(b.velocity) || Math.hypot(b.velocity.x, b.velocity.y, b.velocity.z) > 30 || b.radius !== 0.55 || !Number.isSafeInteger(b.id) || b.id < 1 || typeof b.sleeping !== 'boolean' || ids.has(b.id)) throw new Error('物理データが不正です');
+    if (!b?.position || !b.velocity || !insideBounds(b.position, WORLD, 1) || !finiteVec(b.velocity) || Math.hypot(b.velocity.x, b.velocity.y, b.velocity.z) > 30 || b.radius !== 0.55 || (b.kind !== undefined && !['rock','wood','debris'].includes(b.kind)) || !Number.isSafeInteger(b.id) || b.id < 1 || typeof b.sleeping !== 'boolean' || ids.has(b.id)) throw new Error('物理データが不正です');
     ids.add(b.id);
   }
   if (s.members && (!Array.isArray(s.members) || s.members.length > 10000 || s.members.some(member => !/^[a-zA-Z0-9_-]{1,64}$/.test(member.id) || !insideBounds(member.player, WORLD, 1)))) throw new Error('参加者セーブが不正です');

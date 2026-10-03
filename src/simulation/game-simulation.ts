@@ -1,3 +1,4 @@
+import { detachedVoxels } from '../world/support';
 import { Adventure } from '../game/adventure';
 import type { EditKind } from '../world/types';
 import { SdfWorld, terrainHeight } from '../world/density';
@@ -56,7 +57,7 @@ export class GameSimulation {
     const active = this.bodies.filter(b => Math.hypot(b.position.x - p.x, b.position.z - p.z) < 48);
     for (const body of active) {
       const water = this.fluid.immersion({ x: body.position.x, y: body.position.y - body.radius, z: body.position.z }, body.radius * 2);
-      if (water > 0) { body.sleeping = false; const damping = Math.exp(-water * 3 * dt), current = this.fluid.current(body.position); body.velocity.x = (body.velocity.x + current.x * water * dt) * damping; body.velocity.z = (body.velocity.z + current.z * water * dt) * damping; body.velocity.y = body.velocity.y * damping + 9 * water * dt; }
+      if (water > 0) { body.sleeping = false; const damping = Math.exp(-water * 3 * dt), current = this.fluid.current(body.position); body.velocity.x = (body.velocity.x + current.x * water * dt) * damping; body.velocity.z = (body.velocity.z + current.z * water * dt) * damping; body.velocity.y = body.velocity.y * damping + (body.kind==='wood'?22:9) * water * dt; }
       stepSphere(body, this.world, dt);
     }
     for (let pass = 0; pass < 2; pass++) {
@@ -79,7 +80,7 @@ export class GameSimulation {
     if (this.tick - this.lastAction < 8) throw new Error('少し待ってから操作してください');
     this.lastAction = this.tick;
     if (tool === 'dig' || tool === 'add') {
-      const dirty = this.world.apply({ id: this.world.edits.length + 1, kind: tool, position: target, radius: 1.7, material: 'stone', tick: this.tick });
+      const dirty = this.changeTerrain(tool,target,1.7);
       for (const body of this.bodies) body.sleeping = false;
       this.adventure.support();
       return { dirty, message: tool === 'dig' ? '地面を掘りました' : '地面を盛りました' };
@@ -101,9 +102,23 @@ export class GameSimulation {
   movePlayer(dx: number, dz: number): void { this.character.step(this.player, dx, dz, false, 0); }
   editGround(kind: EditKind, position: Vec3, radius: number): string[] {
     if (Math.hypot(position.x - this.player.x, position.y - this.player.y, position.z - this.player.z) > 7) throw new Error('近くの地面に照準を合わせてください');
-    const dirty = this.world.apply({ id: this.world.edits.length + 1, kind, position, radius, material: 'stone', tick: this.tick });
+    const dirty = this.changeTerrain(kind,position,radius);
     for (const body of this.bodies) body.sleeping = false;
     this.adventure.support(); return dirty;
+  }
+  dropDebris(position:Vec3,kind:'wood'|'debris',count=1):void {
+    for(let i=0;i<count;i++)this.bodies.push({id:this.nextBody++,position:{x:position.x+(i-count/2)*0.5,y:Math.min(this.world.bounds.maxY-1,position.y+i*0.3),z:position.z},velocity:{x:0,y:0,z:0},radius:0.55,sleeping:false,kind});
+  }
+  private changeTerrain(kind:EditKind,position:Vec3,radius:number):string[]{
+    const dirty=new Set(this.world.apply({id:this.world.edits.length+1,kind,position,radius,material:'stone',tick:this.tick}));
+    for(const component of detachedVoxels(this.world,position)){
+      for(const p of component){
+        if(!insideBounds(p,this.world.bounds,0.9))continue;
+        for(const id of this.world.apply({id:this.world.edits.length+1,kind:'dig',position:p,radius:0.9,material:'stone',tick:this.tick}))dirty.add(id);
+        this.dropDebris(p,'debris');
+      }
+    }
+    return [...dirty];
   }
   resetPlayer(): void { this.character.reset(); this.player.x = 0; this.player.z = 8; this.player.y = terrainHeight(0, 8) + 3; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
   save(): WorldSave {

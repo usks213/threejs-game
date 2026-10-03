@@ -74,7 +74,7 @@ export class Adventure {
    const nodes = s.resources.filter(n => n.ready <= s.seconds && distance(p, n) < 3).sort((a, b) => distance(p, a) - distance(p, b)), node = nodes[0];
    if (!node) throw new Error('木・石・木の実・鉱脈に近づいてください');
    const tier = biomeAt(node.x, node.z).tier; if (tier > s.unlocked) throw new Error('前の地域のボスを倒して採掘技術を解放してください');
-   this.stamina(5); const amount = node.kind === 'wood' && s.inventory.axe ? 3 : node.amount; this.grant(node.kind, amount); if (node.kind === 'wood') this.grant('resin', 1); node.ready = s.seconds + 90;
+   this.stamina(5); const amount = node.kind === 'wood' && s.inventory.axe ? 3 : node.amount; this.grant(node.kind, amount); if (node.kind === 'wood') { this.grant('resin', 1); this.sim.dropDebris({x:node.x,y:node.y+1.2,z:node.z},'wood',2); } node.ready = s.seconds + 90;
    return { dirty: [], message: `${ITEM_NAMES[node.kind]} +${amount}` };
   }
   if (action === 'craft') {
@@ -152,7 +152,7 @@ export class Adventure {
   const buildings = this.state.buildings;
   for (const b of buildings) b.support = this.sim.world.density({ x: b.x, y: b.y - 0.15, z: b.z }) < 0.2 ? BUILDINGS.find(d => d.id === b.definition)!.support : 0;
   for (let pass = 0; pass < 8; pass++) for (const b of buildings) for (const other of buildings) if (b !== other && Math.abs(b.x - other.x) <= 2.2 && Math.abs(b.z - other.z) <= 2.2 && Math.abs(b.y - other.y) <= 2.2) b.support = Math.max(b.support, other.support - 1);
-  for (const b of buildings.filter(b => b.support <= 0)) { for (const [id, amount] of Object.entries(BUILDINGS.find(d => d.id === b.definition)!.cost)) this.grant(id, Math.max(1, Math.floor(amount / 2))); }
+  for (const b of buildings.filter(b => b.support <= 0)) { this.sim.dropDebris({x:b.x,y:b.y+0.5,z:b.z},'debris',2); for (const [id, amount] of Object.entries(BUILDINGS.find(d => d.id === b.definition)!.cost)) this.grant(id, Math.max(1, Math.floor(amount / 2))); }
   this.state.buildings = buildings.filter(b => b.support > 0);
  }
  collidePlayer(previousY: number): void {
@@ -181,7 +181,7 @@ export class Adventure {
   if (this.dodge > 0) this.sim.movePlayer(this.dodgeX * 8 * dt, this.dodgeZ * 8 * dt);
  }
  private closestActor(point: Vec3): {player: import('../simulation/protocol').PlayerState;adventure:Adventure} {
-  let nearest={player:this.sim.player,adventure:this},length=this.state.health>0?distance(this.sim.player,point):Infinity;
+  let nearest: {player: import('../simulation/protocol').PlayerState;adventure:Adventure}={player:this.sim.player,adventure:this},length=this.state.health>0?distance(this.sim.player,point):Infinity;
   for(const candidate of this.sim.targets)if(candidate.adventure.state.health>0){const d=distance(candidate.player,point);if(d<length){length=d;nearest=candidate;}}
   return nearest;
  }

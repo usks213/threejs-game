@@ -1,6 +1,6 @@
 import type { SdfWorld } from '../world/density';
 import type { Vec3 } from '../world/types';
-export interface SphereBody { id: number; position: Vec3; velocity: Vec3; radius: number; sleeping: boolean }
+export interface SphereBody { id: number; position: Vec3; velocity: Vec3; radius: number; sleeping: boolean; kind?: 'rock' | 'wood' | 'debris' }
 const normal: Vec3 = { x: 0, y: 0, z: 0 };
 export function stepSphere(body: SphereBody, world: SdfWorld, dt: number): void {
   if (body.sleeping) return;

@@ -62,6 +62,12 @@ export class SdfWorld {
   private readonly index = new Map<string, EditOperation[]>();
   constructor(readonly bounds: WorldBounds = { ...WORLD }, readonly generator: 1 | 2 = 1) {}
   heightAt(x:number,z:number):number {const id=x+','+z,previous=this.heights.get(id);if(previous!==undefined)return previous;const h=this.generator===2?landscapeHeight(x,z,this.bounds.seed):terrainHeight(x,z,this.bounds.seed);if(this.heights.size>=16384)this.heights.clear();this.heights.set(id,h);return h;}
+  isAnchor(p:Vec3):boolean {
+    if(p.y<this.bounds.minY+2)return true;
+    if(Math.hypot(p.x-13,p.y-15,p.z+17)<1.2)return true;
+    if(this.generator===2 && p.x<-40 && p.z>40){const x=Math.round(p.x/96)*96,z=Math.round(p.z/96)*96,y=18+Math.sin(x+z)*3;if(Math.hypot(p.x-x,p.y-y,p.z-z)<1.2)return true;}
+    return false;
+  }
   density(p: Vec3): number {
     if (!insideBounds(p, this.bounds)) return 100;
     let d = Math.min(Math.max(p.y - this.heightAt(p.x, p.z), -cave(p)), island(p));
