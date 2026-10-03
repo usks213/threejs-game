@@ -6,7 +6,7 @@ export function cameraInput(canvas: HTMLCanvasElement, signal: AbortSignal) {
   canvas.addEventListener('pointermove', e => {
     if (e.pointerId !== pointer) return;
     camera.yaw -= (e.clientX - x) * 0.006;
-    camera.pitch = Math.max(0.25, Math.min(0.95, camera.pitch + (e.clientY - y) * 0.004));
+    camera.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.pitch + (e.clientY - y) * 0.006));
     x = e.clientX; y = e.clientY;
   }, { signal });
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) canvas.addEventListener(type, e => { if (e.pointerId === pointer) clear(); }, { signal });

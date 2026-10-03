@@ -5,10 +5,11 @@
 <canvas id="game" aria-label="3Dゲーム画面。ドラッグで視点を回す"></canvas>
 <header><small>SURVIVAL WORLD / PHASE 0</small><h1>TERRA<span>はじまりの草原</span></h1><p>世界を掘って、かたちを変えよう。</p></header>
 <div id="status" role="status">地形を生成中…</div>
+<button id="view-reset" type="button">視点を戻す</button>
 <div id="error" role="alert" hidden></div>
 <aside class="world-info"><span>WORLD 7319</span><span>2 km × 2 km</span><span id="edit-count" data-count="0">地形編集 0</span></aside>
 <div class="reticle" aria-hidden="true">＋</div><div id="target-hint">地面に照準を合わせる</div>
-<div id="notice" role="log">左スティックで移動 · 画面をドラッグで視点</div>
+<div id="notice" role="log">左で移動 · 右で視点 · 移動しながら↑でジャンプ</div>
 <div class="controls"><div id="stick" role="group" aria-label="移動スティック"><span id="knob"></span></div><span class="hint">移動<br>PC: WASD / 矢印</span></div>
 <nav class="tools" aria-label="地形ツール"><button type="button" data-tool="dig" aria-pressed="true">掘る</button><button type="button" data-tool="add" aria-pressed="false">盛る</button><button type="button" data-tool="water" aria-pressed="false">水</button><button type="button" data-tool="rock" aria-pressed="false">岩</button></nav>
 <div class="actions"><button id="jump" type="button" aria-label="ジャンプ">↑</button><button id="use-tool" type="button">掘る</button></div>

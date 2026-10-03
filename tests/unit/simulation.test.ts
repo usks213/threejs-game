@@ -59,11 +59,11 @@ describe('bounded water and physics prototypes', () => {
   for (let x = 0; x < 500; x++) fluid.add({ x, y: 25, z: 0 });
   expect(fluid.cells.size).toBe(MAX_FLUID_CELLS);
  });
- it('accounts for displaced water when raised terrain occupies a cell', () => {
+ it('redistributes water instead of deleting it when raised terrain occupies a cell', () => {
   const world = new SdfWorld(), fluid = new FluidGrid(world);
   fluid.add({ x: 0, y: 6, z: 0 });
   world.apply({ id: 1, kind: 'add', position: { x: 0.5, y: 6.5, z: 0.5 }, radius: 1.7, material: 'stone', tick: 0 });
-  fluid.step(); expect(fluid.displaced).toBe(1); expect(fluid.cells.size).toBe(0);
+  fluid.step(); expect(fluid.displaced).toBeGreaterThan(0); expect(fluid.snapshot().reduce((sum, c) => sum + c.volume, 0)).toBeCloseTo(1, 8);
  });
  it('settles a sphere on the SDF and falls again after local support removal', () => {
   const world = new SdfWorld(); const b: SphereBody = { id: 1, position: { x: 1, y: 9, z: 4 }, velocity: { x: 0, y: 0, z: 0 }, radius: 0.55, sleeping: false };

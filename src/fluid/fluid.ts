@@ -1,41 +1,88 @@
 import type { SdfWorld } from '../world/density';
 import { insideBounds, type Vec3 } from '../world/types';
-export interface FluidCell extends Vec3 { volume: number }
+export interface FluidCell extends Vec3 { volume: number; bottom?: number }
 export const MAX_FLUID_CELLS = 384;
 const key = (p: Vec3) => `${p.x},${p.y},${p.z}`;
+const directions = [[1, 0], [0, 1], [-1, 0], [0, -1]] as const;
+const MIN_FILM = 0.04;
 export class FluidGrid {
   readonly cells = new Map<string, FluidCell>();
   displaced = 0;
+  private revision = -1;
+  private phase = 0;
+  private readonly floors = new Map<string, number>();
   constructor(private readonly world: SdfWorld) {}
-  private open(p: Vec3): boolean { return insideBounds(p, this.world.bounds, 1) && this.world.density({ x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 }) > 0.1; }
+  private bottom(p: Vec3): number {
+    if (!insideBounds(p, this.world.bounds, 1)) return 1;
+    if (this.revision !== this.world.edits.length) { this.floors.clear(); this.revision = this.world.edits.length; }
+    const id = key(p), cached = this.floors.get(id);
+    if (cached !== undefined) return cached;
+    let bottom = 0;
+    // Conservative corner samples keep partially occupied cells out of the hillside.
+    for (const [x, z] of [[0.08, 0.08], [0.92, 0.08], [0.08, 0.92], [0.92, 0.92], [0.5, 0.5]]) {
+      const point = { x: p.x + x, y: p.y + 0.98, z: p.z + z };
+      if (this.world.density(point) < 0.02) { bottom = 1; break; }
+      point.y = p.y;
+      if (this.world.density(point) >= 0.02) continue;
+      let low = 0, high = 1;
+      for (let i = 0; i < 7; i++) { const mid = (low + high) / 2; point.y = p.y + mid; if (this.world.density(point) < 0.02) low = mid; else high = mid; }
+      bottom = Math.max(bottom, high);
+    }
+    if (this.floors.size >= 4096) this.floors.clear();
+    this.floors.set(id, bottom); return bottom;
+  }
   add(p: Vec3, volume = 1): number {
-    const cell = { x: Math.floor(p.x), y: Math.floor(p.y), z: Math.floor(p.z) };
-    if (!this.open(cell) || !Number.isFinite(volume) || volume <= 0) return 0;
+    const cell = { x: Math.floor(p.x), y: Math.floor(p.y), z: Math.floor(p.z) }, capacity = 1 - this.bottom(cell);
+    if (capacity <= 0 || !Number.isFinite(volume) || volume <= 0) return 0;
     const id = key(cell), existing = this.cells.get(id);
     if (!existing && this.cells.size >= MAX_FLUID_CELLS) return 0;
-    const accepted = Math.min(volume, 1 - (existing?.volume ?? 0));
-    if (accepted > 0) {
-      if (existing) existing.volume += accepted;
-      else this.cells.set(id, { ...cell, volume: accepted });
-    }
+    const accepted = Math.max(0, Math.min(volume, capacity - (existing?.volume ?? 0)));
+    if (accepted > 0) { if (existing) existing.volume += accepted; else this.cells.set(id, { ...cell, volume: accepted }); }
+    return accepted;
+  }
+  restore(cells: FluidCell[]): void {
+    // Old saves may contain water overlapped by terrain: preserve it until redistribution.
+    for (const c of cells) this.cells.set(key(c), { x: c.x, y: c.y, z: c.z, volume: c.volume });
+  }
+  private transfer(cell: FluidCell, p: Vec3, wanted: number): number {
+    const amount = Math.min(cell.volume, Math.max(0, wanted));
+    if (amount <= 0.000001) return 0;
+    const id = key(cell), target = this.cells.get(key(p));
+    const free = Math.max(0, 1 - this.bottom(p) - (target?.volume ?? 0));
+    // A full grid can still move a whole cell into free space without losing water.
+    if (!target && this.cells.size >= MAX_FLUID_CELLS && amount >= cell.volume && free >= cell.volume) this.cells.delete(id);
+    const accepted = this.add(p, amount); cell.volume -= accepted;
+    if (cell.volume <= 0.000001) this.cells.delete(id);
+    else if (!this.cells.has(id)) this.cells.set(id, cell);
     return accepted;
   }
   step(): void {
-    // Snapshot each active cell once. Transfers are bounded and conserve volume.
+    this.phase++;
     const active = [...this.cells.values()].sort((a, b) => a.y - b.y);
     for (const cell of active) {
-      if (!this.open(cell)) { this.displaced += cell.volume; this.cells.delete(key(cell)); continue; }
-      const transfer = (p: Vec3, wanted: number) => {
-        const amount = this.add(p, Math.min(cell.volume, wanted)); cell.volume -= amount;
-      };
-      transfer({ x: cell.x, y: cell.y - 1, z: cell.z }, cell.volume);
-      if (cell.volume > 0.001) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const p = { x: cell.x + dx, y: cell.y, z: cell.z + dz };
-        const level = this.cells.get(key(p))?.volume ?? 0;
-        transfer(p, Math.max(0, Math.min(0.15, (cell.volume - level) * 0.25)));
+      if (!this.cells.has(key(cell))) continue;
+      const floor = this.bottom(cell), capacity = 1 - floor;
+      if (cell.volume > capacity + 0.000001) {
+        // Raised ground pushes water aside/up. If sealed, retain it rather than deleting it.
+        let excess = cell.volume - capacity;
+        for (let height = 0; height <= 2 && excess > 0.000001; height++) {
+          for (let i = 0; i < 4 && excess > 0.000001; i++) {
+            const [dx, dz] = directions[(i + this.phase) % 4];
+            const moved = this.transfer(cell, { x: cell.x + dx, y: cell.y + height, z: cell.z + dz }, excess);
+            excess -= moved; this.displaced += moved;
+          }
+          if (height > 0 && excess > 0.000001) { const moved = this.transfer(cell, { x: cell.x, y: cell.y + height, z: cell.z }, excess); excess -= moved; this.displaced += moved; }
+        }
       }
-      if (cell.volume <= 0.000001) this.cells.delete(key(cell));
+      if (cell.volume <= 0.000001 || capacity <= 0) continue;
+      this.transfer(cell, { x: cell.x, y: cell.y - 1, z: cell.z }, cell.volume);
+      if (cell.volume > MIN_FILM) for (let i = 0; i < 4; i++) {
+        const [dx, dz] = directions[(i + this.phase) % 4], p = { x: cell.x + dx, y: cell.y, z: cell.z + dz };
+        const neighbor = this.cells.get(key(p)), neighborLevel = this.bottom(p) + (neighbor?.volume ?? 0);
+        const amount = Math.min(0.12, (floor + cell.volume - neighborLevel) * 0.25);
+        if (neighbor || amount >= MIN_FILM) this.transfer(cell, p, amount);
+      }
     }
   }
-  snapshot(): FluidCell[] { return [...this.cells.values()].map(c => ({ ...c })); }
+  snapshot(): FluidCell[] { return [...this.cells.values()].map(c => ({ ...c, bottom: this.bottom(c) })); }
 }

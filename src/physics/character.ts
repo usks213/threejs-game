@@ -10,6 +10,8 @@ interface CharacterBody extends Vec3 { vy: number; grounded: boolean }
 export class CharacterMotor {
   private readonly point: Vec3 = { x: 0, y: 0, z: 0 };
   private readonly normal: Vec3 = { x: 0, y: 1, z: 0 };
+  private jumpBuffer = 0;
+  private groundGrace = 0;
   constructor(private readonly world: SdfWorld) {}
 
   private distance(body: Vec3, height: number): number {
@@ -67,8 +69,11 @@ export class CharacterMotor {
       if (!corrected) break;
     }
   }
-  step(body: CharacterBody, dx: number, dz: number, jump: boolean, dt: number): void {
-    if (jump && body.grounded) { body.vy = 6; body.grounded = false; }
+  step(body: CharacterBody, dx: number, dz: number, jump: boolean, dt: number): boolean {
+    this.jumpBuffer = jump ? 0.15 : Math.max(0, this.jumpBuffer - dt);
+    this.groundGrace = body.grounded ? 0.1 : Math.max(0, this.groundGrace - dt);
+    const jumped = this.jumpBuffer > 0 && this.groundGrace > 0;
+    if (jumped) { body.vy = 6; body.grounded = false; this.jumpBuffer = this.groundGrace = 0; }
     const steps = 3, subDt = dt / steps;
     for (let substep = 0; substep < steps; substep++) {
       const wasGrounded = body.grounded;
@@ -79,5 +84,8 @@ export class CharacterMotor {
       this.resolve(body);
       if (!body.grounded && wasGrounded && body.vy <= 0) this.snap(body, GROUND_SNAP);
     }
+    return jumped;
   }
+  reset(): void { this.jumpBuffer = this.groundGrace = 0; }
+  reconcile(body: CharacterBody): void { this.resolve(body); }
 }

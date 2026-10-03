@@ -3,6 +3,8 @@ import type { Axis } from '../core/player';
 import { keyboardInput } from '../input/keyboard/keyboard';
 import { touchInput } from '../input/touch/stick';
 import { cameraInput } from '../input/touch/look';
+import { actionInput } from '../input/touch/action';
+import { orbitPose } from '../rendering/camera/follow';
 import { createWorld } from '../rendering/scene/world';
 import { createTerrain } from '../rendering/voxel/terrain';
 import { persistenceUI } from '../ui/persistence';
@@ -25,7 +27,8 @@ export function startGame() {
   const readKeyboard = keyboardInput(signal), touch = touchInput(document.querySelector('#stick')!, document.querySelector('#knob')!, signal), view = cameraInput(canvas, signal);
   const input: Axis = { x: 0, z: 0 };
   const raycaster = new THREE.Raycaster(), center = new THREE.Vector2(0, 0), normal = new THREE.Vector3(), markerAxis = new THREE.Vector3(0, 0, 1);
-  const cameraPosition = new THREE.Vector3(), focus = new THREE.Vector3();
+  const cameraPosition = new THREE.Vector3(), focus = new THREE.Vector3(), orbit = new THREE.Vector3();
+  const obstruction = new THREE.Raycaster();
   let state: Snapshot | null = null, tool: Tool = 'dig', jump = false, target: Vec3 | null = null, lastInput = 0, lastRay = 0, lastUI = 0;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
   const send = (message: ClientMessage) => { if (!stopped) worker?.postMessage(message); };
@@ -36,8 +39,9 @@ export function startGame() {
     for (const b of document.querySelectorAll('[data-tool]')) b.setAttribute('aria-pressed', String(b === button));
   }, { signal });
   const act = () => { if (target) send({ type: 'action', tool, target }); else notice('近くの地面に照準を合わせてください'); };
-  use.addEventListener('click', act, { signal });
-  document.querySelector('#jump')!.addEventListener('click', () => { jump = true; }, { signal });
+  actionInput(use, act, signal);
+  actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { jump = true; }, signal);
+  document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = 0.55; }, { signal });
   window.addEventListener('keydown', e => { if (e.code === 'Space' && !e.repeat) { e.preventDefault(); jump = true; } if (e.code === 'KeyF' && !e.repeat) act(); }, { signal });
   document.querySelector('#reset')!.addEventListener('click', () => send({ type: 'reset-player' }), { signal });
   const resize = () => { target = null; renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); renderer.setSize(window.innerWidth, window.innerHeight, false); camera.aspect = window.innerWidth / Math.max(1, window.innerHeight); camera.updateProjectionMatrix(); };
@@ -73,9 +77,13 @@ export function startGame() {
       readKeyboard(input); if (touch.x || touch.z) { input.x = touch.x; input.z = touch.z; }
       if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
-      const p = world.player.position, sin = Math.sin(view.yaw), cos = Math.cos(view.yaw);
-      cameraPosition.set(p.x + sin * 9 * Math.cos(view.pitch), p.y + 1 + 9 * Math.sin(view.pitch), p.z + cos * 9 * Math.cos(view.pitch));
-      camera.position.copy(cameraPosition); focus.set(p.x - sin * 1.8, p.y + 0.65, p.z - cos * 1.8); camera.lookAt(focus); camera.updateMatrixWorld();
+      orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
+      obstruction.set(focus, orbit); obstruction.far = 9;
+      const blocker = terrain.raycast(obstruction);
+      const distance = blocker ? Math.max(0.15, blocker.distance - 0.2) : 9;
+      cameraPosition.copy(focus).addScaledVector(orbit, distance);
+      camera.position.copy(cameraPosition); camera.lookAt(focus); camera.updateMatrixWorld();
+      world.player.visible = camera.position.distanceTo(world.player.position) > 1.6;
       if (state && now - lastRay > 80) {
         raycaster.setFromCamera(center, camera); const hit = terrain.raycast(raycaster);
         if (hit && hit.point.distanceTo(focus.set(state.player.x, state.player.y + 0.7, state.player.z)) <= 7) {
@@ -88,6 +96,7 @@ export function startGame() {
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
         const p = state.player, m = state.metrics;
+        app.dataset.cameraPitch = String(view.pitch); app.dataset.cameraYaw = String(view.yaw);
         position.textContent = `X ${p.x.toFixed(1)} · Y ${p.y.toFixed(1)} · Z ${p.z.toFixed(1)}`; position.dataset.x = String(p.x); position.dataset.y = String(p.y); position.dataset.z = String(p.z); position.dataset.grounded = String(p.grounded); app.dataset.tick = String(state.tick);
         const edits = document.querySelector<HTMLElement>('#edit-count')!; edits.textContent = `地形編集 ${state.edits}`; edits.dataset.count = String(state.edits);
         document.querySelector('#metrics')!.textContent = `${fps} FPS · 描画 ${renderer.info.render.calls}回 · ${renderer.info.render.triangles.toLocaleString()}面 / Tick ${m.tickMs.toFixed(2)}ms · Mesh ${m.meshMs.toFixed(1)}ms · 編集 ${m.editMs.toFixed(0)}ms / 水 ${state.fluids.length}セル (${m.fluidMs.toFixed(2)}ms) · 物理 ${state.bodies.length}個 (${m.physicsMs.toFixed(2)}ms) · ジャンプ ${m.jumpHeight.toFixed(2)}m / Brick ${m.bricks} · 待機 ${m.pending} · Geometry ${renderer.info.memory.geometries}個`;

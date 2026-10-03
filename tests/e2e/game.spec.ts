@@ -59,3 +59,32 @@ test('shows WebGL context loss clearly', async ({page}) => {
  await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
  await page.locator('canvas').dispatchEvent('webglcontextlost'); await expect(page.getByRole('alert')).toContainText('WebGL'); await expect(page.locator('#app')).toHaveAttribute('data-state','error');
 });
+
+test('two fingers move and jump together, and camera reaches both vertical poles', async ({ page }) => {
+ const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+ await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
+ await expect(page.locator('#position')).toHaveAttribute('data-grounded', 'true');
+ const stick = await page.locator('#stick').boundingBox(), jump = await page.locator('#jump').boundingBox();
+ if (!stick || !jump) throw new Error('Missing touch controls');
+ const session = await page.context().newCDPSession(page);
+ const left = { x: stick.x + stick.width * 0.8, y: stick.y + stick.height / 2, id: 1 };
+ const right = { x: jump.x + jump.width / 2, y: jump.y + jump.height / 2, id: 2 };
+ await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [left] });
+ await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(0.2);
+ const before = Number(await page.locator('#position').getAttribute('data-x'));
+ await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [left, right] });
+ // Keep the joystick down; release only the jump finger.
+ await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [left] });
+ await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/ジャンプ ([\d.]+)m/)?.[1] ?? '0')).toBeGreaterThan(0.4);
+ await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(before + 0.4);
+ await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+ await page.getByRole('button', { name: '視点を戻す' }).click();
+ // Pointer capture keeps dragging active when crossing HUD overlays.
+ await page.mouse.move(220, 260); await page.mouse.down(); await page.mouse.move(220, 660); await page.mouse.up();
+ await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(Math.PI / 2);
+ await page.mouse.move(220, 660); await page.mouse.down(); await page.mouse.move(220, 80); await page.mouse.up();
+ await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(-Math.PI / 2);
+ await page.getByRole('button', { name: '視点を戻す' }).click();
+ await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(0.55);
+ expect(errors).toEqual([]);
+});

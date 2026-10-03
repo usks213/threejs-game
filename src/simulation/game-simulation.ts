@@ -2,6 +2,7 @@ import { SdfWorld, terrainHeight } from '../world/density';
 import { FluidGrid } from '../fluid/fluid';
 import { stepSphere, type SphereBody } from '../physics/sphere';
 import { CharacterMotor } from '../physics/character';
+import { collidePlayerRocks, collideRocks } from '../physics/contacts';
 import { insideBounds, type Vec3 } from '../world/types';
 import { validateSave, type WorldSave } from '../save/format';
 import type { PlayerInput, PlayerState, Tool } from './protocol';
@@ -23,7 +24,7 @@ export class GameSimulation {
       for (const e of valid.edits) this.world.apply(e);
       Object.assign(this.player, valid.player);
       this.player.grounded = false;
-      for (const c of valid.fluids) this.fluid.add(c, c.volume);
+      this.fluid.restore(valid.fluids);
       this.bodies.push(...valid.bodies);
       this.nextBody = Math.max(0, ...this.bodies.map(b => b.id)) + 1;
       this.tick = Math.max(0, ...valid.edits.map(e => e.tick));
@@ -37,14 +38,21 @@ export class GameSimulation {
     const dx = ix / length * 4 * dt, dz = iz / length * 4 * dt;
     const p = this.player;
     if (dx || dz) p.heading = Math.atan2(dx, dz);
-    if (input.jump && p.grounded) { this.jumpOrigin = p.y; this.metrics.jumpHeight = 0; }
-    this.character.step(p, dx, dz, input.jump, dt);
+    const beforeJump = p.y;
+    if (this.character.step(p, dx, dz, input.jump, dt)) { this.jumpOrigin = beforeJump; this.metrics.jumpHeight = 0; }
     p.x = Math.max(this.world.bounds.minX + 1, Math.min(this.world.bounds.maxX - 1, p.x));
     p.z = Math.max(this.world.bounds.minZ + 1, Math.min(this.world.bounds.maxZ - 1, p.z));
     if (this.jumpOrigin !== null) { this.metrics.jumpHeight = Math.max(this.metrics.jumpHeight, p.y - this.jumpOrigin); if (p.grounded) this.jumpOrigin = null; }
     if (p.y < this.world.bounds.minY + 1) this.resetPlayer();
     const physics = performance.now();
     for (const body of this.bodies) stepSphere(body, this.world, dt);
+    for (let pass = 0; pass < 2; pass++) {
+      collideRocks(this.bodies);
+      for (const body of this.bodies) stepSphere(body, this.world, 0);
+    }
+    collidePlayerRocks(p, this.bodies, dx, dz, dt);
+    for (const body of this.bodies) stepSphere(body, this.world, 0);
+    this.character.reconcile(p);
     for (let i = this.bodies.length - 1; i >= 0; i--) if (!insideBounds(this.bodies[i].position, this.world.bounds, 0.6)) this.bodies.splice(i, 1);
     this.metrics.physicsMs = performance.now() - physics;
     if (this.tick % 3 === 0) { const fluid = performance.now(); this.fluid.step(); this.metrics.fluidMs = performance.now() - fluid; }
@@ -67,10 +75,10 @@ export class GameSimulation {
     if (tool !== 'rock') throw new Error('未知の操作です');
     if (this.bodies.length >= 12) throw new Error('岩は最大12個です');
     this.bodies.push({ id: this.nextBody++, position: { x: target.x, y: Math.min(this.world.bounds.maxY - 1, target.y + 4), z: target.z }, velocity: { x: 0, y: 0, z: 0 }, radius: 0.55, sleeping: false });
-    return { dirty: [], message: '岩を落としました。地面を掘ると再び落ちます' };
+    return { dirty: [], message: '岩を落としました。歩いて押す・飛び乗る・足元を掘る操作を試せます' };
   }
-  resetPlayer(): void { this.player.x = 0; this.player.z = 8; this.player.y = terrainHeight(0, 8) + 3; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
+  resetPlayer(): void { this.character.reset(); this.player.x = 0; this.player.z = 8; this.player.y = terrainHeight(0, 8) + 3; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
   save(): WorldSave {
-    return { version: 1, generator: 1, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot(), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
+    return { version: 1, generator: 1, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot().map(c => ({ x: c.x, y: c.y, z: c.z, volume: c.volume })), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { meadow } from '../../content/biomes';
 import { terrainHeight } from '../../world/density';
-import { MAX_FLUID_CELLS } from '../../fluid/fluid';
+import { waterSurface, WATER_VERTEX_CAPACITY } from '../../fluid/surface';
 import type { Snapshot } from '../../simulation/protocol';
 export function createWorld() {
   const scene = new THREE.Scene();
@@ -22,20 +22,34 @@ export function createWorld() {
     matrix.makeTranslation(x, y + 3.1, z); crown.setMatrixAt(i, matrix);
   }
   scene.add(crown, trunks);
-  const water = new THREE.InstancedMesh(new THREE.BoxGeometry(0.98, 1, 0.98), new THREE.MeshStandardMaterial({ color: meadow.water, transparent: true, opacity: 0.7, roughness: 0.35 }), MAX_FLUID_CELLS); water.count = 0;
+  const waterPositions = new Float32Array(WATER_VERTEX_CAPACITY * 3), waterNormals = new Float32Array(WATER_VERTEX_CAPACITY * 3);
+  const waterGeometry = new THREE.BufferGeometry();
+  waterGeometry.setAttribute('position', new THREE.BufferAttribute(waterPositions, 3).setUsage(THREE.DynamicDrawUsage));
+  waterGeometry.setAttribute('normal', new THREE.BufferAttribute(waterNormals, 3).setUsage(THREE.DynamicDrawUsage));
+  waterGeometry.setDrawRange(0, 0);
+  const water = new THREE.Mesh(waterGeometry, new THREE.MeshStandardMaterial({ color: meadow.water, transparent: true, opacity: 0.78, roughness: 0.28, depthWrite: false, side: THREE.DoubleSide }));
   // Dynamic instances cover different chunks. Avoid stale bounds from the first snapshot.
   water.frustumCulled = false; scene.add(water);
-  const rocks = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.55, 0), new THREE.MeshStandardMaterial({ color: '#8f9287', roughness: 1 }), 12); rocks.count = 0; rocks.frustumCulled = false; scene.add(rocks);
+  const rocks = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.55, 1), new THREE.MeshStandardMaterial({ color: '#8f9287', roughness: 1 }), 12); rocks.count = 0; rocks.frustumCulled = false; scene.add(rocks);
   const marker = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.025, 5, 24), new THREE.MeshBasicMaterial({ color: '#ffeab6', depthTest: false })); marker.renderOrder = 2; marker.visible = false; scene.add(marker);
   const rotation = new THREE.Quaternion(), scale = new THREE.Vector3(), position = new THREE.Vector3();
+  const roll = new THREE.Euler(), rockViews = new Map<number, { x: number; z: number; rx: number; rz: number }>();
+  let waterTick = -1;
   return {
     scene, player, marker,
     update(state: Snapshot) {
-      water.count = state.fluids.length;
-      for (let i = 0; i < state.fluids.length; i++) { const c = state.fluids[i]; position.set(c.x + 0.5, c.y + c.volume / 2, c.z + 0.5); scale.set(1, c.volume, 1); matrix.compose(position, rotation, scale); water.setMatrixAt(i, matrix); }
-      water.instanceMatrix.needsUpdate = true;
+      if (Math.floor(state.tick / 3) !== waterTick) {
+        waterTick = Math.floor(state.tick / 3);
+        waterGeometry.setDrawRange(0, waterSurface(state.fluids, waterPositions, waterNormals));
+        waterGeometry.getAttribute('position').needsUpdate = true; waterGeometry.getAttribute('normal').needsUpdate = true;
+      }
       rocks.count = state.bodies.length;
-      for (let i = 0; i < state.bodies.length; i++) { const p = state.bodies[i].position; matrix.makeTranslation(p.x, p.y, p.z); rocks.setMatrixAt(i, matrix); }
+      for (const id of rockViews.keys()) if (!state.bodies.some(b => b.id === id)) rockViews.delete(id);
+      for (let i = 0; i < state.bodies.length; i++) {
+        const b = state.bodies[i], p = b.position, view = rockViews.get(b.id) ?? { x: p.x, z: p.z, rx: 0, rz: 0 };
+        view.rx += (p.z - view.z) / b.radius; view.rz -= (p.x - view.x) / b.radius; view.x = p.x; view.z = p.z; rockViews.set(b.id, view);
+        position.set(p.x, p.y, p.z); rotation.setFromEuler(roll.set(view.rx, 0, view.rz)); scale.setScalar(1); matrix.compose(position, rotation, scale); rocks.setMatrixAt(i, matrix);
+      }
       rocks.instanceMatrix.needsUpdate = true;
     },
     dispose() {
