@@ -53,9 +53,9 @@ npm run e2e
 
 ## 自動検証
 
-Pull Requestとmainへのpushで、npm ci → 型 → Vitest → build → Playwrightを実行します。PC/Android相当のChromiumで起動、入力、ジャンプ、画面回転、編集、水、物理、保存復元、書出、不正読込、WebGLエラーを検証します。スクリーンショットと失敗時トレースをActionsへ保存します。
+Pull Requestとmainへのpushで、npm ci → 型 → Vitest → buildを実行します。Playwrightの全ブラウザ検証はmainへのpushと手動起動で実行します。PC/Android相当のChromiumで起動、入力、ジャンプ、画面回転、編集、水、物理、保存復元、書出、不正読込、WebGLエラーを検証し、スクリーンショットと失敗時トレースをActionsへ保存します。
 
-PRの `verify-preview` はCloudflare botが提示した実際のURLを取得し、deployment.jsonのソースコミットを照合して公開Previewを再テストします。mainの `verify-production` も対象コミットの公開とE2Eを確認します。待機超過、バージョン違い、HTTPエラー、テスト失敗を正常扱いしません。
+PRの `verify-preview` はCloudflare botが提示した実際のURLとdeployment.jsonのコミットを照合します。mainの `verify-production` も公開コミットと起動用HTMLを確認します。これらは独立して進み、同じ全E2Eを公開先でも繰り返しません。待機超過、バージョン違い、HTTPエラー、テスト失敗を正常扱いしません。
 
 Androidエミュレーションとソフトウェア描画CIは実機GPU/Safariの保証ではありません。スマホのレビューで操作感とFPSを確認します。
 
@@ -80,9 +80,9 @@ Pagesへ接続する場合は同じリポジトリ、main、Vite、build command
 
 ## 自然言語での開発
 
-「敵を追加して」などの指示を送ると、AIがAGENTS.mdと実装状況を読み、featureブランチで変更・検証・GitHub反映・Preview確認を進め、レビューURLを提示します。スマホで遊び、次の修正を自然言語で伝えてください。コードやGitを操作する必要はありません。
+「敵を追加して」などの指示→featureで実装→必要な確認とビルド→Preview URL→スマホでプレイ、の順で短く回します。「OK」ならAIがmainへマージし、修正点があれば同じPreviewを更新します。ユーザーのOK前にmainへ昇格しません。確認済みの同じソースを繰り返しテストせず、全E2Eの完了待ちでプレイを遅らせません。コードやGitを操作する必要はありません。
 
-新しいCodex Cloudタスクではusks213/threejs-gameの環境を選びます。GitHub書き込み権限とCloudflare Git連携が必要です。大きな変更はPreviewでプレイした後に安定版へ昇格します。
+新しいCodex Cloudタスクではusks213/threejs-gameの環境を選びます。GitHub書き込み権限とCloudflare Git連携が必要です。変更はPreviewでプレイしてOKした後に安定版へ昇格します。
 
 ## 性能と制約
 

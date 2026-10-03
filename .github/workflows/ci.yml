@@ -3,13 +3,17 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
   pull-requests: read
+concurrency:
+  group: game-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,6 +24,19 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
+
+  e2e:
+    # Full browser regression runs on main or explicit dispatch, outside the preview loop.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
       - uses: actions/upload-artifact@v4
@@ -33,64 +50,28 @@ jobs:
 
   verify-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    concurrency:
-      group: production-verification
-      cancel-in-progress: true
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Wait for Cloudflare to publish this exact commit
+      - name: Verify Cloudflare published this exact commit
         run: node scripts/check-deployment.mjs
-      - run: npx playwright install --with-deps chromium
-      - name: Test the deployed game
-        run: npm run e2e
-        env:
-          E2E_BASE_URL: https://threejs-game.usks213.workers.dev
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: production-browser-test-results
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
 
   verify-preview:
     if: github.event_name == 'pull_request'
-    needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    concurrency:
-      group: preview-verification-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Find and verify the Cloudflare Preview for this PR commit
+      - name: Find the actual Cloudflare URL and verify the source commit
         run: node scripts/check-preview.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
-      - run: npx playwright install --with-deps chromium
-      - name: Test the deployed Preview on desktop and Android emulation
-        run: npm run e2e
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: preview-browser-test-results
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
