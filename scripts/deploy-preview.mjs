@@ -12,7 +12,33 @@ if (result.error || result.status !== 0) {
   console.error(result.stderr || result.stdout || result.error?.message);
   throw new Error('Cloudflare Preview deployment failed');
 }
-const release = JSON.parse(result.stdout);
+// Wrangler may print asset-upload progress before its JSON result.
+function parseRelease(output) {
+  for (let start = output.indexOf('{'); start >= 0; start = output.indexOf('{', start + 1)) {
+    let depth = 0, quoted = false, escaped = false;
+    for (let end = start; end < output.length; end++) {
+      const ch = output[end];
+      if (quoted) {
+        if (escaped) escaped = false;
+        else if (ch === String.fromCharCode(92)) escaped = true;
+        else if (ch === '"') quoted = false;
+        continue;
+      }
+      if (ch === '"') quoted = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}' && --depth === 0) {
+        try {
+          const value = JSON.parse(output.slice(start, end + 1));
+          if (Array.isArray(value.preview?.urls)) return value;
+        } catch { /* Progress output is not JSON. */ }
+        break;
+      }
+    }
+  }
+  console.error(output);
+  throw new Error('Wrangler did not return a readable Preview release');
+}
+const release = parseRelease(result.stdout);
 const candidate = release.preview?.urls?.[0];
 if (typeof candidate !== 'string') throw new Error('Wrangler did not return a Preview URL');
 const url = new URL(candidate);
