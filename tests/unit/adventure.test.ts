@@ -58,3 +58,28 @@ it('freezes water temporarily and then restores flow', () => {
  for (let i = 0; i < 50; i++) sim.fluid.step(); expect(sim.fluid.snapshot()[0].y).toBe(1);
  for (let i = 0; i < 40; i++) sim.fluid.step(); expect(sim.fluid.iceHeight({ x: 0.5, y: 0, z: 0.5 })).toBeNull();
 });
+
+it('connects portal pairs, protects against immediate bounce, and preserves death recovery',()=>{
+ const sim=new GameSimulation(),game=sim.adventure;
+ game.state.buildings.push(
+ {id:3000050,definition:'portal',x:0,y:sim.groundAt(0,8),z:8,rotation:0,support:3,contents:{}},
+ {id:3000051,definition:'portal',x:20,y:sim.groundAt(20,8),z:8,rotation:0,support:3,contents:{}});
+ game.action('portal'); expect(sim.player.x).toBe(20); expect(()=>game.action('portal')).toThrow('安定');
+ game.state.inventory.wood=10; game.hurtPlayer(1000,'physical'); expect(game.state.inventory.wood).toBe(8); expect(game.state.grave?.wood).toBe(2);
+ const saved=validateSave(sim.save()); expect(saved.adventure?.grave?.wood).toBe(2);
+ game.stepPersonal(4); Object.assign(sim.player,game.state.death); game.action('gather'); expect(game.state.inventory.wood).toBe(10);
+});
+it('uses data-driven weapon reach and keeps poison finite',()=>{
+ const sim=new GameSimulation(),game=sim.adventure;
+ game.state.inventory.spear=1; game.action('equip','spear');
+ const enemy=game.state.enemies[0]; enemy.x=sim.player.x; enemy.z=sim.player.z-3.8; enemy.y=sim.player.y;
+ const health=enemy.health; game.action('attack'); expect(enemy.health).toBeLessThan(health);
+ game.hurtPlayer(2,'poison'); for(let i=0;i<300;i++)game.stepPersonal(1/30);
+ expect(game.state.poison).toBe(0); expect(game.state.health).toBeGreaterThan(60);
+});
+it('adds and removes water through built sources and drains',()=>{
+ const sim=new GameSimulation(); sim.world.density=p=>p.y; const game=sim.adventure;
+ game.state.buildings.push({id:3000500,definition:'spring',x:5,y:0,z:5,rotation:0,support:3,contents:{}});
+ sim.tick=30; game.step(1/30); expect(sim.fluid.snapshot().length).toBeGreaterThan(0);
+ expect(sim.fluid.drain({x:5.5,y:1.5,z:5.5},2)).toBeGreaterThan(0); expect(sim.fluid.snapshot()).toHaveLength(0);
+});

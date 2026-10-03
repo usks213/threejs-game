@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 interface Env { ROOMS: DurableObjectNamespace<SignalRoom> }
-interface Attachment { id: string; host: boolean; count: number; window: number }
+interface Attachment { id: string; host: boolean; count: number; window: number; bytes?: number }
 export class SignalRoom extends DurableObject<Env> {
  async fetch(request: Request): Promise<Response> {
   const url = new URL(request.url), host = url.searchParams.get('host') === '1', id = url.searchParams.get('peer') ?? '';
@@ -16,11 +16,12 @@ export class SignalRoom extends DurableObject<Env> {
  webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): void {
   if (typeof message !== 'string' || message.length > 65536) { socket.close(1009, 'Too large'); return; }
   const sender = socket.deserializeAttachment() as Attachment;
-  if (Date.now() - sender.window > 10000) { sender.window = Date.now(); sender.count = 0; }
-  if (++sender.count > 200) { socket.close(1008, 'Rate limit'); return; } socket.serializeAttachment(sender);
+  if (Date.now() - sender.window > 10000) { sender.window = Date.now(); sender.count = 0; sender.bytes = 0; }
+  sender.bytes = (sender.bytes ?? 0) + message.length;
+  if (++sender.count > 6000 || sender.bytes > 5 * 1024 * 1024) { socket.close(1008, 'Rate limit'); return; } socket.serializeAttachment(sender);
   try {
    const packet = JSON.parse(message) as { to?: string; type?: string; data?: unknown };
-   if (!['offer', 'answer', 'ice'].includes(packet.type ?? '')) return;
+   if (!['offer', 'answer', 'ice', 'relay', 'data'].includes(packet.type ?? '')) return;
    for (const receiver of this.ctx.getWebSockets()) {
     const target = receiver.deserializeAttachment() as Attachment;
     if (target.id === packet.to && target.host !== sender.host) receiver.send(JSON.stringify({ ...packet, from: sender.id }));
@@ -38,7 +39,7 @@ export class SignalRoom extends DurableObject<Env> {
 }
 export default { async fetch(request: Request, env: Env): Promise<Response> {
  const url = new URL(request.url);
- if (url.pathname === '/health') return Response.json({ service: 'threejs-game-signaling', protocol: 1 });
+ if (url.pathname === '/health') return Response.json({ service: 'threejs-game-signaling', protocol: 2, relay: 'websocket', authority: 'browser-host' });
  const room = url.pathname.slice(1);
  if (!/^[a-f0-9]{48}$/.test(room)) return new Response('Not found', { status: 404 });
  const origin = request.headers.get('Origin') ?? '';

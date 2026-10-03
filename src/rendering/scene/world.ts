@@ -77,8 +77,8 @@ export function createWorld() {
     },
     dispose() {
       const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
-      scene.traverse(object => { if (object instanceof THREE.Mesh) { geometries.add(object.geometry); for (const material of Array.isArray(object.material) ? object.material : [object.material]) materials.add(material); if (object instanceof THREE.InstancedMesh) object.dispose(); } });
-      geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
+      scene.traverse(object => { if (object instanceof THREE.Mesh || object instanceof THREE.Points) { geometries.add(object.geometry); for (const material of Array.isArray(object.material) ? object.material : [object.material]) materials.add(material); if (object instanceof THREE.InstancedMesh) object.dispose(); } });
+      entities.dispose(); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
     },
   };
 }

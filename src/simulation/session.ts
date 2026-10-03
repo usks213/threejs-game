@@ -22,7 +22,7 @@ export class SessionAuthority {
   const personal: AdventureSave = stored?.adventure ?? { ...saved, inventory: { berry: 3 }, equipment: 'hands', health: 100, stamina: 100, mana: 70, food: 0, rested: 0, spawn: null, death: null };
   const p = this.sim.player;
   const actor = { id, player: stored?.player ?? { ...p, x: p.x + this.actors.size * 0.8, grounded: false }, adventure: new Adventure(this.sim, personal), input: { ...idle }, motor: new CharacterMotor(this.sim.world), sequence: 0, lastAction: -100 };
-  actor.adventure.projectiles = this.sim.adventure.projectiles;
+  actor.adventure.owner = id; actor.adventure.projectiles = this.sim.adventure.projectiles;
   this.actors.set(id, actor); this.syncTargets(); return actor;
  }
  leave(id: string): void { const actor = this.actors.get(id); if (id !== 'host' && actor) { this.dormant.set(id, { player: { ...actor.player }, adventure: actor.adventure.save() }); this.actors.delete(id); } this.syncTargets(); }
@@ -49,7 +49,7 @@ export class SessionAuthority {
  step(hostInput?: PlayerInput): void {
   const host = this.actors.get('host')!; this.sim.step(hostInput ?? host.input); host.input.jump = false;
   for (const actor of this.actors.values()) if (actor.id !== 'host') this.withActor(actor, () => {
-   const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, 1.45), speed = actor.adventure.state.health <= 0 ? 0 : actor.adventure.guarding ? 2 : 4 * (1 - water * 0.45);
+   const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, 1.45), speed = actor.adventure.state.health <= 0 ? 0 : actor.adventure.guarding ? 2 : 4 * (1 - water * 0.45) * (actor.adventure.state.chill ? 0.65 : 1);
    const beforeY = p.y, dx = input.x / length * speed * dt, dz = input.z / length * speed * dt;
    actor.motor.step(p, dx, dz, input.jump, dt, water); input.jump = false;
    if (dx || dz) p.heading = Math.atan2(dx, dz);

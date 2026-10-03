@@ -17,5 +17,5 @@ test('host and three guests share movement, edits and disconnect safely', async 
   await host.locator('#session-menu').click(); await host.locator('#session-leave').click();
   for (const peer of pages.slice(1)) await expect(peer.locator('#session-status')).toHaveText('Single Player',{timeout:20000});
   expect(errors).toEqual([]);
- } finally { await Promise.all(contexts.map(c=>c.close())); }
+ } finally { if(errors.length) console.error('Browser errors:',errors); await Promise.all(contexts.map(c=>c.close())); }
 });

@@ -40,7 +40,7 @@ export class GameSimulation {
     const dt = 1 / TICK_RATE;
     const ix = Number.isFinite(input.x) ? input.x : 0, iz = Number.isFinite(input.z) ? input.z : 0;
     const length = Math.max(1, Math.hypot(ix, iz));
-    const immersion = this.fluid.immersion(this.player, 1.45), speed = this.adventure.state.health <= 0 ? 0 : this.adventure.guarding ? 2 : 4 * (1 - immersion * 0.45);
+    const immersion = this.fluid.immersion(this.player, 1.45), speed = this.adventure.state.health <= 0 ? 0 : this.adventure.guarding ? 2 : 4 * (1 - immersion * 0.45) * (this.adventure.state.chill ? 0.65 : 1);
     const flow = this.fluid.current(this.player);
     const dx = ix / length * speed * dt + flow.x * immersion * dt, dz = iz / length * speed * dt + flow.z * immersion * dt;
     const p = this.player;

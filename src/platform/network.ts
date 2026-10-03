@@ -7,11 +7,16 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
  let session: WebRTCSession | null = null, guest = false, sequence = 0, lastState: Snapshot | null = null, edits: EditOperation[] = [], dedicated: { send(type: string, value: unknown): void; leave(): Promise<unknown> } | null = null;
  const receive = (_peer: string, packet: PeerPacket) => {
   if (!guest) {
+   if (packet.type === 'resync') post({type:'peer-join',peer:_peer});
    if (packet.type === 'input') post({ type: 'peer-input', peer: _peer, input: packet.input as import('../simulation/protocol').PlayerInput, sequence: packet.sequence as number });
    if (packet.type === 'action') post({ type: 'peer-action', peer: _peer, message: packet.message as ClientMessage });
   } else if (packet.type === 'welcome') {
    const save = packet.save as WorldSave; lastState = packet.state as Snapshot; edits = save.edits; post({ type: 'replica-init', save }); post({ type: 'replica-state', state: lastState, edits }); status.textContent = '協力プレイに参加中';
-  } else if (packet.type === 'frame') { lastState = packet.state as Snapshot; edits = packet.edits as EditOperation[]; post({ type: 'replica-state', state: lastState, edits }); }
+  } else if (packet.type === 'frame') { lastState = packet.state as Snapshot; const incoming = packet.edits as EditOperation[], base = packet.editBase as number | undefined;
+   if(base === undefined) edits = incoming;
+   else if(base > edits.length){session?.broadcast({type:'resync'});return;}
+   else edits = [...edits.slice(0,base),...incoming];
+   post({ type: 'replica-state', state: lastState, edits }); }
  };
  const close = () => { session?.disconnect(); session = null; if (dedicated) void dedicated.leave(); dedicated = null; if (guest) { guest = false; void import('../save/storage').then(async s => post({ type: 'init', save: await s.loadWorld() })); } status.textContent = 'Single Player'; };
  document.querySelector('#session-menu')!.addEventListener('click', () => { panel.hidden = !panel.hidden; }, { signal });
@@ -45,14 +50,14 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
   get guest() { return guest; },
   forward(message: ClientMessage): boolean {
    if (!guest) return false;
-   if (message.type === 'input') { const packet = { type: 'input', input: message.input, sequence: ++sequence }; if (dedicated) dedicated.send('input', packet); else session?.broadcast(packet, true); }
+   if (message.type === 'input') { const packet = { type: 'input', input: message.input, sequence: ++sequence }; post({type:'replica-input',input:message.input,sequence}); if (dedicated) dedicated.send('input', packet); else session?.broadcast(packet, true); }
    else if (message.type === 'action' || message.type === 'game-action') { if (dedicated) dedicated.send('action', message); else session?.broadcast({ type: 'action', message }); }
    else if (message.type === 'save' || message.type === 'reset-player' || message.type === 'init') notice('ワールドの保存・読込はホストが管理します');
    return true;
   },
   receive(message: WorkerMessage): boolean {
    if (message.type === 'peer-welcome') { session?.send(message.peer, { type: 'welcome', save: message.save, state: message.state }); return true; }
-   if (message.type === 'peer-frame') { session?.send(message.peer, { type: 'frame', state: message.state, edits: message.edits }, false); return true; }
+   if (message.type === 'peer-frame') { session?.send(message.peer, { type: 'frame', state: message.state, editBase:message.editBase, edits: message.edits }, false); return true; }
    return false;
   },
  };

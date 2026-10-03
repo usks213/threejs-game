@@ -1,0 +1,10 @@
+# ADR 0005 — 無料中継、入力予測、差分同期
+2026-10-03。
+
+Host SessionのAuthorityはBrowser WorkerのSessionAuthorityに置く。通常はWebRTC Star、Cloudflare STUNを使う。8秒で直接接続しない場合は既存のSQLite Durable ObjectにWebSocket relayを通す。ゲームルール・世界保存・AIを中継サービスへ移さない。
+
+TURN専用契約を自動開始しない。Cloudflare standalone TURNは従量料金が必要なため、現時点は同じ招待サービスで無料プランのquota内に中継する。UDP遮断ネットワークでも通信できることをE2Eで別途検証する。無料quotaを超えたら失敗を表示し、有料化を自動で行わない。
+
+Reliable channelの大きなWorldSaveは16,000文字の断片へ分割する。断片自体は再分割しない。Peerごとに20MiBの待機上限を設け、送信バッファのlowイベントで再開する。進行中の接続を成功扱いにしない。
+
+入力には増加sequenceを付ける。Authorityは適用した入力のackを返す。参加者WorkerはCharacterMotorで即時予測し、Authorityの位置へ戻して未確認入力だけ再適用する。地形は受信順で差分適用し、欠落を検出した場合はWorldSaveを再要求する。報酬・Inventory・ダメージ・編集のAuthorityはHostに保つ。

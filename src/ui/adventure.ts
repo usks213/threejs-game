@@ -1,4 +1,4 @@
-import { BIOMES, BOSSES, BUILDINGS, ITEM_NAMES, RECIPES, SPELLS } from '../content/catalog';
+import { BIOMES, BOSSES, BUILDINGS, ITEM_NAMES, RECIPES, SPELLS, WEAPONS } from '../content/catalog';
 import type { AdventureSnapshot, GameAction } from '../game/types';
 export function adventureUI(signal: AbortSignal, action: (action: GameAction, id?: string) => void, selectBuilding: (id: string) => void) {
  const hud = document.querySelector<HTMLElement>('#adventure-hud')!, panel = document.querySelector<HTMLElement>('#adventure-panel')!, content = document.querySelector<HTMLElement>('#adventure-content')!;
@@ -8,11 +8,11 @@ export function adventureUI(signal: AbortSignal, action: (action: GameAction, id
  const render = () => {
   const s = latest; if (!s || panel.hidden) return;
   const next = tab + JSON.stringify([s.inventory, s.unlocked, s.defeated]); if (next === signature) return; signature = next;
-  if (tab === 'bag') content.innerHTML = `<p>${Object.entries(s.inventory).filter(([, n]) => n > 0).map(([id, n]) => `${ITEM_NAMES[id]} ×${n}`).join(' ／ ') || '素材を集めましょう'}</p><p>装備：${ITEM_NAMES[s.equipment] ?? '素手'}</p>${Object.keys(s.inventory).filter(id => s.inventory[id] > 0 && /Sword|sword|bow|staff/.test(id)).map(id => button(`${ITEM_NAMES[id]}を装備`, 'equip', id)).join('')}${button('食べる', 'eat')}${button('箱へ預ける／取り出す', 'chest')}`;
+  if (tab === 'bag') content.innerHTML = `<p>${Object.entries(s.inventory).filter(([, n]) => n > 0).map(([id, n]) => `${ITEM_NAMES[id]} ×${n}`).join(' ／ ') || '素材を集めましょう'}</p><p>装備：${ITEM_NAMES[s.equipment] ?? '素手'}</p>${Object.keys(s.inventory).filter(id => s.inventory[id] > 0 && WEAPONS[id]).map(id => button(`${ITEM_NAMES[id]}を装備`, 'equip', id)).join('')}${button('食べる', 'eat')}${button('箱へ預ける／取り出す', 'chest')}`;
   if (tab === 'craft') content.innerHTML = RECIPES.filter(r => r.tier <= s.unlocked).map(r => `<article><strong>${r.name}</strong><p>${label(r.cost)}${r.station ? ' ／ 作業台の近く' : ''}</p>${button('作る', 'craft', r.id)}</article>`).join('');
-  if (tab === 'build') content.innerHTML = `<p>部品を選び、地面に照準を合わせ「設置」を押す。床や柱を積む場合は既存部品を照準に合わせます。</p>${BUILDINGS.map(b => `<article><strong>${b.name}</strong><p>${label(b.cost)}</p>${button('配置する', 'place', b.id)}</article>`).join('')}${button('近くの建物を解体', 'remove')}${button('寝床と焚き火で休む', 'rest')}`;
+  if (tab === 'build') content.innerHTML = `<p>部品を選び、地面に照準を合わせ「設置」を押す。床や柱を積む場合は既存部品を照準に合わせます。</p>${BUILDINGS.map(b => `<article><strong>${b.name}</strong><p>${label(b.cost)}</p>${button('配置する', 'place', b.id)}</article>`).join('')}${button('近くの建物を解体', 'remove')}${button('寝床と焚き火で休む', 'rest')}${button('転移門を使う', 'portal')}`;
   if (tab === 'magic') content.innerHTML = `<p>作業台で杖を作ると使用できます。</p>${SPELLS.map(sp => `<article><strong>${sp.name}</strong><p>魔力 ${sp.mana}</p>${button('使う', 'spell', sp.id)}</article>`).join('')}`;
-  if (tab === 'world') content.innerHTML = `<p>${s.objective}</p>${BIOMES.map(b => `<article><strong>${b.name} / Tier ${b.tier}</strong><p>ボス：${BOSSES.find(v => v.id === b.boss)!.name}${s.defeated.includes(b.boss) ? ' 攻略済み' : ''}</p>${button(b.tier <= s.unlocked ? '地域へ移動' : '前のボスで解放', 'travel', b.id)}</article>`).join('')}${button('祭壇でボス召喚', 'summon')}<p>祭壇は各地域の中心から北へ14m。木材・樹脂や地域の素材を供えます。倒れると復活し、装備と素材は保持します。</p>`;
+  if (tab === 'world') content.innerHTML = `<p>${s.objective}</p>${BIOMES.map(b => `<article><strong>${b.name} / Tier ${b.tier}</strong><p>ボス：${BOSSES.find(v => v.id === b.boss)!.name}${s.defeated.includes(b.boss) ? ' 攻略済み' : ''}</p>${button(b.tier <= s.unlocked ? '地域へ移動' : '前のボスで解放', 'travel', b.id)}</article>`).join('')}${button('祭壇でボス召喚', 'summon')}<p>祭壇は各地域の中心から北へ14m。木材・樹脂や地域の素材を供えます。倒れると寝床から復活。装備は保持し、素材の20%は墓標で回収できます。転移門は設置順に二つずつ接続されます。</p>`;
  };
  document.querySelector('#adventure-menu')!.addEventListener('click', () => { panel.hidden = !panel.hidden; signature = ''; render(); }, { signal });
  document.querySelector('#adventure-close')!.addEventListener('click', () => { panel.hidden = true; }, { signal });

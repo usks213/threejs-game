@@ -1,3 +1,4 @@
+import { Prediction } from '../networking/prediction';
 /// <reference lib="webworker" />
 import { SessionAuthority } from './session';
 import { sessionFrame } from '../networking/frame';
@@ -10,6 +11,8 @@ import type { ClientMessage, PlayerInput, WorkerMessage } from './protocol';
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const emit = (message: WorkerMessage, transfer: Transferable[] = []) => scope.postMessage(message, transfer);
 let sim: GameSimulation | null = null, authority: SessionAuthority | null = null, replica = false;
+let prediction: Prediction | null = null, replicaState: import('./protocol').Snapshot | null = null;
+const peerEdits = new Map<string, number>();
 let input: PlayerInput = { x: 0, z: 0, jump: false };
 let bricks = new Map<string, Brick>();
 const pending = new Map<string, Brick>();
@@ -62,18 +65,22 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
   try {
     if (message.type === 'init' || message.type === 'replica-init') {
       if (bricks.size) emit({ type: 'remove', ids: [...bricks.keys()] });
-      authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; bricks.clear(); pending.clear(); triangles.clear(); dirtyMeshes.clear(); editedMeshes.clear(); center = ''; initialized = false; accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
-    } else if (message.type === 'peer-join' && authority && !replica) { authority.join(message.peer); emit({ type: 'peer-welcome', peer: message.peer, save: sim!.save(), state: sessionFrame(authority, message.peer) }); }
-    else if (message.type === 'peer-leave' && authority) authority.leave(message.peer);
+      authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); bricks.clear(); pending.clear(); triangles.clear(); dirtyMeshes.clear(); editedMeshes.clear(); center = ''; initialized = false; accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
+    } else if (message.type === 'peer-join' && authority && !replica) { authority.join(message.peer); peerEdits.set(message.peer, sim!.world.edits.length); emit({ type: 'peer-welcome', peer: message.peer, save: sim!.save(), state: sessionFrame(authority, message.peer) }); }
+    else if (message.type === 'peer-leave' && authority) { authority.leave(message.peer); peerEdits.delete(message.peer); }
     else if (message.type === 'peer-input' && authority && !replica) authority.input(message.peer, message.input, message.sequence);
     else if (message.type === 'peer-action' && authority && !replica) {
       const result = authority.action(message.peer, message.message);
       for (const id of result.dirty) { const b = bricks.get(id); if (b) { pending.set(id, b); dirtyMeshes.add(id); } } scheduleMesh();
       emit({ type: 'notice', message: result.message });
     } else if (message.type === 'replica-state' && sim && replica) {
-      Object.assign(sim.player, message.state.player);
+      replicaState = message.state;
       for (const edit of message.edits.slice(sim.world.edits.length)) for (const id of sim.world.apply(edit)) { const b = bricks.get(id); if (b) { pending.set(id, b); dirtyMeshes.add(id); } }
-      stream(); scheduleMesh(); emit({ type: 'snapshot', state: message.state });
+      prediction!.reconcile(message.state);
+      stream(); scheduleMesh(); emit({ type: 'snapshot', state: { ...message.state, player: { ...sim.player } } });
+    } else if (message.type === 'replica-input' && sim && replica && replicaState) {
+      prediction!.input(message.sequence,message.input);stream();
+      emit({type:'snapshot',state:{...replicaState,player:{...sim.player}}});
     } else if (message.type === 'input') input = { ...message.input, jump: input.jump || message.input.jump };
     else if (message.type === 'pause') { paused = message.paused; input = { x: 0, z: 0, jump: false }; previous = performance.now(); accumulator = 0; }
     else if (sim && message.type === 'reset-player') sim.resetPlayer();
@@ -96,7 +103,11 @@ setInterval(() => {
     const now = performance.now(); accumulator += Math.min(0.1, (now - previous) / 1000); previous = now;
     while (accumulator >= 1 / TICK_RATE) { authority!.step(input); input.jump = false; accumulator -= 1 / TICK_RATE; }
     stream();
-    if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') emit({ type: 'peer-frame', peer, state: sessionFrame(authority!, peer), edits: sim.world.edits });
+    if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') {
+      const base = peerEdits.get(peer) ?? 0;
+      emit({ type: 'peer-frame', peer, state: sessionFrame(authority!, peer), editBase: base, edits: sim.world.edits.slice(base) });
+      peerEdits.set(peer,sim.world.edits.length);
+    }
     emit({ type: 'snapshot', state: { peers: authority!.view('host').peers, tick: sim.tick, adventure: sim.adventure.snapshot(), player: { ...sim.player }, edits: sim.world.edits.length, fluids: sim.fluid.snapshot(), bodies: sim.bodies.filter(b => Math.hypot(b.position.x - sim!.player.x, b.position.z - sim!.player.z) < 65).map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })), metrics: { ...sim.metrics, meshMs, editMs, bricks: bricks.size, pending: pending.size, triangles: [...triangles.values()].reduce((a, b) => a + b, 0) } } });
   } catch (error) { paused = true; emit({ type: 'error', message: String(error) }); }
 }, 1000 / TICK_RATE);

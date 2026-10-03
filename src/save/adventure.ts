@@ -12,5 +12,6 @@ export function validateAdventure(raw: AdventureSave): AdventureSave {
  for (const n of s.resources) if (!ITEM_NAMES[n.kind] || !finite(n.amount, 100) || !finite(n.ready, 1e10)) throw new Error('資源データが不正です');
  for (const e of s.enemies) if (!(e.boss ? BOSSES : ENEMIES).some(d => d.id === e.definition) || !Number.isInteger(e.tier) || e.tier < 1 || e.tier > BIOMES.length || !Number.isFinite(e.health) || Math.abs(e.health) > 10000 || !finite(e.windup, 10) || !finite(e.slow, 10) || !Number.isFinite(e.cooldown) || Math.abs(e.cooldown) > 1e10 || !finiteVec({ x: e.homeX, y: 0, z: e.homeZ })) throw new Error('敵データが不正です');
  for (const b of s.buildings) if (!BUILDINGS.some(d => d.id === b.definition) || !finite(b.support, 10) || !Number.isFinite(b.rotation) || !items(b.contents)) throw new Error('建築データが不正です');
+ if ((s.poison !== undefined && !finite(s.poison, 60)) || (s.chill !== undefined && !finite(s.chill, 60)) || (s.grave !== undefined && !items(s.grave))) throw new Error('状態異常・墓標データが不正です');
  return structuredClone(s);
 }

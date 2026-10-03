@@ -22,7 +22,21 @@ export const BOSSES: BossDefinition[] = [
  { id: 'frostwing', name: '霜翼', health: 600, damage: 30, color: '#9fb9d3', summon: { crystal: 6, fang: 8 }, reward: 'aether', element: 'frost' },
  { id: 'riftheart', name: '星裂の心臓', health: 780, damage: 36, color: '#b189cf', summon: { aether: 8, crystal: 8 }, reward: 'star', element: 'magic' },
 ];
-export const ITEM_NAMES: Record<string, string> = { wood: '木材', stone: '石', resin: '樹脂', berry: '木の実', fang: '牙', copper: '銅鉱', iron: '鉄鉱', crystal: '霜晶', aether: '魔晶', star: '星核', sword: '石剣', axe: '石斧', shield: '木盾', bow: '弓', staff: '杖', armor: '革鎧', stew: '森の煮込み', copperSword: '銅剣', ironSword: '鉄剣', crystalSword: '霜晶剣', aetherSword: '星裂剣' };
+export const ITEM_NAMES: Record<string, string> = { wood: '木材', stone: '石', resin: '樹脂', berry: '木の実', fang: '牙', copper: '銅鉱', iron: '鉄鉱', crystal: '霜晶', aether: '魔晶', star: '星核', sword: '石剣', axe: '石斧', shield: '木盾', bow: '弓', staff: '杖', armor: '革鎧', stew: '森の煮込み', copperSword: '銅剣', ironSword: '鉄剣', crystalSword: '霜晶剣', aetherSword: '星裂剣', greatsword: '大剣', spear: '槍', book: '魔導書' };
+export const WEAPONS: Record<string, { damage: number; reach: number; stamina: number; cooldown: number; ranged?: boolean }> = {
+ hands: { damage: 7, reach: 2.2, stamina: 8, cooldown: 0.35 },
+ axe: { damage: 16, reach: 2.5, stamina: 12, cooldown: 0.5 },
+ sword: { damage: 18, reach: 2.7, stamina: 12, cooldown: 0.4 },
+ greatsword: { damage: 32, reach: 3.4, stamina: 20, cooldown: 0.8 },
+ spear: { damage: 20, reach: 4, stamina: 12, cooldown: 0.5 },
+ bow: { damage: 25, reach: 25, stamina: 12, cooldown: 0.6, ranged: true },
+ staff: { damage: 10, reach: 2.5, stamina: 10, cooldown: 0.5 },
+ book: { damage: 8, reach: 2.2, stamina: 8, cooldown: 0.4 },
+ copperSword: { damage: 26, reach: 2.7, stamina: 12, cooldown: 0.4 },
+ ironSword: { damage: 36, reach: 2.8, stamina: 13, cooldown: 0.4 },
+ crystalSword: { damage: 48, reach: 2.9, stamina: 14, cooldown: 0.4 },
+ aetherSword: { damage: 62, reach: 3, stamina: 15, cooldown: 0.4 },
+};
 export interface RecipeDefinition { id: string; name: string; cost: Record<string, number>; output: string; amount: number; tier: number; station: boolean }
 export const RECIPES: RecipeDefinition[] = [
  { id: 'axe', name: '石斧', cost: { wood: 3, stone: 2 }, output: 'axe', amount: 1, tier: 1, station: false },
@@ -32,6 +46,9 @@ export const RECIPES: RecipeDefinition[] = [
  { id: 'staff', name: '杖', cost: { wood: 5, resin: 3, stone: 3 }, output: 'staff', amount: 1, tier: 1, station: true },
  { id: 'armor', name: '革鎧', cost: { fang: 4, resin: 2 }, output: 'armor', amount: 1, tier: 1, station: true },
  { id: 'stew', name: '森の煮込み', cost: { berry: 3 }, output: 'stew', amount: 1, tier: 1, station: false },
+ { id: 'greatsword', name: '大剣', cost: { wood: 4, stone: 8 }, output: 'greatsword', amount: 1, tier: 1, station: true },
+ { id: 'spear', name: '槍', cost: { wood: 4, stone: 3 }, output: 'spear', amount: 1, tier: 1, station: false },
+ { id: 'book', name: '魔導書', cost: { wood: 3, resin: 5, crystal: 2 }, output: 'book', amount: 1, tier: 3, station: true },
  ...['copper', 'iron', 'crystal', 'aether'].map((material, i) => ({ id: material + 'Sword', name: ['銅剣', '鉄剣', '霜晶剣', '星裂剣'][i], cost: { [material]: 6, wood: 4 }, output: material + 'Sword', amount: 1, tier: i + 2, station: true })),
 ];
 export interface BuildingDefinition { id: string; name: string; cost: Record<string, number>; size: [number, number, number]; support: number; color: string; station?: boolean }
@@ -45,6 +62,8 @@ export const BUILDINGS: BuildingDefinition[] = [
  { id: 'fire', name: '焚き火', cost: { wood: 3, stone: 3 }, size: [0.7, 0.3, 0.7], support: 2, color: '#ea9e52' },
  { id: 'bed', name: '寝床', cost: { wood: 5, resin: 2 }, size: [1, 0.3, 2], support: 2, color: '#9caa76' },
  { id: 'chest', name: '箱', cost: { wood: 5 }, size: [1, 0.8, 0.7], support: 3, color: '#9f794e' },
+ { id: 'spring', name: '水源', cost: { stone: 6, crystal: 1 }, size: [1, 0.6, 1], support: 3, color: '#69b5c9' },
+ { id: 'drain', name: '排水器', cost: { stone: 4, copper: 2 }, size: [1, 0.3, 1], support: 3, color: '#667e85' },
  { id: 'portal', name: '転移門', cost: { wood: 10, crystal: 2 }, size: [2, 3, 0.4], support: 3, color: '#ae9dcc' },
 ];
 export const SPELLS = [

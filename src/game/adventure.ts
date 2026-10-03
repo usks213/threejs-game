@@ -1,4 +1,5 @@
-import { BIOMES, BOSSES, BUILDINGS, ENEMIES, ITEM_NAMES, RECIPES, SPELLS, biomeAt } from '../content/catalog';
+import { bossAttack, directedShot } from './bosses';
+import { BIOMES, BOSSES, BUILDINGS, ENEMIES, ITEM_NAMES, RECIPES, SPELLS, WEAPONS, biomeAt } from '../content/catalog';
 import { environmentAt } from '../environment/time';
 import type { GameSimulation } from '../simulation/game-simulation';
 import type { Vec3 } from '../world/types';
@@ -6,8 +7,10 @@ import type { AdventureSave, AdventureSnapshot, GameAction, EnemyState, Projecti
 const distance = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.z - b.z);
 export class Adventure {
  readonly state: AdventureSave;
+ owner = 'host';
+ private readonly charges = new Map<number,{x:number;z:number;seconds:number}>();
  projectiles: Projectile[] = [];
- guarding = false; dodge = 0; attack = 0; private cast = 0; private nextId = 3000000; private tiles = new Set<number>(); private dodgeX = 0; private dodgeZ = 0; private hurt = 0; private respawn = 0;
+ guarding = false; dodge = 0; attack = 0; private cast = 0; private nextId = 3000000; private tiles = new Set<number>(); private dodgeX = 0; private dodgeZ = 0; private hurt = 0; private respawn = 0; private portalCooldown = 0; private poisonTick = 0;
  constructor(readonly sim: GameSimulation, saved?: AdventureSave) {
   this.state = saved ?? { seconds: 0, health: 100, stamina: 100, mana: 70, inventory: { berry: 3 }, equipment: 'hands', unlocked: 1, defeated: [], resources: [], enemies: [], buildings: [], death: null, food: 0, rested: 0, spawn: null };
   if (!saved) for (const biome of BIOMES) {
@@ -47,21 +50,22 @@ export class Adventure {
   if (enemy.health <= 0) {
    if (!enemy.boss) enemy.respawnAt = this.state.seconds + 120;
    this.grant('fang', enemy.boss ? 8 : 1); this.grant('resin', enemy.boss ? 5 : 1);
-   if (enemy.boss && !this.state.defeated.includes(enemy.definition)) { this.state.defeated.push(enemy.definition); this.state.unlocked = Math.min(5, Math.max(this.state.unlocked, enemy.tier + 1)); this.grant(BOSSES.find(b => b.id === enemy.definition)!.reward, 4); }
+   if (enemy.boss && !this.state.defeated.includes(enemy.definition)) { this.state.defeated.push(enemy.definition); this.state.unlocked = Math.min(5, Math.max(this.state.unlocked, enemy.tier + 1)); this.sim.adventure.state.unlocked = this.state.unlocked; this.grant(BOSSES.find(b => b.id === enemy.definition)!.reward, 4); }
   }
  }
  hurtPlayer(amount: number, element: string, player = this.sim.player): void {
   if (this.hurt > 0 || this.dodge > 0 || this.state.health <= 0) return;
   if (this.guarding && this.state.inventory.shield) { const parry = this.attack > 0.05; this.state.stamina = Math.max(0, this.state.stamina - amount * 0.4); amount *= parry ? 0.1 : 0.3; }
   const armor = this.state.inventory.armor ? 0.75 : 1;
+  if (element === 'poison') this.state.poison = 8; if (element === 'frost') this.state.chill = 5;
   this.state.health = Math.max(0, this.state.health - amount * armor * (element === 'frost' && this.state.rested > 0 ? 0.8 : 1)); this.hurt = 0.65;
-  if (this.state.health <= 0) { const p = player; this.state.death = { x: p.x, y: p.y, z: p.z }; this.state.stamina = 0; this.respawn = 3; }
+  if (this.state.health <= 0) { const p = player; this.state.death = { x: p.x, y: p.y, z: p.z }; this.state.stamina = 0; this.respawn = 3; this.state.grave = {}; for (const id of ['wood', 'stone', 'copper', 'iron', 'crystal', 'aether', 'resin', 'fang', 'berry']) { const lost = Math.floor((this.state.inventory[id] ?? 0) * 0.2); if (lost) { this.state.grave[id] = lost; this.state.inventory[id] -= lost; } } }
  }
  action(action: GameAction, id = '', target?: Vec3, aim: Vec3 = { x: 0, y: 0, z: -1 }): { dirty: string[]; message: string } {
   const p = this.sim.player, s = this.state, ground = target ?? { x: p.x + aim.x * 2.5, y: p.y, z: p.z + aim.z * 2.5 };
   if (s.health <= 0) throw new Error('復活を待ってください');
   if (action === 'gather') {
-   if (s.death && distance(p, s.death) < 2.5) { s.death = null; s.stamina = 100; return { dirty: [], message: '墓標へ戻りました。体力とスタミナが回復します' }; }
+   if (s.death && distance(p, s.death) < 2.5) { for (const [id, amount] of Object.entries(s.grave ?? {})) this.grant(id, amount); s.grave = {}; s.death = null; s.health = Math.min(100, s.health + 30); s.stamina = 100; return { dirty: [], message: '墓標へ戻りました。体力とスタミナが回復します' }; }
    const nodes = s.resources.filter(n => n.ready <= s.seconds && distance(p, n) < 3).sort((a, b) => distance(p, a) - distance(p, b)), node = nodes[0];
    if (!node) throw new Error('木・石・木の実・鉱脈に近づいてください');
    const tier = biomeAt(node.x, node.z).tier; if (tier > s.unlocked) throw new Error('前の地域のボスを倒して採掘技術を解放してください');
@@ -71,24 +75,28 @@ export class Adventure {
   if (action === 'craft') {
    const recipe = RECIPES.find(r => r.id === id); if (!recipe || recipe.tier > s.unlocked) throw new Error('未解放のレシピです');
    if (recipe.station && !s.buildings.some(b => b.definition === 'bench' && distance(p, b) < 5)) throw new Error('作業台の近くで作ってください');
-   this.spend(recipe.cost); this.grant(recipe.output, recipe.amount); if (/Sword|sword|bow|staff/.test(id)) s.equipment = id;
+   this.spend(recipe.cost); this.grant(recipe.output, recipe.amount); if (WEAPONS[id]) s.equipment = id;
    return { dirty: [], message: `${recipe.name}を作りました` };
   }
-  if (action === 'equip') { if (!(s.inventory[id] > 0)) throw new Error('その装備は持っていません'); s.equipment = id; return { dirty: [], message: `${ITEM_NAMES[id]}を装備` }; }
+  if (action === 'equip') { if (!(s.inventory[id] > 0) || !WEAPONS[id]) throw new Error('その装備は持っていません'); s.equipment = id; return { dirty: [], message: `${ITEM_NAMES[id]}を装備` }; }
   if (action === 'eat') { const food = s.inventory.stew ? 'stew' : 'berry'; this.spend({ [food]: 1 }); s.food = food === 'stew' ? 300 : 90; s.health = Math.min(100, s.health + (food === 'stew' ? 35 : 12)); return { dirty: [], message: '食事で回復。しばらく体力が自然回復します' }; }
   if (action === 'guard') { this.guarding = !this.guarding; this.attack = 0.25; return { dirty: [], message: this.guarding ? 'ガード中：もう一度押して解除' : 'ガード解除' }; }
   if (action === 'dodge') { if (this.dodge > 0) throw new Error('回避中です'); this.stamina(22); this.dodge = 0.4; this.dodgeX = aim.x; this.dodgeZ = aim.z; this.guarding = false; return { dirty: [], message: '回避' }; }
   if (action === 'attack' || action === 'heavy') {
-   if (this.attack > 0) throw new Error('攻撃の回復を待ってください'); this.stamina(action === 'heavy' ? 24 : 12); this.attack = action === 'heavy' ? 0.8 : 0.4;
-   const tier = ['hands', 'sword', 'copperSword', 'ironSword', 'crystalSword', 'aetherSword'].indexOf(s.equipment), damage = (tier < 0 ? 10 : [7, 18, 26, 36, 48, 62][tier]) * (action === 'heavy' ? 1.7 : 1);
-   if (s.equipment === 'bow') { this.projectile(aim, 22 + s.unlocked * 3, 'physical', 0.15); return { dirty: [], message: '矢を放ちました' }; }
-   for (const e of s.enemies) if (e.health > 0 && distance(p, e) < (action === 'heavy' ? 3.1 : 2.7) && Math.abs(e.y - p.y) < 3) {
-    const d = distance(p, e); if (d < 1 || ((e.x - p.x) * aim.x + (e.z - p.z) * aim.z) / d > 0.1) this.hit(e, damage, 'physical');
+   if (this.attack > 0) throw new Error('攻撃の回復を待ってください'); const weapon = WEAPONS[s.equipment] ?? WEAPONS.hands, heavy = action === 'heavy';
+   this.stamina(weapon.stamina * (heavy ? 1.8 : 1)); this.attack = weapon.cooldown * (heavy ? 1.8 : 1);
+   const damage = weapon.damage * (heavy ? 1.7 : 1);
+   if (weapon.ranged) { this.projectile(aim, damage, 'physical', 0.15); return { dirty: [], message: '矢を放ちました' }; }
+   for (const e of s.enemies) if (e.health > 0 && distance(p, e) < weapon.reach + (heavy ? 0.4 : 0) && Math.abs(e.y - p.y) < 3) {
+    const d = distance(p, e); if (d < 1 || ((e.x - p.x) * aim.x + (e.z - p.z) * aim.z) / d > 0.1) {
+     this.hit(e, damage, 'physical');
+     if (heavy || damage >= 25) { e.windup = 0; e.cooldown = Math.max(e.cooldown, 0.7); const push = e.boss ? 0.15 : 0.7; e.x += (e.x - p.x) / Math.max(d, 0.01) * push; e.z += (e.z - p.z) / Math.max(d, 0.01) * push; }
+    }
    }
    return { dirty: [], message: action === 'heavy' ? '強攻撃' : '攻撃' };
   }
   if (action === 'spell') {
-   const spell = SPELLS.find(v => v.id === id); if (!spell) throw new Error('未知の魔法です'); if (!s.inventory.staff) throw new Error('杖を作ると魔法が使えます');
+   const spell = SPELLS.find(v => v.id === id); if (!spell) throw new Error('未知の魔法です'); if (!s.inventory.staff && !s.inventory.book) throw new Error('杖を作ると魔法が使えます');
    if (this.cast > 0 || s.mana < spell.mana) throw new Error('魔力不足、または詠唱の回復中です'); s.mana -= spell.mana; this.cast = spell.cooldown;
    let dirty: string[] = [];
    if (id === 'mend') s.health = Math.min(100, s.health + 35);
@@ -115,12 +123,26 @@ export class Adventure {
    if (s.enemies.some(e => e.boss && e.definition === boss.id && e.health > 0)) throw new Error('ボスはすでに出現しています');
    this.spend(boss.summon); s.enemies.push(this.enemy(this.nextId++, boss.id, biome.tier, biome.center.x, biome.center.z - 18, true)); return { dirty: [], message: `${boss.name}が現れました` };
   }
+  if (action === 'portal') {
+   if (this.portalCooldown > 0) throw new Error('転移門が安定するまで待ってください');
+   const portals = s.buildings.filter(b => b.definition === 'portal').sort((a,b) => a.id-b.id);
+   const index = portals.findIndex(b => distance(p,b) < 3);
+   if (index < 0) throw new Error('転移門に近づいてください');
+   const destination = portals[index % 2 === 0 ? index + 1 : index - 1];
+   if (!destination) throw new Error('もう一つ転移門を作ると接続されます');
+   p.x = destination.x + Math.sin(destination.rotation) * 2; p.z = destination.z + Math.cos(destination.rotation) * 2;
+   p.y = Math.max(destination.y, this.sim.groundAt(p.x,p.z)) + 0.5; p.vy = 0; p.grounded = false; this.portalCooldown = 3;
+   return { dirty: [], message: '接続した転移門へ移動しました' };
+  }
   if (action === 'travel') { const biome = BIOMES.find(b => b.id === id); if (!biome || biome.tier > s.unlocked) throw new Error('未解放の地域です'); p.x = biome.center.x; p.z = biome.center.z + 8; p.y = this.sim.groundAt(p.x, p.z) + 1; p.vy = 0; p.grounded = false; return { dirty: [], message: `${biome.name}へ移動しました` }; }
-  if (action === 'rest') { const bed = s.buildings.find(b => b.definition === 'bed' && distance(p, b) < 4), fire = s.buildings.some(b => b.definition === 'fire' && distance(p, b) < 5); if (!bed || !fire) throw new Error('寝床と焚き火を近くに作ってください'); s.rested = 300; s.health = 100; s.spawn = { x: bed.x, y: bed.y + 1, z: bed.z + 2 }; s.seconds += 90; return { dirty: [], message: '休息しました。ここが復活地点になります' }; }
+  if (action === 'rest') { const bed = s.buildings.find(b => b.definition === 'bed' && distance(p, b) < 4), fire = s.buildings.some(b => b.definition === 'fire' && distance(p, b) < 5); if (!bed || !fire) throw new Error('寝床と焚き火を近くに作ってください'); s.rested = 300; s.health = 100; s.spawn = { x: bed.x, y: bed.y + 1, z: bed.z + 2 }; s.seconds += ((7 - (s.seconds / 720 * 24 + 9) % 24 + 24) % 24 || 24) / 24 * 720; return { dirty: [], message: '休息しました。ここが復活地点になります' }; }
   if (action === 'chest') { const chest = s.buildings.find(b => b.definition === 'chest' && distance(p, b) < 3); if (!chest) throw new Error('箱に近づいてください'); if (Object.values(chest.contents).some(v => v > 0)) { for (const [material, amount] of Object.entries(chest.contents)) this.grant(material, amount); chest.contents = {}; return { dirty: [], message: '箱の素材を取り出しました' }; } for (const material of ['wood', 'stone', 'copper', 'iron', 'crystal', 'aether']) { const amount = s.inventory[material] ?? 0; if (amount) { chest.contents[material] = amount; s.inventory[material] = 0; } } return { dirty: [], message: '素材を箱へ預けました' }; }
   throw new Error('未知のゲーム操作です');
  }
- private projectile(aim: Vec3, damage: number, element: string, radius: number): void { const p = this.sim.player; this.projectiles.push({ id: this.nextId++, x: p.x, y: p.y + 1, z: p.z, vx: aim.x * 12, vy: aim.y * 12, vz: aim.z * 12, life: 2.5, damage, element, radius }); }
+ private projectile(aim: Vec3, damage: number, element: string, radius: number): void { const p = this.sim.player;
+  const target = this.state.enemies.filter(e => e.health > 0 && distance(p,e) < 25 && ((e.x-p.x)*aim.x+(e.z-p.z)*aim.z)/Math.max(0.01,distance(p,e)) > 0.65).sort((a,b)=>distance(p,a)-distance(p,b))[0];
+  if (target) { const dx=target.x-p.x, dy=target.y+(target.boss?1.7:0.6)-p.y-1, dz=target.z-p.z, length=Math.hypot(dx,dy,dz); aim={x:dx/length,y:dy/length,z:dz/length}; }
+  this.projectiles.push({ id: this.nextId++, owner: this.owner, x: p.x, y: p.y + 1, z: p.z, vx: aim.x * 12, vy: aim.y * 12, vz: aim.z * 12, life: 2.5, damage, element, radius }); }
  support(): void {
   const buildings = this.state.buildings;
   for (const b of buildings) b.support = this.sim.world.density({ x: b.x, y: b.y - 0.15, z: b.z }) < 0.2 ? BUILDINGS.find(d => d.id === b.definition)!.support : 0;
@@ -145,6 +167,9 @@ export class Adventure {
  }
  stepPersonal(dt: number): void {
   const s = this.state, p = this.sim.player; s.seconds += dt; this.attack = Math.max(0, this.attack - dt); this.cast = Math.max(0, this.cast - dt); this.hurt = Math.max(0, this.hurt - dt); this.dodge = Math.max(0, this.dodge - dt);
+  this.portalCooldown = Math.max(0, this.portalCooldown - dt);
+  s.poison = Math.max(0, (s.poison ?? 0) - dt); s.chill = Math.max(0, (s.chill ?? 0) - dt);
+  if (s.poison > 0 && s.health > 0) { this.poisonTick += dt; if (this.poisonTick >= 1) { this.poisonTick = 0; this.hurtPlayer(2, 'physical'); } } else this.poisonTick = 0;
   s.food = Math.max(0, s.food - dt); s.rested = Math.max(0, s.rested - dt); s.stamina = Math.min(100, s.stamina + dt * (this.guarding ? 3 : s.rested ? 20 : 12)); s.mana = Math.min(70, s.mana + dt * 6);
   if (s.health <= 0) { this.respawn -= dt; if (this.respawn <= 0) { this.sim.resetPlayer(); if (s.spawn) Object.assign(p, s.spawn); s.health = 70; s.stamina = 100; } return; }
   if (s.food > 0) s.health = Math.min(100, s.health + dt * 0.8);
@@ -164,18 +189,49 @@ export class Adventure {
    e.slow = Math.max(0, e.slow - dt); e.cooldown -= dt;
    if (d < (e.boss ? 25 : environmentAt(s.seconds).daylight < 0.2 ? 15 : 10) && d > reach) { e.x += (p.x - e.x) / d * speed * dt * (e.slow ? 0.4 : 1); e.z += (p.z - e.z) / d * speed * dt * (e.slow ? 0.4 : 1); }
    e.y = this.sim.groundAt(e.x, e.z);
+   if (e.boss) {
+    const ability = bossAttack(e.definition, e.health < def.health / 2), charge = this.charges.get(e.id);
+    if (charge) {
+     const length=Math.hypot(charge.x,charge.z); e.x+=charge.x/Math.max(length,0.01)*12*dt; e.z+=charge.z/Math.max(length,0.01)*12*dt; charge.seconds-=dt;
+     for(const actor of this.sim.targets)if(distance(actor.player,e)<2.6)actor.adventure.hurtPlayer(def.damage,def.element,actor.player);
+     if(charge.seconds<=0)this.charges.delete(e.id);
+    } else if (e.windup > 0) {
+     e.windup -= dt;
+     if (e.windup <= 0) {
+      if (ability.charge) this.charges.set(e.id,{x:p.x-e.x,z:p.z-e.z,seconds:0.75});
+      else if (ability.shots) {
+       for(let j=0;j<ability.shots;j++) {
+        const from={x:e.x,y:e.y+2,z:e.z},velocity=directedShot(from,{x:p.x,y:p.y+0.7,z:p.z},(j-(ability.shots-1)/2)*0.15);
+        this.projectiles.push({id:this.nextId++,owner:'enemy:'+e.id,...from,vx:velocity.x,vy:velocity.y,vz:velocity.z,life:4,damage:def.damage,element:ability.element,radius:0.35});
+       }
+       if(e.definition==='frostwing')this.sim.fluid.freeze(e,6);
+      } else for(const actor of this.sim.targets)if(distance(actor.player,e)<ability.radius) {
+       actor.adventure.hurtPlayer(def.damage,def.element,actor.player); actor.adventure.state.chill=2;
+      }
+      e.cooldown=ability.cooldown;
+     }
+    } else if (d < 25 && e.cooldown <= 0) e.windup = ability.windup;
+    continue;
+   }
    if (e.windup > 0) { e.windup -= dt; if (e.windup <= 0) { if (d < reach + 0.8) target.adventure.hurtPlayer(def.damage * (e.boss ? 1 : 1 + (e.tier - 1) * 0.35), def.element, p); e.cooldown = e.boss && e.health < def.health / 2 ? 1.2 : 2; } }
    else if (d < reach + 0.4 && e.cooldown <= 0) e.windup = e.boss ? 0.8 : 0.55;
   }
   for (let i = this.projectiles.length - 1; i >= 0; i--) {
    const shot = this.projectiles[i]; shot.life -= dt; shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.z += shot.vz * dt;
-   const enemy = s.enemies.find(e => e.health > 0 && Math.hypot(e.x - shot.x, e.y + (e.boss ? 1.7 : 0.6) - shot.y, e.z - shot.z) < shot.radius + (e.boss ? 1.8 : 0.7));
-   if (enemy) { this.hit(enemy, shot.damage, shot.element); shot.life = 0; }
+   const hostile = shot.owner?.startsWith('enemy:');
+   if(hostile) for(const actor of this.sim.targets)if(Math.hypot(actor.player.x-shot.x,actor.player.y+0.7-shot.y,actor.player.z-shot.z)<shot.radius+0.6){actor.adventure.hurtPlayer(shot.damage,shot.element,actor.player);shot.life=0;}
+   const enemy = !hostile && s.enemies.find(e => e.health > 0 && Math.hypot(e.x - shot.x, e.y + (e.boss ? 1.7 : 0.6) - shot.y, e.z - shot.z) < shot.radius + (e.boss ? 1.8 : 0.7));
+   if (enemy) { const owner = this.sim.targets.find(t => t.adventure.owner === shot.owner)?.adventure ?? this; owner.hit(enemy, shot.damage, shot.element); shot.life = 0; }
    if (shot.element === 'frost' && (this.sim.fluid.immersion(shot, 0.3) > 0 || this.sim.world.density(shot) <= 0)) { this.sim.fluid.freeze(shot, 3); shot.life = 0; }
    if (shot.life <= 0 || this.sim.world.density(shot) <= 0) this.projectiles.splice(i, 1);
   }
   if (this.sim.tick % 30 === 0) {
-   this.support(); const weather = environmentAt(s.seconds, biomeAt(this.sim.player.x, this.sim.player.z).tier).weather;
+   this.support();
+   for (const b of s.buildings) {
+    if (b.definition === 'spring') this.sim.fluid.add({x:b.x,y:b.y+1,z:b.z},0.8);
+    if (b.definition === 'drain') this.sim.fluid.drain({x:b.x,y:b.y,z:b.z},2);
+   }
+   const weather = environmentAt(s.seconds, biomeAt(this.sim.player.x, this.sim.player.z).tier).weather;
    if (weather === 'rain' || weather === 'storm') { const x = this.sim.player.x + Math.sin(this.sim.tick * 3.17) * 6, z = this.sim.player.z + Math.cos(this.sim.tick * 5.13) * 6; this.sim.fluid.add({ x, y: this.sim.groundAt(x, z) + 3, z }, weather === 'storm' ? 1 : 0.4); }
   }
  }

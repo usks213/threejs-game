@@ -41,9 +41,20 @@ export class FluidGrid {
     if (accepted > 0) { if (existing) existing.volume += accepted; else this.cells.set(id, { ...cell, volume: accepted }); }
     return accepted;
   }
+  drain(p: Vec3, radius: number, volume = 2): number {
+    let removed = 0;
+    for (const [id, cell] of this.cells) {
+      if (Math.hypot(cell.x + 0.5 - p.x, cell.y + 0.5 - p.y, cell.z + 0.5 - p.z) > radius) continue;
+      const amount = Math.min(cell.volume, volume - removed); cell.volume -= amount; removed += amount;
+      if (cell.volume <= 0.000001) { this.cells.delete(id); this.frozen.delete(id); }
+      if (removed >= volume) break;
+    }
+    return removed;
+  }
   restore(cells: FluidCell[]): void {
+    this.cells.clear(); this.frozen.clear();
     // Old saves may contain water overlapped by terrain: preserve it until redistribution.
-    for (const c of cells) this.cells.set(key(c), { x: c.x, y: c.y, z: c.z, volume: c.volume });
+    for (const c of cells) { this.cells.set(key(c), { x: c.x, y: c.y, z: c.z, volume: c.volume }); if(c.frozen)this.frozen.set(key(c),this.phase+80); }
   }
   private transfer(cell: FluidCell, p: Vec3, wanted: number): number {
     const amount = Math.min(cell.volume, Math.max(0, wanted));

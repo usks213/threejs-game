@@ -71,3 +71,11 @@ describe('review interactions', () => {
     for (let i = 1; i < partial * 3; i += 3) expect(positions[i]).toBeGreaterThan(0.4);
   });
 });
+
+it('shares heights between unequal water columns without an internal wall',()=>{
+ const positions=new Float32Array(WATER_VERTEX_CAPACITY*3),normals=new Float32Array(positions.length);
+ const count=waterSurface([{x:0,y:0,z:0,volume:0.4},{x:1,y:0,z:0,volume:0.8}],positions,normals);
+ expect(count).toBe(60);
+ const edge:number[]=[]; for(let i=0;i<count;i++)if(positions[i*3]===1 && normals[i*3+1]===1)edge.push(positions[i*3+1]);
+ expect(edge.length).toBeGreaterThan(0); for(const y of edge)expect(y).toBeCloseTo(0.6);
+});
