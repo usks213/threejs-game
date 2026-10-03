@@ -120,6 +120,7 @@ test('survival adventure collects food, opens crafting and persists its inventor
 
 
 test('renders equipped characters, textured terrain and water without shader errors', async ({ page }, info) => {
+ test.setTimeout(120000);
  const errors: string[] = [];
  page.on('pageerror', error => errors.push(error.message));
  page.on('console', message => { if (message.type() === 'error' && /THREE|WebGL|shader/i.test(message.text())) errors.push(message.text()); });
@@ -135,6 +136,21 @@ test('renders equipped characters, textured terrain and water without shader err
  await expect(page.locator('#notice')).toContainText('水を流しました');
  await cooldown(page, 10); await page.locator('#attack').click();
  await cooldown(page, 15); await page.screenshot({ path: info.outputPath('terra-materials-avatar-water.png') });
+ const graphics=async()=>JSON.parse((await page.locator('#app').getAttribute('data-graphics'))!);
+ await expect.poll(async()=>(await graphics()).shUpdates).toBeGreaterThan(0);
+ await expect.poll(async()=>(await graphics()).samples).toBeGreaterThan(0);
+ const day=await graphics();expect(day.shEnergy).toBeGreaterThan(0);expect(day.luminance).toBeGreaterThan(0);expect(day.probeError).toBe('');
+ expect(day.features).toEqual(['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']);
+ await page.setViewportSize({width:844,height:390});await page.screenshot({path:info.outputPath('pbr-day-hdr.png')});
+ sim.adventure.state.seconds=450; // Midnight, using the same authoritative save/import path as players.
+ sim.adventure.state.equipment='staff';
+ await page.locator('#import-file').setInputFiles({name:'night-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});
+ await expect.poll(async()=>(await graphics()).hour).toBeLessThan(3);
+ await expect.poll(async()=>(await graphics()).shUpdates).toBeGreaterThan(day.shUpdates);
+ await expect.poll(async()=>(await graphics()).luminance,{timeout:30000}).toBeLessThan(day.luminance*.8);
+ await expect.poll(async()=>(await graphics()).exposure,{timeout:30000}).toBeGreaterThan(day.exposure*1.15);
+ await page.screenshot({path:info.outputPath('pbr-night-hdr.png')});
+ await info.attach('graphics-measurements',{body:JSON.stringify({day,night:await graphics()},null,2),contentType:'application/json'});
  await expect(page.locator('#error')).toBeHidden(); expect(errors).toEqual([]);
 });
 

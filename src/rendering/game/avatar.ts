@@ -1,3 +1,4 @@
+import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 
 export interface AvatarPose { equipment?: string; attack?: number; guarding?: boolean; dodging?: boolean; shield?: boolean; grounded?: boolean }
@@ -7,7 +8,7 @@ export function createAvatarAssets() {
   const materials = new Map<string, THREE.MeshStandardMaterial>();
   const material = (color: string) => {
     let value = materials.get(color);
-    if (!value) { value = new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true }); materials.set(color, value); }
+    if (!value) { value = pbrMaterial(color, ['#c8d1c9','#a9b4aa','#bdab77','#d8be81'].includes(color)?'metal':['#795738','#765744','#98744c','#8c6c47'].includes(color)?'wood':color==='#eed0a3'?'skin':color==='#9bd7dc'?'crystal':['#493d34','#65513c','#8d71a3'].includes(color)?'leather':'cloth'); materials.set(color, value); }
     return value;
   };
   function part(parent: THREE.Group, geometry: THREE.BufferGeometry, color: string, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1): THREE.Mesh {
@@ -38,7 +39,7 @@ export function createAvatarAssets() {
       function weapon(name: string): THREE.Group { const w = new THREE.Group(); weapons.set(name, w); hand.add(w); w.visible = false; return w; }
       const sword = weapon('sword'); part(sword, blade, '#c8d1c9', 0, 0.4, 0); part(sword, box, '#795738', 0, 0, 0, 0.08, 0.26, 0.08); part(sword, box, '#bdab77', 0, 0.09, 0, 0.3, 0.045, 0.09);
       const axe = weapon('axe'); part(axe, box, '#795738', 0, 0.24, 0, 0.07, 0.7, 0.07); part(axe, box, '#a9b4aa', 0.1, 0.51, 0, 0.3, 0.2, 0.07);
-      const staff = weapon('staff'); part(staff, box, '#765744', 0, 0.23, 0, 0.08, 1.1, 0.08); const crystal = part(staff, head, '#9bd7dc', 0, 0.83, 0, 0.65, 1, 0.65); (crystal.material as THREE.MeshStandardMaterial).emissive.set('#22414e');
+      const staff = weapon('staff'); part(staff, box, '#765744', 0, 0.23, 0, 0.08, 1.1, 0.08); const crystal = part(staff, head, '#9bd7dc', 0, 0.83, 0, 0.65, 1, 0.65); (crystal.material as THREE.MeshStandardMaterial).emissive.set('#5296c4');(crystal.material as THREE.MeshStandardMaterial).emissiveIntensity=2;
       const spear = weapon('spear'); part(spear, box, '#795738', 0, 0.28, 0, 0.065, 1.35, 0.065); part(spear, blade, '#c8d1c9', 0, 1.03, 0, 0.7, 0.5, 0.7);
       const bow = weapon('bow'); part(bow, arc, '#98744c', 0, 0.2, 0).rotation.z = -Math.PI / 2;
       const book = weapon('book'); part(book, box, '#8d71a3', 0, 0.07, 0.05, 0.28, 0.36, 0.1);

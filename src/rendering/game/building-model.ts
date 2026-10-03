@@ -1,10 +1,11 @@
+import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 import { BUILDINGS } from '../../content/catalog';
 /** Original timber/stone kit. All pieces share a geometry and a small material palette. */
 export function buildingKit() {
  const box=new THREE.BoxGeometry(1,1,1),stone=new THREE.IcosahedronGeometry(1,0),cone=new THREE.ConeGeometry(1,1,7);
  const mats=new Map<string,THREE.MeshStandardMaterial>();
- const mat=(color:string)=>{let m=mats.get(color);if(!m){m=new THREE.MeshStandardMaterial({color,roughness:.9});mats.set(color,m);}return m;};
+ const mat=(color:string)=>{let m=mats.get(color);if(!m){m=pbrMaterial(color, ['#585d57','#ddbc78'].includes(color)?'metal':['#737970','#8a8e80','#797e74'].includes(color)?'stone':['#849563','#d2c8a7'].includes(color)?'cloth':color==='#a896c7'?'crystal':'wood');mats.set(color,m);}return m;};
  function make(id:string){
   const g=new THREE.Group(),def=BUILDINGS.find(b=>b.id===id)!;
   const part=(color:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,shape:THREE.BufferGeometry=box)=>{const m=new THREE.Mesh(shape,mat(color));m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;};
@@ -22,7 +23,7 @@ export function buildingKit() {
   }else if(id==='fire'){
    for(let i=0;i<9;i++){const a=i*Math.PI*2/9;part('#737970',Math.sin(a)*.34,.12,Math.cos(a)*.34,.14,.12,.14,stone);}
    part(beam,0,.12,0,.5,.1,.14).rotation.y=.6;part(beam,0,.16,0,.5,.1,.14).rotation.y=-.6;
-   const flame=part('#ffc066',0,.45,0,.25,.65,.25,cone);flame.name='flame';(flame.material as THREE.MeshStandardMaterial).emissive.set('#c45818');
+   const flame=part('#ffc066',0,.45,0,.25,.65,.25,cone);flame.name='flame';(flame.material as THREE.MeshStandardMaterial).emissive.set('#ff791e');(flame.material as THREE.MeshStandardMaterial).emissiveIntensity=5;
   }else if(id==='bed'){
    part(beam,0,.12,0,1,.24,2);part('#849563',0,.27,.25,.9,.12,1.35);part('#d2c8a7',0,.3,-.65,.8,.16,.4);
   }else if(id==='chest'){

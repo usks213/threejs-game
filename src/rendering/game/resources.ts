@@ -1,3 +1,4 @@
+import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 import type { AdventureSnapshot } from '../../game/types';
 import { Instances } from './instances';
@@ -10,7 +11,7 @@ export function createResources(scene: THREE.Scene) {
   ];
   const materials: THREE.Material[] = [];
   const batches = new Map(definitions.map(([id, shape, color]) => {
-    const material = new THREE.MeshStandardMaterial({ color, roughness: shape === 2 ? 0.75 : 1, flatShading: true });
+    const material = pbrMaterial(color, id==='trunk'?'wood':id==='copper'||id==='iron'?'metal':id==='crystal'||id==='aether'?'crystal':id==='stone'?'stone':'foliage');
     materials.push(material);
     return [id, new Instances(scene, geometry[shape], material)];
   }));

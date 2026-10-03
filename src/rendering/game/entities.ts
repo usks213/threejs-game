@@ -1,3 +1,4 @@
+import { pbrMaterial } from '../materials/pbr';
 import { buildingKit } from './building-model';
 import { createResources } from './resources';
 import { terrainHeight, landscapeHeight } from '../../world/density';
@@ -8,7 +9,7 @@ export function createEntities(scene: THREE.Scene) {
  const resources = createResources(scene), buildings = buildingKit();
  const objects = new Map<string, THREE.Group>(), geometry = new Map<string, THREE.BufferGeometry>(), materials = new Map<string, THREE.MeshStandardMaterial>();
  const geo = (id: string, make: () => THREE.BufferGeometry) => { let g = geometry.get(id); if (!g) { g = make(); geometry.set(id, g); } return g; };
- const mat = (color: string) => { let m = materials.get(color); if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: 0.9, flatShading: true }); materials.set(color, m); } return m; };
+ const mat = (color: string) => { let m = materials.get(color); if (!m) { m = pbrMaterial(color, color==='#8b8c84'?'stone':['#e2baff','#b6eafa','#ffc077'].includes(color)?'crystal':'skin'); materials.set(color, m); } return m; };
  const part = (group: THREE.Group, shape: THREE.BufferGeometry, color: string, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1) => { const mesh = new THREE.Mesh(shape, mat(color)); mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh); };
  const box = geo('box', () => new THREE.BoxGeometry(1, 1, 1)), sphere = geo('sphere', () => new THREE.IcosahedronGeometry(0.5, 0)), cone = geo('cone', () => new THREE.ConeGeometry(1, 2.4, 6));
  function object(key: string, make: (g: THREE.Group) => void): THREE.Group { let group = objects.get(key); if (!group) { group = new THREE.Group(); make(group); objects.set(key, group); scene.add(group); } return group; }

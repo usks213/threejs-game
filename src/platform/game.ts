@@ -1,3 +1,5 @@
+import { createPipeline } from '../rendering/postprocessing/pipeline';
+import { disposeSurfaceMaps } from '../rendering/materials/pbr';
 import { BUILDINGS, WEAPONS } from '../content/catalog';
 import { placementPoint, placementIssue } from '../game/placement';
 import { itemIcon } from '../ui/icons/item';
@@ -36,9 +38,10 @@ export function startGame() {
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' }); }
   catch { fail('WebGLを起動できませんでした。ブラウザを更新し、ハードウェアアクセラレーションを確認してください。'); return () => controller.abort(); }
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
-  const world = createWorld(), terrain = createTerrain(world.scene);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
+  const world = createWorld(renderer), terrain = createTerrain(world.scene);
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 80);
+  const pipeline=createPipeline(renderer,world.scene,camera,world.atmosphere);
   const readKeyboard = keyboardInput(signal), touch = touchInput(document.querySelector('#stick')!, document.querySelector('#knob')!, signal), view = cameraInput(canvas, signal);
   const input: Axis = { x: 0, z: 0 };
   const raycaster = new THREE.Raycaster(), center = new THREE.Vector2(0, 0), normal = new THREE.Vector3(), markerAxis = new THREE.Vector3(0, 0, 1);
@@ -86,7 +89,7 @@ export function startGame() {
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
   window.addEventListener('keydown', e => { if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return; if (e.code === 'Space' && !e.repeat) { e.preventDefault(); jump = true; } if (e.code === 'KeyF' && !e.repeat) act(); if (e.code === 'KeyE' && !e.repeat) gameAction('gather'); if (e.code === 'KeyQ' && !e.repeat) gameAction('attack'); if (e.code === 'ShiftLeft' && !e.repeat) gameAction('dodge'); if (e.code === 'KeyR' && !e.repeat) gameAction('heavy'); }, { signal });
   document.querySelector('#reset')!.addEventListener('click', () => send({ type: 'reset-player' }), { signal });
-  const resize = () => { target = null; renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); renderer.setSize(window.innerWidth, window.innerHeight, false); camera.aspect = window.innerWidth / Math.max(1, window.innerHeight); camera.updateProjectionMatrix(); };
+  const resize = () => { target = null; pipeline.resize(window.innerWidth,window.innerHeight); camera.aspect = window.innerWidth / Math.max(1, window.innerHeight); camera.updateProjectionMatrix(); };
   window.addEventListener('resize', resize, { signal }); resize();
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); fail('WebGLの接続が失われました。保存したワールドは再読込できます。ページを再読み込みしてください。'); }, { signal });
   canvas.addEventListener('webglcontextrestored', () => { error.textContent = '描画接続が戻りました。ページを再読み込みしてください。'; }, { signal });
@@ -143,10 +146,11 @@ export function startGame() {
       }
       terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
-      try { renderer.render(world.scene, camera); } catch { fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
+      try { pipeline.render(dt); } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
         const p = state.player, m = state.metrics; adventure.update(state.adventure, p,view.yaw);
+        app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']});
         app.dataset.cameraPitch = String(view.pitch); app.dataset.cameraYaw = String(view.yaw);
         position.textContent = `X ${p.x.toFixed(1)} · Y ${p.y.toFixed(1)} · Z ${p.z.toFixed(1)}`; position.dataset.x = String(p.x); position.dataset.y = String(p.y); position.dataset.z = String(p.z); position.dataset.grounded = String(p.grounded); app.dataset.tick = String(state.tick);
         const edits = document.querySelector<HTMLElement>('#edit-count')!; edits.textContent = `地形編集 ${state.edits}`; edits.dataset.count = String(state.edits);
@@ -157,6 +161,6 @@ export function startGame() {
     frame = requestAnimationFrame(animate);
   };
   frame = requestAnimationFrame(animate);
-  return () => { stopped = true; cancelAnimationFrame(frame); controller.abort(); worker?.terminate(); terrain.dispose(); world.dispose(); renderer.dispose(); };
+  return () => { stopped = true; cancelAnimationFrame(frame); controller.abort(); worker?.terminate(); pipeline.dispose(); terrain.dispose(); world.dispose(); disposeSurfaceMaps(); renderer.dispose(); };
 }
 

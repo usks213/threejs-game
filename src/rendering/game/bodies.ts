@@ -1,3 +1,4 @@
+import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 import type { Snapshot } from '../../simulation/protocol';
 import { Instances } from './instances';
@@ -5,7 +6,7 @@ import { Instances } from './instances';
 export function createBodies(scene: THREE.Scene) {
   const geometry = [new THREE.IcosahedronGeometry(0.55, 1), new THREE.CylinderGeometry(0.23, 0.27, 1.1, 7), new THREE.BoxGeometry(0.72, 0.6, 0.72)];
   geometry[1].rotateZ(Math.PI / 2);
-  const materials = ['#8f9287', '#826044', '#9b917c'].map(color => new THREE.MeshStandardMaterial({ color, roughness: 1, flatShading: true }));
+  const materials = ['#8f9287', '#826044', '#9b917c'].map((color,i) => pbrMaterial(color, i===1?'wood':'stone'));
   const batches = geometry.map((g, i) => new Instances(scene, g, materials[i]));
   const views = new Map<number, { x: number; z: number; rx: number; rz: number; tick: number }>();
   const matrix = new THREE.Matrix4(), rotation = new THREE.Quaternion(), scale = new THREE.Vector3(1, 1, 1), position = new THREE.Vector3(), roll = new THREE.Euler();

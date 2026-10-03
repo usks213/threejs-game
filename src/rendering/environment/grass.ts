@@ -1,3 +1,4 @@
+import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 import type { MeshData } from '../../world/types';
 /** Attach sparse tufts to the actual meshed surface, including edited terrain. One draw call. */
@@ -10,8 +11,8 @@ export function createGrass(scene:THREE.Scene){
   const ml=[root[0]+c*.025-c*w*.55,h*.55,root[2]+s*.025-s*w*.55],mr=[root[0]+c*.025+c*w*.55,h*.55,root[2]+s*.025+s*w*.55],tip=[root[0]+c*.08,h,root[2]+s*.08];
   vertices.push(...left,...right,...ml,...right,...mr,...ml,...ml,...mr,...tip);
  }
- geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();
- const time={value:0},material=new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();geometry.setAttribute('uv',new THREE.Float32BufferAttribute(vertices.flatMap((v,i)=>i%3===0?[v*4,vertices[i+1]*3]:[]),2));
+ const time={value:0},material=pbrMaterial('#ffffff','foliage',{side:THREE.DoubleSide});
  material.onBeforeCompile=s=>{s.uniforms.grassTime=time;s.vertexShader='uniform float grassTime;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvec3 origin=(instanceMatrix*vec4(0.,0.,0.,1.)).xyz;transformed.x+=sin(origin.x*.8+origin.z*.6+grassTime*1.5)*position.y*position.y*.3;');};
  const mesh=new THREE.InstancedMesh(geometry,material,2200);mesh.count=0;mesh.frustumCulled=false;mesh.receiveShadow=true;scene.add(mesh);
  const dummy=new THREE.Object3D(),color=new THREE.Color();let dirty=true,lastX=Infinity,lastZ=Infinity,last=0;
