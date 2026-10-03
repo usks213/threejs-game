@@ -53,7 +53,7 @@ npm run e2e
 
 ## 自動検証
 
-Pull Requestとmainへのpushで、npm ci → 型 → Vitest → buildを実行します。Playwrightの全ブラウザ検証はmainへのpushと手動起動で実行します。PC/Android相当のChromiumで起動、入力、ジャンプ、画面回転、編集、水、物理、保存復元、書出、不正読込、WebGLエラーを検証し、スクリーンショットと失敗時トレースをActionsへ保存します。
+ゲーム変更のPull Requestとmainへのpushで、npm ci → 型 → 必要なVitest → buildを実行します。今回のpush差分から対象を選び、接続テストは通信変更時、ブラウザテストは影響する操作だけを実行します。文書・CI設定だけの変更ではゲームの再テスト・再ビルド・再公開を省きます。Playwrightの全ブラウザ検証はmainへのpushと手動起動で実行します。PC/Android相当のChromiumで起動、入力、ジャンプ、画面回転、編集、水、物理、保存復元、書出、不正読込、WebGLエラーを検証し、スクリーンショットと失敗時トレースをActionsへ保存します。
 
 PRの `deploy-preview` は検証済みdistをGitHub ActionsからCloudflare Previewへ直接公開し、Wranglerが返したURLとdeployment.jsonのコミットを照合します。Cloudflareビルド環境の起動待ちを避けるための経路です。mainの `verify-production` も公開コミットと起動用HTMLを確認します。これらは独立して進み、同じ全E2Eを公開先でも繰り返しません。待機超過、バージョン違い、HTTPエラー、テスト失敗を正常扱いしません。
 
