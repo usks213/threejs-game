@@ -12,7 +12,7 @@ export function createContactShadows(scene: THREE.Scene) {
   const texture = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat); texture.needsUpdate = true; texture.magFilter = THREE.LinearFilter;
   const geometry = new THREE.PlaneGeometry(2, 2); geometry.rotateX(-Math.PI / 2);
   const material = new THREE.MeshBasicMaterial({ color: '#18241f', map: texture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
-  const batch = new Instances(scene, geometry, material), matrix = new THREE.Matrix4(), position = new THREE.Vector3(), scale = new THREE.Vector3(), rotation = new THREE.Quaternion();
+  const batch = new Instances(scene, geometry, material, false), matrix = new THREE.Matrix4(), position = new THREE.Vector3(), scale = new THREE.Vector3(), rotation = new THREE.Quaternion();
   function add(x: number, y: number, z: number, radius: number): void { matrix.compose(position.set(x, y + 0.025, z), rotation, scale.set(radius, 1, radius)); batch.add(matrix); }
   return {
     update(state: Snapshot): void {

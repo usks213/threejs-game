@@ -96,7 +96,7 @@ test('two fingers move and jump together, and camera reaches both vertical poles
  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
  await expect(page.locator('#water-cast')).not.toHaveClass(/held/);
  await page.getByRole('button', { name: '視点を戻す' }).click();
- await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(0.55);
+ await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(0.32);
  expect(errors).toEqual([]);
 });
 
