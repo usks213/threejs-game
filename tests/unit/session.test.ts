@@ -30,3 +30,32 @@ it('preserves guest inventory through reconnect and an authority save/load', () 
  session.leave('returning'); expect(session.join('returning').adventure.state.inventory.wood).toBe(17);
  const restored = new SessionAuthority(session.save()); expect(restored.join('returning').adventure.state.inventory.wood).toBe(17);
 });
+
+it('allocates distinct buildings and allows simultaneous terrain edits by different players', () => {
+ const session = new SessionAuthority(null, true);
+ for (let i = 0; i < 8; i++) {
+  const id = 'builder' + i, actor = session.join(id), x = i * 5 - 18;
+  Object.assign(actor.player, { x, z: 8, y: session.sim.groundAt(x, 8) });
+  actor.adventure.state.inventory.stone = 20;
+  session.action(id, { type: 'game-action', action: 'build', id: 'foundation', target: { x, y: session.sim.groundAt(x, 11), z: 11 }, aim: { x: 0, y: 0, z: 1 } });
+ }
+ const buildings = session.sim.adventure.state.buildings;
+ expect(buildings).toHaveLength(8); expect(new Set(buildings.map(b => b.id)).size).toBe(8);
+ session.sim.tick += 8;
+ for (let i = 0; i < 8; i++) {
+  const actor = session.actors.get('builder' + i)!;
+  session.action(actor.id, { type: 'action', tool: 'dig', target: { x: actor.player.x, y: actor.player.y, z: 5 } });
+ }
+ expect(session.sim.world.edits.length).toBeGreaterThanOrEqual(8);
+});
+
+it('targets real dedicated players and advances physics away from the unused host origin', () => {
+ const session = new SessionAuthority(null, true), actor = session.join('explorer'), sim = session.sim;
+ Object.assign(actor.player, { x: 130, z: 10, y: sim.groundAt(130, 10) });
+ sim.bodies.push({ id: 200, radius: 0.55, sleeping: false, position: { x: 130, y: actor.player.y + 5, z: 12 }, velocity: { x: 0, y: 0, z: 0 } });
+ const enemy = sim.adventure.state.enemies[0]; Object.assign(enemy, { x: 122, z: 10, y: sim.groundAt(122, 10) });
+ const previousY = sim.bodies[0].position.y, previousX = enemy.x;
+ for (let i = 0; i < 5; i++) session.step();
+ expect(sim.bodies[0].position.y).toBeLessThan(previousY);
+ expect(enemy.x).toBeGreaterThan(previousX);
+});

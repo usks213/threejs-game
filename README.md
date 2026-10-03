@@ -1,6 +1,6 @@
 # TERRA — オープンワールド・サバイバル試作
 
-仕様v0.4に従い、まずPhase 0の技術検証を進めています。今回はスマホで地形を掘る・盛る、水と岩を試せるSingle Player版です。協力プレイ・戦闘・クラフト・建築・ボスは後続段階です。
+スマホ優先の、剣と魔法・地形編集・サバイバルクラフトゲームです。採集、装備、建築、5地域のボス、昼夜・天候、水と物理、協力プレイを実装中です。全仕様v0.4の完成ではありません。[全体の進捗と残項目](docs/specs/implementation-status.md)を正本とします。
 
 [遊び方・実装状況・制約](docs/phase0-status.md) / [仕様v0.4](docs/specs/open-world-survival-v0.4.md) / [設計判断](docs/adr/0001-phase0-voxel-prototype.md)
 
@@ -43,7 +43,7 @@ npm run e2e
 | src/rendering/ | Three.js Scene・Voxel表示・GPU資源の管理 |
 | src/input/ | タッチ・キーボード・カメラ入力 |
 | src/save/ | 保存形式の検証とIndexedDB |
-| src/networking/ | 後続WebRTC/Colyseus用Transport interface（接続未実装） |
+| src/networking/ | WebRTC/無料WSS中継・入力予測/同期・Dedicated接続 |
 | src/platform/, src/ui/ | 起動・連携・HUD・保存UI |
 | public/ | 将来のモデル・テクスチャ・音声 |
 | tests/unit/, tests/e2e/ | Nodeのロジック検証とブラウザ検証 |
@@ -88,9 +88,9 @@ Pagesへ接続する場合は同じリポジトリ、main、Vite、build command
 
 ## 性能と制約
 
-有限2km世界を全生成せず、近傍BrickをWorkerで生成。DPR最大1.5、霧・頂点カラー・シンプルな光、繰り返す景観/水/岩はInstancedMeshを使用。編集512回、水384セル、岩12個に制限しています。重い影やpost processingは導入していません。
+有限2km世界を全生成せず、近傍BrickをWorkerで生成。DPR最大1.5、霧・頂点カラー・シンプルな光、木/鉱石/岩/木材/破片はInstancedMesh、水面は共有Meshで描画。編集100,000回、水2048セルの予算があります。岩の個数制限はありません。重い影やpost processingは導入していません。
 
-画面の「性能・試作の範囲」でFPS・Draw calls・Triangles・処理時間・読み込み待機を確認できます。以前の1m/2m混在試作では800 Brick、表示128 Brick、29,438面、Geometry約0.98MB、生成284msでした。今回の共通1m格子の性能は別途計測し、スマホの読み込み・描画もレビューします。スマホ60FPSの保証ではありません。LOD境界や本格物理・マルチプレイ等の未検証点は実装状況に記載しています。
+画面の「性能・試作の範囲」でFPS・Draw calls・Triangles・処理時間・読み込み待機を確認できます。以前の1m/2m混在試作では800 Brick、表示128 Brick、29,438面、Geometry約0.98MB、生成284msでした。今回の共通1m格子の性能は別途計測し、スマホの読み込み・描画もレビューします。スマホ60FPSの保証ではありません。物理の近似・外部NAT・長時間負荷等の未検証点は実装状況に記載しています。
 
 最新の操作：左スティックを倒したまま↑でジャンプ。画面ドラッグで水平360°・真上/真下まで視点変更。「視点を戻す」で復帰。岩は押す・飛び乗る・下を掘る、水は穴に注いで出口を掘る操作をレビューできます。未完成の機能と重点レビューは `docs/phase0-status.md` に記載します。
 
@@ -98,4 +98,7 @@ Pagesへ接続する場合は同じリポジトリ、main、Vite、build command
 冒険メニューで持ち物・クラフト・建築・魔法・世界を操作。採集→装備/作業台→祭壇でボス召喚→撃破で次地域。PCはE採集、Q攻撃、R強撃、Shift回避。食事・寝床・焚き火・箱も利用できます。岩の12個制限は撤廃。
 全仕様の進捗は `docs/specs/implementation-status.md`。完成前の公開を全仕様完成と扱いません。
 
-`npm run server` は任意のNode/Colyseus Dedicatedを起動。保存先はサーバー側の `GAME_SAVE_DIRECTORY`。常設公開にはHTTPS/WSSと運用先が必要です。Cloudflare Workerの静的配信はNodeサーバーを常設実行しません。Signalingは `apps/signaling` で独立し、ゲーム状態を計算しません。TURNは別途設定が必要です。
+`npm run server` は任意のNode/Colyseus Dedicatedを起動。保存先はサーバー側の `GAME_SAVE_DIRECTORY`。常設公開にはHTTPS/WSSと運用先が必要です。Cloudflare Workerの静的配信はNodeサーバーを常設実行しません。Signalingは `apps/signaling` で独立し、ゲーム状態を計算しません。Hostの直接接続が成立しない場合は既存の無料WSS中継へ自動で切り替えます。有料TURNは契約していません。Dedicatedの参加者IDは端末に保存し、再参加時に持ち物を復元します。保存ファイルは一時ファイルから置換し、同じ保存先に複数の部屋が同時書込しないよう制限します。
+
+
+現在のユーザー方針は、v0.4全体を実装してからまとめてレビューすることです。途中の公開はチェックポイントとして扱い、レビュー待ちで実装を止めません。mainへのマージは引き続き本人のプレイOK後です。

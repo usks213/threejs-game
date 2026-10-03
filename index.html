@@ -7,7 +7,7 @@
 <div id="status" role="status">地形を生成中…</div>
 <button id="view-reset" type="button">視点を戻す</button>
 <button id="session-menu" type="button">協力プレイ</button><div id="session-status">Single Player</div>
-<section id="session-panel" role="dialog" aria-label="協力プレイ" hidden><div class="panel-header"><h2>協力プレイ</h2><button id="session-close">閉じる</button></div><p>ホストがワールドを保存します。ホストが退出するとセッションが終了します。</p><button id="session-host">Host Game</button><label>招待コード<input id="session-code" autocomplete="off" spellcheck="false"></label><button id="session-copy">招待リンクをコピー</button><button id="session-join">Join Game</button><button id="session-leave">Single Playerへ戻る</button><hr><label>Dedicated Server URL<input id="dedicated-url" placeholder="https://サーバーのURL"></label><button id="session-dedicated">Dedicated Server</button><p>Dedicatedの常設サーバーとTURN中継は未設定です。直接接続できないネットワークでは協力プレイが成立しません。</p></section>
+<section id="session-panel" role="dialog" aria-label="協力プレイ" hidden><div class="panel-header"><h2>協力プレイ</h2><button id="session-close">閉じる</button></div><p>ホストがワールドを保存します。ホストが退出するとセッションが終了します。</p><button id="session-host">Host Game</button><label>招待コード<input id="session-code" autocomplete="off" spellcheck="false"></label><button id="session-copy">招待リンクをコピー</button><button id="session-join">Join Game</button><button id="session-leave">Single Playerへ戻る</button><hr><label>Dedicated Server URL<input id="dedicated-url" placeholder="https://サーバーのURL"></label><button id="session-dedicated">Dedicated Server</button><p>友達とはHost Gameと招待リンクで遊べます。直接つながらない場合は自動で中継に切り替わります。Dedicatedは自分たちのサーバーがある場合に使います。</p></section>
 <div id="adventure-hud"></div><button id="adventure-menu" type="button">冒険メニュー</button>
 <section id="adventure-panel" role="dialog" aria-label="冒険メニュー" hidden><div class="panel-header"><h2>冒険の準備</h2><button id="adventure-close" type="button">閉じる</button></div><nav><button data-tab="bag">持ち物</button><button data-tab="craft">作る</button><button data-tab="build">建築</button><button data-tab="magic">魔法</button><button data-tab="world">世界</button></nav><div id="adventure-content"></div></section>
 <div id="combat-controls"><button id="gather" type="button">採集</button><button id="attack" type="button">攻撃</button><button id="heavy" type="button">強撃</button><button id="cast" type="button">魔法</button><button id="guard" type="button">盾</button><button id="dodge" type="button">回避</button></div>
@@ -23,3 +23,4 @@
 <div id="save-status">この端末に自動保存</div><div id="position" aria-label="プレイヤー位置"></div>
 <details id="performance"><summary>性能・試作の範囲</summary><button id="sound-toggle" type="button">音 ON</button><p id="metrics">計測中…</p><p>採集・クラフト・建築・戦闘・魔法・5地域の攻略。通信・実機性能の検証は開発中です。</p></details>
 </main><script type="module" src="/src/main.ts"></script></body></html>
+

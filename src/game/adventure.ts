@@ -10,7 +10,7 @@ export class Adventure {
  owner = 'host';
  private readonly charges = new Map<number,{x:number;z:number;seconds:number}>();
  projectiles: Projectile[] = [];
- guarding = false; dodge = 0; attack = 0; private cast = 0; private nextId = 3000000; private tiles = new Set<number>(); private dodgeX = 0; private dodgeZ = 0; private hurt = 0; private respawn = 0; private portalCooldown = 0; private poisonTick = 0;
+ guarding = false; dodge = 0; attack = 0; private cast = 0; private tiles = new Set<number>(); private dodgeX = 0; private dodgeZ = 0; private hurt = 0; private respawn = 0; private portalCooldown = 0; private poisonTick = 0;
  constructor(readonly sim: GameSimulation, saved?: AdventureSave) {
   this.state = saved ?? { seconds: 0, health: 100, stamina: 100, mana: 70, inventory: { berry: 3 }, equipment: 'hands', unlocked: 1, defeated: [], resources: [], enemies: [], buildings: [], death: null, food: 0, rested: 0, spawn: null };
   if (!saved) for (const biome of BIOMES) {
@@ -18,14 +18,12 @@ export class Adventure {
     this.state.resources.push({ id: biome.tier * 100 + i, x, z, y: sim.groundAt(x, z), kind: i % 4 === 0 ? 'berry' : i % 3 === 0 ? biome.resource : i % 3 === 1 ? 'wood' : 'stone', amount: i % 3 === 1 ? 3 : 2, ready: 0 }); }
    for (let i = 0; i < 8; i++) { const angle = i * 2.399, x = biome.center.x + Math.sin(angle) * (20 + i * 1.5), z = biome.center.z + Math.cos(angle) * (20 + i * 1.5); this.state.enemies.push(this.enemy(biome.tier * 1000 + i, ENEMIES[i % ENEMIES.length].id, biome.tier, x, z)); }
   }
-  this.nextId = Math.max(3000000, ...this.state.enemies.map(e => e.id), ...this.state.buildings.map(b => b.id)) + 1;
  }
  private enemy(id: number, definition: string, tier: number, x: number, z: number, boss = false): EnemyState {
   const def = boss ? BOSSES.find(b => b.id === definition)! : ENEMIES.find(e => e.id === definition)!;
   return { id, definition, tier, x, z, y: this.sim.groundAt(x, z), homeX: x, homeZ: z, health: def.health * (boss ? 1 : 1 + (tier - 1) * 0.4), cooldown: 1 + (id % 5) * 0.2, windup: 0, slow: 0, boss };
  }
- private populate(): void {
-  const p = this.sim.player;
+ private populate(p = this.sim.player): void {
   if(this.sim.world.generator===2 && biomeAt(p.x,p.z).id==='mire' && Math.hypot(p.x-90,p.z-90)<32 && !this.state.waterSeeds?.includes('mire')) {
    this.state.waterSeeds ??= [];this.state.waterSeeds.push('mire');
    for(let x=86;x<=94;x++)for(let z=86;z<=94;z++)for(let y=Math.ceil(this.sim.groundAt(x,z));y<=0;y++)this.sim.fluid.add({x,y,z},0.9);
@@ -115,7 +113,7 @@ export class Adventure {
    const x = Math.round(ground.x), z = Math.round(ground.z), y = Math.round(ground.y * 2) / 2;
    if (Math.hypot(x - p.x, z - p.z) < 1.1 && Math.abs(y - p.y) < 1.8) throw new Error('自分の体から少し離して設置してください');
    if (s.buildings.some(b => Math.hypot(b.x - x, b.y - y, b.z - z) < 0.6)) throw new Error('同じ場所には設置できません');
-   this.spend(def.cost); s.buildings.push({ id: this.nextId++, definition: id, x, y, z, rotation: Math.atan2(aim.x, aim.z), support: def.support, contents: {} });
+   this.spend(def.cost); s.buildings.push({ id: this.sim.allocateEntityId(), definition: id, x, y, z, rotation: Math.atan2(aim.x, aim.z), support: def.support, contents: {} });
    this.support(); return { dirty: [], message: `${def.name}を設置。支持がないものは崩れます` };
   }
   if (action === 'remove') {
@@ -126,7 +124,7 @@ export class Adventure {
    const biome = biomeAt(p.x, p.z), boss = BOSSES.find(b => b.id === biome.boss)!;
    if (biome.tier > s.unlocked) throw new Error('前のボスを倒してください'); if (Math.hypot(p.x - biome.center.x, p.z - biome.center.z + 14) > 5) throw new Error('地域の祭壇に近づいてください');
    if (s.enemies.some(e => e.boss && e.definition === boss.id && e.health > 0)) throw new Error('ボスはすでに出現しています');
-   this.spend(boss.summon); s.enemies.push(this.enemy(this.nextId++, boss.id, biome.tier, biome.center.x, biome.center.z - 18, true)); return { dirty: [], message: `${boss.name}が現れました` };
+   this.spend(boss.summon); s.enemies.push(this.enemy(this.sim.allocateEntityId(), boss.id, biome.tier, biome.center.x, biome.center.z - 18, true)); return { dirty: [], message: `${boss.name}が現れました` };
   }
   if (action === 'portal') {
    if (this.portalCooldown > 0) throw new Error('転移門が安定するまで待ってください');
@@ -147,7 +145,7 @@ export class Adventure {
  private projectile(aim: Vec3, damage: number, element: string, radius: number): void { const p = this.sim.player;
   const target = this.state.enemies.filter(e => e.health > 0 && distance(p,e) < 25 && ((e.x-p.x)*aim.x+(e.z-p.z)*aim.z)/Math.max(0.01,distance(p,e)) > 0.65).sort((a,b)=>distance(p,a)-distance(p,b))[0];
   if (target) { const dx=target.x-p.x, dy=target.y+(target.boss?1.7:0.6)-p.y-1, dz=target.z-p.z, length=Math.hypot(dx,dy,dz); aim={x:dx/length,y:dy/length,z:dz/length}; }
-  this.projectiles.push({ id: this.nextId++, owner: this.owner, x: p.x, y: p.y + 1, z: p.z, vx: aim.x * 12, vy: aim.y * 12, vz: aim.z * 12, life: 2.5, damage, element, radius }); }
+  this.projectiles.push({ id: this.sim.allocateEntityId(), owner: this.owner, x: p.x, y: p.y + 1, z: p.z, vx: aim.x * 12, vy: aim.y * 12, vz: aim.z * 12, life: 2.5, damage, element, radius }); }
  support(): void {
   const buildings = this.state.buildings;
   for (const b of buildings) b.support = this.sim.world.density({ x: b.x, y: b.y - 0.15, z: b.z }) < 0.2 ? BUILDINGS.find(d => d.id === b.definition)!.support : 0;
@@ -180,17 +178,22 @@ export class Adventure {
   if (s.food > 0) s.health = Math.min(100, s.health + dt * 0.8);
   if (this.dodge > 0) this.sim.movePlayer(this.dodgeX * 8 * dt, this.dodgeZ * 8 * dt);
  }
- private closestActor(point: Vec3): {player: import('../simulation/protocol').PlayerState;adventure:Adventure} {
-  let nearest: {player: import('../simulation/protocol').PlayerState;adventure:Adventure}={player:this.sim.player,adventure:this},length=this.state.health>0?distance(this.sim.player,point):Infinity;
-  for(const candidate of this.sim.targets)if(candidate.adventure.state.health>0){const d=distance(candidate.player,point);if(d<length){length=d;nearest=candidate;}}
+ private closestActor(point: Vec3): { player: import('../simulation/protocol').PlayerState; adventure: Adventure } | undefined {
+  let nearest: { player: import('../simulation/protocol').PlayerState; adventure: Adventure } | undefined;
+  let length = Infinity;
+  const targets = this.sim.targets.length ? this.sim.targets : [{ player: this.sim.player, adventure: this }];
+  for (const candidate of targets) if (candidate.adventure.state.health > 0) {
+   const d = distance(candidate.player, point); if (d < length) { length = d; nearest = candidate; }
+  }
   return nearest;
  }
  step(dt: number): void {
-  this.populate(); this.stepPersonal(dt);
+  if (this.sim.targets.length) for (const target of this.sim.targets) this.populate(target.player); else this.populate();
+  this.stepPersonal(dt);
   const s = this.state;
   if (s.health <= 0 && !this.sim.targets.some(t => t.adventure.state.health > 0)) return;
   for (const e of s.enemies) {
-   const target = this.closestActor(e);
+   const target = this.closestActor(e); if (!target) continue;
    const p = target.player;
    if (e.health <= 0 && !e.boss && e.respawnAt && e.respawnAt <= s.seconds) { const def = ENEMIES.find(d => d.id === e.definition)!; e.health = def.health * (1 + (e.tier - 1) * 0.4); e.x = e.homeX; e.z = e.homeZ; e.cooldown = 3; }
    if (e.health <= 0 || distance(p, e) > 45) continue;
@@ -206,13 +209,13 @@ export class Adventure {
      for(const actor of this.sim.targets)if(distance(actor.player,e)<2.6)actor.adventure.hurtPlayer(def.damage,def.element,actor.player);
      if(charge.seconds<=0)this.charges.delete(e.id);
     } else if (e.windup > 0) {
-     e.windup -= dt;
+     e.windup = Math.max(0, e.windup - dt);
      if (e.windup <= 0) {
       if (ability.charge) this.charges.set(e.id,{x:p.x-e.x,z:p.z-e.z,seconds:0.75});
       else if (ability.shots) {
        for(let j=0;j<ability.shots;j++) {
         const from={x:e.x,y:e.y+2,z:e.z},velocity=directedShot(from,{x:p.x,y:p.y+0.7,z:p.z},(j-(ability.shots-1)/2)*0.15);
-        this.projectiles.push({id:this.nextId++,owner:'enemy:'+e.id,...from,vx:velocity.x,vy:velocity.y,vz:velocity.z,life:4,damage:def.damage,element:ability.element,radius:0.35});
+        this.projectiles.push({id:this.sim.allocateEntityId(),owner:'enemy:'+e.id,...from,vx:velocity.x,vy:velocity.y,vz:velocity.z,life:4,damage:def.damage,element:ability.element,radius:0.35});
        }
        if(e.definition==='frostwing')this.sim.fluid.freeze(e,6);
       } else for(const actor of this.sim.targets)if(distance(actor.player,e)<ability.radius) {
@@ -223,7 +226,7 @@ export class Adventure {
     } else if (d < 25 && e.cooldown <= 0) e.windup = ability.windup;
     continue;
    }
-   if (e.windup > 0) { e.windup -= dt; if (e.windup <= 0) { if (d < reach + 0.8) target.adventure.hurtPlayer(def.damage * (e.boss ? 1 : 1 + (e.tier - 1) * 0.35), def.element, p); e.cooldown = e.boss && e.health < def.health / 2 ? 1.2 : 2; } }
+   if (e.windup > 0) { e.windup = Math.max(0, e.windup - dt); if (e.windup <= 0) { if (d < reach + 0.8) target.adventure.hurtPlayer(def.damage * (e.boss ? 1 : 1 + (e.tier - 1) * 0.35), def.element, p); e.cooldown = e.boss && e.health < def.health / 2 ? 1.2 : 2; } }
    else if (d < reach + 0.4 && e.cooldown <= 0) e.windup = e.boss ? 0.8 : 0.55;
   }
   for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -251,3 +254,4 @@ export class Adventure {
  }
  save(): AdventureSave { return structuredClone(this.state); }
 }
+

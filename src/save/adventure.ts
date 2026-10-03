@@ -10,9 +10,13 @@ export function validateAdventure(raw: AdventureSave): AdventureSave {
  if ((s.death && !insideBounds(s.death, WORLD, 1)) || (s.spawn && !insideBounds(s.spawn, WORLD, 1))) throw new Error('復活位置が不正です');
  for (const list of [s.resources, s.enemies, s.buildings]) if (!Array.isArray(list) || list.length > 100000 || new Set(list.map(v => v.id)).size !== list.length || list.some(v => !insideBounds(v, WORLD, 1) || !Number.isSafeInteger(v.id) || v.id < 1)) throw new Error('ワールド物体が不正です');
  for (const n of s.resources) if (!ITEM_NAMES[n.kind] || !finite(n.amount, 100) || !finite(n.ready, 1e10)) throw new Error('資源データが不正です');
- for (const e of s.enemies) if (!(e.boss ? BOSSES : ENEMIES).some(d => d.id === e.definition) || !Number.isInteger(e.tier) || e.tier < 1 || e.tier > BIOMES.length || !Number.isFinite(e.health) || Math.abs(e.health) > 10000 || !finite(e.windup, 10) || !finite(e.slow, 10) || !Number.isFinite(e.cooldown) || Math.abs(e.cooldown) > 1e10 || !finiteVec({ x: e.homeX, y: 0, z: e.homeZ })) throw new Error('敵データが不正です');
+ for (const e of s.enemies) if (!(e.boss ? BOSSES : ENEMIES).some(d => d.id === e.definition) || !Number.isInteger(e.tier) || e.tier < 1 || e.tier > BIOMES.length || !Number.isFinite(e.health) || Math.abs(e.health) > 10000 || (!Number.isFinite(e.windup) || e.windup < -1 / 30 || e.windup > 10) || !finite(e.slow, 10) || !Number.isFinite(e.cooldown) || Math.abs(e.cooldown) > 1e10 || !finiteVec({ x: e.homeX, y: 0, z: e.homeZ })) throw new Error('敵データが不正です');
  for (const b of s.buildings) if (!BUILDINGS.some(d => d.id === b.definition) || !finite(b.support, 10) || !Number.isFinite(b.rotation) || !items(b.contents)) throw new Error('建築データが不正です');
  if ((s.poison !== undefined && !finite(s.poison, 60)) || (s.chill !== undefined && !finite(s.chill, 60)) || (s.grave !== undefined && !items(s.grave))) throw new Error('状態異常・墓標データが不正です');
  if(s.waterSeeds && (!Array.isArray(s.waterSeeds) || s.waterSeeds.length>5 || s.waterSeeds.some(id=>!BIOMES.some(b=>b.id===id))))throw new Error('自然水域データが不正です');
- return structuredClone(s);
+ const copy = structuredClone(s);
+ // Earlier versions saved the last windup tick just below zero.
+ for (const enemy of copy.enemies) enemy.windup = Math.max(0, enemy.windup);
+ return copy;
 }
+

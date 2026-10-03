@@ -90,6 +90,7 @@ export function startGame() {
       readKeyboard(input); if (touch.x || touch.z) { input.x = touch.x; input.z = touch.z; }
       if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
+      world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
       obstruction.set(focus, orbit); obstruction.far = 9;
       const blocker = terrain.raycast(obstruction);
@@ -122,3 +123,4 @@ export function startGame() {
   frame = requestAnimationFrame(animate);
   return () => { stopped = true; cancelAnimationFrame(frame); controller.abort(); worker?.terminate(); terrain.dispose(); world.dispose(); renderer.dispose(); };
 }
+

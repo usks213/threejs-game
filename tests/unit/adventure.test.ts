@@ -83,3 +83,14 @@ it('adds and removes water through built sources and drains',()=>{
  sim.tick=30; game.step(1/30); expect(sim.fluid.snapshot().length).toBeGreaterThan(0);
  expect(sim.fluid.drain({x:5.5,y:1.5,z:5.5},2)).toBeGreaterThan(0); expect(sim.fluid.snapshot()).toHaveLength(0);
 });
+
+
+it('saves after an enemy attack and repairs the legacy negative windup tick', () => {
+ const sim = new GameSimulation(), enemy = sim.adventure.state.enemies[0];
+ Object.assign(enemy, { x: sim.player.x, z: sim.player.z - 1, y: sim.player.y, windup: 0.01 });
+ sim.adventure.step(1 / 30);
+ expect(enemy.windup).toBe(0); expect(() => validateSave(sim.save())).not.toThrow();
+ const legacy = sim.save(); legacy.adventure!.enemies[0].windup = -0.02;
+ expect(validateSave(legacy).adventure!.enemies[0].windup).toBe(0);
+ expect(legacy.adventure!.enemies[0].windup).toBe(-0.02);
+});

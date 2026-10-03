@@ -2,6 +2,7 @@ import type { ClientMessage, Snapshot, WorkerMessage } from '../simulation/proto
 import type { WorldSave } from '../save/format';
 import type { EditOperation } from '../world/types';
 import { WebRTCSession, type PeerPacket } from '../networking/webrtc/session';
+import { dedicatedIdentity } from '../networking/identity';
 export function networkUI(signal: AbortSignal, post: (message: ClientMessage) => void, notice: (message: string) => void) {
  const panel = document.querySelector<HTMLElement>('#session-panel')!, status = document.querySelector<HTMLElement>('#session-status')!, token = document.querySelector<HTMLInputElement>('#session-code')!;
  let session: WebRTCSession | null = null, guest = false, sequence = 0, lastState: Snapshot | null = null, edits: EditOperation[] = [], dedicated: { send(type: string, value: unknown): void; leave(): Promise<unknown> } | null = null;
@@ -37,7 +38,7 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
   const endpoint = document.querySelector<HTMLInputElement>('#dedicated-url')!.value;
   try {
    const url = new URL(endpoint); if (url.protocol !== 'https:' && url.hostname !== '127.0.0.1') throw new Error('HTTPSのサーバーURLを指定してください');
-   close(); const { Client } = await import('@colyseus/sdk'); const room = await new Client(endpoint).joinOrCreate('survival'); dedicated = room; guest = true;
+   close(); const { Client } = await import('@colyseus/sdk'); const room = await new Client(endpoint).joinOrCreate('survival', { playerToken: dedicatedIdentity(endpoint) }); dedicated = room; guest = true;
    room.onMessage('welcome', (packet: { save: WorldSave; state: Snapshot }) => receive('server', { type: 'welcome', ...packet }));
    room.onMessage('edits', (worldEdits: EditOperation[]) => { edits = worldEdits; });
    room.onMessage('snapshot', (state: Snapshot) => receive('server', { type: 'frame', state, edits }));

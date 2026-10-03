@@ -20,7 +20,8 @@ export class GameSimulation {
   readonly player: PlayerState = { x: 0, y: terrainHeight(0, 8), z: 8, heading: 0, vy: 0, grounded: true };
   readonly metrics = { tickMs: 0, fluidMs: 0, physicsMs: 0, jumpHeight: 0 };
   tick = 0;
-  private lastAction = -100;
+  private readonly lastActions = new Map<string, number>();
+  private nextEntity = 3000001;
   private nextBody = 1;
   private jumpOrigin: number | null = null;
   constructor(save?: WorldSave | null) {
@@ -35,8 +36,11 @@ export class GameSimulation {
       this.nextBody = Math.max(0, ...this.bodies.map(b => b.id)) + 1;
       this.tick = Math.max(0, ...valid.edits.map(e => e.tick));
     }
+    for (const entity of [...(save?.adventure?.enemies ?? []), ...(save?.adventure?.buildings ?? [])]) this.nextEntity = Math.max(this.nextEntity, entity.id + 1);
     this.adventure = new Adventure(this, save?.adventure);
   }
+  allocateEntityId(): number { return this.nextEntity++; }
+  forgetActor(id: string): void { this.lastActions.delete(id); }
   step(input: PlayerInput): void {
     const started = performance.now(); this.tick++;
     const dt = 1 / TICK_RATE;
@@ -54,7 +58,7 @@ export class GameSimulation {
     if (this.jumpOrigin !== null) { this.metrics.jumpHeight = Math.max(this.metrics.jumpHeight, p.y - this.jumpOrigin); if (p.grounded) this.jumpOrigin = null; }
     if (p.y < this.world.bounds.minY + 1) this.resetPlayer();
     const physics = performance.now();
-    const active = this.bodies.filter(b => Math.hypot(b.position.x - p.x, b.position.z - p.z) < 48);
+    const active = this.bodies.filter(b => this.targets.length ? this.targets.some(t => Math.hypot(b.position.x - t.player.x, b.position.z - t.player.z) < 48) : Math.hypot(b.position.x - p.x, b.position.z - p.z) < 48);
     for (const body of active) {
       const water = this.fluid.immersion({ x: body.position.x, y: body.position.y - body.radius, z: body.position.z }, body.radius * 2);
       if (water > 0) { body.sleeping = false; const damping = Math.exp(-water * 3 * dt), current = this.fluid.current(body.position); body.velocity.x = (body.velocity.x + current.x * water * dt) * damping; body.velocity.z = (body.velocity.z + current.z * water * dt) * damping; body.velocity.y = body.velocity.y * damping + (body.kind==='wood'?22:9) * water * dt; }
@@ -75,10 +79,10 @@ export class GameSimulation {
     this.adventure.step(dt);
     this.metrics.tickMs = performance.now() - started;
   }
-  act(tool: Tool, target: Vec3): { dirty: string[]; message: string } {
+  act(tool: Tool, target: Vec3, actorId = 'host'): { dirty: string[]; message: string } {
     if (!insideBounds(target, this.world.bounds, 3) || Math.hypot(target.x - this.player.x, target.y - this.player.y - 0.7, target.z - this.player.z) > 7) throw new Error('近くの地面に照準を合わせてください');
-    if (this.tick - this.lastAction < 8) throw new Error('少し待ってから操作してください');
-    this.lastAction = this.tick;
+    if (this.tick - (this.lastActions.get(actorId) ?? -100) < 8) throw new Error('少し待ってから操作してください');
+    this.lastActions.set(actorId, this.tick);
     if (tool === 'dig' || tool === 'add') {
       const dirty = this.changeTerrain(tool,target,1.7);
       for (const body of this.bodies) body.sleeping = false;
@@ -125,3 +129,4 @@ export class GameSimulation {
     return { version: 2, adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot().map(c => ({ x: c.x, y: c.y, z: c.z, volume: c.volume })), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }
 }
+

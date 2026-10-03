@@ -25,7 +25,7 @@ export class SessionAuthority {
   actor.adventure.owner = id; actor.adventure.projectiles = this.sim.adventure.projectiles;
   this.actors.set(id, actor); this.syncTargets(); return actor;
  }
- leave(id: string): void { const actor = this.actors.get(id); if (id !== 'host' && actor) { this.dormant.set(id, { player: { ...actor.player }, adventure: actor.adventure.save() }); this.actors.delete(id); } this.syncTargets(); }
+ leave(id: string): void { const actor = this.actors.get(id); if (id !== 'host' && actor) { this.dormant.set(id, { player: { ...actor.player }, adventure: actor.adventure.save() }); this.actors.delete(id); this.sim.forgetActor(id); } this.syncTargets(); }
  private syncTargets(): void { this.sim.targets = [...this.actors.values()].filter(a => !this.dedicated || a.id !== 'host').map(a => ({ player: a.player, adventure: a.adventure })); }
  input(id: string, input: PlayerInput, sequence: number): void {
   const actor = this.actors.get(id); if (!actor || !Number.isSafeInteger(sequence) || sequence <= actor.sequence || !input || !Number.isFinite(input.x) || !Number.isFinite(input.z) || Math.abs(input.x) > 1 || Math.abs(input.z) > 1 || typeof input.jump !== 'boolean') return;
@@ -44,19 +44,24 @@ export class SessionAuthority {
   if (message.type !== 'action' && message.type !== 'game-action') throw new Error('この操作は許可されていません');
   if (message.type === 'game-action' && (!finiteVec(message.aim) || Math.hypot(message.aim.x, message.aim.y, message.aim.z) > 1.5)) throw new Error('照準データが不正です');
   actor.lastAction = this.sim.tick;
-  return this.withActor(actor, () => message.type === 'action' ? this.sim.act(message.tool, message.target) : this.sim.adventure.action(message.action, message.id, message.target, message.aim));
+  return this.withActor(actor, () => message.type === 'action' ? this.sim.act(message.tool, message.target, actor.id) : this.sim.adventure.action(message.action, message.id, message.target, message.aim));
  }
  step(hostInput?: PlayerInput): void {
+  const started = performance.now();
   const host = this.actors.get('host')!; this.sim.step(hostInput ?? host.input); host.input.jump = false;
   for (const actor of this.actors.values()) if (actor.id !== 'host') this.withActor(actor, () => {
    const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, 1.45), speed = actor.adventure.state.health <= 0 ? 0 : actor.adventure.guarding ? 2 : 4 * (1 - water * 0.45) * (actor.adventure.state.chill ? 0.65 : 1);
-   const beforeY = p.y, dx = input.x / length * speed * dt, dz = input.z / length * speed * dt;
+   const flow = this.sim.fluid.current(p);
+   const beforeY = p.y, dx = input.x / length * speed * dt + flow.x * water * dt, dz = input.z / length * speed * dt + flow.z * water * dt;
    actor.motor.step(p, dx, dz, input.jump, dt, water); input.jump = false;
    if (dx || dz) p.heading = Math.atan2(dx, dz);
-   collidePlayerRocks(p, this.sim.bodies, dx, dz, dt); actor.adventure.collidePlayer(beforeY); actor.motor.reconcile(p);
+   collidePlayerRocks(p, this.sim.bodies, dx, dz, dt);
+   const ice = this.sim.fluid.iceHeight(p); if (ice !== null && p.vy <= 0 && beforeY >= ice - 0.1 && p.y <= ice) { p.y = ice; p.vy = 0; p.grounded = true; }
+   actor.adventure.collidePlayer(beforeY); actor.motor.reconcile(p);
    p.x = Math.max(-999, Math.min(999, p.x)); p.z = Math.max(-999, Math.min(999, p.z));
    actor.adventure.stepPersonal(dt); if (p.y < -15) this.sim.resetPlayer();
   });
+  this.sim.metrics.tickMs = performance.now() - started;
  }
  save(): WorldSave {
   const members = new Map(this.dormant);
@@ -65,3 +70,4 @@ export class SessionAuthority {
  }
  view(id: string) { const actor = this.actors.get(id); if (!actor) throw new Error('Unknown peer'); return this.withActor(actor, () => ({ player: { ...this.sim.player }, adventure: this.sim.adventure.snapshot(), peers: [...this.actors.values()].filter(a => a.id !== id && (!this.dedicated || a.id !== 'host')).map(a => ({ id: a.id, player: { ...a.player } })) })); }
 }
+
