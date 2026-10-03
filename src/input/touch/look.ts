@@ -1,5 +1,6 @@
+export const DEFAULT_CAMERA_PITCH=0.32;
 export function cameraInput(canvas: HTMLCanvasElement, signal: AbortSignal) {
-  const camera = { yaw: 0, pitch: 0.32, distance:7, sensitivity:1 };
+  const camera = { yaw: 0, pitch: DEFAULT_CAMERA_PITCH, distance:7, sensitivity:1 };
   let pointer: number | null = null, x = 0, y = 0;
   const clear = () => { pointer = null; };
   canvas.addEventListener('pointerdown', e => { if (pointer !== null) return; pointer = e.pointerId; x = e.clientX; y = e.clientY; canvas.setPointerCapture(e.pointerId); }, { signal });

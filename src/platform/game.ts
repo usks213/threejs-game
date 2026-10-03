@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import type { Axis } from '../core/player';
 import { keyboardInput } from '../input/keyboard/keyboard';
 import { touchInput } from '../input/touch/stick';
-import { cameraInput } from '../input/touch/look';
+import { cameraInput, DEFAULT_CAMERA_PITCH } from '../input/touch/look';
 import { actionInput } from '../input/touch/action';
 import { orbitPose } from '../rendering/camera/follow';
 import { createWorld } from '../rendering/scene/world';
@@ -83,7 +83,7 @@ export function startGame() {
   const act = () => { if (!building && tool === 'water') pour(); else if (target && building) gameAction('build', building); else if (target) send({ type: 'action', tool, target }); else notice('近くの地面に照準を合わせてください'); };
   holdAction(use, act, () => !building && tool === 'water', signal);
   actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { jump = true; }, signal);
-  document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = 0.32; }, { signal });
+  document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
   window.addEventListener('keydown', e => { if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return; if (e.code === 'Space' && !e.repeat) { e.preventDefault(); jump = true; } if (e.code === 'KeyF' && !e.repeat) act(); if (e.code === 'KeyE' && !e.repeat) gameAction('gather'); if (e.code === 'KeyQ' && !e.repeat) gameAction('attack'); if (e.code === 'ShiftLeft' && !e.repeat) gameAction('dodge'); if (e.code === 'KeyR' && !e.repeat) gameAction('heavy'); }, { signal });
   document.querySelector('#reset')!.addEventListener('click', () => send({ type: 'reset-player' }), { signal });
   const resize = () => { target = null; renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); renderer.setSize(window.innerWidth, window.innerHeight, false); camera.aspect = window.innerWidth / Math.max(1, window.innerHeight); camera.updateProjectionMatrix(); };
