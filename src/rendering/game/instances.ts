@@ -8,7 +8,7 @@ export class Instances {
 
   constructor(private readonly scene: THREE.Scene, geometry: THREE.BufferGeometry, material: THREE.Material) {
     this.mesh = new THREE.InstancedMesh(geometry, material, this.capacity);
-    this.mesh.count = 0;
+    this.mesh.count = 0; this.mesh.castShadow=true;this.mesh.receiveShadow=true;
     this.mesh.frustumCulled = false;
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(this.mesh);
@@ -20,7 +20,7 @@ export class Instances {
     if (this.count === this.capacity) {
       this.capacity *= 2;
       const next = new THREE.InstancedMesh(this.mesh.geometry, this.mesh.material, this.capacity);
-      next.frustumCulled = false;
+      next.frustumCulled = false;next.castShadow=true;next.receiveShadow=true;
       next.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       (next.instanceMatrix.array as Float32Array).set(this.mesh.instanceMatrix.array);
       this.scene.remove(this.mesh);

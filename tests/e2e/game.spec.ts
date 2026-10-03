@@ -100,15 +100,17 @@ test('two fingers move and jump together, and camera reaches both vertical poles
  expect(errors).toEqual([]);
 });
 
-test('survival adventure collects food, opens crafting and persists its inventory', async ({ page }) => {
+test('survival adventure collects food, opens crafting and persists its inventory', async ({ page }, info) => {
  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
  await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
  await expect(page.locator('#adventure-hud')).toContainText('若葉の林');
+ await expect(page.locator('#journey')).toContainText('最初の道具');
  await page.getByRole('button', { name: '採集', exact: true }).click(); await expect(page.locator('#notice')).toContainText('木の実');
  await page.getByRole('button', { name: '冒険メニュー', exact: true }).click();
  await expect(page.locator('#adventure-content')).toContainText('木の実 ×5');
  await page.getByRole('button', { name: '作る', exact: true }).first().click();
  await expect(page.locator('#adventure-content')).toContainText('森の煮込み');
+ await page.screenshot({path:info.outputPath('crafting-cards.png')});
  await page.locator('[data-game-action="craft"][data-id="stew"]').click(); await expect(page.locator('#notice')).toContainText('森の煮込みを作りました');
  await page.locator('[data-tab="bag"]').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
  await page.locator('#adventure-close').click(); await systemAction(page, 'save'); await page.reload();
@@ -134,4 +136,18 @@ test('renders equipped characters, textured terrain and water without shader err
  await cooldown(page, 10); await page.locator('#attack').click();
  await cooldown(page, 15); await page.screenshot({ path: info.outputPath('terra-materials-avatar-water.png') });
  await expect(page.locator('#error')).toBeHidden(); expect(errors).toEqual([]);
+});
+
+test('survival adventure previews, rotates and places a building on mobile',async({page},info)=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/THREE|WebGL|shader/i.test(m.text()))errors.push(m.text());});
+ const sim=new GameSimulation();sim.adventure.state.inventory={wood:40,stone:40,sword:1};sim.adventure.state.equipment='sword';
+ await page.goto('/');await expect(page.locator('#app')).toHaveAttribute('data-state','running');
+ await page.locator('#import-file').setInputFiles({name:'building.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});
+ await expect(page.locator('#adventure-hud')).toContainText('石剣');
+ await page.locator('#adventure-menu').click();await page.locator('[data-tab="build"]').click();await page.locator('[data-game-action="place"][data-id="bench"]').click();
+ await expect(page.locator('#build-controls')).toBeVisible();await page.locator('#build-rotate').click();await expect(page.locator('#use-tool')).toBeEnabled();
+ await page.screenshot({path:info.outputPath('building-preview.png')});
+ await page.locator('#use-tool').click();await expect(page.locator('#notice')).toContainText('作業台を設置');
+ await page.locator('#build-cancel').click();await expect(page.locator('#build-controls')).toBeHidden();
+ await page.setViewportSize({width:844,height:390});await page.screenshot({path:info.outputPath('quality-landscape.png')});expect(errors).toEqual([]);
 });

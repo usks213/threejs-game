@@ -11,7 +11,7 @@ export function createAvatarAssets() {
     return value;
   };
   function part(parent: THREE.Group, geometry: THREE.BufferGeometry, color: string, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1): THREE.Mesh {
-    const mesh = new THREE.Mesh(geometry, material(color)); mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); parent.add(mesh); return mesh;
+    const mesh = new THREE.Mesh(geometry, material(color)); mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh); return mesh;
   }
   return {
     create() {
@@ -19,6 +19,10 @@ export function createAvatarAssets() {
       part(torso, box, '#c89b47', 0, 0.87, 0, 0.45, 0.55, 0.29);
       part(torso, box, '#65513c', 0, 0.66, 0, 0.47, 0.08, 0.31);
       part(torso, head, '#eed0a3', 0, 1.27, 0.015);
+      part(torso, head, '#463c31',0,1.39,-.025,1.03,.62,1.02);
+      part(torso, box, '#252b28',-.075,1.29,.2,.035,.025,.025);part(torso, box, '#252b28',.075,1.29,.2,.035,.025,.025);
+      const cloak=part(torso,box,'#466c6c',0,.83,-.21,.51,.67,.055);cloak.rotation.x=-.15;
+      part(torso,box,'#d8be81',.16,.96,.165,.055,.48,.035);
       part(torso, box, '#526246', 0, 0.9, -0.22, 0.38, 0.43, 0.22);
       const legs: THREE.Group[] = [], arms: THREE.Group[] = [];
       for (const side of [-1, 1]) {

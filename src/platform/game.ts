@@ -1,3 +1,6 @@
+import { BUILDINGS, WEAPONS } from '../content/catalog';
+import { placementPoint, placementIssue } from '../game/placement';
+import { itemIcon } from '../ui/icons/item';
 import { gameShell } from '../ui/shell';
 import { holdAction } from '../input/touch/hold';
 import { gameSound } from '../audio/sound';
@@ -32,6 +35,7 @@ export function startGame() {
   let renderer: THREE.WebGLRenderer;
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' }); }
   catch { fail('WebGLを起動できませんでした。ブラウザを更新し、ハードウェアアクセラレーションを確認してください。'); return () => controller.abort(); }
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
   const world = createWorld(), terrain = createTerrain(world.scene);
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 80);
@@ -40,22 +44,40 @@ export function startGame() {
   const raycaster = new THREE.Raycaster(), center = new THREE.Vector2(0, 0), normal = new THREE.Vector3(), markerAxis = new THREE.Vector3(0, 0, 1);
   const cameraPosition = new THREE.Vector3(), focus = new THREE.Vector3(), orbit = new THREE.Vector3();
   const obstruction = new THREE.Raycaster();
-  let building = '', spell = 'ember';
+  let building = '', buildRotation=0, placement:Vec3|null=null, spell = 'ember';
+  const buildControls=document.querySelector<HTMLElement>('#build-controls')!;
+  document.querySelector('#build-rotate')!.addEventListener('click',()=>{buildRotation+=Math.PI/2;},{signal});
+  document.querySelector('#build-cancel')!.addEventListener('click',()=>{building='';buildControls.hidden=true;use.textContent=names[tool];},{signal});
+  for(const [id,property] of [['camera-distance','distance'],['camera-sensitivity','sensitivity']] as const)document.querySelector<HTMLInputElement>('#'+id)!.addEventListener('input',e=>{view[property]=Number((e.target as HTMLInputElement).value);},{signal});
+  document.querySelector<HTMLInputElement>('#shadows-enabled')!.addEventListener('change',e=>{renderer.shadowMap.enabled=(e.target as HTMLInputElement).checked;renderer.shadowMap.needsUpdate=true;},{signal});
   let state: Snapshot | null = null, tool: Tool = 'dig', jump = false, target: Vec3 | null = null, lastInput = 0, lastRay = 0, lastUI = 0;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
   const post = (message: ClientMessage) => { if (!stopped) worker?.postMessage(message); };
   const network = networkUI(signal, post, notice);
   const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
   const persistence = persistenceUI(send, signal, notice);
-  const gameAction = (action: GameAction, id?: string) => { if (action === 'spell' && id) spell = id; send({ type: 'game-action', action, id, target: target ?? undefined, aim: { x: -Math.sin(view.yaw), y: -Math.sin(view.pitch) * 0.5, z: -Math.cos(view.yaw) } }); };
-  const adventure = adventureUI(signal, gameAction, id => { building = id; use.textContent = '設置'; });
-  for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) actionInput(document.querySelector<HTMLButtonElement>('#' + id)!, () => gameAction(id), signal);
+  const gameAction = (action: GameAction, id?: string) => {
+    if(action==='spell'&&id)spell=id;
+    let aim={x:-Math.sin(view.yaw),y:-Math.sin(view.pitch)*.5,z:-Math.cos(view.yaw)};
+    if(action==='build')aim={x:Math.sin(buildRotation),y:0,z:Math.cos(buildRotation)};
+    if(state&&(action==='attack'||action==='heavy')){
+      const p=state.player,reach=(WEAPONS[state.adventure.equipment]??WEAPONS.hands).reach;
+      const enemy=state.adventure.enemies.filter(e=>{const d=Math.hypot(e.x-p.x,e.z-p.z);return e.health>0&&d<reach+.4&&Math.abs(e.y-p.y)<2&&(d<1||((e.x-p.x)*aim.x+(e.z-p.z)*aim.z)/d>.3);}).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
+      if(enemy){const d=Math.hypot(enemy.x-p.x,enemy.z-p.z)||1;aim={x:(enemy.x-p.x)/d,y:0,z:(enemy.z-p.z)/d};}
+    }
+    if(action==='dodge'&&(input.x||input.z)){const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw),length=Math.hypot(input.x,input.z);aim={x:(input.x*cos+input.z*sin)/length,y:0,z:(input.z*cos-input.x*sin)/length};}
+    send({type:'game-action',action,id,target:action==='build'?placement??undefined:target??undefined,aim});
+  };
+  const adventure = adventureUI(signal, gameAction, id => { building=id;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
+  for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
+  actionInput(document.querySelector<HTMLButtonElement>('#quick-eat')!,()=>gameAction('eat'),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#cast')!, () => gameAction('spell', spell), signal);
   const use = document.querySelector<HTMLButtonElement>('#use-tool')!;
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]')) button.addEventListener('click', () => {
-    building = ''; tool = button.dataset.tool as Tool; use.textContent = names[tool]; app.dataset.tool=tool; use.disabled = tool !== 'water' && !target;
+    building = '';buildControls.hidden=true; tool = button.dataset.tool as Tool; use.textContent = names[tool]; app.dataset.tool=tool; use.disabled = tool !== 'water' && !target;
     for (const b of document.querySelectorAll('[data-tool]')) b.setAttribute('aria-pressed', String(b === button));
   }, { signal });
+  for(const [id,icon,label] of [['attack','sword','攻撃'],['water-cast','water','放水'],['guard','shield','盾'],['heavy','axe','強撃'],['cast','staff','魔法'],['adventure-menu','bag','持物'],['build-rotate','hammer','回転'],['quick-eat','berry','食事']] ){const button=document.querySelector<HTMLButtonElement>('#'+id)!;button.innerHTML=itemIcon(icon)+'<span>'+label+'</span>';if(id==='attack')button.setAttribute('aria-label','攻撃');}
   const pour = () => { const p = state?.player ?? world.player.position; send({ type: 'action', tool: 'water', target: target ?? { x:p.x-Math.sin(view.yaw)*2, y:p.y+0.5, z:p.z-Math.cos(view.yaw)*2 } }); };
   holdAction(document.querySelector<HTMLButtonElement>('#water-cast')!, pour, () => true, signal);
   const act = () => { if (!building && tool === 'water') pour(); else if (target && building) gameAction('build', building); else if (target) send({ type: 'action', tool, target }); else notice('近くの地面に照準を合わせてください'); };
@@ -87,7 +109,7 @@ export function startGame() {
     };
     void persistence.load().then(save => { if (!stopped) send({ type: 'init', save }); });
   } catch { fail('このブラウザで地形Workerを起動できませんでした。ChromeまたはSafariを更新してください。'); }
-  let previous = performance.now(), fpsStarted = previous, frames = 0, fps = 0;
+  let previous = performance.now(), fpsStarted = previous, frames = 0, fps = 0, lastShadow=0;
   document.addEventListener('visibilitychange', () => { previous = performance.now(); if(document.hidden)send({type:'save'}); send({ type: 'pause', paused: document.hidden }); }, { signal });
   const position = document.querySelector<HTMLElement>('#position')!;
   const animate = (now: number) => {
@@ -99,9 +121,9 @@ export function startGame() {
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
       world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
-      obstruction.set(focus, orbit); obstruction.far = 9;
+      obstruction.set(focus, orbit); obstruction.far = view.distance;
       const blocker = terrain.raycast(obstruction);
-      const distance = blocker ? Math.max(0.15, blocker.distance - 0.2) : 9;
+      const distance = blocker ? Math.max(0.15, blocker.distance - 0.2) : view.distance;
       cameraPosition.copy(focus).addScaledVector(orbit, distance);
       camera.position.copy(cameraPosition); camera.lookAt(focus); camera.updateMatrixWorld();
       world.player.visible = camera.position.distanceTo(world.player.position) > 1.6;
@@ -112,12 +134,18 @@ export function startGame() {
           target = { x: hit.point.x, y: hit.point.y, z: hit.point.z };
           normal.copy(hit.face?.normal ?? markerAxis); world.marker.position.copy(hit.point).addScaledVector(normal, 0.04); world.marker.quaternion.setFromUnitVectors(markerAxis, normal); world.marker.visible = true;
         } else { target = null; world.marker.visible = false; }
-        use.disabled = !target && (tool !== 'water' || !!building); document.querySelector('#target-hint')!.textContent = tool === 'water' && !building ? '長押しで放水' : target ? '' : '地面に照準を合わせる'; lastRay = now;
+        placement=building&&target?placementPoint(target):null;
+        const def=BUILDINGS.find(b=>b.id===building),issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory):'地面に照準を合わせる';
+        world.preview(building,placement,buildRotation,!issue);
+        document.querySelector('#build-hint')!.textContent=building?(issue||`${def?.name}を設置`):'';
+        use.disabled = building?(!placement||!!issue):!target && (tool !== 'water' || !!building); document.querySelector('#target-hint')!.textContent = tool === 'water' && !building ? '長押しで放水' : target ? '' : '地面に照準を合わせる'; lastRay = now;
       }
+      terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);
+      if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
       try { renderer.render(world.scene, camera); } catch { fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
-        const p = state.player, m = state.metrics; adventure.update(state.adventure, p);
+        const p = state.player, m = state.metrics; adventure.update(state.adventure, p,view.yaw);
         app.dataset.cameraPitch = String(view.pitch); app.dataset.cameraYaw = String(view.yaw);
         position.textContent = `X ${p.x.toFixed(1)} · Y ${p.y.toFixed(1)} · Z ${p.z.toFixed(1)}`; position.dataset.x = String(p.x); position.dataset.y = String(p.y); position.dataset.z = String(p.z); position.dataset.grounded = String(p.grounded); app.dataset.tick = String(state.tick);
         const edits = document.querySelector<HTMLElement>('#edit-count')!; edits.textContent = `地形編集 ${state.edits}`; edits.dataset.count = String(state.edits);

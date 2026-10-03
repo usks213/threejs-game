@@ -1,3 +1,4 @@
+import { placementPoint, placementIssue } from './placement';
 import { bossAttack, directedShot } from './bosses';
 import { BIOMES, BOSSES, BUILDINGS, ENEMIES, ITEM_NAMES, RECIPES, SPELLS, WEAPONS, biomeAt } from '../content/catalog';
 import { environmentAt } from '../environment/time';
@@ -89,15 +90,15 @@ export class Adventure {
    p.heading = Math.atan2(aim.x, aim.z);
    if (this.attack > 0) throw new Error('攻撃の回復を待ってください'); const weapon = WEAPONS[s.equipment] ?? WEAPONS.hands, heavy = action === 'heavy';
    this.stamina(weapon.stamina * (heavy ? 1.8 : 1)); this.attack = weapon.cooldown * (heavy ? 1.8 : 1);
-   const damage = weapon.damage * (heavy ? 1.7 : 1);
+   const damage = weapon.damage * (heavy ? 1.7 : 1); let hits=0;
    if (weapon.ranged) { this.projectile(aim, damage, 'physical', 0.15); return { dirty: [], message: '矢を放ちました' }; }
    for (const e of s.enemies) if (e.health > 0 && distance(p, e) < weapon.reach + (heavy ? 0.4 : 0) && Math.abs(e.y - p.y) < 3) {
     const d = distance(p, e); if (d < 1 || ((e.x - p.x) * aim.x + (e.z - p.z) * aim.z) / d > 0.1) {
-     this.hit(e, damage, 'physical');
+     this.hit(e, damage, 'physical');hits++;
      if (heavy || damage >= 25) { e.windup = 0; e.cooldown = Math.max(e.cooldown, 0.7); const push = e.boss ? 0.15 : 0.7; e.x += (e.x - p.x) / Math.max(d, 0.01) * push; e.z += (e.z - p.z) / Math.max(d, 0.01) * push; }
     }
    }
-   return { dirty: [], message: action === 'heavy' ? '強攻撃' : '攻撃' };
+   return { dirty: [], message: hits?`命中 · ${Math.round(damage)}${hits>1?' ×'+hits:''}`:action === 'heavy' ? '強攻撃' : '攻撃' };
   }
   if (action === 'spell') {
    p.heading = Math.atan2(aim.x, aim.z);
@@ -112,7 +113,8 @@ export class Adventure {
   }
   if (action === 'build') {
    const def = BUILDINGS.find(b => b.id === id); if (!def || distance(p, ground) > 7) throw new Error('近くに設置してください');
-   const x = Math.round(ground.x), z = Math.round(ground.z), y = Math.round(ground.y * 2) / 2;
+   const {x,y,z}=placementPoint(ground);
+   const issue=placementIssue(def,p,{x,y,z},s.buildings,s.inventory);if(issue)throw new Error(issue);
    if (Math.hypot(x - p.x, z - p.z) < 1.1 && Math.abs(y - p.y) < 1.8) throw new Error('自分の体から少し離して設置してください');
    if (s.buildings.some(b => Math.hypot(b.x - x, b.y - y, b.z - z) < 0.6)) throw new Error('同じ場所には設置できません');
    this.spend(def.cost); s.buildings.push({ id: this.sim.allocateEntityId(), definition: id, x, y, z, rotation: Math.atan2(aim.x, aim.z), support: def.support, contents: {} });
