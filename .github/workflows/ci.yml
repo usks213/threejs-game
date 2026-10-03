@@ -27,7 +27,7 @@ jobs:
       - run: npm run test
       - run: npm run build
         env:
-          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          DEPLOYMENT_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/upload-artifact@v4
         with:
           name: game-dist
