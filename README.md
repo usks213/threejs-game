@@ -1,24 +1,24 @@
 # TERRA — オープンワールド・サバイバル試作
 
-添付仕様v0.4に従い、まずPhase 0の技術検証を進めています。今回はスマホで地形を掘る・盛る、水と岩を試せるSingle Player版です。協力プレイ・戦闘・クラフト・建築・ボスは後続段階です。
+仕様v0.4に従い、まずPhase 0の技術検証を進めています。今回はスマホで地形を掘る・盛る、水と岩を試せるSingle Player版です。協力プレイ・戦闘・クラフト・建築・ボスは後続段階です。
 
-[遊び方・実装状況・制約](docs/phase0-status.md) / [仕様v0.4](docs/specs/open-world-survival-v0.4.md) / [今回の設計判断](docs/adr/0001-phase0-voxel-prototype.md)
+[遊び方・実装状況・制約](docs/phase0-status.md) / [仕様v0.4](docs/specs/open-world-survival-v0.4.md) / [設計判断](docs/adr/0001-phase0-voxel-prototype.md)
 
-新しい主要モジュール: `src/world/` は密度・編集・Streaming・Mesh生成、`src/simulation/` は共通ルールとWorker、`src/fluid/` / `src/physics/` は水と球体、`src/save/` は保存形式とIndexedDB、`src/content/` はデータ定義、`src/rendering/voxel/` はThree.js表示、`src/networking/transport.ts` は後続接続用interfaceです。
+## 操作
 
-セーブは端末とURLごとのIndexedDBへ自動保存されます。URLを変更する前に画面の「書出」、移動先で「読込」を使ってください。
+左スティックで移動、画面をドラッグで視点変更。下のツールを選び、近くの地面に照準を合わせ、右の丸いボタンで使います。↑でジャンプ。「出発点へ」は位置だけ戻します。
 
----
+PCはWASD/矢印、Spaceでジャンプ、Fでツール使用。マウスドラッグで視点を変えられます。
 
-# FIELD — スマホ向け3Dゲーム
-
-左下の仮想スティックで、床の上をキャラクターが移動する小さな3D世界です。PCではWASD・矢印キーで操作できます。「中央へ戻る」で位置をリセットできます。
+「保存」は端末のIndexedDBへ保存します。編集後と5秒ごとにも自動保存。「書出」「読込」はJSONバックアップです。別の端末や別のPreview URLへ移る前に書き出してください。セーブは端末とURLのオリジンごとに別です。
 
 ## 技術構成
-Three.js / TypeScript / Vite / Vitest / Playwright / GitHub Actions / Cloudflare Pages。まずWeb版を優先し、Capacitor・Electron・Tauriは将来検討します。
+
+Three.js / TypeScript strict / Vite / Vitest / Playwright / GitHub Actions。現行の配信はCloudflare WorkersのGit連携・静的アセットです。Pagesでも同じdistを配信できます。Capacitor・Electron・TauriはWeb版を完成させてから検討します。
 
 ## 開発者向けコマンド
-Node.js 22以上を使用します。通常、ユーザーが以下を実行する必要はありません。
+
+Node.js 22以上を使用します。ユーザーが実行する必要はありません。
 
 ```sh
 npm install
@@ -30,38 +30,62 @@ npx playwright install chromium
 npm run e2e
 ```
 
-`dev`は開発用、`build`は公開用ファイルをdistへ出力します。`e2e`はビルド結果をブラウザで検証します。Linuxではブラウザのシステム依存が必要な場合に `npx playwright install --with-deps chromium` を使います。
+`dev`は開発サーバー、`build`は公開用のdist生成、`e2e`はビルド結果のブラウザテストです。Linuxでは `npx playwright install --with-deps chromium` でシステム依存も用意します。
 
-## 構成
-ゲームルールは `src/core/`、描画は `src/rendering/`、操作は `src/input/`、起動と連携は `src/platform/` と `src/main.ts`、画面スタイルは `src/ui/` に分離しています。将来用のgame/player/enemy/combat/audio/saveディレクトリとpublicアセットディレクトリを用意しています。詳細な変更規約はAGENTS.mdに記載しています。
+## ディレクトリ
+
+| 場所 | 役割 |
+| --- | --- |
+| src/world/ | Seed密度場・SDF編集・Chunk/Brick Streaming・Surface Mesh生成 |
+| src/simulation/ | Transport/描画非依存のGameSimulation、固定Tick、Worker接続 |
+| src/fluid/, src/physics/ | 低頻度の水セルと限定的な球体衝突 |
+| src/content/ | バイオーム等のデータ定義 |
+| src/rendering/ | Three.js Scene・Voxel表示・GPU資源の管理 |
+| src/input/ | タッチ・キーボード・カメラ入力 |
+| src/save/ | 保存形式の検証とIndexedDB |
+| src/networking/ | 後続WebRTC/Colyseus用Transport interface（接続未実装） |
+| src/platform/, src/ui/ | 起動・連携・HUD・保存UI |
+| public/ | 将来のモデル・テクスチャ・音声 |
+| tests/unit/, tests/e2e/ | Nodeのロジック検証とブラウザ検証 |
+| docs/ | 仕様、実装状況、ADR |
+
+ゲームルールへDOM・Three.jsを持ち込まず、WorkerとNodeで同じSimulationを実行します。詳細なAI変更規約はAGENTS.mdに記載しています。
 
 ## 自動検証
-Pull Requestとmainへのpushで、npm ci→型チェック→Vitest→ビルド→Playwrightを実行します。E2Eでは起動、UI、canvas、移動、リセット、リサイズ、JavaScript例外、WebGLエラー表示を確認します。スクリーンショットと失敗時トレースをActionsのアーティファクトへ保存します。Android相当のブラウザ設定は実機のGPU・Safariの保証ではないため、公開URLで実機レビューも行います。
 
-## Cloudflare Pages
-Git連携で `usks213/threejs-game` を指定します。
+Pull Requestとmainへのpushで、npm ci → 型 → Vitest → build → Playwrightを実行します。PC/Android相当のChromiumで起動、入力、ジャンプ、画面回転、編集、水、物理、保存復元、書出、不正読込、WebGLエラーを検証します。スクリーンショットと失敗時トレースをActionsへ保存します。
 
-| 設定 | 値 |
+PRの `verify-preview` はCloudflare botが提示した実際のURLを取得し、deployment.jsonのソースコミットを照合して公開Previewを再テストします。mainの `verify-production` も対象コミットの公開とE2Eを確認します。待機超過、バージョン違い、HTTPエラー、テスト失敗を正常扱いしません。
+
+Androidエミュレーションとソフトウェア描画CIは実機GPU/Safariの保証ではありません。スマホのレビューで操作感とFPSを確認します。
+
+## Cloudflare配信
+
+現行Worker名はthreejs-game、本番URLは https://threejs-game.usks213.workers.dev です。初期設定は以下です。
+
+| Workers設定 | 値 |
 | --- | --- |
+| Repository | usks213/threejs-game |
 | Production branch | main |
-| Framework preset | Vite |
 | Build command | npm run build |
-| Build output directory | dist |
-| Root directory | 空欄（リポジトリ直下） |
-| NODE_VERSION | 22 |
-| Preview branches | すべての開発ブランチ |
+| Deploy command | npx wrangler deploy |
+| Preview command | npx wrangler preview |
+| Enable Preview Builds | 有効 |
+| Wrangler assets directory | ./dist |
+| Wrangler previews | {} |
 
-mainは本番、featureブランチとPRはレビュー用Previewです。GitHubとCloudflareの外部認証だけはアカウント所有者が公式UIで承認します。APIキー・トークンをチャットやリポジトリに貼る必要はありません。
+Git接続・Preview BuildsはCloudflare側で設定します。wrangler.jsoncだけでは外部のGit設定を有効にできません。外部OAuthだけはアカウント所有者が公式UIで承認します。APIキーやトークンをチャット/リポジトリに貼らないでください。
 
-## 自然言語で開発
-「敵を追加して」などの指示をCodexへ送ると、AIがAGENTS.mdを読み、featureブランチで実装・検証・GitHub反映を行い、Cloudflareの実際のPreview URLを提示します。スマホで遊んで、次の修正を自然言語で送ってください。新しいCodex Cloudタスクではこのリポジトリの環境を選択してください。継続作業にはGitHubへの書き込み権限とCloudflare Git連携が必要です。
+Pagesへ接続する場合は同じリポジトリ、main、Vite、build command `npm run build`、output `dist`、root空欄、Node22、Preview開発ブランチすべてを使用します。現行WorkersとPagesを混同せず、移行は別作業として扱います。
 
-## モバイルと性能
-Safe Areaと縦横画面に対応し、描画解像度を抑え、木の繰り返し描画にはInstancedMeshを使っています。重い影・post processing・外部アセットは使用しません。WebGL起動失敗や接続喪失は画面に表示します。
+## 自然言語での開発
 
-## 既存のCloudflare Workers公開先
-ユーザーから共有されたURLは https://threejs-game.usks213.workers.dev です。公開成功・Git連携は自動チェックの結果で確認します。これはWorkersのURLで、Pagesの公開先とは別です。
+「敵を追加して」などの指示を送ると、AIがAGENTS.mdと実装状況を読み、featureブランチで変更・検証・GitHub反映・Preview確認を進め、レビューURLを提示します。スマホで遊び、次の修正を自然言語で伝えてください。コードやGitを操作する必要はありません。
 
-既存Workerでも同じゲームを配信できるよう、`wrangler.jsonc` に `dist` の静的配信を設定しています。WorkersのGit連携では対象リポジトリを `usks213/threejs-game`、本番ブランチを `main`、Build commandを `npm run build`、Deploy commandを `npx wrangler deploy` にします。Pagesの設定は上記のまま利用可能です。
+新しいCodex Cloudタスクではusks213/threejs-gameの環境を選びます。GitHub書き込み権限とCloudflare Git連携が必要です。大きな変更はPreviewでプレイした後に安定版へ昇格します。
 
-ビルドは `deployment.json` にソースコミットを記録します。mainのCI成功後、GitHub Actionsの `verify-production` が既存URLに対象コミットが配信されたことを確認し、公開ゲームへPlaywrightテストを実行します。更新待ちは最大約10分です。デプロイ未完了・バージョン違い・HTTPエラー・E2E失敗を成功として扱いません。Preview URLはCloudflareの実際のデプロイ結果から取得し、公開確認のために本番へ未検証コードを反映しないでください。
+## 性能と制約
+
+有限2km世界を全生成せず、近傍BrickをWorkerで生成。DPR最大1.5、霧・頂点カラー・シンプルな光、繰り返す景観/水/岩はInstancedMeshを使用。編集512回、水384セル、岩12個に制限しています。重い影やpost processingは導入していません。
+
+画面の「性能・試作の範囲」でFPS・Draw calls・Triangles・処理時間・読み込み待機を確認できます。初期地形のNode/CI計測では800 Brick、表示128 Brick、29,438面、Geometry約0.98MB、生成284msでした。これはそのCI環境の記録で、スマホ60FPSの保証ではありません。LOD境界や本格物理・マルチプレイ等の未検証点は実装状況に記載しています。
