@@ -74,7 +74,7 @@ test('two fingers move and jump together, and camera reaches both vertical poles
  const before = Number(await page.locator('#position').getAttribute('data-x'));
  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [left, right] });
  // Keep the joystick down; release only the jump finger.
- await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [left] });
+ await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [left] });
  await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/ジャンプ ([\d.]+)m/)?.[1] ?? '0')).toBeGreaterThan(0.4);
  await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(before + 0.4);
  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
