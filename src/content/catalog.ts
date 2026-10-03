@@ -1,0 +1,56 @@
+export interface BiomeDefinition { id: string; name: string; tier: number; center: { x: number; z: number }; grass: string; sky: string; fog: string; boss: string; resource: string }
+export const BIOMES: BiomeDefinition[] = [
+ { id: 'verdant', name: '若葉の林', tier: 1, center: { x: 0, z: 0 }, grass: '#74955a', sky: '#abc8dc', fog: '#b8cbc0', boss: 'root', resource: 'stone' },
+ { id: 'dusk', name: '黄昏の丘陵', tier: 2, center: { x: 90, z: 0 }, grass: '#526c58', sky: '#9aafc0', fog: '#97a9ae', boss: 'tusk', resource: 'copper' },
+ { id: 'mire', name: '翡翠の湿原', tier: 3, center: { x: 90, z: 90 }, grass: '#596d3c', sky: '#91a6a0', fog: '#879889', boss: 'mirelord', resource: 'iron' },
+ { id: 'frost', name: '霜火の高地', tier: 4, center: { x: 0, z: 90 }, grass: '#bac5c9', sky: '#b7cfdd', fog: '#c2d0d3', boss: 'frostwing', resource: 'crystal' },
+ { id: 'rift', name: '星裂の領域', tier: 5, center: { x: -90, z: 90 }, grass: '#8b6b97', sky: '#b0a1ca', fog: '#a998bd', boss: 'riftheart', resource: 'aether' },
+];
+export function biomeAt(x: number, z: number): BiomeDefinition { return BIOMES.reduce((nearest, b) => Math.hypot(x - b.center.x, z - b.center.z) < Math.hypot(x - nearest.center.x, z - nearest.center.z) ? b : nearest); }
+export interface EnemyDefinition { id: string; name: string; health: number; damage: number; speed: number; reach: number; color: string; shape: 'boar' | 'slime' | 'walker' | 'flyer'; element: string; resistance: string }
+export const ENEMIES: EnemyDefinition[] = [
+ { id: 'boar', name: '牙獣', health: 30, damage: 8, speed: 1.8, reach: 1.3, color: '#9a7157', shape: 'boar', element: 'physical', resistance: 'none' },
+ { id: 'slime', name: '苔スライム', health: 24, damage: 6, speed: 1.1, reach: 1.2, color: '#73a866', shape: 'slime', element: 'poison', resistance: 'poison' },
+ { id: 'walker', name: '石の番人', health: 48, damage: 12, speed: 1.3, reach: 1.6, color: '#8b9896', shape: 'walker', element: 'physical', resistance: 'physical' },
+ { id: 'flyer', name: '裂け目の羽獣', health: 32, damage: 9, speed: 2.2, reach: 1.4, color: '#a690bb', shape: 'flyer', element: 'frost', resistance: 'frost' },
+];
+export interface BossDefinition { id: string; name: string; health: number; damage: number; color: string; summon: Record<string, number>; reward: string; element: string }
+export const BOSSES: BossDefinition[] = [
+ { id: 'root', name: '古樹の守護者', health: 220, damage: 15, color: '#587652', summon: { wood: 8, resin: 2 }, reward: 'copper', element: 'physical' },
+ { id: 'tusk', name: '黒角の巨獣', health: 340, damage: 20, color: '#7c645c', summon: { copper: 6, fang: 4 }, reward: 'iron', element: 'physical' },
+ { id: 'mirelord', name: '沼の王', health: 460, damage: 25, color: '#60896a', summon: { iron: 6, resin: 6 }, reward: 'crystal', element: 'poison' },
+ { id: 'frostwing', name: '霜翼', health: 600, damage: 30, color: '#9fb9d3', summon: { crystal: 6, fang: 8 }, reward: 'aether', element: 'frost' },
+ { id: 'riftheart', name: '星裂の心臓', health: 780, damage: 36, color: '#b189cf', summon: { aether: 8, crystal: 8 }, reward: 'star', element: 'magic' },
+];
+export const ITEM_NAMES: Record<string, string> = { wood: '木材', stone: '石', resin: '樹脂', berry: '木の実', fang: '牙', copper: '銅鉱', iron: '鉄鉱', crystal: '霜晶', aether: '魔晶', star: '星核', sword: '石剣', axe: '石斧', shield: '木盾', bow: '弓', staff: '杖', armor: '革鎧', stew: '森の煮込み', copperSword: '銅剣', ironSword: '鉄剣', crystalSword: '霜晶剣', aetherSword: '星裂剣' };
+export interface RecipeDefinition { id: string; name: string; cost: Record<string, number>; output: string; amount: number; tier: number; station: boolean }
+export const RECIPES: RecipeDefinition[] = [
+ { id: 'axe', name: '石斧', cost: { wood: 3, stone: 2 }, output: 'axe', amount: 1, tier: 1, station: false },
+ { id: 'sword', name: '石剣', cost: { wood: 2, stone: 4 }, output: 'sword', amount: 1, tier: 1, station: false },
+ { id: 'shield', name: '木盾', cost: { wood: 5 }, output: 'shield', amount: 1, tier: 1, station: false },
+ { id: 'bow', name: '弓', cost: { wood: 6, resin: 2 }, output: 'bow', amount: 1, tier: 1, station: true },
+ { id: 'staff', name: '杖', cost: { wood: 5, resin: 3, stone: 3 }, output: 'staff', amount: 1, tier: 1, station: true },
+ { id: 'armor', name: '革鎧', cost: { fang: 4, resin: 2 }, output: 'armor', amount: 1, tier: 1, station: true },
+ { id: 'stew', name: '森の煮込み', cost: { berry: 3 }, output: 'stew', amount: 1, tier: 1, station: false },
+ ...['copper', 'iron', 'crystal', 'aether'].map((material, i) => ({ id: material + 'Sword', name: ['銅剣', '鉄剣', '霜晶剣', '星裂剣'][i], cost: { [material]: 6, wood: 4 }, output: material + 'Sword', amount: 1, tier: i + 2, station: true })),
+];
+export interface BuildingDefinition { id: string; name: string; cost: Record<string, number>; size: [number, number, number]; support: number; color: string; station?: boolean }
+export const BUILDINGS: BuildingDefinition[] = [
+ { id: 'foundation', name: '基礎', cost: { stone: 4 }, size: [2, 0.35, 2], support: 8, color: '#8b8d7d' },
+ { id: 'floor', name: '床', cost: { wood: 3 }, size: [2, 0.15, 2], support: 4, color: '#b69a6c' },
+ { id: 'wall', name: '壁', cost: { wood: 4 }, size: [2, 2, 0.2], support: 4, color: '#a88d65' },
+ { id: 'roof', name: '屋根', cost: { wood: 4 }, size: [2.2, 0.2, 2.2], support: 3, color: '#725a4d' },
+ { id: 'pillar', name: '柱', cost: { wood: 2 }, size: [0.25, 2, 0.25], support: 6, color: '#886d4d' },
+ { id: 'bench', name: '作業台', cost: { wood: 6, stone: 2 }, size: [1.5, 0.8, 0.8], support: 3, color: '#bc9466', station: true },
+ { id: 'fire', name: '焚き火', cost: { wood: 3, stone: 3 }, size: [0.7, 0.3, 0.7], support: 2, color: '#ea9e52' },
+ { id: 'bed', name: '寝床', cost: { wood: 5, resin: 2 }, size: [1, 0.3, 2], support: 2, color: '#9caa76' },
+ { id: 'chest', name: '箱', cost: { wood: 5 }, size: [1, 0.8, 0.7], support: 3, color: '#9f794e' },
+ { id: 'portal', name: '転移門', cost: { wood: 10, crystal: 2 }, size: [2, 3, 0.4], support: 3, color: '#ae9dcc' },
+];
+export const SPELLS = [
+ { id: 'ember', name: '火球', mana: 12, cooldown: 0.7, damage: 26, element: 'fire', color: '#ffc077' },
+ { id: 'frost', name: '霜波', mana: 18, cooldown: 1.2, damage: 18, element: 'frost', color: '#b6eafa' },
+ { id: 'quake', name: '砕岩', mana: 24, cooldown: 2, damage: 35, element: 'physical', color: '#f1d6a4' },
+ { id: 'raise', name: '隆起', mana: 20, cooldown: 2, damage: 12, element: 'earth', color: '#8cbb76' },
+ { id: 'mend', name: '癒し', mana: 25, cooldown: 3, damage: 0, element: 'heal', color: '#abffd0' },
+];

@@ -2,10 +2,15 @@ import type { SphereBody } from './sphere';
 import { CHARACTER_HEIGHT, CHARACTER_RADIUS } from './character';
 import type { PlayerState } from '../simulation/protocol';
 
-// Equal-mass contacts, bounded to twelve rocks; no render or platform dependencies.
+// Equal-mass contacts use a spatial grid instead of all-pairs comparisons.
 export function collideRocks(bodies: SphereBody[]): void {
-  for (let pass = 0; pass < 3; pass++) for (let i = 0; i < bodies.length; i++) for (let j = i + 1; j < bodies.length; j++) {
-    const a = bodies[i], b = bodies[j];
+  const grid = new Map<string, SphereBody[]>();
+  const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
+  for (const body of bodies) { const p = body.position, id = key(Math.floor(p.x / 2), Math.floor(p.y / 2), Math.floor(p.z / 2)); const list = grid.get(id) ?? []; list.push(body); grid.set(id, list); }
+  for (let pass = 0; pass < 3; pass++) for (const a of bodies) {
+   const p = a.position, gx = Math.floor(p.x / 2), gy = Math.floor(p.y / 2), gz = Math.floor(p.z / 2);
+   for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) for (const b of grid.get(key(gx + dx, gy + dy, gz + dz)) ?? []) {
+    if (a.id >= b.id || (a.sleeping && b.sleeping)) continue;
     let x = b.position.x - a.position.x, y = b.position.y - a.position.y, z = b.position.z - a.position.z;
     const distance = Math.hypot(x, y, z), radius = a.radius + b.radius;
     if (distance >= radius - 0.001) continue;
@@ -20,6 +25,7 @@ export function collideRocks(bodies: SphereBody[]): void {
       b.velocity.x += x * impulse; b.velocity.y += y * impulse; b.velocity.z += z * impulse;
     }
     if (correction > 0.002 || speed < -0.2) a.sleeping = b.sleeping = false;
+   }
   }
 }
 export function collidePlayerRocks(player: PlayerState, bodies: SphereBody[], dx: number, dz: number, dt: number): void {

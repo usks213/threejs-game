@@ -1,4 +1,6 @@
 /// <reference lib="webworker" />
+import { SessionAuthority } from './session';
+import { sessionFrame } from '../networking/frame';
 import { GameSimulation, TICK_RATE } from './game-simulation';
 import { visibleBricks } from '../world/streaming';
 import { meshBrick } from '../world/mesher';
@@ -7,7 +9,7 @@ import type { ClientMessage, PlayerInput, WorkerMessage } from './protocol';
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const emit = (message: WorkerMessage, transfer: Transferable[] = []) => scope.postMessage(message, transfer);
-let sim: GameSimulation | null = null;
+let sim: GameSimulation | null = null, authority: SessionAuthority | null = null, replica = false;
 let input: PlayerInput = { x: 0, z: 0, jump: false };
 let bricks = new Map<string, Brick>();
 const pending = new Map<string, Brick>();
@@ -58,31 +60,43 @@ function scheduleMesh() {
 scope.onmessage = (event: MessageEvent<ClientMessage>) => {
   const message = event.data;
   try {
-    if (message.type === 'init') {
+    if (message.type === 'init' || message.type === 'replica-init') {
       if (bricks.size) emit({ type: 'remove', ids: [...bricks.keys()] });
-      sim = new GameSimulation(message.save); bricks.clear(); pending.clear(); triangles.clear(); dirtyMeshes.clear(); editedMeshes.clear(); center = ''; initialized = false; accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
+      authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; bricks.clear(); pending.clear(); triangles.clear(); dirtyMeshes.clear(); editedMeshes.clear(); center = ''; initialized = false; accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
+    } else if (message.type === 'peer-join' && authority && !replica) { authority.join(message.peer); emit({ type: 'peer-welcome', peer: message.peer, save: sim!.save(), state: sessionFrame(authority, message.peer) }); }
+    else if (message.type === 'peer-leave' && authority) authority.leave(message.peer);
+    else if (message.type === 'peer-input' && authority && !replica) authority.input(message.peer, message.input, message.sequence);
+    else if (message.type === 'peer-action' && authority && !replica) {
+      const result = authority.action(message.peer, message.message);
+      for (const id of result.dirty) { const b = bricks.get(id); if (b) { pending.set(id, b); dirtyMeshes.add(id); } } scheduleMesh();
+      emit({ type: 'notice', message: result.message });
+    } else if (message.type === 'replica-state' && sim && replica) {
+      Object.assign(sim.player, message.state.player);
+      for (const edit of message.edits.slice(sim.world.edits.length)) for (const id of sim.world.apply(edit)) { const b = bricks.get(id); if (b) { pending.set(id, b); dirtyMeshes.add(id); } }
+      stream(); scheduleMesh(); emit({ type: 'snapshot', state: message.state });
     } else if (message.type === 'input') input = { ...message.input, jump: input.jump || message.input.jump };
     else if (message.type === 'pause') { paused = message.paused; input = { x: 0, z: 0, jump: false }; previous = performance.now(); accumulator = 0; }
     else if (sim && message.type === 'reset-player') sim.resetPlayer();
-    else if (sim && message.type === 'save') emit({ type: 'save', save: sim.save() });
-    else if (sim && initialized && message.type === 'action') {
-      const result = sim.act(message.tool, message.target);
+    else if (sim && message.type === 'save' && !replica) emit({ type: 'save', save: authority!.save() });
+    else if (sim && initialized && (message.type === 'action' || message.type === 'game-action')) {
+      const result = message.type === 'action' ? sim.act(message.tool, message.target) : sim.adventure.action(message.action, message.id, message.target, message.aim);
       if (result.dirty.length) {
         editStart = performance.now(); const queue = new Map(pending); pending.clear();
         for (const id of result.dirty) { const b = bricks.get(id); if (b) { pending.set(id, b); dirtyMeshes.add(id); editedMeshes.delete(id); } }
         for (const [id, b] of queue) if (!pending.has(id)) pending.set(id, b);
         scheduleMesh();
       }
-      emit({ type: 'notice', message: result.message }); emit({ type: 'save', save: sim.save() });
+      emit({ type: 'notice', message: result.message }); emit({ type: 'save', save: authority!.save() });
     }
   } catch (error) { emit({ type: message.type === 'init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
 };
 setInterval(() => {
-  if (!sim || paused || !initialized) { previous = performance.now(); return; }
+  if (!sim || replica || paused || !initialized) { previous = performance.now(); return; }
   try {
     const now = performance.now(); accumulator += Math.min(0.1, (now - previous) / 1000); previous = now;
-    while (accumulator >= 1 / TICK_RATE) { sim.step(input); input.jump = false; accumulator -= 1 / TICK_RATE; }
+    while (accumulator >= 1 / TICK_RATE) { authority!.step(input); input.jump = false; accumulator -= 1 / TICK_RATE; }
     stream();
-    emit({ type: 'snapshot', state: { tick: sim.tick, player: { ...sim.player }, edits: sim.world.edits.length, fluids: sim.fluid.snapshot(), bodies: sim.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })), metrics: { ...sim.metrics, meshMs, editMs, bricks: bricks.size, pending: pending.size, triangles: [...triangles.values()].reduce((a, b) => a + b, 0) } } });
+    if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') emit({ type: 'peer-frame', peer, state: sessionFrame(authority!, peer), edits: sim.world.edits });
+    emit({ type: 'snapshot', state: { peers: authority!.view('host').peers, tick: sim.tick, adventure: sim.adventure.snapshot(), player: { ...sim.player }, edits: sim.world.edits.length, fluids: sim.fluid.snapshot(), bodies: sim.bodies.filter(b => Math.hypot(b.position.x - sim!.player.x, b.position.z - sim!.player.z) < 65).map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })), metrics: { ...sim.metrics, meshMs, editMs, bricks: bricks.size, pending: pending.size, triangles: [...triangles.values()].reduce((a, b) => a + b, 0) } } });
   } catch (error) { paused = true; emit({ type: 'error', message: String(error) }); }
 }, 1000 / TICK_RATE);

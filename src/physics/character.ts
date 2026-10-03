@@ -69,15 +69,16 @@ export class CharacterMotor {
       if (!corrected) break;
     }
   }
-  step(body: CharacterBody, dx: number, dz: number, jump: boolean, dt: number): boolean {
+  step(body: CharacterBody, dx: number, dz: number, jump: boolean, dt: number, immersion = 0): boolean {
     this.jumpBuffer = jump ? 0.15 : Math.max(0, this.jumpBuffer - dt);
     this.groundGrace = body.grounded ? 0.1 : Math.max(0, this.groundGrace - dt);
-    const jumped = this.jumpBuffer > 0 && this.groundGrace > 0;
+    const jumped = this.jumpBuffer > 0 && (this.groundGrace > 0 || immersion > 0.45);
     if (jumped) { body.vy = 6; body.grounded = false; this.jumpBuffer = this.groundGrace = 0; }
     const steps = 3, subDt = dt / steps;
     for (let substep = 0; substep < steps; substep++) {
       const wasGrounded = body.grounded;
-      body.vy = Math.max(-12, body.vy - 14 * subDt);
+      if (immersion > 0.3) body.vy = Math.max(-2, Math.min(6, body.vy + (immersion * 26 - 14 - body.vy * 3) * subDt));
+      else body.vy = Math.max(-12, body.vy - 14 * subDt);
       body.x += dx / steps; body.z += dz / steps; body.y += body.vy * subDt;
       body.grounded = false;
       if (wasGrounded && body.vy <= 0 && (dx || dz)) this.tryStep(body);

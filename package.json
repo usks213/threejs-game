@@ -8,19 +8,25 @@
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p apps/signaling/tsconfig.json",
     "test": "vitest run",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "server": "tsx apps/dedicated/main.ts"
   },
   "dependencies": {
+    "@colyseus/core": "0.18.18",
+    "@colyseus/sdk": "0.18.4",
+    "@colyseus/ws-transport": "0.18.4",
     "three": "0.180.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20261003.1",
     "@playwright/test": "1.55.1",
     "@types/node": "22.18.6",
     "@types/three": "0.180.0",
+    "tsx": "4.23.15",
     "typescript": "5.9.2",
     "vite": "7.3.6",
     "vitest": "4.1.11"

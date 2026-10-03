@@ -2,15 +2,16 @@ import { MAX_FLUID_CELLS, type FluidCell } from './fluid';
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 export const WATER_VERTEX_CAPACITY = MAX_FLUID_CELLS * 6 * 6;
 // Only the external boundary is rendered; neighboring cells no longer draw overlapping boxes.
-export function waterSurface(cells: FluidCell[], positions: Float32Array, normals: Float32Array): number {
+export function waterSurface(cells: FluidCell[], positions: Float32Array, normals: Float32Array, colors?: Float32Array): number {
   const map = new Map(cells.map(c => [key(c.x, c.y, c.z), c]));
-  let count = 0;
+  let count = 0, frozen = false;
   const face = (corners: number[][], nx: number, ny: number, nz: number) => {
     for (const i of [0, 1, 2, 0, 2, 3]) {
-      positions.set(corners[i], count * 3); normals.set([nx, ny, nz], count * 3); count++;
+      positions.set(corners[i], count * 3); normals.set([nx, ny, nz], count * 3); colors?.set(frozen ? [0.7, 0.9, 1] : [0.14, 0.5, 0.57], count * 3); count++;
     }
   };
   for (const c of cells) {
+    frozen = Boolean(c.frozen);
     const { x, y, z } = c, bottom = y + (c.bottom ?? 0), top = y + Math.min(1, (c.bottom ?? 0) + c.volume);
     if (top - bottom < 0.0001) continue;
     if (top < y + 0.999 || !map.has(key(x, y + 1, z))) face([[x, top, z], [x, top, z + 1], [x + 1, top, z + 1], [x + 1, top, z]], 0, 1, 0);

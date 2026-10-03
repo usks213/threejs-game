@@ -88,3 +88,19 @@ test('two fingers move and jump together, and camera reaches both vertical poles
  await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(0.55);
  expect(errors).toEqual([]);
 });
+
+test('survival adventure collects food, opens crafting and persists its inventory', async ({ page }) => {
+ const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+ await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
+ await expect(page.locator('#adventure-hud')).toContainText('若葉の林');
+ await page.getByRole('button', { name: '採集', exact: true }).click(); await expect(page.locator('#notice')).toContainText('木の実');
+ await page.getByRole('button', { name: '冒険メニュー', exact: true }).click();
+ await expect(page.locator('#adventure-content')).toContainText('木の実 ×5');
+ await page.getByRole('button', { name: '作る', exact: true }).first().click();
+ await expect(page.locator('#adventure-content')).toContainText('森の煮込み');
+ await page.locator('[data-game-action="craft"][data-id="stew"]').click(); await expect(page.locator('#notice')).toContainText('森の煮込みを作りました');
+ await page.locator('[data-tab="bag"]').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
+ await page.locator('#adventure-close').click(); await page.locator('#save').click(); await page.reload();
+ await expect(page.locator('#app')).toHaveAttribute('data-state', 'running'); await page.locator('#adventure-menu').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
+ expect(errors).toEqual([]);
+});

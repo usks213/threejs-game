@@ -15,7 +15,7 @@ export function persistenceUI(send: (message: ClientMessage) => void, signal: Ab
   file.addEventListener('change', async () => {
     const selected = file.files?.[0]; if (!selected) return;
     try {
-      if (selected.size > 1024 * 1024) throw new Error('セーブファイルが大きすぎます');
+      if (selected.size > 16 * 1024 * 1024) throw new Error('セーブファイルが大きすぎます');
       const save = validateSave(JSON.parse(await selected.text()));
       if (signal.aborted) return;
       send({ type: 'init', save }); write(save); notice('セーブを読み込みました');

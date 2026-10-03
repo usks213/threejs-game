@@ -1,7 +1,7 @@
 import type { SdfWorld } from '../world/density';
 import { insideBounds, type Vec3 } from '../world/types';
-export interface FluidCell extends Vec3 { volume: number; bottom?: number }
-export const MAX_FLUID_CELLS = 384;
+export interface FluidCell extends Vec3 { volume: number; bottom?: number; frozen?: boolean }
+export const MAX_FLUID_CELLS = 2048;
 const key = (p: Vec3) => `${p.x},${p.y},${p.z}`;
 const directions = [[1, 0], [0, 1], [-1, 0], [0, -1]] as const;
 const MIN_FILM = 0.04;
@@ -10,6 +10,7 @@ export class FluidGrid {
   displaced = 0;
   private revision = -1;
   private phase = 0;
+  private readonly frozen = new Map<string, number>();
   private readonly floors = new Map<string, number>();
   constructor(private readonly world: SdfWorld) {}
   private bottom(p: Vec3): number {
@@ -60,6 +61,7 @@ export class FluidGrid {
     this.phase++;
     const active = [...this.cells.values()].sort((a, b) => a.y - b.y);
     for (const cell of active) {
+      const until = this.frozen.get(key(cell)); if (until && until > this.phase) continue; if (until) this.frozen.delete(key(cell));
       if (!this.cells.has(key(cell))) continue;
       const floor = this.bottom(cell), capacity = 1 - floor;
       if (cell.volume > capacity + 0.000001) {
@@ -84,5 +86,22 @@ export class FluidGrid {
       }
     }
   }
-  snapshot(): FluidCell[] { return [...this.cells.values()].map(c => ({ ...c, bottom: this.bottom(c) })); }
+  freeze(p: Vec3, radius: number): void { for (const c of this.cells.values()) if (Math.hypot(c.x + 0.5 - p.x, c.y + 0.5 - p.y, c.z + 0.5 - p.z) < radius) this.frozen.set(key(c), this.phase + 80); }
+  iceHeight(p: Vec3): number | null { let top: number | null = null; for (const c of this.cells.values()) if (c.x === Math.floor(p.x) && c.z === Math.floor(p.z) && (this.frozen.get(key(c)) ?? 0) > this.phase) top = Math.max(top ?? -Infinity, c.y + this.bottom(c) + c.volume); return top; }
+  immersion(p: Vec3, height: number): number {
+    let depth = 0;
+    const x = Math.floor(p.x), z = Math.floor(p.z);
+    for (let y = Math.floor(p.y); y <= Math.floor(p.y + height); y++) {
+      const c = this.cells.get(`${x},${y},${z}`); if (!c || (this.frozen.get(key(c)) ?? 0) > this.phase) continue;
+      const bottom = y + this.bottom(c), top = bottom + c.volume;
+      depth += Math.max(0, Math.min(p.y + height, top) - Math.max(p.y, bottom));
+    }
+    return Math.min(1, depth / height);
+  }
+  current(p: Vec3): { x: number; z: number } {
+    const x = Math.floor(p.x), y = Math.floor(p.y), z = Math.floor(p.z);
+    const level = (dx: number, dz: number) => { const c = this.cells.get(`${x + dx},${y},${z + dz}`); return c ? (c.bottom ?? this.bottom(c)) + c.volume : 0; };
+    return { x: (level(-1, 0) - level(1, 0)) * 0.7, z: (level(0, -1) - level(0, 1)) * 0.7 };
+  }
+  snapshot(): FluidCell[] { return [...this.cells.values()].map(c => ({ ...c, bottom: this.bottom(c), frozen: (this.frozen.get(key(c)) ?? 0) > this.phase })); }
 }

@@ -56,7 +56,7 @@ describe('bounded water and physics prototypes', () => {
  });
  it('blocks solid terrain and bounds cell count', () => {
   const fluid = new FluidGrid(new SdfWorld()); expect(fluid.add({ x: 0, y: -10, z: 0 })).toBe(0);
-  for (let x = 0; x < 500; x++) fluid.add({ x, y: 25, z: 0 });
+  for (let i = 0; i < MAX_FLUID_CELLS + 20; i++) fluid.add({ x: i % 128, y: 25, z: Math.floor(i / 128) });
   expect(fluid.cells.size).toBe(MAX_FLUID_CELLS);
  });
  it('redistributes water instead of deleting it when raised terrain occupies a cell', () => {

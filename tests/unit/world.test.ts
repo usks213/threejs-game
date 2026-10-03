@@ -74,3 +74,10 @@ describe('bounded streaming and mesh extraction', () => {
   expect(boundary(left)).toEqual(boundary(right));
  });
 });
+
+it('reduces distant geometry without moving shared brick boundary vertices', () => {
+ const mesh = meshBrick(new SdfWorld(), { id: '0,0,0', origin: { x: 0, y: 0, z: 0 }, step: 1 });
+ expect(mesh.coarse).toBeDefined(); expect(mesh.coarse!.indices.length).toBeLessThan(mesh.indices.length);
+ const boundary = (data: Float32Array) => { const set = new Set<string>(); for (let i = 0; i < data.length; i += 3) if ([data[i], data[i + 1], data[i + 2]].some(v => v === 0 || v === 8)) set.add([...data.slice(i, i + 3)].join(',')); return [...set].sort(); };
+ expect(boundary(mesh.coarse!.positions)).toEqual(boundary(mesh.positions));
+});

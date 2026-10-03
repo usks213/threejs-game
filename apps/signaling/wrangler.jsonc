@@ -1,0 +1,7 @@
+{
+ "name": "threejs-game-signaling",
+ "main": "src/index.ts",
+ "compatibility_date": "2026-10-03",
+ "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "SignalRoom" }] },
+ "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SignalRoom"] }]
+}
