@@ -47,3 +47,6 @@ DPRは最大1.5。シンプルなライティングを使い、高価な影・po
 
 ## サバイバル仕様v0.4と段階的開発
 `docs/specs/open-world-survival-v0.4.md`, `docs/phase0-status.md`, `docs/adr/`を読む。Phase 0の技術ゲートを優先し、コンテンツを一度に作らない。共通GameSimulationはDOM/Three.js/WebRTC/Colyseusへ依存させずBrowser WorkerとNodeで共有する。地形編集はAuthority側で範囲・頻度・上限を検証し、Seed+差分を保存。未実装通信や人数目標を完成として報告しない。ネットワーク追加前に実接続・再参加・STUN/TURN・負荷試験を設計する。現在のSingle Playerは地形編集512回、水384セル、岩12個が上限。保存形式やSeed/Generatorの破壊的変更にはADRと互換性対応が必要。大きな変更はPreviewでユーザーがプレイした後に安定版へ昇格する。
+
+## Cloudflareビルド起動タイムアウト時の公開経路
+Cloudflareのビルド環境の起動タイムアウトはゲームコードの失敗ではない。検証済みdistをGitHub Actionsのdeploy-previewで直接公開する経路を用意している。必要なSecretはCLOUDFLARE_API_TOKENだけで、アカウントIDは既知の指定アカウントを固定。Secret登録は本人が公式UIで行い、値をチャットへ要求しない。同一リポジトリのPRだけに公開権限を渡す。Wrangler JSON出力の実際のURLとコミットを照合してから提示。トークン未登録・公開失敗を成功扱いしない。登録後は失敗したdeploy-previewジョブだけ再実行し、同一コードのテスト・ビルドを繰り返さない。

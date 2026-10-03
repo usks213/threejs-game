@@ -55,7 +55,7 @@ npm run e2e
 
 Pull Requestとmainへのpushで、npm ci → 型 → Vitest → buildを実行します。Playwrightの全ブラウザ検証はmainへのpushと手動起動で実行します。PC/Android相当のChromiumで起動、入力、ジャンプ、画面回転、編集、水、物理、保存復元、書出、不正読込、WebGLエラーを検証し、スクリーンショットと失敗時トレースをActionsへ保存します。
 
-PRの `verify-preview` はCloudflare botが提示した実際のURLとdeployment.jsonのコミットを照合します。mainの `verify-production` も公開コミットと起動用HTMLを確認します。これらは独立して進み、同じ全E2Eを公開先でも繰り返しません。待機超過、バージョン違い、HTTPエラー、テスト失敗を正常扱いしません。
+PRの `deploy-preview` は検証済みdistをGitHub ActionsからCloudflare Previewへ直接公開し、Wranglerが返したURLとdeployment.jsonのコミットを照合します。Cloudflareビルド環境の起動待ちを避けるための経路です。mainの `verify-production` も公開コミットと起動用HTMLを確認します。これらは独立して進み、同じ全E2Eを公開先でも繰り返しません。待機超過、バージョン違い、HTTPエラー、テスト失敗を正常扱いしません。
 
 Androidエミュレーションとソフトウェア描画CIは実機GPU/Safariの保証ではありません。スマホのレビューで操作感とFPSを確認します。
 
@@ -73,6 +73,8 @@ Androidエミュレーションとソフトウェア描画CIは実機GPU/Safari�
 | Enable Preview Builds | 有効 |
 | Wrangler assets directory | ./dist |
 | Wrangler previews | {} |
+
+直接Preview公開には、指定CloudflareアカウントのWorkers Scripts編集権限を持つAPIトークンをGitHub Actionsの `CLOUDFLARE_API_TOKEN` Secretに一度登録します。トークン値をチャットへ送らないでください。失敗した公開ジョブだけ再実行でき、テスト・ビルドのやり直しは不要です。公開URLはActionsのSummary/ログ/preview-release artifactに記録します。Git連携は維持します。
 
 Git接続・Preview BuildsはCloudflare側で設定します。wrangler.jsoncだけでは外部のGit設定を有効にできません。外部OAuthだけはアカウント所有者が公式UIで承認します。APIキーやトークンをチャット/リポジトリに貼らないでください。
 
