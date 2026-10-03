@@ -4,7 +4,7 @@ export const screenVertex='varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4
 interface LightVolume { sun:THREE.DirectionalLight; direction:THREE.Vector3; density:number; ambient:THREE.Color }
 /** Half-resolution world-space single scattering with shadow-map occlusion, Beer-Lambert extinction and HG phase. */
 export class VolumetricPass extends Pass {
- private target=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
+ readonly target=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
  private march=new THREE.ShaderMaterial({vertexShader:screenVertex,depthTest:false,depthWrite:false,uniforms:{depth:{value:null},shadowMap:{value:null},inverseProjection:{value:new THREE.Matrix4()},cameraWorld:{value:new THREE.Matrix4()},shadowMatrix:{value:new THREE.Matrix4()},eye:{value:new THREE.Vector3()},lightDirection:{value:new THREE.Vector3()},lightColor:{value:new THREE.Color()},ambient:{value:new THREE.Color()},density:{value:.008},shadowEnabled:{value:0},groundHeight:{value:0}},fragmentShader:`
  varying vec2 vUv;uniform sampler2D depth,shadowMap;uniform mat4 inverseProjection,cameraWorld,shadowMatrix;
  uniform vec3 eye,lightDirection,lightColor,ambient;uniform float density,shadowEnabled,groundHeight;

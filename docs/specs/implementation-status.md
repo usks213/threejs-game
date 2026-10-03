@@ -18,8 +18,8 @@
 | 16 通信 | WebRTC Star、無料WSS中継、Colyseus、同じSessionAuthority。4ブラウザHostの接続/移動/地形/切断は公開CIで成功。8クライアントDedicated複合操作はローカル成功。外部NAT/8ブラウザ/長時間の安定性は未確認 |
 | 17 同期 | Seed/編集差分、AoI、入力予測/Reconciliation、他プレイヤー補間、再参加持ち物。帯域予算の受入確認は未完了 |
 | 18 保存 | version1→2互換、generator1互換、IndexedDBの変更Chunk・deflate、書出/読込、攻略/建築/個別Inventory。Dedicatedの再参加IDと原子的ファイル置換。OPFS実測比較は未実施 |
-| 19 グラフィックス | 地域色、ローポリ、木/鉱石/木材/破片のInstancing。64pxタイルの共有Atlas、ワールド座標Triplanar、装備/簡易アニメーションを追加 |
-| 20 光 | 昼夜、空、星、地域霧、環境光/太陽。1 draw callの接地影と高さに応じる薄い霧を追加。近傍の太陽投影影を追加。SSAO/光芒/Magic Lightは未完成 |
+| 19 グラフィックス | 地域色、ローポリ、木/鉱石/木材/破片のInstancing。全実体アセットのPBR材質、共有128px albedo/normal/roughness、地形Triplanar、装備/簡易アニメーション |
+| 20 光 | 物理スカイ/昼夜、SH/IBL、自動露出、ブルーム、太陽/月の動的影、shadow付きボリュメトリック散乱、SSR+IBL反射。ADR0011参照。SSAOと局所Magic Lightは未実装 |
 | 21 天候 | 7天候、粒子/視界/光、水への降水、夜間索敵。温度・天候音・敵出現/魔法への連動は未完成 |
 | 22–23 描画 | LOD、Frustum Culling、Streaming、GPU Instancing、Worker生成。Atlasは実装。Occlusion/Hierarchical Instancing/Poolingの完成には未達 |
 | 24 性能 | Tick/物理/水/Mesh/FPS/Draw計測。8実接続・128物体・水・戦闘・建築・採掘・移動・再参加を検証。CI artifactにTick P95を保存。Host複合負荷、VRAM/帯域、スマホ実機30–60FPSは未達 |
@@ -44,3 +44,5 @@
 - 放水/UI更新：ローカル型・単体71件（接続統合はCI）・ビルド成功。Android相当の長押し/二指操作と新メニューでの保存を当該CIで確認。水流は近似で、物体が水を押し退ける相互作用は未実装。
 
 - 品質改善：次の目標・案内方向、素材と性能付き制作カード、持ち物/地域マップ、設置プレビューと回転、前方の敵への攻撃補助・方向回避、命中粒子/音/被弾表示、草・木造部品・雲・太陽影。詳細はADR0010。前回Androidの採集クリック失敗（放水と重なり）を修正し、今回のCIで再確認する。
+
+- HDR更新：ローカル型・単体74件（通信変更なしのため接続統合を除外）・ビルド成功。GPU測光/SHの昼夜比較と描画画像を関連CIへ保存。ブラウザ結果・公開コミットはActionsを正本とする。

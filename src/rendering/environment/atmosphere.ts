@@ -6,7 +6,7 @@ import type { AdventureSnapshot } from '../../game/types';
 /** Preetham Rayleigh/Mie sky, filtered HDR environment and 3-band spherical-harmonic diffuse light. */
 export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRenderer) {
  const sky=new Sky();sky.scale.setScalar(450000);sky.renderOrder=-2;sky.frustumCulled=false;
- const u=sky.material.uniforms;u.rayleigh.value=2;u.mieCoefficient.value=.004;u.mieDirectionalG.value=.8;
+ const u=sky.material.uniforms;u.sunPosition.value.set(300000,300000,-100000);u.rayleigh.value=2;u.mieCoefficient.value=.004;u.mieDirectionalG.value=.8;
  u.nightAmount={value:0};u.cloudCover={value:0};u.skyTime={value:0};
  sky.material.fragmentShader='uniform float nightAmount,cloudCover,skyTime;\n'+sky.material.fragmentShader;
  sky.material.fragmentShader=sky.material.fragmentShader.replace('gl_FragColor = vec4( retColor, 1.0 );',`
@@ -25,7 +25,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
  const environmentScene=new THREE.Scene(),captureSky=new Sky();captureSky.material=sky.material;captureSky.scale.copy(sky.scale);environmentScene.add(captureSky);
  const ground=new THREE.Mesh(new THREE.SphereGeometry(200,12,8,0,Math.PI*2,Math.PI/2,Math.PI/2),new THREE.MeshBasicMaterial({color:'#343e2b',side:THREE.BackSide}));environmentScene.add(ground);
  const pmrem=new THREE.PMREMGenerator(renderer),cube=new THREE.WebGLCubeRenderTarget(16,{type:THREE.HalfFloatType}),cubeCamera=new THREE.CubeCamera(.1,500000,cube);
- let environment:THREE.WebGLRenderTarget|null=null,disposed=false,pending=false,lastCapture=-Infinity,lastHour=-Infinity,lastWeather='',hour=12,weather='',seconds=0,captureRequested=true,lastProbeError:unknown=null;
+ let environment:THREE.WebGLRenderTarget|null=null,disposed=false,pending=false,lastCapture=-Infinity,lastHour=-Infinity,lastWeather='',hour=12,weather='',seconds=0,captureRequested=true,ready=false,lastProbeError:unknown=null;
  const stats={iblUpdates:0,shUpdates:0,shEnergy:0,hour:12,probeError:''};
  const volume={sun,direction,density:.008,ambient:new THREE.Color('#637d95')};
  const weatherPositions=new Float32Array(180*3),weatherGeometry=new THREE.BufferGeometry();weatherGeometry.setAttribute('position',new THREE.BufferAttribute(weatherPositions,3));
@@ -33,7 +33,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
  return {
   volume,stats,
   update(state:AdventureSnapshot,player:THREE.Vector3){
-   const env=state.environment;hour=env.hour;weather=env.weather;seconds=env.seconds;stats.hour=hour;
+   ready=true;const env=state.environment;hour=env.hour;weather=env.weather;seconds=env.seconds;stats.hour=hour;
    const angle=(hour-6)/24*Math.PI*2,altitude=Math.sin(angle),night=1-THREE.MathUtils.smoothstep(altitude,-.12,.08),cloudy=['rain','storm','fog'].includes(weather);
    direction.set(Math.cos(angle),altitude,-.3).normalize();u.sunPosition.value.copy(direction).multiplyScalar(450000);u.nightAmount.value=night;u.cloudCover.value=cloudy?.85:.3;u.turbidity.value=cloudy?8:2.5;u.skyTime.value=seconds;
    ground.material.color.set('#343e2b').multiplyScalar(1-night*.99);
@@ -47,12 +47,13 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
    captureRequested=Math.abs(hour-lastHour)>.18||weather!==lastWeather;
   },
   prepare(dt:number){
-   for(let i=0;i<9;i++)probe.sh.coefficients[i].lerp(targetSH.coefficients[i],stats.shUpdates===1?1:1-Math.exp(-dt*1.5));
+   if(!ready)return;
+   for(let i=0;i<9;i++){if(stats.shUpdates<=1)probe.sh.coefficients[i].copy(targetSH.coefficients[i]);else probe.sh.coefficients[i].lerp(targetSH.coefficients[i],1-Math.exp(-dt*1.5));}
    const now=performance.now();if(disposed||pending||!captureRequested||now-lastCapture<1500)return;
    lastCapture=now;lastHour=hour;lastWeather=weather;captureRequested=false;
    const next=pmrem.fromScene(environmentScene,0,.1,500000,{size:64});scene.environment=next.texture;scene.environmentIntensity=.75;environment?.dispose();environment=next;stats.iblUpdates++;
    cubeCamera.update(renderer,environmentScene);pending=true;
-   void LightProbeGenerator.fromCubeRenderTarget(renderer,cube).then(result=>{if(!disposed){targetSH.copy(result.sh);stats.shEnergy=result.sh.coefficients[0].length();stats.shUpdates++;}}).catch((error:unknown)=>{lastProbeError=error;stats.probeError=String(lastProbeError);console.error('SH environment capture failed',error);}).finally(()=>{pending=false;if(disposed)cube.dispose();});
+   void LightProbeGenerator.fromCubeRenderTarget(renderer,cube).then(result=>{if(!disposed){if(!result.sh.coefficients.every(v=>Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.z)))throw new Error('Non-finite sky irradiance');targetSH.copy(result.sh);stats.probeError='';stats.shEnergy=result.sh.coefficients[0].length();stats.shUpdates++;}}).catch((error:unknown)=>{lastProbeError=error;stats.probeError=String(lastProbeError);console.error('SH environment capture failed',error);}).finally(()=>{pending=false;if(disposed)cube.dispose();});
   },
   dispose(){disposed=true;scene.environment=null;environment?.dispose();pmrem.dispose();if(!pending)cube.dispose();sun.shadow.dispose();sky.geometry.dispose();captureSky.geometry.dispose();sky.material.dispose();ground.geometry.dispose();ground.material.dispose();weatherGeometry.dispose();weatherMaterial.dispose();scene.remove(sky,sun,sun.target,probe,precipitation);},
  };

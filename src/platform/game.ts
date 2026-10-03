@@ -37,6 +37,9 @@ export function startGame() {
   let renderer: THREE.WebGLRenderer;
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' }); }
   catch { fail('WebGLを起動できませんでした。ブラウザを更新し、ハードウェアアクセラレーションを確認してください。'); return () => controller.abort(); }
+  if(!renderer.extensions.has('EXT_color_buffer_float')){fail('この端末ではHDR描画に必要なWebGL機能を利用できません。Chromeを更新してください。');renderer.dispose();return ()=>controller.abort();}
+  renderer.debug.onShaderError=(gl,program,vertex,fragment)=>{console.error('WebGL shader compilation failed',gl.getProgramInfoLog(program),gl.getShaderInfoLog(vertex),gl.getShaderInfoLog(fragment));fail('GPUシェーダーの起動に失敗しました。ブラウザを更新して再読み込みしてください。');};
+  renderer.info.autoReset=false;
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
   const world = createWorld(renderer), terrain = createTerrain(world.scene);
@@ -89,7 +92,7 @@ export function startGame() {
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
   window.addEventListener('keydown', e => { if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return; if (e.code === 'Space' && !e.repeat) { e.preventDefault(); jump = true; } if (e.code === 'KeyF' && !e.repeat) act(); if (e.code === 'KeyE' && !e.repeat) gameAction('gather'); if (e.code === 'KeyQ' && !e.repeat) gameAction('attack'); if (e.code === 'ShiftLeft' && !e.repeat) gameAction('dodge'); if (e.code === 'KeyR' && !e.repeat) gameAction('heavy'); }, { signal });
   document.querySelector('#reset')!.addEventListener('click', () => send({ type: 'reset-player' }), { signal });
-  const resize = () => { target = null; pipeline.resize(window.innerWidth,window.innerHeight); camera.aspect = window.innerWidth / Math.max(1, window.innerHeight); camera.updateProjectionMatrix(); };
+  const resize = () => { target = null; camera.aspect = window.innerWidth / Math.max(1, window.innerHeight); camera.updateProjectionMatrix(); pipeline.resize(window.innerWidth,window.innerHeight); };
   window.addEventListener('resize', resize, { signal }); resize();
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); fail('WebGLの接続が失われました。保存したワールドは再読込できます。ページを再読み込みしてください。'); }, { signal });
   canvas.addEventListener('webglcontextrestored', () => { error.textContent = '描画接続が戻りました。ページを再読み込みしてください。'; }, { signal });

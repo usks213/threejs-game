@@ -126,7 +126,7 @@ test('renders equipped characters, textured terrain and water without shader err
  page.on('console', message => { if (message.type() === 'error' && /THREE|WebGL|shader/i.test(message.text())) errors.push(message.text()); });
  const sim = new GameSimulation(); sim.adventure.state.inventory = { sword: 1, staff: 1, shield: 1 }; sim.adventure.state.equipment = 'sword';
  const save = sim.save();
- await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
+ await page.goto('/?graphicsProbe=1'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
  await page.locator('#import-file').setInputFiles({ name: 'visual-fixture.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)) });
  await expect(page.locator('#adventure-hud')).toContainText('石剣');
  await page.locator('#adventure-menu').click(); await page.locator('[data-game-action="equip"][data-id="staff"]').click();
@@ -139,7 +139,8 @@ test('renders equipped characters, textured terrain and water without shader err
  const graphics=async()=>JSON.parse((await page.locator('#app').getAttribute('data-graphics'))!);
  await expect.poll(async()=>(await graphics()).shUpdates).toBeGreaterThan(0);
  await expect.poll(async()=>(await graphics()).samples).toBeGreaterThan(0);
- const day=await graphics();expect(day.shEnergy).toBeGreaterThan(0);expect(day.luminance).toBeGreaterThan(0);expect(day.probeError).toBe('');
+ await expect.poll(async()=>(await graphics()).stageSamples).toBeGreaterThan(0);
+ const day=await graphics();expect(day.invalidPixels).toBe(0);expect(day.beautyEnergy).toBeGreaterThan(0);expect(day.volumeEnergy).toBeGreaterThan(0);expect(day.shEnergy).toBeGreaterThan(0);expect(day.luminance).toBeGreaterThan(0);expect(day.probeError).toBe('');
  expect(day.features).toEqual(['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']);
  await page.setViewportSize({width:844,height:390});await page.screenshot({path:info.outputPath('pbr-day-hdr.png')});
  sim.adventure.state.seconds=450; // Midnight, using the same authoritative save/import path as players.
@@ -147,8 +148,10 @@ test('renders equipped characters, textured terrain and water without shader err
  await page.locator('#import-file').setInputFiles({name:'night-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});
  await expect.poll(async()=>(await graphics()).hour).toBeLessThan(3);
  await expect.poll(async()=>(await graphics()).shUpdates).toBeGreaterThan(day.shUpdates);
+ await expect.poll(async()=>(await graphics()).shEnergy,{timeout:30000}).toBeLessThan(day.shEnergy*.5);
  await expect.poll(async()=>(await graphics()).luminance,{timeout:30000}).toBeLessThan(day.luminance*.8);
  await expect.poll(async()=>(await graphics()).exposure,{timeout:30000}).toBeGreaterThan(day.exposure*1.15);
+ await expect.poll(async()=>(await graphics()).bloomEnergy,{timeout:30000}).toBeGreaterThan(0);
  await page.screenshot({path:info.outputPath('pbr-night-hdr.png')});
  await info.attach('graphics-measurements',{body:JSON.stringify({day,night:await graphics()},null,2),contentType:'application/json'});
  await expect(page.locator('#error')).toBeHidden(); expect(errors).toEqual([]);
