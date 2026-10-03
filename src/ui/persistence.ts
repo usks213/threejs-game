@@ -6,7 +6,7 @@ export function persistenceUI(send: (message: ClientMessage) => void, signal: Ab
   let exportNext = false, last: WorldSave | null = null, writes: Promise<void> = Promise.resolve();
   const write = (save: WorldSave) => {
     last = save;
-    writes = writes.then(() => saveWorld(save)).then(() => { status.textContent = `保存済み · 編集 ${save.edits.length}`; status.dataset.edits = String(save.edits.length); }).catch(() => { status.textContent = '保存できません。書出でバックアップしてください'; });
+    writes = writes.then(() => saveWorld(save)).then(() => { status.textContent = `保存済み · 編集 ${save.edits.length}`; status.dataset.edits = String(save.edits.length); status.dataset.bodies = String(save.bodies.length); status.dataset.fluids = String(save.fluids.length); }).catch(() => { status.textContent = '保存できません。書出でバックアップしてください'; });
   };
   document.querySelector('#save')!.addEventListener('click', () => send({ type: 'save' }), { signal });
   document.querySelector('#export')!.addEventListener('click', () => { exportNext = true; send({ type: 'save' }); }, { signal });

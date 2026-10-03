@@ -10,7 +10,7 @@ test('starts, moves with keyboard and stick, jumps, and rotates safely', async (
  await page.mouse.move(stick.x+stick.width*0.8,stick.y+stick.height/2); await page.mouse.down();
  await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(0.3); await page.mouse.up();
  await page.getByRole('button', { name:'出発点へ' }).click();
- await expect(page.locator('#position')).toHaveAttribute('data-grounded','true');
+ await cooldown(page, 35); await expect(page.locator('#position')).toHaveAttribute('data-grounded','true');
  const y = Number(await page.locator('#position').getAttribute('data-y'));
  await page.getByRole('button', { name:'ジャンプ' }).click();
  await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-y'))).toBeGreaterThan(y + 0.4);
@@ -21,9 +21,9 @@ test('starts, moves with keyboard and stick, jumps, and rotates safely', async (
  await expect(page.locator('#position')).toHaveAttribute('data-x',before!);
  await page.screenshot({path:info.outputPath('terra-landscape.png')}); expect(errors).toEqual([]);
 });
-async function cooldown(page: import('@playwright/test').Page) {
+async function cooldown(page: import('@playwright/test').Page, ticks = 8) {
  const tick = Number(await page.locator('#app').getAttribute('data-tick'));
- await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(tick + 8);
+ await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(tick + ticks);
 }
 test('edits terrain, pours water, drops a rock, saves and restores after reload', async ({page}, info) => {
  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
@@ -41,9 +41,11 @@ test('edits terrain, pours water, drops a rock, saves and restores after reload'
  await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/水 (\d+)セル/)?.[1] ?? '0')).toBeGreaterThan(0);
  await page.getByText('性能・試作の範囲', {exact:true}).click();
  await page.locator('#use-tool').click(); await expect(page.locator('#notice')).toContainText('岩を落としました');
- await page.locator('#save').click(); await expect(page.locator('#save-status')).toHaveAttribute('data-edits','2');
+ await page.locator('#save').click(); await expect(page.locator('#save-status')).toHaveAttribute('data-edits','2'); await expect(page.locator('#save-status')).toHaveAttribute('data-bodies','1');
  await page.reload(); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
  await expect(page.locator('#edit-count')).toHaveAttribute('data-count','2');
+ await expect(page.locator('#metrics')).toContainText('物理 1個');
+ await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/水 (\d+)セル/)?.[1] ?? '0')).toBeGreaterThan(0);
  await page.screenshot({path:info.outputPath('terra-restored.png')}); expect(errors).toEqual([]);
 });
 test('exports world data and rejects malformed imports without losing the current world', async ({page}) => {
