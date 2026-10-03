@@ -144,3 +144,28 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: c3ca485329f03044432fbd5164083278
       - name: Check signaling health
         run: node scripts/check-signaling.mjs
+
+  host-session:
+    if: github.event_name == 'pull_request'
+    needs: [verify, deploy-signaling]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- --project=desktop-chromium --grep 'host and three'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: host-session-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
