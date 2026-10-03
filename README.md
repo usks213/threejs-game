@@ -1,3 +1,15 @@
+# TERRA — オープンワールド・サバイバル試作
+
+添付仕様v0.4に従い、まずPhase 0の技術検証を進めています。今回はスマホで地形を掘る・盛る、水と岩を試せるSingle Player版です。協力プレイ・戦闘・クラフト・建築・ボスは後続段階です。
+
+[遊び方・実装状況・制約](docs/phase0-status.md) / [仕様v0.4](docs/specs/open-world-survival-v0.4.md) / [今回の設計判断](docs/adr/0001-phase0-voxel-prototype.md)
+
+新しい主要モジュール: `src/world/` は密度・編集・Streaming・Mesh生成、`src/simulation/` は共通ルールとWorker、`src/fluid/` / `src/physics/` は水と球体、`src/save/` は保存形式とIndexedDB、`src/content/` はデータ定義、`src/rendering/voxel/` はThree.js表示、`src/networking/transport.ts` は後続接続用interfaceです。
+
+セーブは端末とURLごとのIndexedDBへ自動保存されます。URLを変更する前に画面の「書出」、移動先で「読込」を使ってください。
+
+---
+
 # FIELD — スマホ向け3Dゲーム
 
 左下の仮想スティックで、床の上をキャラクターが移動する小さな3D世界です。PCではWASD・矢印キーで操作できます。「中央へ戻る」で位置をリセットできます。

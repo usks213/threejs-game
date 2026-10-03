@@ -1,1 +1,19 @@
-<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111d29"><title>FIELD / 3D playground</title></head><body><main id="app"><canvas id="game" aria-label="3Dゲーム画面"></canvas><header><small>EXPLORATION / 001</small><h1>FIELD</h1><p>小さな世界を、自由に歩こう。</p></header><div id="status" role="status">起動中…</div><div id="error" role="alert" hidden></div><div class="controls"><div id="stick" role="group" aria-label="移動スティック"><span id="knob"></span></div><span class="hint">スティックで移動<br>PC: WASD / 矢印キー</span></div><button id="reset" type="button">中央へ戻る</button><div id="position" aria-label="プレイヤー位置"></div></main><script type="module" src="/src/main.ts"></script></body></html>
+<!doctype html>
+<html lang="ja">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#243d35"><title>TERRA / はじまりの草原</title></head>
+<body><main id="app" data-state="loading">
+<canvas id="game" aria-label="3Dゲーム画面。ドラッグで視点を回す"></canvas>
+<header><small>SURVIVAL WORLD / PHASE 0</small><h1>TERRA<span>はじまりの草原</span></h1><p>世界を掘って、かたちを変えよう。</p></header>
+<div id="status" role="status">地形を生成中…</div>
+<div id="error" role="alert" hidden></div>
+<aside class="world-info"><span>WORLD 7319</span><span>2 km × 2 km</span><span id="edit-count" data-count="0">地形編集 0</span></aside>
+<div class="reticle" aria-hidden="true">＋</div><div id="target-hint">地面に照準を合わせる</div>
+<div id="notice" role="log">左スティックで移動 · 画面をドラッグで視点</div>
+<div class="controls"><div id="stick" role="group" aria-label="移動スティック"><span id="knob"></span></div><span class="hint">移動<br>PC: WASD / 矢印</span></div>
+<nav class="tools" aria-label="地形ツール"><button type="button" data-tool="dig" aria-pressed="true">掘る</button><button type="button" data-tool="add" aria-pressed="false">盛る</button><button type="button" data-tool="water" aria-pressed="false">水</button><button type="button" data-tool="rock" aria-pressed="false">岩</button></nav>
+<div class="actions"><button id="jump" type="button" aria-label="ジャンプ">↑</button><button id="use-tool" type="button">掘る</button></div>
+<div class="utility"><button id="save" type="button">保存</button><button id="export" type="button">書出</button><button id="import" type="button">読込</button><button id="reset" type="button">出発点へ</button></div>
+<input id="import-file" type="file" accept="application/json,.json" hidden>
+<div id="save-status">この端末に自動保存</div><div id="position" aria-label="プレイヤー位置"></div>
+<details id="performance"><summary>性能・試作の範囲</summary><p id="metrics">計測中…</p><p>Single Playerの地形技術試作。協力プレイ・戦闘・クラフト・建築・ボスは後続段階です。</p></details>
+</main><script type="module" src="/src/main.ts"></script></body></html>

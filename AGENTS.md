@@ -41,3 +41,6 @@ Cloudflare PagesのGit連携を使用。Production branchはmain、build command
 
 ## 既存Workers公開先の補助設定
 ユーザーから共有されたWorkerは `threejs-game`、URLは `https://threejs-game.usks213.workers.dev`。`wrangler.jsonc` はこの既存Workerへ `dist` を配信するための補助設定で、Pages対応も維持する。CloudflareのGit連携やデプロイ成功を推測しない。mainの `verify-production` は対象コミットを `deployment.json` で照合し、公開先でE2Eを行う。最新コミットが確認できない場合は原因を調べ、初期構築完了とは報告しない。将来Pagesへ接続した場合は公開確認先を実際のPages URLに更新する。
+
+## サバイバル仕様v0.4と段階的開発
+`docs/specs/open-world-survival-v0.4.md`, `docs/phase0-status.md`, `docs/adr/`を読む。Phase 0の技術ゲートを優先し、コンテンツを一度に作らない。共通GameSimulationはDOM/Three.js/WebRTC/Colyseusへ依存させずBrowser WorkerとNodeで共有する。地形編集はAuthority側で範囲・頻度・上限を検証し、Seed+差分を保存。未実装通信や人数目標を完成として報告しない。ネットワーク追加前に実接続・再参加・STUN/TURN・負荷試験を設計する。現在のSingle Playerは地形編集512回、水384セル、岩12個が上限。保存形式やSeed/Generatorの破壊的変更にはADRと互換性対応が必要。大きな変更はPreviewでユーザーがプレイした後に安定版へ昇格する。

@@ -5,6 +5,7 @@ on:
     branches: [main]
 permissions:
   contents: read
+  pull-requests: read
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -56,6 +57,39 @@ jobs:
         if: always()
         with:
           name: production-browser-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  verify-preview:
+    if: github.event_name == 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: preview-verification-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Find and verify the Cloudflare Preview for this PR commit
+        run: node scripts/check-preview.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - run: npx playwright install --with-deps chromium
+      - name: Test the deployed Preview on desktop and Android emulation
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-browser-test-results
           path: |
             playwright-report/
             test-results/
