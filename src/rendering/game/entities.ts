@@ -1,4 +1,4 @@
-import { terrainHeight } from '../../world/density';
+import { terrainHeight, landscapeHeight } from '../../world/density';
 import * as THREE from 'three';
 import { BIOMES, BOSSES, BUILDINGS, ENEMIES } from '../../content/catalog';
 import type { AdventureSnapshot } from '../../game/types';
@@ -45,7 +45,7 @@ export function createEntities(scene: THREE.Scene) {
    }
    for (const biome of BIOMES) {
     const group = object('altar' + biome.id, g => { part(g, box, '#8b8c84', 0, 0.3, 0, 2.5, 0.6, 2.5); part(g, sphere, biome.grass, 0, 1.1, 0, 0.65, 1, 0.65); });
-    group.position.set(biome.center.x, terrainHeight(biome.center.x, biome.center.z - 14), biome.center.z - 14); group.visible = state.biome === biome.id;
+    group.position.set(biome.center.x, (state.generator===2?landscapeHeight:terrainHeight)(biome.center.x, biome.center.z - 14), biome.center.z - 14); group.visible = state.biome === biome.id;
    }
    for (const shot of state.projectiles) { const group = object('shot' + shot.id, g => part(g, sphere, shot.element === 'frost' ? '#b6eafa' : '#ffc077', 0, 0, 0, shot.radius, shot.radius, shot.radius)); group.position.set(shot.x, shot.y, shot.z); group.visible = true; }
    // Retire departed entities; shared geometries/materials remain owned by this renderer.

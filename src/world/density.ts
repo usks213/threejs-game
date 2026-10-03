@@ -1,3 +1,4 @@
+import { biomeAt } from '../content/catalog';
 import { BRICK_SIZE, MAX_EDITS, WORLD, brickId, insideBounds, type EditOperation, type Vec3, type WorldBounds } from './types';
 
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -10,6 +11,43 @@ function noise(x: number, z: number, seed: number): number {
 export function terrainHeight(x: number, z: number, seed = WORLD.seed): number {
   return 2 + (noise(x / 35, z / 35, seed) - 0.5) * 6 + (noise(x / 11, z / 11, seed + 1) - 0.5) * 1.2;
 }
+export function landscapeHeight(x:number,z:number,seed=WORLD.seed):number {
+ const base=terrainHeight(x,z,seed),biome=biomeAt(x,z),edge=Math.min(1,Math.hypot(x,z)/45);
+ const broad=noise(x/28,z/28,seed+13);
+ if(biome.id==='dusk')return base+edge*(2+6*broad);
+ if(biome.id==='mire')return base-edge*3.5+noise(x/8,z/8,seed+25)*0.5;
+ if(biome.id==='frost')return base+edge*(5+9*(1-Math.abs(broad*2-1)));
+ if(biome.id==='rift')return base+edge*(Math.sin(x/13)*Math.cos(z/16)*2);
+ return base;
+}
+const caveFloors=new Map<string,number>();
+function generatedCave(p:Vec3,seed:number):number {
+ if(p.y>18 || p.y<-14)return 100;
+ const tx=Math.round(p.x/96)*96,tz=Math.round(p.z/96)*96;
+ if(Math.hypot(tx,tz)<50)return 100;
+ const key=seed+','+tx+','+tz;let floor=caveFloors.get(key);if(floor===undefined){floor=landscapeHeight(tx,tz,seed)-3;if(caveFloors.size>4096)caveFloors.clear();caveFloors.set(key,floor);}
+ const x=Math.max(tx-15,Math.min(tx+15,p.x)),z=tz+Math.sin((x-tx)/10)*4;
+ let d=Math.hypot(p.x-x,p.y-floor,p.z-z)-2.5;
+ // Rooms and connecting corridors form an excavatable underground ruin.
+ if(tx===96 && tz===0)for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){
+  const room=Math.max(Math.abs(p.x-(tx+i*9))-3.5,Math.abs(p.y-(floor-3))-2.7,Math.abs(p.z-(tz+j*9))-3.5);
+  d=Math.min(d,room);
+  d=Math.min(d,Math.max(Math.abs(p.x-tx)-12,Math.abs(p.y-(floor-3))-1.6,Math.abs(p.z-(tz+j*9))-1.7));
+ }
+ return d;
+}
+function naturalArch(p:Vec3,seed:number):number {
+ if(Math.abs(p.x-87)>9 || Math.abs(p.z+16)>4)return 100;
+ const y=landscapeHeight(87,-16,seed);
+ const solid=Math.max(Math.abs(p.x-87)-7,Math.abs(p.y-y-3.8)-4,Math.abs(p.z+16)-1.8);
+ const opening=Math.max(Math.abs(p.x-87)-4.5,Math.abs(p.y-y-1.2)-2.8,Math.abs(p.z+16)-3);
+ return Math.max(solid,-opening);
+}
+function riftIsland(p:Vec3):number {
+ if(p.x>-40 || p.z<40 || p.y<10 || biomeAt(p.x,p.z).id!=='rift')return 100;
+ const x=Math.round(p.x/96)*96,z=Math.round(p.z/96)*96,y=18+Math.sin(x+z)*3;
+ return (Math.hypot((p.x-x)/1.5,(p.y-y)/0.6,(p.z-z)/1.2)-5)*0.6;
+}
 function cave(p: Vec3): number {
   // Rounded tunnel opens on a hillside; the density remains fully 3D.
   const x = Math.max(-16, Math.min(-4, p.x));
@@ -20,11 +58,14 @@ function island(p: Vec3): number {
 }
 export class SdfWorld {
   readonly edits: EditOperation[] = [];
+  private readonly heights = new Map<string,number>();
   private readonly index = new Map<string, EditOperation[]>();
-  constructor(readonly bounds: WorldBounds = { ...WORLD }) {}
+  constructor(readonly bounds: WorldBounds = { ...WORLD }, readonly generator: 1 | 2 = 1) {}
+  heightAt(x:number,z:number):number {const id=x+','+z,previous=this.heights.get(id);if(previous!==undefined)return previous;const h=this.generator===2?landscapeHeight(x,z,this.bounds.seed):terrainHeight(x,z,this.bounds.seed);if(this.heights.size>=16384)this.heights.clear();this.heights.set(id,h);return h;}
   density(p: Vec3): number {
     if (!insideBounds(p, this.bounds)) return 100;
-    let d = Math.min(Math.max(p.y - terrainHeight(p.x, p.z, this.bounds.seed), -cave(p)), island(p));
+    let d = Math.min(Math.max(p.y - this.heightAt(p.x, p.z), -cave(p)), island(p));
+    if(this.generator===2) d=Math.min(Math.max(d,-generatedCave(p,this.bounds.seed)),naturalArch(p,this.bounds.seed),riftIsland(p));
     const entries = this.index.get(brickId(Math.floor(p.x / BRICK_SIZE), Math.floor(p.y / BRICK_SIZE), Math.floor(p.z / BRICK_SIZE)));
     if (entries) for (const e of entries) {
       const sphere = Math.hypot(p.x - e.position.x, p.y - e.position.y, p.z - e.position.z) - e.radius;

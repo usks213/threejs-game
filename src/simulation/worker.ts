@@ -103,6 +103,7 @@ setInterval(() => {
     const now = performance.now(); accumulator += Math.min(0.1, (now - previous) / 1000); previous = now;
     while (accumulator >= 1 / TICK_RATE) { authority!.step(input); input.jump = false; accumulator -= 1 / TICK_RATE; }
     stream();
+    if (sim.tick % 150 === 0) emit({type:'save',save:authority!.save()});
     if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') {
       const base = peerEdits.get(peer) ?? 0;
       emit({ type: 'peer-frame', peer, state: sessionFrame(authority!, peer), editBase: base, edits: sim.world.edits.slice(base) });

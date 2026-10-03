@@ -81,7 +81,7 @@ export function startGame() {
     void persistence.load().then(save => { if (!stopped) send({ type: 'init', save }); });
   } catch { fail('このブラウザで地形Workerを起動できませんでした。ChromeまたはSafariを更新してください。'); }
   let previous = performance.now(), fpsStarted = previous, frames = 0, fps = 0;
-  document.addEventListener('visibilitychange', () => { previous = performance.now(); send({ type: 'pause', paused: document.hidden }); }, { signal });
+  document.addEventListener('visibilitychange', () => { previous = performance.now(); if(document.hidden)send({type:'save'}); send({ type: 'pause', paused: document.hidden }); }, { signal });
   const position = document.querySelector<HTMLElement>('#position')!;
   const animate = (now: number) => {
     if (stopped) return;

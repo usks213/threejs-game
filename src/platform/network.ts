@@ -18,7 +18,7 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
    else edits = [...edits.slice(0,base),...incoming];
    post({ type: 'replica-state', state: lastState, edits }); }
  };
- const close = () => { session?.disconnect(); session = null; if (dedicated) void dedicated.leave(); dedicated = null; if (guest) { guest = false; void import('../save/storage').then(async s => post({ type: 'init', save: await s.loadWorld() })); } status.textContent = 'Single Player'; };
+ const close = () => { if(!guest)for(const peer of session?.peers.keys()??[])post({type:'peer-leave',peer}); session?.disconnect(); session = null; if (dedicated) void dedicated.leave(); dedicated = null; if (guest) { guest = false; void import('../save/storage').then(async s => post({ type: 'init', save: await s.loadWorld() })); } status.textContent = 'Single Player'; };
  document.querySelector('#session-menu')!.addEventListener('click', () => { panel.hidden = !panel.hidden; }, { signal });
  document.querySelector('#session-close')!.addEventListener('click', () => { panel.hidden = true; }, { signal });
  document.querySelector('#session-leave')!.addEventListener('click', close, { signal });

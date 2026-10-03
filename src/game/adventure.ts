@@ -25,7 +25,12 @@ export class Adventure {
   return { id, definition, tier, x, z, y: this.sim.groundAt(x, z), homeX: x, homeZ: z, health: def.health * (boss ? 1 : 1 + (tier - 1) * 0.4), cooldown: 1 + (id % 5) * 0.2, windup: 0, slow: 0, boss };
  }
  private populate(): void {
-  const p = this.sim.player, cx = Math.floor(p.x / 32), cz = Math.floor(p.z / 32);
+  const p = this.sim.player;
+  if(this.sim.world.generator===2 && biomeAt(p.x,p.z).id==='mire' && Math.hypot(p.x-90,p.z-90)<32 && !this.state.waterSeeds?.includes('mire')) {
+   this.state.waterSeeds ??= [];this.state.waterSeeds.push('mire');
+   for(let x=86;x<=94;x++)for(let z=86;z<=94;z++)for(let y=Math.ceil(this.sim.groundAt(x,z));y<=0;y++)this.sim.fluid.add({x,y,z},0.9);
+  }
+  const cx = Math.floor(p.x / 32), cz = Math.floor(p.z / 32);
   for (let tx = cx - 1; tx <= cx + 1; tx++) for (let tz = cz - 1; tz <= cz + 1; tz++) {
    if (tx < -31 || tx > 30 || tz < -31 || tz > 30) continue;
    const tile = (tx + 31) * 62 + tz + 31; if (this.tiles.has(tile)) continue; this.tiles.add(tile);
@@ -175,12 +180,17 @@ export class Adventure {
   if (s.food > 0) s.health = Math.min(100, s.health + dt * 0.8);
   if (this.dodge > 0) this.sim.movePlayer(this.dodgeX * 8 * dt, this.dodgeZ * 8 * dt);
  }
+ private closestActor(point: Vec3): {player: import('../simulation/protocol').PlayerState;adventure:Adventure} {
+  let nearest={player:this.sim.player,adventure:this},length=this.state.health>0?distance(this.sim.player,point):Infinity;
+  for(const candidate of this.sim.targets)if(candidate.adventure.state.health>0){const d=distance(candidate.player,point);if(d<length){length=d;nearest=candidate;}}
+  return nearest;
+ }
  step(dt: number): void {
   this.populate(); this.stepPersonal(dt);
   const s = this.state;
   if (s.health <= 0 && !this.sim.targets.some(t => t.adventure.state.health > 0)) return;
   for (const e of s.enemies) {
-   const target = this.sim.targets.filter(t => t.adventure.state.health > 0).sort((a, b) => distance(a.player, e) - distance(b.player, e))[0] ?? { player: this.sim.player, adventure: this };
+   const target = this.closestActor(e);
    const p = target.player;
    if (e.health <= 0 && !e.boss && e.respawnAt && e.respawnAt <= s.seconds) { const def = ENEMIES.find(d => d.id === e.definition)!; e.health = def.health * (1 + (e.tier - 1) * 0.4); e.x = e.homeX; e.z = e.homeZ; e.cooldown = 3; }
    if (e.health <= 0 || distance(p, e) > 45) continue;
@@ -237,7 +247,7 @@ export class Adventure {
  }
  snapshot(): AdventureSnapshot {
   const s = this.state, p = this.sim.player, biome = biomeAt(p.x, p.z), boss = BOSSES.find(b => b.id === biome.boss)!;
-  return { ...s, inventory: { ...s.inventory }, resources: s.resources.filter(n => distance(p, n) < 65).map(n => ({ ...n })), enemies: s.enemies.filter(e => distance(p, e) < 65).map(e => ({ ...e })), buildings: s.buildings.filter(b => distance(p, b) < 65).map(b => ({ ...b, contents: { ...b.contents } })), environment: environmentAt(s.seconds, biome.tier), biome: biome.id, objective: s.defeated.length === 5 ? '五つの地域を攻略しました' : `探索 → 素材を集める → 作業台・装備 → 祭壇で${boss.name}を召喚`, projectiles: this.projectiles.map(v => ({ ...v })), guarding: this.guarding, dodging: this.dodge > 0, attack: this.attack, wet: this.sim.fluid.immersion(p, 1.45) > 0.1 };
+  return { ...s, inventory: { ...s.inventory }, resources: s.resources.filter(n => distance(p, n) < 65).map(n => ({ ...n })), enemies: s.enemies.filter(e => distance(p, e) < 65).map(e => ({ ...e })), buildings: s.buildings.filter(b => distance(p, b) < 65).map(b => ({ ...b, contents: { ...b.contents } })), environment: environmentAt(s.seconds, biome.tier), generator: this.sim.world.generator, biome: biome.id, objective: s.defeated.length === 5 ? '五つの地域を攻略しました' : `探索 → 素材を集める → 作業台・装備 → 祭壇で${boss.name}を召喚`, projectiles: this.projectiles.map(v => ({ ...v })), guarding: this.guarding, dodging: this.dodge > 0, attack: this.attack, wet: this.sim.fluid.immersion(p, 1.45) > 0.1 };
  }
  save(): AdventureSave { return structuredClone(this.state); }
 }

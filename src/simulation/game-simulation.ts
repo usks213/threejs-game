@@ -12,9 +12,9 @@ export const TICK_RATE = 30;
 export class GameSimulation {
   adventure: Adventure;
   targets: { player: PlayerState; adventure: Adventure }[] = [];
-  readonly world = new SdfWorld();
-  private readonly character = new CharacterMotor(this.world);
-  readonly fluid = new FluidGrid(this.world);
+  readonly world: SdfWorld;
+  private readonly character: CharacterMotor;
+  readonly fluid: FluidGrid;
   readonly bodies: SphereBody[] = [];
   readonly player: PlayerState = { x: 0, y: terrainHeight(0, 8), z: 8, heading: 0, vy: 0, grounded: true };
   readonly metrics = { tickMs: 0, fluidMs: 0, physicsMs: 0, jumpHeight: 0 };
@@ -23,6 +23,7 @@ export class GameSimulation {
   private nextBody = 1;
   private jumpOrigin: number | null = null;
   constructor(save?: WorldSave | null) {
+    this.world = new SdfWorld(undefined,save?.generator ?? 2); this.character = new CharacterMotor(this.world); this.fluid = new FluidGrid(this.world);
     if (save) {
       const valid = validateSave(save);
       for (const e of valid.edits) this.world.apply(e);
@@ -93,7 +94,7 @@ export class GameSimulation {
     return { dirty: [], message: '岩を落としました。歩いて押す・飛び乗る・足元を掘る操作を試せます' };
   }
   groundAt(x: number, z: number): number {
-    let y = terrainHeight(x, z); const point = { x, y, z };
+    let y = this.world.heightAt(x, z); const point = { x, y, z };
     for (let i = 0; i < 12; i++) { point.y = y; const d = this.world.density(point); if (Math.abs(d) < 0.02) break; y -= Math.max(-1, Math.min(1, d)); }
     return y;
   }
@@ -106,6 +107,6 @@ export class GameSimulation {
   }
   resetPlayer(): void { this.character.reset(); this.player.x = 0; this.player.z = 8; this.player.y = terrainHeight(0, 8) + 3; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
   save(): WorldSave {
-    return { version: 2, adventure: this.adventure.save(), generator: 1, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot().map(c => ({ x: c.x, y: c.y, z: c.z, volume: c.volume })), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
+    return { version: 2, adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot().map(c => ({ x: c.x, y: c.y, z: c.z, volume: c.volume })), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }
 }

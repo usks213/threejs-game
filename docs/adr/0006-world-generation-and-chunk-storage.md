@@ -1,0 +1,8 @@
+# ADR 0006 — 地形生成の互換性とチャンク保存
+2026-10-03。
+
+generator 1の地形は変更しない。既存version 1/2セーブは同じgeneratorで再開する。新規ワールドはgenerator 2を使い、丘陵・湿原・高地・星裂の地形、反復洞窟、地下部屋、自然橋、浮島を生成する。Seedと編集順を共有すればBrowser/Nodeで同じ結果になる。
+
+保存形式の外部JSONはversion 2のままgeneratorを明示する。IndexedDB内部をschema 2へ移行し、worlds目録とchunksに分ける。ChunkにはSDF編集ジャーナル・水セル・物理物体を保存する。編集id順をロード時に復元する。変更したChunkだけを書き換え、CompressionStreamのdeflateを使える場合だけ圧縮する。目録とChunkの更新を同一transactionにまとめる。旧単一JSONも読み込める。
+
+OPFSは大量の連続Binary読み書きに有力だが、今回は小さな変更Chunkと目録を原子的に更新するIndexedDBを選ぶ。Android ChromeとSafariで同じAPIを使える。OPFS性能比較を実測済みとはしない。密度Brickの量子化Snapshotは、この編集ジャーナル方式とは別の将来最適化である。
