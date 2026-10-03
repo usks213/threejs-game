@@ -1,5 +1,5 @@
-import { Prediction } from '../networking/prediction';
 /// <reference lib="webworker" />
+import { Prediction } from '../networking/prediction';
 import { SessionAuthority } from './session';
 import { sessionFrame } from '../networking/frame';
 import { GameSimulation, TICK_RATE } from './game-simulation';
