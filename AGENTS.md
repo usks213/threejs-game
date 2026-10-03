@@ -49,7 +49,7 @@ DPRは最大1.5。シンプルなライティングを使い、高価な影・po
 ユーザーから共有されたWorkerは `threejs-game`、URLは `https://threejs-game.usks213.workers.dev`。`wrangler.jsonc` はこの既存Workerへ `dist` を配信するための補助設定で、Pages対応も維持する。CloudflareのGit連携やデプロイ成功を推測しない。mainの `verify-production` は対象コミットを `deployment.json` で照合し、公開ページの起動用HTMLを確認する。全E2Eは別ジョブで実行する。最新コミットが確認できない場合は原因を調べ、初期構築完了とは報告しない。将来Pagesへ接続した場合は公開確認先を実際のPages URLに更新する。
 
 ## サバイバル仕様v0.4と段階的開発
-`docs/specs/open-world-survival-v0.4.md`, `docs/phase0-status.md`, `docs/adr/`を読む。最新のユーザー方針に従い、全体実装と技術ゲートの解消を進める。共通GameSimulationはDOM/Three.js/WebRTC/Colyseusへ依存させずBrowser WorkerとNodeで共有する。地形編集はAuthority側で範囲・頻度・上限を検証し、Seed+差分を保存。未実装通信や人数目標を完成として報告しない。ネットワーク追加前に実接続・再参加・STUN/TURN・負荷試験を設計する。現在は地形編集100,000回、水2048セルの処理予算を持つ。岩の個数制限は撤廃し、空間分割・近傍処理・休止と動的InstancedMeshで扱う。保存形式やSeed/Generatorの破壊的変更にはADRと互換性対応が必要。大きな変更はPreviewでユーザーがプレイした後に安定版へ昇格する。
+`docs/specs/open-world-survival-v0.4.md`, `docs/phase0-status.md`, `docs/adr/`を読む。最新のユーザー方針に従い、全体実装と技術ゲートの解消を進める。共通GameSimulationはDOM/Three.js/WebRTC/Colyseusへ依存させずBrowser WorkerとNodeで共有する。地形編集はAuthority側で範囲・頻度・上限を検証し、Seed+差分を保存。未実装通信や人数目標を完成として報告しない。ネットワーク追加前に実接続・再参加・STUN/TURN・負荷試験を設計する。現在は地形編集100,000回、水は生成数を制限せず、近傍2048セルをシミュレーション/描画の予算として扱う。遠方の水を削除しない。岩の個数制限は撤廃し、空間分割・近傍処理・休止と動的InstancedMeshで扱う。保存形式やSeed/Generatorの破壊的変更にはADRと互換性対応が必要。大きな変更はPreviewでユーザーがプレイした後に安定版へ昇格する。
 
 ## Cloudflareビルド起動タイムアウト時の公開経路
 Cloudflareのビルド環境の起動タイムアウトはゲームコードの失敗ではない。検証済みdistをGitHub Actionsのdeploy-previewで直接公開する経路を用意している。必要なSecretはCLOUDFLARE_API_TOKENだけで、アカウントIDは既知の指定アカウントを固定。Secret登録は本人が公式UIで行い、値をチャットへ要求しない。同一リポジトリのPRだけに公開権限を渡す。Wrangler JSON出力の実際のURLとコミットを照合してから提示。トークン未登録・公開失敗を成功扱いしない。登録後は失敗したdeploy-previewジョブだけ再実行し、同一コードのテスト・ビルドを繰り返さない。
@@ -63,3 +63,5 @@ Cloudflareのビルド環境の起動タイムアウトはゲームコードの�
 
 ## 高速化の追加指示（2026-10-04）
 不要な検証を省き、変更に関係する確認だけを行う。通常は型・短い単体テスト・ビルド後すぐPreviewを公開し、関連するブラウザ検証は並行実行する。ブラウザ全件・4人Host接続・8人Dedicated接続・Signaling再デプロイを毎回必須にしない。CIは今回のpush差分で対象を選ぶ。文書やCI設定だけの変更では同一ゲームのテスト/ビルド/公開を繰り返さない。公開URLとソースの照合は維持し、未実行・失敗を成功扱いしない。初回の全仕様実装中はレビュー待ちを作らない。
+
+放水には照準ヒット・素材・魔力・スタミナ・クールダウン・生成セル数の条件を付けない。専用放水ボタンは常時使用可能とし、長押し中は繰り返す。水流はプレイヤー/Guest/岩/木材/敵に適用し、旧セーブの速度未指定は0として読み込む。

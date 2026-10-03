@@ -40,10 +40,11 @@ export class SessionAuthority {
  }
  action(id: string, message: ClientMessage): { dirty: string[]; message: string } {
   const actor = this.actors.get(id); if (!actor) throw new Error('Unknown peer');
-  if (this.sim.tick - actor.lastAction < 4) throw new Error('操作の間隔を空けてください');
+  const waterAction = message.type === 'action' && message.tool === 'water';
+  if (!waterAction && this.sim.tick - actor.lastAction < 4) throw new Error('操作の間隔を空けてください');
   if (message.type !== 'action' && message.type !== 'game-action') throw new Error('この操作は許可されていません');
   if (message.type === 'game-action' && (!finiteVec(message.aim) || Math.hypot(message.aim.x, message.aim.y, message.aim.z) > 1.5)) throw new Error('照準データが不正です');
-  actor.lastAction = this.sim.tick;
+  if (!waterAction) actor.lastAction = this.sim.tick;
   return this.withActor(actor, () => message.type === 'action' ? this.sim.act(message.tool, message.target, actor.id) : this.sim.adventure.action(message.action, message.id, message.target, message.aim));
  }
  step(hostInput?: PlayerInput): void {
@@ -52,7 +53,7 @@ export class SessionAuthority {
   for (const actor of this.actors.values()) if (actor.id !== 'host') this.withActor(actor, () => {
    const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, 1.45), speed = actor.adventure.state.health <= 0 ? 0 : actor.adventure.guarding ? 2 : 4 * (1 - water * 0.45) * (actor.adventure.state.chill ? 0.65 : 1);
    const flow = this.sim.fluid.current(p);
-   const beforeY = p.y, dx = input.x / length * speed * dt + flow.x * water * dt, dz = input.z / length * speed * dt + flow.z * water * dt;
+   const beforeY = p.y, dx = input.x / length * speed * dt + flow.x * Math.min(1, water * 3) * dt, dz = input.z / length * speed * dt + flow.z * Math.min(1, water * 3) * dt;
    actor.motor.step(p, dx, dz, input.jump, dt, water); input.jump = false;
    if (dx || dz) p.heading = Math.atan2(dx, dz);
    collidePlayerRocks(p, this.sim.bodies, dx, dz, dt);

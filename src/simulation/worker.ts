@@ -93,7 +93,8 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
         for (const [id, b] of queue) if (!pending.has(id)) pending.set(id, b);
         scheduleMesh();
       }
-      emit({ type: 'notice', message: result.message }); emit({ type: 'save', save: authority!.save() });
+      emit({ type: 'notice', message: result.message });
+      if (message.type !== 'action' || message.tool !== 'water') emit({ type: 'save', save: authority!.save() });
     }
   } catch (error) { emit({ type: message.type === 'init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
 };
@@ -109,6 +110,7 @@ setInterval(() => {
       emit({ type: 'peer-frame', peer, state: sessionFrame(authority!, peer), editBase: base, edits: sim.world.edits.slice(base) });
       peerEdits.set(peer,sim.world.edits.length);
     }
-    emit({ type: 'snapshot', state: { peers: authority!.view('host').peers, tick: sim.tick, adventure: sim.adventure.snapshot(), player: { ...sim.player }, edits: sim.world.edits.length, fluids: sim.fluid.snapshot(), bodies: sim.bodies.filter(b => Math.hypot(b.position.x - sim!.player.x, b.position.z - sim!.player.z) < 65).map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })), metrics: { ...sim.metrics, meshMs, editMs, bricks: bricks.size, pending: pending.size, triangles: [...triangles.values()].reduce((a, b) => a + b, 0) } } });
+    emit({ type: 'snapshot', state: { peers: authority!.view('host').peers, tick: sim.tick, adventure: sim.adventure.snapshot(), player: { ...sim.player }, edits: sim.world.edits.length, fluids: sim.fluid.snapshot(sim.player), bodies: sim.bodies.filter(b => Math.hypot(b.position.x - sim!.player.x, b.position.z - sim!.player.z) < 65).map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })), metrics: { ...sim.metrics, meshMs, editMs, bricks: bricks.size, pending: pending.size, triangles: [...triangles.values()].reduce((a, b) => a + b, 0) } } });
   } catch (error) { paused = true; emit({ type: 'error', message: String(error) }); }
 }, 1000 / TICK_RATE);
+

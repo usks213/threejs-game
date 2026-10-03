@@ -18,8 +18,10 @@ export class Prediction {
  }
  private apply(input:PlayerInput):void{
   const p=this.sim.player,length=Math.max(1,Math.hypot(input.x,input.z)),water=this.sim.fluid.immersion(p,1.45),speed=this.sim.adventure.state.health<=0?0:4*(1-water*0.45)*(this.sim.adventure.state.chill?0.65:1);
-  const dx=input.x/length*speed/30,dz=input.z/length*speed/30,before=p.y;
+  const flow=this.sim.fluid.current(p),carry=Math.min(1,water*3);
+  const dx=(input.x/length*speed+flow.x*carry)/30,dz=(input.z/length*speed+flow.z*carry)/30,before=p.y;
   this.motor.step(p,dx,dz,input.jump,1/30,water);this.sim.adventure.collidePlayer(before);this.motor.reconcile(p);
   if(dx||dz)p.heading=Math.atan2(dx,dz);
  }
 }
+

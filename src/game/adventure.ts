@@ -203,6 +203,13 @@ export class Adventure {
    const d = distance(p, e), reach = e.boss ? 3.3 : (def as typeof ENEMIES[number]).reach, speed = e.boss ? (e.health < def.health / 2 ? 2.3 : 1.4) : (def as typeof ENEMIES[number]).speed;
    e.slow = Math.max(0, e.slow - dt); e.cooldown -= dt;
    if (d < (e.boss ? 25 : environmentAt(s.seconds).daylight < 0.2 ? 15 : 10) && d > reach) { e.x += (p.x - e.x) / d * speed * dt * (e.slow ? 0.4 : 1); e.z += (p.z - e.z) / d * speed * dt * (e.slow ? 0.4 : 1); }
+   const water = this.sim.fluid.immersion(e, e.boss ? 2.4 : 1.2), flow = this.sim.fluid.current(e, e.boss ? 2.4 : 1.2);
+   if (water > 0) {
+    const carry = Math.min(1, water * 3) * (e.boss ? 0.3 : 1);
+    const nx = e.x + flow.x * carry * dt, nz = e.z + flow.z * carry * dt;
+    if (this.sim.world.density({ x:nx, y:e.y+0.65, z:nz }) > 0.1) { e.x=nx; e.z=nz; }
+    e.slow = Math.max(e.slow, water * 0.5);
+   }
    e.y = this.sim.groundAt(e.x, e.z);
    if (e.boss) {
     const ability = bossAttack(e.definition, e.health < def.health / 2), charge = this.charges.get(e.id);

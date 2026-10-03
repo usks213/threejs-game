@@ -47,17 +47,20 @@ describe('browser/Node shared authority simulation', () => {
   expect(() => validateSave({ ...save, fluids: [cell, cell] })).toThrow();
  });
 });
-describe('bounded water and physics prototypes', () => {
+describe('water and physics', () => {
  it('flows down while conserving volume', () => {
   const fluid = new FluidGrid(new SdfWorld()); fluid.add({ x: 0, y: 9, z: 0 });
   for (let i = 0; i < 10; i++) fluid.step();
   expect(fluid.snapshot().some(c => c.y < 9)).toBe(true);
   expect(fluid.snapshot().reduce((sum, c) => sum + c.volume, 0)).toBeCloseTo(1, 8);
  });
- it('blocks solid terrain and bounds cell count', () => {
+ it('blocks solid terrain but keeps water beyond the active rendering budget', () => {
   const fluid = new FluidGrid(new SdfWorld()); expect(fluid.add({ x: 0, y: -10, z: 0 })).toBe(0);
   for (let i = 0; i < MAX_FLUID_CELLS + 20; i++) fluid.add({ x: i % 128, y: 25, z: Math.floor(i / 128) });
-  expect(fluid.cells.size).toBe(MAX_FLUID_CELLS);
+  expect(fluid.cells.size).toBe(MAX_FLUID_CELLS + 20);
+  expect(fluid.snapshot({x:20,y:25,z:8}).length).toBeLessThanOrEqual(MAX_FLUID_CELLS);
+  const saved=validateSave({...new GameSimulation().save(), fluids:fluid.snapshot()});
+  expect(saved.fluids).toHaveLength(MAX_FLUID_CELLS+20);
  });
  it('redistributes water instead of deleting it when raised terrain occupies a cell', () => {
   const world = new SdfWorld(), fluid = new FluidGrid(world);
@@ -73,4 +76,28 @@ describe('bounded water and physics prototypes', () => {
   for (let i = 0; i < 12; i++) stepSphere(b, world, 1 / 30);
   expect(b.position.y).toBeLessThan(initial - 0.3);
  });
+});
+
+
+it('always pours after another action, repeatedly, without a valid terrain aim or resources', () => {
+ const sim = new GameSimulation();
+ sim.act('dig', {x:0,y:sim.player.y,z:5}); sim.adventure.state.mana=0;sim.adventure.state.stamina=0;sim.adventure.state.inventory={};
+ const total=()=>[...sim.fluid.cells.values()].reduce((n,c)=>n+c.volume,0);
+ for(let i=0;i<4;i++) { const before=total();sim.act('water',{x:10000,y:10000,z:10000});expect(total()-before).toBeCloseTo(12); }
+});
+it('water carries the player, a sleeping rock and an enemy without movement input', () => {
+ const sim=new GameSimulation();sim.world.density=p=>p.y;sim.groundAt=()=>0;
+ Object.assign(sim.player,{x:.5,y:0,z:.5});
+ const enemy=sim.adventure.state.enemies[0];Object.assign(enemy,{x:2.5,y:0,z:.5,cooldown:10});
+ sim.bodies.push({id:100,radius:.55,sleeping:true,position:{x:4.5,y:.6,z:.5},velocity:{x:0,y:0,z:0}});
+ for(let x=0;x<6;x++)for(let y=0;y<2;y++){sim.fluid.add({x,y,z:0});sim.fluid.cells.get(`${x},${y},0`)!.vx=5;}
+ sim.step(idle);
+ expect(sim.player.x).toBeGreaterThan(.6);expect(enemy.x).toBeGreaterThan(2.5);
+ expect(sim.bodies[0].position.x).toBeGreaterThan(4.5);expect(sim.bodies[0].sleeping).toBe(false);
+});
+it('actual horizontal water transfer produces downstream current and conserves volume', () => {
+ const world=new SdfWorld();world.density=p=>p.y;
+ const fluid=new FluidGrid(world);fluid.add({x:0,y:0,z:0});const before=fluid.snapshot().reduce((n,c)=>n+c.volume,0);fluid.step();
+ expect(fluid.current({x:1.5,y:0,z:.5}).x).toBeGreaterThan(0);
+ expect(fluid.snapshot().reduce((n,c)=>n+c.volume,0)).toBeCloseTo(before,8);
 });

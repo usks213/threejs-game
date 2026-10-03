@@ -1,3 +1,5 @@
+import { gameShell } from '../ui/shell';
+import { holdAction } from '../input/touch/hold';
 import { gameSound } from '../audio/sound';
 import { networkUI } from './network';
 import { adventureUI } from '../ui/adventure';
@@ -19,9 +21,12 @@ export function startGame() {
   const controller = new AbortController(), { signal } = controller;
   const canvas = document.querySelector<HTMLCanvasElement>('#game')!, app = document.querySelector<HTMLElement>('#app')!;
   const status = document.querySelector<HTMLElement>('#status')!, error = document.querySelector<HTMLElement>('#error')!;
+  gameShell(signal);
   const sound = gameSound(signal);
   document.querySelector('#sound-toggle')!.addEventListener('click', () => { document.querySelector('#sound-toggle')!.textContent = sound.toggle() ? '音 OFF' : '音 ON'; }, { signal });
-  const notice = (message: string) => { document.querySelector('#notice')!.textContent = message; sound.effect(message); };
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined, lastNotice = 0;
+  const notice = (message: string) => { const el = document.querySelector<HTMLElement>('#notice')!; if (el.textContent === message && performance.now()-lastNotice<900) return; lastNotice=performance.now(); el.textContent=message; el.classList.add('visible'); clearTimeout(noticeTimer); noticeTimer=setTimeout(()=>el.classList.remove('visible'),2200); sound.effect(message); };
+  signal.addEventListener('abort',()=>clearTimeout(noticeTimer),{once:true});
   let stopped = false, frame = 0, worker: Worker | undefined;
   const fail = (message: string) => { stopped = true; cancelAnimationFrame(frame); worker?.terminate(); error.hidden = false; error.textContent = message; status.textContent = '起動エラー'; app.dataset.state = 'error'; };
   let renderer: THREE.WebGLRenderer;
@@ -48,11 +53,13 @@ export function startGame() {
   actionInput(document.querySelector<HTMLButtonElement>('#cast')!, () => gameAction('spell', spell), signal);
   const use = document.querySelector<HTMLButtonElement>('#use-tool')!;
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]')) button.addEventListener('click', () => {
-    building = ''; tool = button.dataset.tool as Tool; use.textContent = names[tool];
+    building = ''; tool = button.dataset.tool as Tool; use.textContent = names[tool]; app.dataset.tool=tool; use.disabled = tool !== 'water' && !target;
     for (const b of document.querySelectorAll('[data-tool]')) b.setAttribute('aria-pressed', String(b === button));
   }, { signal });
-  const act = () => { if (target && building) gameAction('build', building); else if (target) send({ type: 'action', tool, target }); else notice('近くの地面に照準を合わせてください'); };
-  actionInput(use, act, signal);
+  const pour = () => { const p = state?.player ?? world.player.position; send({ type: 'action', tool: 'water', target: target ?? { x:p.x-Math.sin(view.yaw)*2, y:p.y+0.5, z:p.z-Math.cos(view.yaw)*2 } }); };
+  holdAction(document.querySelector<HTMLButtonElement>('#water-cast')!, pour, () => true, signal);
+  const act = () => { if (!building && tool === 'water') pour(); else if (target && building) gameAction('build', building); else if (target) send({ type: 'action', tool, target }); else notice('近くの地面に照準を合わせてください'); };
+  holdAction(use, act, () => !building && tool === 'water', signal);
   actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { jump = true; }, signal);
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = 0.55; }, { signal });
   window.addEventListener('keydown', e => { if (e.code === 'Space' && !e.repeat) { e.preventDefault(); jump = true; } if (e.code === 'KeyF' && !e.repeat) act(); if (e.code === 'KeyE' && !e.repeat) gameAction('gather'); if (e.code === 'KeyQ' && !e.repeat) gameAction('attack'); if (e.code === 'ShiftLeft' && !e.repeat) gameAction('dodge'); if (e.code === 'KeyR' && !e.repeat) gameAction('heavy'); }, { signal });
@@ -105,7 +112,7 @@ export function startGame() {
           target = { x: hit.point.x, y: hit.point.y, z: hit.point.z };
           normal.copy(hit.face?.normal ?? markerAxis); world.marker.position.copy(hit.point).addScaledVector(normal, 0.04); world.marker.quaternion.setFromUnitVectors(markerAxis, normal); world.marker.visible = true;
         } else { target = null; world.marker.visible = false; }
-        use.disabled = !target; document.querySelector('#target-hint')!.textContent = target ? '右のボタンで地形を編集' : '近くの地面に照準を合わせる'; lastRay = now;
+        use.disabled = !target && (tool !== 'water' || !!building); document.querySelector('#target-hint')!.textContent = tool === 'water' && !building ? '長押しで放水' : target ? '' : '地面に照準を合わせる'; lastRay = now;
       }
       try { renderer.render(world.scene, camera); } catch { fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }

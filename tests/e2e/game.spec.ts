@@ -6,11 +6,11 @@ test('starts, moves with keyboard and stick, jumps, and rotates safely', async (
  await expect(page.locator('canvas')).toBeVisible(); await expect(page.getByRole('heading', { name: /TERRA/ })).toBeVisible();
  await expect(page.getByRole('status')).toHaveText('プレイ中');
  await page.keyboard.down('KeyD'); await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(0.5); await page.keyboard.up('KeyD');
- await page.getByRole('button', { name:'出発点へ' }).click(); await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeLessThan(0.01);
+ await systemAction(page, 'reset'); await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeLessThan(0.01);
  const stick = await page.locator('#stick').boundingBox(); if (!stick) throw new Error('Missing stick');
  await page.mouse.move(stick.x+stick.width*0.8,stick.y+stick.height/2); await page.mouse.down();
  await expect.poll(async () => Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(0.3); await page.mouse.up();
- await page.getByRole('button', { name:'出発点へ' }).click();
+ await systemAction(page, 'reset');
  await cooldown(page, 35); await expect(page.locator('#position')).toHaveAttribute('data-grounded','true');
  await page.getByRole('button', { name:'ジャンプ' }).click();
  await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/ジャンプ ([\d.]+)m/)?.[1] ?? '0')).toBeGreaterThan(0.4);
@@ -22,6 +22,9 @@ test('starts, moves with keyboard and stick, jumps, and rotates safely', async (
  await expect(page.locator('#position')).toHaveAttribute('data-x',before!);
  await page.screenshot({path:info.outputPath('terra-landscape.png')}); expect(errors).toEqual([]);
 });
+async function systemAction(page: import('@playwright/test').Page, id: string) {
+ await page.locator('#system-menu').click(); await page.locator('#' + id).click(); await page.locator('#system-close').click();
+}
 async function cooldown(page: import('@playwright/test').Page, ticks = 8) {
  const tick = Number(await page.locator('#app').getAttribute('data-tick'));
  await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(tick + ticks);
@@ -37,12 +40,10 @@ test('edits terrain, pours water, drops a rock, saves and restores after reload'
  await expect(page.locator('#notice')).toContainText('水を流しました');
  await cooldown(page); await page.locator('[data-tool="rock"]').click();
  // Waiting for water receipt plus a UI update crosses the authority action cooldown.
- await page.getByText('性能・試作の範囲', {exact:true}).click();
  await expect(page.locator('#metrics')).toContainText('セル');
  await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/水 (\d+)セル/)?.[1] ?? '0')).toBeGreaterThan(0);
- await page.getByText('性能・試作の範囲', {exact:true}).click();
  await page.locator('#use-tool').click(); await expect(page.locator('#notice')).toContainText('岩を落としました');
- await page.locator('#save').click(); await expect(page.locator('#save-status')).toHaveAttribute('data-edits','2'); await expect(page.locator('#save-status')).toHaveAttribute('data-bodies','1');
+ await systemAction(page, 'save'); await expect(page.locator('#save-status')).toHaveAttribute('data-edits','2'); await expect(page.locator('#save-status')).toHaveAttribute('data-bodies','1');
  await page.reload(); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
  await expect(page.locator('#edit-count')).toHaveAttribute('data-count','2');
  await expect(page.locator('#metrics')).toContainText('物理 1個');
@@ -51,7 +52,7 @@ test('edits terrain, pours water, drops a rock, saves and restores after reload'
 });
 test('exports world data and rejects malformed imports without losing the current world', async ({page}) => {
  await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
- const downloadEvent = page.waitForEvent('download'); await page.locator('#export').click();
+ const downloadEvent = page.waitForEvent('download'); await systemAction(page, 'export');
  const download = await downloadEvent; expect(download.suggestedFilename()).toBe('terra-world-7319.json');
  await page.locator('#import-file').setInputFiles({name:'broken.json',mimeType:'application/json',buffer:Buffer.from('{"version":999}')});
  await expect(page.locator('#notice')).toContainText('対応しないセーブ'); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
@@ -85,6 +86,15 @@ test('two fingers move and jump together, and camera reaches both vertical poles
  await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(Math.PI / 2);
  await page.mouse.move(220, 660); await page.mouse.down(); await page.mouse.move(220, 80); await page.mouse.up();
  await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(-Math.PI / 2);
+ await page.locator('[data-tool="water"]').click(); await expect(page.locator('#use-tool')).toBeEnabled();
+ const water = await page.locator('#water-cast').boundingBox(); if (!water) throw new Error('Missing water control');
+ const jet = { x: water.x + water.width / 2, y: water.y + water.height / 2, id: 2 };
+ await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [left, jet] });
+ await cooldown(page, 18);
+ await expect(page.locator('#notice')).toContainText('水を流しました');
+ await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/水 (\d+)セル/)?.[1] ?? '0')).toBeGreaterThan(20);
+ await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+ await expect(page.locator('#water-cast')).not.toHaveClass(/held/);
  await page.getByRole('button', { name: '視点を戻す' }).click();
  await expect.poll(async () => Number(await page.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(0.55);
  expect(errors).toEqual([]);
@@ -101,7 +111,7 @@ test('survival adventure collects food, opens crafting and persists its inventor
  await expect(page.locator('#adventure-content')).toContainText('森の煮込み');
  await page.locator('[data-game-action="craft"][data-id="stew"]').click(); await expect(page.locator('#notice')).toContainText('森の煮込みを作りました');
  await page.locator('[data-tab="bag"]').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
- await page.locator('#adventure-close').click(); await page.locator('#save').click(); await page.reload();
+ await page.locator('#adventure-close').click(); await systemAction(page, 'save'); await page.reload();
  await expect(page.locator('#app')).toHaveAttribute('data-state', 'running'); await page.locator('#adventure-menu').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
  expect(errors).toEqual([]);
 });

@@ -59,3 +59,10 @@ it('targets real dedicated players and advances physics away from the unused hos
  expect(sim.bodies[0].position.y).toBeLessThan(previousY);
  expect(enemy.x).toBeGreaterThan(previousX);
 });
+
+it('lets a guest pour repeatedly during another action cooldown', () => {
+ const session=new SessionAuthority();session.join('water-player');
+ session.action('water-player',{type:'game-action',action:'gather',aim:{x:0,y:0,z:-1}});
+ for(let i=0;i<3;i++)session.action('water-player',{type:'action',tool:'water',target:{x:10000,y:10000,z:10000}});
+ expect([...session.sim.fluid.cells.values()].reduce((n,c)=>n+c.volume,0)).toBeCloseTo(36);
+});
