@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
-import { LightProbeGenerator } from 'three/addons/lights/LightProbeGenerator.js';
+import { captureProbe } from './probe';
 import type { AdventureSnapshot } from '../../game/types';
 
 /** Preetham Rayleigh/Mie sky, filtered HDR environment and 3-band spherical-harmonic diffuse light. */
@@ -53,7 +53,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
    lastCapture=now;lastHour=hour;lastWeather=weather;captureRequested=false;
    const next=pmrem.fromScene(environmentScene,0,.1,500000,{size:64});scene.environment=next.texture;scene.environmentIntensity=.75;environment?.dispose();environment=next;stats.iblUpdates++;
    cubeCamera.update(renderer,environmentScene);pending=true;
-   void LightProbeGenerator.fromCubeRenderTarget(renderer,cube).then(result=>{if(!disposed){if(!result.sh.coefficients.every(v=>Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.z)))throw new Error('Non-finite sky irradiance');targetSH.copy(result.sh);stats.probeError='';stats.shEnergy=result.sh.coefficients[0].length();stats.shUpdates++;}}).catch((error:unknown)=>{lastProbeError=error;stats.probeError=String(lastProbeError);console.error('SH environment capture failed',error);}).finally(()=>{pending=false;if(disposed)cube.dispose();});
+   void captureProbe(renderer,cube).then(result=>{if(!disposed){if(!result.sh.coefficients.every(v=>Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.z)))throw new Error('Non-finite sky irradiance');targetSH.copy(result.sh);stats.probeError='';stats.shEnergy=result.sh.coefficients[0].length();stats.shUpdates++;}}).catch((error:unknown)=>{lastProbeError=error;stats.probeError=String(lastProbeError);console.error('SH environment capture failed',error);}).finally(()=>{pending=false;if(disposed)cube.dispose();});
   },
   dispose(){disposed=true;scene.environment=null;environment?.dispose();pmrem.dispose();if(!pending)cube.dispose();sun.shadow.dispose();sky.geometry.dispose();captureSky.geometry.dispose();sky.material.dispose();ground.geometry.dispose();ground.material.dispose();weatherGeometry.dispose();weatherMaterial.dispose();scene.remove(sky,sun,sun.target,probe,precipitation);},
  };

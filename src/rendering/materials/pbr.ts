@@ -1,17 +1,22 @@
 import * as THREE from 'three';
-export type Surface = 'stone' | 'wood' | 'cloth' | 'leather' | 'skin' | 'foliage' | 'metal' | 'crystal';
+export type Surface = 'earth' | 'stone' | 'wood' | 'cloth' | 'leather' | 'skin' | 'foliage' | 'metal' | 'crystal';
 const presets: Record<Surface, [number, number, number]> = {
- stone:[.92,0,.65],wood:[.8,0,.4],cloth:[.98,0,.22],leather:[.67,0,.3],skin:[.58,0,.12],foliage:[.78,0,.18],metal:[.32,1,.12],crystal:[.16,0,.08],
+ earth:[.96,0,.4],stone:[.92,0,.65],wood:[.8,0,.4],cloth:[.98,0,.22],leather:[.67,0,.3],skin:[.58,0,.12],foliage:[.78,0,.18],metal:[.32,1,.12],crystal:[.16,0,.08],
 };
 const maps = new Map<Surface, { map: THREE.DataTexture; normalMap: THREE.DataTexture; roughnessMap: THREE.DataTexture }>();
 /** Tileable, unlit material data. Albedo is sRGB; normals and roughness are linear data. */
 export function surfaceMaps(kind: Surface) {
  let result=maps.get(kind); if(result)return result;
  const size=128, height=new Float32Array(size*size), albedo=new Uint8Array(size*size*4), normal=new Uint8Array(size*size*4), rough=new Uint8Array(size*size*4);
+ function noise(x:number,y:number,period:number){
+  const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
+  const hash=(a:number,b:number)=>{const n=Math.sin(((a%period+period)%period)*127.1+((b%period+period)%period)*311.7)*43758.5453;return n-Math.floor(n);};
+  return THREE.MathUtils.lerp(THREE.MathUtils.lerp(hash(ix,iy),hash(ix+1,iy),sx),THREE.MathUtils.lerp(hash(ix,iy+1),hash(ix+1,iy+1),sx),sy);
+ }
  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-  const u=x/size*Math.PI*2,v=y/size*Math.PI*2;
-  const grain=kind==='wood'?Math.sin(u*9+Math.sin(v*2)*1.6):kind==='cloth'?Math.sin(u*32)*Math.sin(v*32):Math.sin(u*7+Math.sin(v*3))*Math.cos(v*11+Math.sin(u*2));
-  height[y*size+x]=.5+.22*grain+.08*Math.sin(u*23+v*17);
+  const u=x/size,v=y/size;
+  const grain=noise(u*8,v*8,8)*.5+noise(u*16,v*16,16)*.3+noise(u*32,v*32,32)*.2;
+  height[y*size+x]=kind==='wood'?.4+.16*Math.sin(u*Math.PI*24+noise(u*4,v*4,4)*3)+grain*.25:kind==='cloth'?.5+.1*Math.sin(u*Math.PI*64)*Math.sin(v*Math.PI*64):grain;
  }
  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
   const i=(y*size+x)*4,h=height[y*size+x],dx=(height[y*size+(x+1)%size]-height[y*size+(x+size-1)%size])*presets[kind][2],dy=(height[((y+1)%size)*size+x]-height[((y+size-1)%size)*size+x])*presets[kind][2],length=Math.hypot(dx,dy,1);

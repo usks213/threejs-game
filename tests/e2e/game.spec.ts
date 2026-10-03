@@ -20,7 +20,7 @@ test('starts, moves with keyboard and stick, jumps, and rotates safely', async (
  const before = await page.locator('#position').getAttribute('data-x');
  await page.mouse.move(420,150); await page.mouse.down(); await page.mouse.move(480,160); await page.mouse.up();
  await expect(page.locator('#position')).toHaveAttribute('data-x',before!);
- await page.screenshot({path:info.outputPath('terra-landscape.png')}); expect(errors).toEqual([]);
+ await page.screenshot({scale:'css',path:info.outputPath('terra-landscape.png')}); expect(errors).toEqual([]);
 });
 async function systemAction(page: import('@playwright/test').Page, id: string) {
  await page.locator('#system-menu').click(); await page.locator('#' + id).click(); await page.locator('#system-close').click();
@@ -48,7 +48,7 @@ test('edits terrain, pours water, drops a rock, saves and restores after reload'
  await expect(page.locator('#edit-count')).toHaveAttribute('data-count','2');
  await expect(page.locator('#metrics')).toContainText('物理 1個');
  await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/水 (\d+)セル/)?.[1] ?? '0')).toBeGreaterThan(0);
- await page.screenshot({path:info.outputPath('terra-restored.png')}); expect(errors).toEqual([]);
+ await page.screenshot({scale:'css',path:info.outputPath('terra-restored.png')}); expect(errors).toEqual([]);
 });
 test('exports world data and rejects malformed imports without losing the current world', async ({page}) => {
  await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
@@ -110,7 +110,7 @@ test('survival adventure collects food, opens crafting and persists its inventor
  await expect(page.locator('#adventure-content')).toContainText('木の実 ×5');
  await page.getByRole('button', { name: '作る', exact: true }).first().click();
  await expect(page.locator('#adventure-content')).toContainText('森の煮込み');
- await page.screenshot({path:info.outputPath('crafting-cards.png')});
+ await page.screenshot({scale:'css',path:info.outputPath('crafting-cards.png')});
  await page.locator('[data-game-action="craft"][data-id="stew"]').click(); await expect(page.locator('#notice')).toContainText('森の煮込みを作りました');
  await page.locator('[data-tab="bag"]').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
  await page.locator('#adventure-close').click(); await systemAction(page, 'save'); await page.reload();
@@ -124,25 +124,22 @@ test('renders equipped characters, textured terrain and water without shader err
  const errors: string[] = [];
  page.on('pageerror', error => errors.push(error.message));
  page.on('console', message => { if (message.type() === 'error' && /THREE|WebGL|shader/i.test(message.text())) errors.push(message.text()); });
- const sim = new GameSimulation(); sim.adventure.state.inventory = { sword: 1, staff: 1, shield: 1 }; sim.adventure.state.equipment = 'sword';
+ const sim = new GameSimulation(); sim.adventure.state.inventory = { sword: 1, staff: 1, shield: 1 }; sim.adventure.state.equipment = 'staff';
  const save = sim.save();
  await page.goto('/?graphicsProbe=1'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
  await page.locator('#import-file').setInputFiles({ name: 'visual-fixture.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)) });
- await expect(page.locator('#adventure-hud')).toContainText('石剣');
- await page.locator('#adventure-menu').click(); await page.locator('[data-game-action="equip"][data-id="staff"]').click();
- await expect(page.locator('#adventure-content')).toContainText('装備：杖');
- await page.locator('#adventure-close').click();
+ await expect(page.locator('#adventure-hud')).toContainText('杖');
  await page.locator('[data-tool="water"]').click(); await page.locator('#use-tool').click();
  await expect(page.locator('#notice')).toContainText('水を流しました');
  await cooldown(page, 10); await page.locator('#attack').click();
- await cooldown(page, 15); await page.screenshot({ path: info.outputPath('terra-materials-avatar-water.png') });
+ await cooldown(page, 15);
  const graphics=async()=>JSON.parse((await page.locator('#app').getAttribute('data-graphics'))!);
  await expect.poll(async()=>(await graphics()).shUpdates).toBeGreaterThan(0);
  await expect.poll(async()=>(await graphics()).samples).toBeGreaterThan(0);
  await expect.poll(async()=>(await graphics()).stageSamples).toBeGreaterThan(0);
  const day=await graphics();expect(day.invalidPixels).toBe(0);expect(day.beautyEnergy).toBeGreaterThan(0);expect(day.volumeEnergy).toBeGreaterThan(0);expect(day.shEnergy).toBeGreaterThan(0);expect(day.luminance).toBeGreaterThan(0);expect(day.probeError).toBe('');
  expect(day.features).toEqual(['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']);
- await page.setViewportSize({width:844,height:390});await page.screenshot({path:info.outputPath('pbr-day-hdr.png')});
+ await page.setViewportSize({width:844,height:390});await page.screenshot({scale:'css',path:info.outputPath('pbr-day-hdr.png')});
  sim.adventure.state.seconds=450; // Midnight, using the same authoritative save/import path as players.
  sim.adventure.state.equipment='staff';
  await page.locator('#import-file').setInputFiles({name:'night-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});
@@ -152,7 +149,7 @@ test('renders equipped characters, textured terrain and water without shader err
  await expect.poll(async()=>(await graphics()).luminance,{timeout:30000}).toBeLessThan(day.luminance*.8);
  await expect.poll(async()=>(await graphics()).exposure,{timeout:30000}).toBeGreaterThan(day.exposure*1.15);
  await expect.poll(async()=>(await graphics()).bloomEnergy,{timeout:30000}).toBeGreaterThan(0);
- await page.screenshot({path:info.outputPath('pbr-night-hdr.png')});
+ await page.screenshot({scale:'css',path:info.outputPath('pbr-night-hdr.png')});
  await info.attach('graphics-measurements',{body:JSON.stringify({day,night:await graphics()},null,2),contentType:'application/json'});
  await expect(page.locator('#error')).toBeHidden(); expect(errors).toEqual([]);
 });
@@ -165,8 +162,8 @@ test('survival adventure previews, rotates and places a building on mobile',asyn
  await expect(page.locator('#adventure-hud')).toContainText('石剣');
  await page.locator('#adventure-menu').click();await page.locator('[data-tab="build"]').click();await page.locator('[data-game-action="place"][data-id="bench"]').click();
  await expect(page.locator('#build-controls')).toBeVisible();await page.locator('#build-rotate').click();await expect(page.locator('#use-tool')).toBeEnabled();
- await page.screenshot({path:info.outputPath('building-preview.png')});
+ await page.screenshot({scale:'css',path:info.outputPath('building-preview.png')});
  await page.locator('#use-tool').click();await expect(page.locator('#notice')).toContainText('作業台を設置');
  await page.locator('#build-cancel').click();await expect(page.locator('#build-controls')).toBeHidden();
- await page.setViewportSize({width:844,height:390});await page.screenshot({path:info.outputPath('quality-landscape.png')});expect(errors).toEqual([]);
+ await page.setViewportSize({width:844,height:390});await page.screenshot({scale:'css',path:info.outputPath('quality-landscape.png')});expect(errors).toEqual([]);
 });

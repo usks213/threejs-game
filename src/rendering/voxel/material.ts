@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { surfaceMaps } from '../materials/pbr';
 /** World-space triplanar PBR: continuous across edited bricks, with slope-selected soil/rock. */
 export function createTerrainMaterial() {
- const stone=surfaceMaps('stone'), soil=surfaceMaps('wood');
+ const stone=surfaceMaps('stone'), soil=surfaceMaps('earth');
  const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:0});
  material.onBeforeCompile=s=>{
   Object.assign(s.uniforms,{rockColor:{value:stone.map},soilColor:{value:soil.map},rockNormal:{value:stone.normalMap},rockRoughness:{value:stone.roughnessMap}});

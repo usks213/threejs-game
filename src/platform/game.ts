@@ -149,7 +149,7 @@ export function startGame() {
       }
       terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
-      try { pipeline.render(dt); } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
+      try { if(state)pipeline.render(dt); } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
         const p = state.player, m = state.metrics; adventure.update(state.adventure, p,view.yaw);

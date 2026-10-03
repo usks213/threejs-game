@@ -13,6 +13,8 @@ export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,ca
  const ssr=new SSRPass({renderer,scene,camera,width:1,height:1,selects:[],groundReflector:null});ssr.resolutionScale=.5;ssr.opacity=.45;ssr.maxDistance=18;ssr.thickness=.15;ssr.blur=true;ssr.bouncing=false;
  // Cap steps but stretch their stride to retain the whole reflection ray on mobile.
  ssr.ssrMaterial.fragmentShader=ssr.ssrMaterial.fragmentShader.replace('void main(){','void main(){ gl_FragColor=vec4(0.);').replace('if(i>=totalStep) break;','float stride=max(1.,totalStep/128.);float stepIndex=i*stride; if(stepIndex>=totalStep) break;').replace('d0.x+i*xSpan,d0.y+i*ySpan','d0.x+stepIndex*xSpan,d0.y+stepIndex*ySpan');
+ // Three r180's alpha-weighted SSR blur divides by zero where no ray hit exists.
+ for(const material of [ssr.blurMaterial,ssr.blurMaterial2])material.fragmentShader=material.fragmentShader.replace(')/a;',')/max(a,0.00001);');
  const volume=new VolumetricPass(camera,ssr.beautyRenderTarget.depthTexture!,atmosphere.volume),exposure=new ExposurePass(),bloom=new UnrealBloomPass(new THREE.Vector2(1,1),.32,.55,1.05),output=new OutputPass(),fxaa=new ShaderPass(FXAAShader);
  for(const pass of [ssr,volume,exposure,bloom,output,fxaa])composer.addPass(pass);
  const inspect=new URLSearchParams(location.search).has('graphicsProbe'),diagnostics={stageSamples:0,reflectionPixels:0,bloomEnergy:0,volumeEnergy:0,invalidPixels:0,beautyEnergy:0};let reading=false,lastRead=0,disposed=false;

@@ -22,7 +22,7 @@ export function createWorld(renderer:THREE.WebGLRenderer) {
   waterGeometry.setAttribute('color', new THREE.BufferAttribute(waterColors, 3).setUsage(THREE.DynamicDrawUsage));
   waterGeometry.setAttribute('normal', new THREE.BufferAttribute(waterNormals, 3).setUsage(THREE.DynamicDrawUsage));
   waterGeometry.setDrawRange(0, 0);
-  const water = new THREE.Mesh(waterGeometry, new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true, transparent: true, opacity: .86, roughness: .16, metalness:0, ior:1.333, clearcoat:1, clearcoatRoughness:.09, depthWrite: true, side: THREE.DoubleSide }));
+  const water = new THREE.Mesh(waterGeometry, new THREE.MeshPhysicalMaterial({ color: '#60877f', vertexColors: true, transparent: true, opacity: .86, roughness: .16, metalness:0, ior:1.333, clearcoat:1, clearcoatRoughness:.09, depthWrite: true, side: THREE.DoubleSide }));
   // Dynamic instances cover different chunks. Avoid stale bounds from the first snapshot.
   const waterTime = { value: 0 };
   (water.material as THREE.MeshStandardMaterial).onBeforeCompile = shader => {
