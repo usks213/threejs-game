@@ -12,20 +12,20 @@
 | 8 物理 | プレイヤー/岩/木/建築接触、支持消失、局所孤立Voxelの破片化。岩/木/破片の描き分け。球体近似であり任意形状剛体/角運動量ではない。物理ライブラリ比較は未実施 |
 | 9 流体 | 容量保存、水位/地形反応、降水/凍結、水中移動/水流、岩の抵抗と木の浮力、水源/排水器、Chunk保存。大規模ダム/洞窟全域充水は未確認 |
 | 10–12 生成/地域/ボス | 5地域の形状、全域の近傍Seed資源/敵、資源再生、5ボスの専用行動と解放。密度・配置・戦闘バランスは未調整 |
-| 13 戦闘 | 武器定義、攻撃/強撃、スタミナ/盾/パリィ/回避、魔法/弓、毒/冷気、よろけ/ノックバック、死と回収。装備の見た目・モーション/重量の仕上げは未完成 |
+| 13 戦闘 | 武器定義、攻撃/強撃、スタミナ/盾/パリィ/回避、魔法/弓、毒/冷気、よろけ/ノックバック、死と回収。装備の見た目、歩行/攻撃/ガード/回避の簡易モーション。武器ごとの専用モーションと重量は未完成 |
 | 14 クラフト | データレシピ、Tier、作業台、武器/防具/食事 |
 | 15 建築 | 基礎/床/壁/柱/屋根/設備、支持/解体/回収/箱/寝床/崩壊破片、転移門のペア接続。同時建築のID衝突を修正。城/遺跡専用部品は未完成 |
 | 16 通信 | WebRTC Star、無料WSS中継、Colyseus、同じSessionAuthority。4ブラウザHostの接続/移動/地形/切断は公開CIで成功。8クライアントDedicated複合操作はローカル成功。外部NAT/8ブラウザ/長時間の安定性は未確認 |
 | 17 同期 | Seed/編集差分、AoI、入力予測/Reconciliation、他プレイヤー補間、再参加持ち物。帯域予算の受入確認は未完了 |
 | 18 保存 | version1→2互換、generator1互換、IndexedDBの変更Chunk・deflate、書出/読込、攻略/建築/個別Inventory。Dedicatedの再参加IDと原子的ファイル置換。OPFS実測比較は未実施 |
-| 19 グラフィックス | 地域色、ローポリ、木/鉱石/木材/破片のInstancing。Triplanar/Atlas・装備アニメーションは未完成 |
-| 20 光 | 昼夜、空、星、地域霧、環境光/太陽。影/AO/Volumetric/Magic Lightは未完成 |
+| 19 グラフィックス | 地域色、ローポリ、木/鉱石/木材/破片のInstancing。64pxタイルの共有Atlas、ワールド座標Triplanar、装備/簡易アニメーションを追加 |
+| 20 光 | 昼夜、空、星、地域霧、環境光/太陽。1 draw callの接地影と高さに応じる薄い霧を追加。太陽の投影影/SSAO/光芒/Magic Lightは未完成 |
 | 21 天候 | 7天候、粒子/視界/光、水への降水、夜間索敵。温度・天候音・敵出現/魔法への連動は未完成 |
-| 22–23 描画 | LOD、Frustum Culling、Streaming、GPU Instancing、Worker生成。Occlusion/Hierarchical Instancing/Atlas/Poolingの完成には未達 |
+| 22–23 描画 | LOD、Frustum Culling、Streaming、GPU Instancing、Worker生成。Atlasは実装。Occlusion/Hierarchical Instancing/Poolingの完成には未達 |
 | 24 性能 | Tick/物理/水/Mesh/FPS/Draw計測。8実接続・128物体・水・戦闘・建築・採掘・移動・再参加を検証。CI artifactにTick P95を保存。Host複合負荷、VRAM/帯域、スマホ実機30–60FPSは未達 |
 | 25–26 設計 | 描画/入力/保存/Transportと共通Simulationを分離、定義駆動。共通IDと参加者ごとの操作制限 |
 | 27–30 Phase/MVP | 内容実装と残る技術ゲートの解消を継続。完成とはしない |
-| 31 アート | 地域色・シルエット・粒子。建築ディテール/装備/魔法演出の仕上げは未完成 |
+| 31 アート | 地域色・シルエット・粒子。装備と簡易動作を実装。建築ディテール/魔法演出の仕上げは未完成 |
 | 32 将来拡張 | 将来項目。10地域/20ボス/農業/船等を今回完成扱いしない |
 | 33 Stack | Three/TS/Vite/Worker/WebRTC/Colyseus/SQLite Signaling。WebGPU必須化/有料常設サーバー契約なし |
 | 34 未確定 | 無料枠、操作/数値は合理的な初期値。重要な未確定を完成扱いしない |
@@ -34,7 +34,9 @@
 ## 検証の証拠
 
 - 最新のローカル検証：TypeScript、Vitest **69件**、Vite build成功。8実Colyseus接続の複合操作と保存復元を含む。
-- 公開済みe57a1caのCI：verify / review-smoke（Android相当4件）/ host-session（4実ブラウザ）/ deploy-preview / deploy-signaling成功。
+- 公開済みebe2e07のCI：verify（69件）/ review-smoke（Android相当4件）/ host-session（4実ブラウザ）/ deploy-preview / deploy-signaling成功。Dedicated複合操作の全プレイヤーTick P95は20.13ms、22サンプル。短時間のCI計測であり実機FPS/長時間安定性ではない。
 - 今回の描画・同時操作・保存修正のブラウザ/デプロイ結果は、当該コミットのActionsを正本とする。ローカル成功だけで公開成功としない。
 - CIのsimulation-benchmarksにDedicatedの負荷条件・P95・33.3ms目標との比較を保存。テストの100msは重大退行の検出値であり、目標達成とは別。
 - Android/iPhone実機のGPU/FPS・外部ネットワークはエミュレーションで確認済みと扱わない。
+
+追加の材質・接地影・装備アニメーション：ローカルの型/ビルドと接続を使わない67件を確認。Dedicated再実行はローカル実行許可の自動審査上限で止まったため、当該コミットのCIで確認する。Shaderエラーを検出する描画E2Eを追加。CI完了前はブラウザ成功/公開成功と報告しない。

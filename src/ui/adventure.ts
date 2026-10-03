@@ -7,7 +7,7 @@ export function adventureUI(signal: AbortSignal, action: (action: GameAction, id
  const button = (name: string, kind: string, id = '') => `<button type="button" data-game-action="${kind}" data-id="${id}">${name}</button>`;
  const render = () => {
   const s = latest; if (!s || panel.hidden) return;
-  const next = tab + JSON.stringify([s.inventory, s.unlocked, s.defeated]); if (next === signature) return; signature = next;
+  const next = tab + JSON.stringify([s.inventory, s.equipment, s.unlocked, s.defeated]); if (next === signature) return; signature = next;
   if (tab === 'bag') content.innerHTML = `<p>${Object.entries(s.inventory).filter(([, n]) => n > 0).map(([id, n]) => `${ITEM_NAMES[id]} ×${n}`).join(' ／ ') || '素材を集めましょう'}</p><p>装備：${ITEM_NAMES[s.equipment] ?? '素手'}</p>${Object.keys(s.inventory).filter(id => s.inventory[id] > 0 && WEAPONS[id]).map(id => button(`${ITEM_NAMES[id]}を装備`, 'equip', id)).join('')}${button('食べる', 'eat')}${button('箱へ預ける／取り出す', 'chest')}`;
   if (tab === 'craft') content.innerHTML = RECIPES.filter(r => r.tier <= s.unlocked).map(r => `<article><strong>${r.name}</strong><p>${label(r.cost)}${r.station ? ' ／ 作業台の近く' : ''}</p>${button('作る', 'craft', r.id)}</article>`).join('');
   if (tab === 'build') content.innerHTML = `<p>部品を選び、地面に照準を合わせ「設置」を押す。床や柱を積む場合は既存部品を照準に合わせます。</p>${BUILDINGS.map(b => `<article><strong>${b.name}</strong><p>${label(b.cost)}</p>${button('配置する', 'place', b.id)}</article>`).join('')}${button('近くの建物を解体', 'remove')}${button('寝床と焚き火で休む', 'rest')}${button('転移門を使う', 'portal')}`;
@@ -30,3 +30,4 @@ export function adventureUI(signal: AbortSignal, action: (action: GameAction, id
   render();
  } };
 }
+

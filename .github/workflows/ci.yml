@@ -121,7 +121,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --project=android-chromium --grep 'starts, moves|edits terrain|two fingers|survival adventure'
+      - run: npm run e2e -- --project=android-chromium --grep 'starts, moves|edits terrain|two fingers|survival adventure|renders equipped'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

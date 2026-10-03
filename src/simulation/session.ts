@@ -68,6 +68,6 @@ export class SessionAuthority {
   for (const actor of this.actors.values()) if (actor.id !== 'host') members.set(actor.id, { player: { ...actor.player }, adventure: actor.adventure.save() });
   return { ...this.sim.save(), members: [...members].map(([id, member]) => ({ id, player: member.player, adventure: member.adventure })) };
  }
- view(id: string) { const actor = this.actors.get(id); if (!actor) throw new Error('Unknown peer'); return this.withActor(actor, () => ({ player: { ...this.sim.player }, adventure: this.sim.adventure.snapshot(), peers: [...this.actors.values()].filter(a => a.id !== id && (!this.dedicated || a.id !== 'host')).map(a => ({ id: a.id, player: { ...a.player } })) })); }
+ view(id: string) { const actor = this.actors.get(id); if (!actor) throw new Error('Unknown peer'); return this.withActor(actor, () => ({ player: { ...this.sim.player }, adventure: this.sim.adventure.snapshot(), peers: [...this.actors.values()].filter(a => a.id !== id && (!this.dedicated || a.id !== 'host')).map(a => ({ id: a.id, player: { ...a.player }, appearance: { equipment: a.adventure.state.equipment, attack: a.adventure.attack, guarding: a.adventure.guarding, dodging: a.adventure.dodge > 0, shield: !!a.adventure.state.inventory.shield } })) })); }
 }
 

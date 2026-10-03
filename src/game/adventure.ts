@@ -14,7 +14,7 @@ export class Adventure {
  constructor(readonly sim: GameSimulation, saved?: AdventureSave) {
   this.state = saved ?? { seconds: 0, health: 100, stamina: 100, mana: 70, inventory: { berry: 3 }, equipment: 'hands', unlocked: 1, defeated: [], resources: [], enemies: [], buildings: [], death: null, food: 0, rested: 0, spawn: null };
   if (!saved) for (const biome of BIOMES) {
-   for (let i = 0; i < 36; i++) { const angle = i * 2.399, radius = 8 + i % 9 * 2.5, x = biome.center.x + Math.sin(angle) * radius, z = biome.center.z + Math.cos(angle) * radius;
+   for (let i = 0; i < 36; i++) { const angle = i * 2.399, radius = 8 + i % 9 * 2.5, x = biome.center.x + Math.sin(angle) * radius, z = biome.center.z + Math.cos(angle) * radius + (i === 0 ? 2.2 : 0);
     this.state.resources.push({ id: biome.tier * 100 + i, x, z, y: sim.groundAt(x, z), kind: i % 4 === 0 ? 'berry' : i % 3 === 0 ? biome.resource : i % 3 === 1 ? 'wood' : 'stone', amount: i % 3 === 1 ? 3 : 2, ready: 0 }); }
    for (let i = 0; i < 8; i++) { const angle = i * 2.399, x = biome.center.x + Math.sin(angle) * (20 + i * 1.5), z = biome.center.z + Math.cos(angle) * (20 + i * 1.5); this.state.enemies.push(this.enemy(biome.tier * 1000 + i, ENEMIES[i % ENEMIES.length].id, biome.tier, x, z)); }
   }
@@ -86,6 +86,7 @@ export class Adventure {
   if (action === 'guard') { this.guarding = !this.guarding; this.attack = 0.25; return { dirty: [], message: this.guarding ? 'ガード中：もう一度押して解除' : 'ガード解除' }; }
   if (action === 'dodge') { if (this.dodge > 0) throw new Error('回避中です'); this.stamina(22); this.dodge = 0.4; this.dodgeX = aim.x; this.dodgeZ = aim.z; this.guarding = false; return { dirty: [], message: '回避' }; }
   if (action === 'attack' || action === 'heavy') {
+   p.heading = Math.atan2(aim.x, aim.z);
    if (this.attack > 0) throw new Error('攻撃の回復を待ってください'); const weapon = WEAPONS[s.equipment] ?? WEAPONS.hands, heavy = action === 'heavy';
    this.stamina(weapon.stamina * (heavy ? 1.8 : 1)); this.attack = weapon.cooldown * (heavy ? 1.8 : 1);
    const damage = weapon.damage * (heavy ? 1.7 : 1);
@@ -99,6 +100,7 @@ export class Adventure {
    return { dirty: [], message: action === 'heavy' ? '強攻撃' : '攻撃' };
   }
   if (action === 'spell') {
+   p.heading = Math.atan2(aim.x, aim.z);
    const spell = SPELLS.find(v => v.id === id); if (!spell) throw new Error('未知の魔法です'); if (!s.inventory.staff && !s.inventory.book) throw new Error('杖を作ると魔法が使えます');
    if (this.cast > 0 || s.mana < spell.mana) throw new Error('魔力不足、または詠唱の回復中です'); s.mana -= spell.mana; this.cast = spell.cooldown;
    let dirty: string[] = [];

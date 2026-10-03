@@ -1,3 +1,4 @@
+import { GameSimulation } from '../../src/simulation/game-simulation';
 import { test, expect } from '@playwright/test';
 test('starts, moves with keyboard and stick, jumps, and rotates safely', async ({ page }, info) => {
  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
@@ -103,4 +104,24 @@ test('survival adventure collects food, opens crafting and persists its inventor
  await page.locator('#adventure-close').click(); await page.locator('#save').click(); await page.reload();
  await expect(page.locator('#app')).toHaveAttribute('data-state', 'running'); await page.locator('#adventure-menu').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
  expect(errors).toEqual([]);
+});
+
+
+test('renders equipped characters, textured terrain and water without shader errors', async ({ page }, info) => {
+ const errors: string[] = [];
+ page.on('pageerror', error => errors.push(error.message));
+ page.on('console', message => { if (message.type() === 'error' && /THREE|WebGL|shader/i.test(message.text())) errors.push(message.text()); });
+ const sim = new GameSimulation(); sim.adventure.state.inventory = { sword: 1, staff: 1, shield: 1 }; sim.adventure.state.equipment = 'sword';
+ const save = sim.save();
+ await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
+ await page.locator('#import-file').setInputFiles({ name: 'visual-fixture.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)) });
+ await expect(page.locator('#adventure-hud')).toContainText('石剣');
+ await page.locator('#adventure-menu').click(); await page.locator('[data-game-action="equip"][data-id="staff"]').click();
+ await expect(page.locator('#adventure-content')).toContainText('装備：杖');
+ await page.locator('#adventure-close').click();
+ await page.locator('[data-tool="water"]').click(); await page.locator('#use-tool').click();
+ await expect(page.locator('#notice')).toContainText('水を流しました');
+ await cooldown(page, 10); await page.locator('#attack').click();
+ await cooldown(page, 15); await page.screenshot({ path: info.outputPath('terra-materials-avatar-water.png') });
+ await expect(page.locator('#error')).toBeHidden(); expect(errors).toEqual([]);
 });

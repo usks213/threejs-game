@@ -1,8 +1,9 @@
+import { createTerrainMaterial } from './material';
 import * as THREE from 'three';
 import type { MeshData } from '../../world/types';
 export function createTerrain(scene: THREE.Scene) {
  const meshes = new Map<string, THREE.LOD>(), raycastMeshes: THREE.Mesh[] = [];
- const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 });
+ const surface = createTerrainMaterial(), material = surface.material;
  const remove = (id: string) => { const group = meshes.get(id); if (!group) return; scene.remove(group); group.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); const index = raycastMeshes.indexOf(o); if (index >= 0) raycastMeshes.splice(index, 1); } }); meshes.delete(id); };
  const mesh = (data: MeshData, origin: THREE.Vector3) => {
   const geometry = new THREE.BufferGeometry(), positions = data.positions.slice();
@@ -19,6 +20,7 @@ export function createTerrain(scene: THREE.Scene) {
   },
   remove(ids: string[]) { ids.forEach(remove); },
   raycast(raycaster: THREE.Raycaster) { return raycaster.intersectObjects(raycastMeshes, false)[0]; },
-  dispose() { [...meshes.keys()].forEach(remove); material.dispose(); },
+  dispose() { [...meshes.keys()].forEach(remove); surface.dispose(); },
  };
 }
+
