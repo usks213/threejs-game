@@ -17,7 +17,7 @@ describe('survival gameplay', () => {
  it('requires offerings, summons all five bosses, and persists progression', () => {
   const sim = new GameSimulation(), game = sim.adventure;
   for (const biome of BIOMES) {
-   game.state.unlocked = biome.tier; sim.player.x = biome.center.x; sim.player.z = biome.center.z - 14;
+   game.state.unlocked = biome.tier; sim.player.x = biome.center.x; sim.player.z = biome.center.z - 14; sim.player.y = sim.groundAt(sim.player.x, sim.player.z);
    expect(() => game.action('summon')).toThrow();
    const boss = BOSSES.find(b => b.id === biome.boss)!; Object.assign(game.state.inventory, boss.summon); game.action('summon');
    const enemy = game.state.enemies.find(e => e.definition === boss.id && e.boss)!;
