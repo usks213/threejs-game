@@ -29,6 +29,13 @@ describe('sampled capsule terrain contacts', () => {
     expect(player.x).toBeLessThanOrEqual(1 - CHARACTER_RADIUS + 0.004);
     expect(player.z).toBeGreaterThan(2); expect(player.y).toBeCloseTo(0, 2);
   });
+  it('stands still on a walkable incline without gravity creating sideways drift', () => {
+    const motor = new CharacterMotor(field(p => p.y - p.x * 0.4)), player = body();
+    for (let i = 0; i < 30; i++) motor.step(player, 0.05, 0, false, 1 / 30);
+    const stoppedX = player.x, stoppedZ = player.z;
+    for (let i = 0; i < 180; i++) motor.step(player, 0, 0, false, 1 / 30);
+    expect(player.x).toBe(stoppedX); expect(player.z).toBe(stoppedZ); expect(player.grounded).toBe(true);
+  });
   it('stops a jump at the ceiling instead of passing the head through it', () => {
     const ceiling = 1.9, motor = new CharacterMotor(field(p => Math.min(p.y, ceiling - p.y))), player = body();
     let highest = 0;

@@ -51,7 +51,10 @@ export class CharacterMotor {
         if (distance > CHARACTER_RADIUS + SKIN) continue;
         const n = this.normal, correction = Math.min(0.35, CHARACTER_RADIUS - distance);
         if (correction > 0.00001) {
-          if (n.y >= 0 && n.y < WALKABLE_NORMAL) {
+          if (n.y >= WALKABLE_NORMAL) {
+            // Support on walkable ground resolves vertically, avoiding idle slope drift.
+            body.y += correction / n.y;
+          } else if (n.y >= 0) {
             // Steep walls push sideways, rather than lifting the player up the wall.
             const horizontal = n.x * n.x + n.z * n.z;
             if (horizontal > 0.1) { body.x += n.x * correction / horizontal; body.z += n.z * correction / horizontal; }
