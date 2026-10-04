@@ -1,3 +1,4 @@
+import {probeWaterLighting} from '../rendering/water/lighting-probe';
 import {liveDiagnostics} from './live-diagnostics';
 import {createFieldTerrain} from '../rendering/voxel/field-terrain';
 import { FrameTimings } from './frame-timings';
@@ -58,12 +59,13 @@ export function startGame() {
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
   const direct=new URLSearchParams(location.search).get('terrain')==='direct';
-  const world = createWorld(renderer),field=direct?createFieldTerrain(world.scene):null;
+  const world = createWorld(renderer,direct),field=direct?createFieldTerrain(world.scene):null;
   const terrain=field?{...field,update:(data:MeshData,r:THREE.WebGLRenderer)=>{if(data.field)field.update(data.field,r);}}:createTerrain(world.scene);
   app.dataset.terrainMode=direct?'direct-field':'surface-mesh';if(direct)renderer.shadowMap.enabled=false;
-  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 80);
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, direct?110:80);
   const pipeline=createPipeline(renderer,world.scene,camera,world.atmosphere);
   const readKeyboard = keyboardInput(signal), touch = touchInput(document.querySelector('#stick')!, document.querySelector('#knob')!, signal), view = cameraInput(canvas, signal);
+  let waterProbeStarted=false;const probeWater=direct&&new URLSearchParams(location.search).has('waterProbe');
   const input: Axis = { x: 0, z: 0 };
   const raycaster = new THREE.Raycaster(), center = new THREE.Vector2(0, 0), normal = new THREE.Vector3(), markerAxis = new THREE.Vector3(0, 0, 1);
   const cameraPosition = new THREE.Vector3(), focus = new THREE.Vector3(), orbit = new THREE.Vector3();
@@ -207,6 +209,7 @@ export function startGame() {
         } else if (!building && tool==='add' && hasEditedPoint && editedPoint.distanceTo(focus)<7 && raycaster.ray.distanceToPoint(editedPoint)<1.6 && normal.copy(editedPoint).sub(raycaster.ray.origin).dot(raycaster.ray.direction)>0) {
           target={x:editedPoint.x,y:editedPoint.y,z:editedPoint.z};world.marker.position.copy(editedPoint);world.marker.quaternion.setFromUnitVectors(markerAxis,normal.set(0,1,0));world.marker.visible=true;
         } else { target = null; world.marker.visible = false; }
+        app.dataset.aim=JSON.stringify({target,player:state.player,pitch:view.pitch});
         placement=building&&target?(freePlacement?{...target}:snapBuilding(building,target,normal,buildRotation,state.adventure.buildings.find(b=>b.id===anchorId))):null;if(placement)placement.y+=buildHeight;
         if(building==='cook'&&placement){const fire=state.adventure.buildings.find(b=>b.definition==='fire'&&Math.hypot(b.x-placement!.x,b.z-placement!.z)<1);if(fire){placement.x=fire.x;placement.z=fire.z;placement.y=fire.y+.65;}}
         const rawDef=BUILDINGS.find(b=>b.id===building),def=rawDef&&state.adventure.meadows?meadowBuilding(rawDef):rawDef,issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory,buildRotation):'地面に照準を合わせる';
@@ -217,7 +220,7 @@ export function startGame() {
       const grassStart=performance.now();terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);frameTimings.record('grassUpdate',performance.now()-grassStart);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
       try { if(renderDue&&state&&!loading){const renderStart=performance.now();
-        world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}if(direct){renderer.setRenderTarget(null);renderer.render(world.scene,camera);}else pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);
+        world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}if(direct){world.atmosphere.prepareDirect();renderer.setRenderTarget(null);renderer.render(world.scene,camera);if(probeWater&&!waterProbeStarted&&world.atmosphere.stats.shUpdates>0&&world.waterSurface.geometry.drawRange.count>0){waterProbeStarted=true;void probeWaterLighting(renderer,world.scene,world.waterSurface).then(result=>app.dataset.waterProbe=JSON.stringify(result)).catch(error=>app.dataset.waterProbe=JSON.stringify({error:String(error)}));}}else pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);
         draws++;lastDraw=now;frameTimings.record('renderWall',performance.now()-renderStart);
       } } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }

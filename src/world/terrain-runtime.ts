@@ -1,4 +1,4 @@
-import {sampleFieldBrick} from './field-data';
+import { sampleFieldBrick, sameFieldLod } from './field-data';
 import { SdfWorld } from './density';
 import { meshTransferables, prepareTerrainMesh } from './mesh-preparation';
 import { meshBrick } from './mesher';
@@ -14,7 +14,7 @@ function copyMesh(mesh: MeshData): MeshData {
     grass: mesh.grass?.slice(), coarse: mesh.coarse && copyMesh(mesh.coarse) };
 }
 function sameBrick(a: Brick, b: Brick): boolean {
-  return a.step === b.step && a.origin.x === b.origin.x && a.origin.y === b.origin.y && a.origin.z === b.origin.z;
+  return a.step === b.step && a.origin.x === b.origin.x && a.origin.y === b.origin.y && a.origin.z === b.origin.z && sameFieldLod(a.fieldLod, b.fieldLod);
 }
 
 /** Stateful, DOM-free meshing endpoint, also exercised by the Node responsiveness benchmark. */
@@ -65,7 +65,7 @@ export class TerrainRuntime {
       const bytes = meshTransferables([mesh]).reduce((sum, buffer) => sum + buffer.byteLength, 0);
       if (this.cacheLimits.entries > 0 && bytes <= this.cacheLimits.bytes) {
         while (this.cache.size && (this.cache.size >= this.cacheLimits.entries || this.cacheBytes + bytes > this.cacheLimits.bytes)) this.evict(this.cache.keys().next().value!);
-        this.cache.set(brick.id, { brick: { ...brick, origin: { ...brick.origin } }, mesh: copyMesh(mesh), bytes });
+        this.cache.set(brick.id, { brick: { ...brick, origin: { ...brick.origin }, fieldLod: brick.fieldLod && { faces: [...brick.fieldLod.faces], edges: [...brick.fieldLod.edges] } }, mesh: copyMesh(mesh), bytes });
         this.cacheBytes += bytes;
       }
     }

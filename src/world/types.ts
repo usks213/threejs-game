@@ -6,7 +6,9 @@ export const BRICK_SIZE = 8;
 export const MAX_EDITS = 100000;
 export type EditKind = 'dig' | 'add';
 export interface EditOperation { id: number; kind: EditKind; position: Vec3; radius: number; material: 'stone'; shape?: 'cylinder'; surface?: 'soil'; tick: number }
-export interface Brick { id: string; origin: Vec3; step: number }
+/** Faces: axis * 2 + side. Edges: free axis * 4 + other-axis side bits. */
+export interface FieldLod { faces: readonly number[]; edges: readonly number[] }
+export interface Brick { id: string; origin: Vec3; step: number; fieldLod?: FieldLod }
 export interface MeshData { field?:import('./field-data').FieldData; origin?: Vec3; bounds?: { center: Vec3; radius: number }; grass?: Float32Array; coarse?: MeshData; id: string; positions: Float32Array; normals: Float32Array; colors: Float32Array; indices: Uint32Array; milliseconds: number }
 export const brickId = (x: number, y: number, z: number) => `${x},${y},${z}`;
 export const finiteVec = (p: Vec3) => Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z);

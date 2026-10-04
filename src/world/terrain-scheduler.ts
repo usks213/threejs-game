@@ -1,3 +1,4 @@
+import { sameFieldLod } from './field-data';
 import { BRICK_SIZE, type Brick, type Vec3 } from './types';
 
 /** The expensive job itself is deliberately absent: this queue runs on the simulation thread. */
@@ -46,7 +47,7 @@ export class TerrainScheduler {
     }
     for (const [id, brick] of bricks) {
       const previous = this.entries.get(id);
-      if (previous && previous.brick.step === brick.step && previous.brick.origin.x === brick.origin.x && previous.brick.origin.y === brick.origin.y && previous.brick.origin.z === brick.origin.z) continue;
+      if (previous && previous.brick.step === brick.step && previous.brick.origin.x === brick.origin.x && previous.brick.origin.y === brick.origin.y && previous.brick.origin.z === brick.origin.z && sameFieldLod(previous.brick.fieldLod, brick.fieldLod)) continue;
       this.entries.set(id, { brick, version: ++this.sequence, pending: true, ready: false, dirty: previous?.dirty ?? false, bytes: 0 });
     }
     return removed;

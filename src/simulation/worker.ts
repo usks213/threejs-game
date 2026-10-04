@@ -1,3 +1,4 @@
+import {directVisibleBricks,withinDirectFieldRetention} from '../world/field-streaming';
 /// <reference lib="webworker" />
 import { Prediction } from '../networking/prediction';
 import { SessionAuthority } from './session';
@@ -17,7 +18,7 @@ let sim: GameSimulation | null = null, authority: SessionAuthority | null = null
 let prediction: Prediction | null = null, replicaState: import('./protocol').Snapshot | null = null;
 const peerEdits = new Map<string, number>();
 let input: PlayerInput = { x: 0, z: 0, jump: false };
-const terrain = new TerrainScheduler(), uploads = new TerrainUploadWindow(4);
+const terrain = new TerrainScheduler();let uploads = new TerrainUploadWindow(4);
 const triangles = new Map<string, number>(), editedMeshes = new Map<string, MeshData>();
 let mesher: Worker | null = null, sentEditCount = 0;
 let direct=false,inputSequence=0,lastAction='',lastError:string|null=null;
@@ -71,9 +72,8 @@ function stream(): void {
   const id = `${Math.floor(sim.player.x / (direct?8:CHUNK_SIZE))},${Math.floor(sim.player.z / (direct?8:CHUNK_SIZE))},${direct?Math.floor(sim.player.y/8):0}`;
   if (id === center) return;
   center = id;
-  const visible = visibleBricks(sim.player, sim.world.bounds);
-  if(direct)for(const [key,brick]of visible)if(Math.hypot(brick.origin.x+4-sim.player.x,brick.origin.z+4-sim.player.z)>22||Math.abs(brick.origin.y+4-sim.player.y)>12)visible.delete(key);
-  const removed = terrain.setVisible(visible, sim.player, brick => withinTerrainRetention(brick, sim!.player));
+  const visible = direct?directVisibleBricks(sim.player,sim.world.bounds,sim.world.generator):visibleBricks(sim.player, sim.world.bounds);
+  const removed = terrain.setVisible(visible, sim.player, brick => direct?withinDirectFieldRetention(brick,sim!.player):withinTerrainRetention(brick, sim!.player));
   emit({ type: 'terrain-visibility', epoch: terrain.epoch, ids: [...visible.keys()] });
   for (const key of removed) { triangles.delete(key); editedMeshes.delete(key); }
   if (removed.length) emit({ type: 'remove', epoch: terrain.epoch, ids: removed });
@@ -108,7 +108,7 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
   const message = event.data;
   try {
     if (message.type === 'init' || message.type === 'replica-init') {
-      direct=!!message.direct;authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
+      direct=!!message.direct;uploads=new TerrainUploadWindow(direct?12:4);authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
     } else if (message.type === 'peer-join' && authority && !replica) { authority.join(message.peer); peerEdits.set(message.peer, sim!.world.edits.length); emit({ type: 'peer-welcome', peer: message.peer, save: sim!.save(), state: sessionFrame(authority, message.peer) }); }
     else if (message.type === 'peer-leave' && authority) { authority.leave(message.peer); peerEdits.delete(message.peer); }
     else if (message.type === 'peer-input' && authority && !replica) authority.input(message.peer, message.input, message.sequence);

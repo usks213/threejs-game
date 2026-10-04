@@ -11,8 +11,8 @@ import { terrainHeight, landscapeHeight } from '../../world/density';
 import * as THREE from 'three';
 import { BIOMES, BOSSES, BUILDINGS, ENEMIES } from '../../content/catalog';
 import type { AdventureSnapshot } from '../../game/types';
-export function createEntities(scene: THREE.Scene) {
- const details=campDetails(scene),tells=bossTells(scene), resources = createResources(scene), buildings = buildingKit(), creatures=creatureKit();
+export function createEntities(scene: THREE.Scene, direct = false) {
+ const details=campDetails(scene),tells=bossTells(scene), resources = createResources(scene, direct), buildings = buildingKit(), creatures=creatureKit();
  const objects = new Map<string, THREE.Group>(), geometry = new Map<string, THREE.BufferGeometry>(), materials = new Map<string, THREE.MeshStandardMaterial>();
  const geo = (id: string, make: () => THREE.BufferGeometry) => { let g = geometry.get(id); if (!g) { g = make(); geometry.set(id, g); } return g; };
  const mat = (color: string) => { let m = materials.get(color); if (!m) { m = pbrMaterial(color, color==='#8b8c84'?'stone':['#e2baff','#b6eafa','#ffc077'].includes(color)?'crystal':'skin'); materials.set(color, m); } return m; };
@@ -85,4 +85,3 @@ export function createEntities(scene: THREE.Scene) {
   },
  };
 }
-

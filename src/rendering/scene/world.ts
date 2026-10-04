@@ -10,11 +10,11 @@ import { meadow } from '../../content/biomes';
 import { WATER_VERTEX_CAPACITY } from '../../fluid/surface';
 import { WaterMeshingController } from '../water/controller';
 import type { Snapshot } from '../../simulation/protocol';
-export function createWorld(renderer:THREE.WebGLRenderer) {
+export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(meadow.sky); scene.fog = new THREE.Fog(meadow.fog, 28, 61);
   const feedback=createFeedback(scene), preview=createBuildingPreview(scene);
-  const atmosphere = createAtmosphere(scene,renderer), entities = createEntities(scene), bodies = createBodies(scene), shadows = createContactShadows(scene);
+  const atmosphere = createAtmosphere(scene,renderer), entities = createEntities(scene,direct), bodies = createBodies(scene), shadows = createContactShadows(scene);
   const avatars = createAvatarAssets(), localAvatar = avatars.create(), player = localAvatar.group; scene.add(player);
   const waterColors = new Float32Array(WATER_VERTEX_CAPACITY * 3);
   const waterPositions = new Float32Array(WATER_VERTEX_CAPACITY * 3), waterNormals = new Float32Array(WATER_VERTEX_CAPACITY * 3);
@@ -41,7 +41,7 @@ export function createWorld(renderer:THREE.WebGLRenderer) {
   const waterMesher = new WaterMeshingController(() => new Worker(new URL('../water/worker.ts', import.meta.url), { type: 'module' }));
   const resetWater = () => { waterTick = -1; waterMesher.reset(); waterGeometry.setDrawRange(0, 0); };
   return {
-    scene, player, marker, atmosphere, preview:preview.update,faceCamera:entities.faceCamera,
+    scene, player, marker, atmosphere, waterSurface:water, preview:preview.update,faceCamera:entities.faceCamera,
     raycastBuildings: entities.raycast,
     resetWater,
     get waterStats() { return waterMesher.stats; },

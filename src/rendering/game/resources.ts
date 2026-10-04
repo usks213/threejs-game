@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import type { AdventureSnapshot } from '../../game/types';
 import { Instances } from './instances';
 
-export function createResources(scene: THREE.Scene) {
+export function createResources(scene: THREE.Scene, boundedTemplates = false) {
   const trees=new Map<number,THREE.Group>(),treeBatches=new Map<string,{template:THREE.Group;batches:Instances[]}>();
   const geometry = [voxelizePrimitive(new THREE.CylinderGeometry(0.15, 0.26, 2.8, 6)), voxelizePrimitive(new THREE.ConeGeometry(1.1, 2.6, 6)), voxelizePrimitive(new THREE.IcosahedronGeometry(0.5, 1)),new THREE.PlaneGeometry(1,1)];
   const leaves=leafMaterial();
@@ -31,9 +31,44 @@ export function createResources(scene: THREE.Scene) {
   return {
     update(state: AdventureSnapshot): void {
       leaves.time.value=state.seconds;for (const batch of batches.values()) batch.begin();for(const t of treeBatches.values())for(const b of t.batches)b.begin();
+      // Direct-field mode must not replace the terrain stall with a synchronous
+      // forest-meshing burst. Revisit the latest snapshot on each update, so no
+      // stale queue can publish a tree that has since been removed or felled.
+      let templatesRemaining = boundedTemplates ? 1 : Infinity;
       for (const n of state.resources) {
         if (n.ready > state.seconds) continue;
-        if(TREE_KINDS.has(n.kind)){if(!n.removed?.length){const key=n.kind+':'+n.id%5;let t=treeBatches.get(key);if(!t){const template=voxelGroup(treeVoxels(n.kind,n.id));t={template,batches:template.children.map(o=>{const m=o as THREE.Mesh;return new Instances(scene,m.geometry,m.material as THREE.Material);})};treeBatches.set(key,t);}matrix.makeTranslation(n.x,n.y,n.z);for(const b of t.batches)b.add(matrix);continue;}const signature=n.kind+':'+(n.removed??[]).join(';');let group=trees.get(n.id);if(group&&group.userData.signature!==signature){scene.remove(group);disposeVoxelGroup(group);trees.delete(n.id);group=undefined;}if(!group){group=voxelGroup(treeVoxels(n.kind,n.id),n.removed);group.userData.signature=signature;trees.set(n.id,group);scene.add(group);}group.position.set(n.x,n.y,n.z);continue;}
+        if (TREE_KINDS.has(n.kind)) {
+          if (!n.removed?.length) {
+            const key = n.kind + ':' + n.id % 5;
+            let tree = treeBatches.get(key);
+            if (!tree && templatesRemaining > 0) {
+              const template = voxelGroup(treeVoxels(n.kind, n.id));
+              tree = { template, batches: template.children.map(object => {
+                const mesh = object as THREE.Mesh;
+                return new Instances(scene, mesh.geometry, mesh.material as THREE.Material);
+              }) };
+              treeBatches.set(key, tree); templatesRemaining--;
+            }
+            if (tree) {
+              matrix.makeTranslation(n.x, n.y, n.z);
+              for (const batch of tree.batches) batch.add(matrix);
+            } else {
+              // Already-created voxel primitives keep every pending tree visible
+              // without allocating new geometry. Collision remains authoritative.
+              const height = n.kind === 'oak' ? 6 : 4 + (n.id % 5) * .25;
+              const radius = n.kind === 'oak' ? 2.2 : 1.65, trunk = n.kind === 'oak' ? .45 : .3;
+              rotation.identity();
+              part('trunk', n.x, n.y + height * .5, n.z, trunk / .26, height / 2.8, trunk / .26);
+              part('canopy', n.x, n.y + height * .8, n.z, radius * 2, height * .7, radius * 2);
+            }
+            continue;
+          }
+          const signature = n.kind + ':' + n.removed.join(';');
+          let group = trees.get(n.id);
+          if (group && group.userData.signature !== signature) { scene.remove(group); disposeVoxelGroup(group); trees.delete(n.id); group = undefined; }
+          if (!group) { group = voxelGroup(treeVoxels(n.kind, n.id), n.removed); group.userData.signature = signature; trees.set(n.id, group); scene.add(group); }
+          group.position.set(n.x, n.y, n.z); continue;
+        }
         rotation.setFromAxisAngle(axis, n.id * 2.399);
         if ((!state.meadows&&n.kind === 'wood')||TREE_KINDS.has(n.kind)) {
           const height = (n.kind==='oak'?2:1.35) + (n.id % 7) * 0.1;
