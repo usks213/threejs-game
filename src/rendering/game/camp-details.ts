@@ -1,3 +1,4 @@
+import { smokeColumn } from '../../game/meadows/smoke';
 import { COOKING } from '../../content/meadows/data';
 import * as THREE from 'three';
 import type { AdventureSnapshot } from '../../game/types';
@@ -29,7 +30,7 @@ export function campDetails(scene:THREE.Scene){
   for(const id of signs.keys())if(!live.has(id))remove(id);
   const f=s.meadows?.fishing,fish=f&&s.resources.find(n=>n.id===f.fish);line.visible=bobber.visible=!!(p&&f&&fish);
   if(p&&f&&fish){const progress=f.phase==='fight'?f.progress:0,x=fish.x+(p.x-fish.x)*progress*.85,z=fish.z+(p.z-fish.z)*progress*.85,y=fish.y+.3+(f.phase==='bite'?-Math.abs(Math.sin(s.seconds*12))*.18:Math.sin(s.seconds*3)*.025);bobber.position.set(x,y,z);for(let i=0;i<9;i++){const t=i/8;linePoints[i*3]=p.x+(x-p.x)*t;linePoints[i*3+1]=p.y+1.7+(y-p.y-1.7)*t-Math.sin(t*Math.PI)*(f.reeling?.12:.4);linePoints[i*3+2]=p.z+(z-p.z)*t;}lineGeometry.getAttribute('position').needsUpdate=true;}
-  let count=0;for(const b of s.buildings)if(['fire','standingTorch'].includes(b.definition)&&(b.fuel??0)>0&&!b.open&&(!p||Math.hypot(b.x-p.x,b.z-p.z)<24))for(let i=0;i<4&&count<32;i++){const age=(s.seconds*.55+i*.6+b.id*.13)%2.4;smokePositions[count*3]=b.x+Math.sin(age*2+i)*age*.15;smokePositions[count*3+1]=b.y+.5+age;smokePositions[count*3+2]=b.z+Math.cos(age+i)*age*.15;count++;}smokeGeometry.setDrawRange(0,count);smokeGeometry.getAttribute('position').needsUpdate=true;
+  let count=0;for(const b of s.buildings)if(['fire','standingTorch'].includes(b.definition)&&(b.fuel??0)>0&&!b.open&&(!p||Math.hypot(b.x-p.x,b.z-p.z)<24)){const column=smokeColumn(b,s.buildings,s.seconds);for(let i=0;i<4&&count<32;i++){const age=(s.seconds*.55+i*.6+b.id*.13)%2.4;smokePositions[count*3]=b.x+Math.sin(age*2+i)*age*.15;smokePositions[count*3+1]=Math.min(b.y+.5+age,column.ceiling===null?Infinity:column.ceiling-.15);smokePositions[count*3+2]=b.z+Math.cos(age+i)*age*.15;count++;}}smokeGeometry.setDrawRange(0,count);smokeGeometry.getAttribute('position').needsUpdate=true;
  },
  dispose(){for(const id of signs.keys())remove(id);scene.remove(line,bobber,smoke,meat,...lights);meat.dispose();meatGeometry.dispose();meatMaterial.dispose();for(const g of [signGeometry,lineGeometry,floatGeometry,smokeGeometry])g.dispose();for(const m of [lineMaterial,floatMaterial,smokeMaterial])m.dispose();smokeMap.dispose();}
  };

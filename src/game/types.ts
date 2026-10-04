@@ -1,7 +1,7 @@
 import type { MeadowState } from './meadows/state';
 import type { Vec3 } from '../world/types';
 import type { EnvironmentState } from '../environment/time';
-export interface ResourceNode extends Vec3 { id: number; kind: string; amount: number; ready: number; growth?:{kind:string;remaining:number}; health?: number; spawnTimer?:number; harvested?: boolean; log?: import('./meadows/forestry').LogState }
+export interface ResourceNode extends Vec3 { id: number; kind: string; amount: number; ready: number; growth?:{kind:string;remaining:number}; swimming?:{homeX:number;homeZ:number;heading:number}; health?: number; spawnTimer?:number; harvested?: boolean; log?: import('./meadows/forestry').LogState }
 export interface EnemyState extends Vec3 { id: number; definition: string; tier: number; health: number; cooldown: number; windup: number; slow: number; boss: boolean; homeX: number; homeZ: number; respawnAt?: number; stars?: number; tame?: number; fed?: number; baby?: number; heading?: number; breeding?: number; attackKind?: string; attackReady?: Record<string,number>; attackYaw?: number; attackFlash?: number; alerted?: number; stagger?:number; burn?: number }
 export interface BuildingState extends Vec3 { id: number; definition: string; rotation: number; support: number; contents: Record<string, number>; health?: number; fuel?: number; open?: boolean; progress?: number; cooking?: {id:string;time:number}[]; label?: string }
 export interface Projectile extends Vec3 { id: number; vx: number; vy: number; vz: number; life: number; damage: number; element: string; radius: number; owner?: string; recover?: string; burn?: number; kind?:'arrow'|'spear'; gravity?:number }

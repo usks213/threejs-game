@@ -10,7 +10,7 @@ export function createResources(scene: THREE.Scene) {
   const leaves=leafMaterial();
   const definitions: [string, number, string][] = [
     ['leaves',3,'#8b9d66'],['trunk', 0, '#775d43'], ['crown', 1, '#5c814f'], ['canopy',2,'#617d45'],['canopyLight',2,'#7f9856'],['bush', 2, '#56714d'], ['berry', 2, '#cc896e'],
-    ['birchTrunk',0,'#d4d3bb'],['flint',2,'#bec4bf'],['mushroom',2,'#b3472e'],['dandelion',2,'#e8c84c'],['relic',2,'#737e77'],['beeNest',2,'#b69c66'],['loot',2,'#b68b45'],['branch',0,'#785a38'],['stone', 2, '#a8a796'], ['copper', 2, '#b99466'], ['iron', 2, '#809199'], ['crystal', 2, '#b0dce1'], ['aether', 2, '#b08ad0'],
+    ['birchTrunk',0,'#d4d3bb'],['fish',2,'#a1b290'],['fishFin',3,'#758d71'],['flint',2,'#bec4bf'],['mushroom',2,'#b3472e'],['dandelion',2,'#e8c84c'],['relic',2,'#737e77'],['beeNest',2,'#b69c66'],['loot',2,'#b68b45'],['branch',0,'#785a38'],['stone', 2, '#a8a796'], ['copper', 2, '#b99466'], ['iron', 2, '#809199'], ['crystal', 2, '#b0dce1'], ['aether', 2, '#b08ad0'],
   ];
   const materials: THREE.Material[] = [];
   const batches = new Map(definitions.map(([id, shape, color]) => {
@@ -36,7 +36,8 @@ export function createResources(scene: THREE.Scene) {
           if((n.kind==='wood'&&n.id%3===0)||state.biome==='frost'){
             for(let j=0;j<4;j++)part('crown',n.x,n.y+(2.1+j*.75)*height,n.z,1.3-j*.22,height*.75,1.3-j*.22);
           }else{
-            for(let j=0;j<22;j++){const a=j*2.4+n.id,r=.4+(j%4)*.45;rotation.setFromEuler(leafRotation.set(Math.sin(a)*1.1,a,Math.cos(a)*.5));part('leaves',n.x+Math.sin(a)*r,n.y+(2.55+Math.sin(j*1.7)*.35)*height,n.z+Math.cos(a)*r,2.2,height*.82,1);}rotation.setFromAxisAngle(axis,n.id*2.399);
+            for(let j=0;j<4;j++){const a=j*2.4+n.id;part(j%2?'canopyLight':'canopy',n.x+Math.sin(a)*.65,n.y+(2.4+j*.13)*height,n.z+Math.cos(a)*.65,2.4,height*1.5,2.4);}
+            for(let j=0;j<16;j++){const a=j*2.4+n.id,r=.4+(j%4)*.45;rotation.setFromEuler(leafRotation.set(Math.sin(a)*1.1,a,Math.cos(a)*.5));part('leaves',n.x+Math.sin(a)*r,n.y+(2.55+Math.sin(j*1.7)*.35)*height,n.z+Math.cos(a)*r,2.2,height*.82,1);}rotation.setFromAxisAngle(axis,n.id*2.399);
           }
         } else if(n.kind==='sapling'){part('trunk',n.x,n.y+.4,n.z,.25,.3,.25);for(let j=0;j<4;j++){rotation.setFromEuler(leafRotation.set(.5,j*1.5,0));part('leaves',n.x,n.y+.7+j*.15,n.z,.5,.45,1);}
         } else if(n.kind==='fallenLog'&&n.log){const a=n.log.a.position,b=n.log.b.position;rotation.setFromUnitVectors(axis,logDirection.set(b.x-a.x,b.y-a.y,b.z-a.z).normalize());part('trunk',n.x,n.y,n.z,1.6,n.log.length/2.8,1.6);
@@ -47,7 +48,7 @@ export function createResources(scene: THREE.Scene) {
         } else if(['dolmen','stoneCircle','graveyard'].includes(n.kind)){
           const dolmen=n.kind==='dolmen',grave=n.kind==='graveyard';for(let j=0;j<(dolmen?3:9);j++){const a=j*Math.PI*2/(dolmen?3:9);part('relic',n.x+Math.sin(a)*(grave?1.5:2.5),n.y+.8,n.z+Math.cos(a)*(grave?4:2.5),.8,1.6,.65);}if(dolmen)part('relic',n.x,n.y+1.5,n.z,5,.65,5);
         } else if(['perch','pike'].includes(n.kind)){
-          part('stone',n.x,n.y,n.z,n.kind==='pike'?.8:.4,.15,.15);
+          const heading=(n.swimming?.heading??0)+Math.sin(state.seconds*6+n.id)*.08,length=n.kind==='pike'?.85:.5;rotation.setFromAxisAngle(axis,heading);part('fish',n.x,n.y,n.z,.2,.25,length);part('fishFin',n.x-Math.sin(heading)*length*.55,n.y,n.z-Math.cos(heading)*length*.55,.22,.22,1);
         } else if(n.kind==='merchant'){
           continue;
         } else if(n.kind==='wood'||n.kind==='finewood'){rotation.setFromEuler(leafRotation.set(Math.PI/2,0,0));for(let j=0;j<3;j++)part('branch',n.x+(j-1)*.18,n.y+.18,n.z,.65,.25,.65);

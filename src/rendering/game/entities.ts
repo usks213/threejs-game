@@ -54,7 +54,7 @@ export function createEntities(scene: THREE.Scene) {
    }
    for (const b of state.buildings) {
     const def = BUILDINGS.find(d => d.id === b.definition)!;
-    const group = object('building' + b.id, g => g.add(buildings.make(b.definition))); group.position.set(b.x,b.y,b.z);group.rotation.y=b.rotation+((b.definition==='door'||b.definition==='gate')&&b.open?Math.PI/2:0);group.visible=true;
+    const group = object('building' + b.id, g => g.add(buildings.make(b.definition))); group.position.set(b.x,b.y,b.z);const hinged=b.definition==='door'||b.definition==='gate',angle=hinged&&b.open?Math.PI/2:0;group.rotation.y=b.rotation+angle;if(hinged&&angle){const half=b.definition==='gate'?1:.5;group.position.x+=half*(Math.cos(b.rotation+angle)-Math.cos(b.rotation));group.position.z-=half*(Math.sin(b.rotation+angle)-Math.sin(b.rotation));}group.visible=true;
     const flame=group.getObjectByName('flame');if(flame){flame.scale.y=.6+Math.sin(state.seconds*8)*.09;flame.visible=!state.meadows||!!b.fuel&&!b.open;}
    }
    for (const biome of state.meadows?[]:BIOMES) {

@@ -25,13 +25,13 @@ export function createAvatarAssets() {
       const cloak=part(torso,box,'#466c6c',0,.83,-.21,.51,.67,.055);cloak.rotation.x=-.15;
       part(torso,box,'#d8be81',.16,.96,.165,.055,.48,.035);
       part(torso, box, '#526246', 0, 0.9, -0.22, 0.38, 0.43, 0.22);
-      const legs: THREE.Group[] = [], arms: THREE.Group[] = [];
+      const legs: THREE.Group[] = [], arms: THREE.Group[] = [],trousers:THREE.Mesh[]=[],sleeves:THREE.Mesh[]=[];
       for (const side of [-1, 1]) {
         const leg = new THREE.Group(); leg.position.set(side * 0.13, 0.59, 0); torso.add(leg); legs.push(leg);
-        part(leg, box, '#525845', 0, -0.23, 0, 0.17, 0.42, 0.18);
+        trousers.push(part(leg, box, '#525845', 0, -0.23, 0, 0.17, 0.42, 0.18));
         part(leg, box, '#493d34', 0, -0.51, 0.045, 0.2, 0.15, 0.28);
         const arm = new THREE.Group(); arm.position.set(side * 0.31, 1.08, 0); torso.add(arm); arms.push(arm);
-        part(arm, box, '#c89b47', 0, -0.16, 0, 0.16, 0.3, 0.17);
+        sleeves.push(part(arm, box, '#c89b47', 0, -0.16, 0, 0.16, 0.3, 0.17));
         part(arm, box, '#eed0a3', 0, -0.35, 0, 0.15, 0.15, 0.16);
       }
       const hand = new THREE.Group(); hand.position.set(0, -0.35, 0.04); arms[1].add(hand);
@@ -65,7 +65,7 @@ export function createAvatarAssets() {
             sword.scale.setScalar(id === 'greatsword' ? 1.35 : 1);
           }
           shield.visible = next.shield ?? false;shield.scale.y=next.tower?.85:.5;
-          if(next.gear){chest.material=material(next.gear.chest==='leatherTunic'?'#65513c':'#b2a182');cloak.visible=next.gear.cape==='deerCape';helmet.visible=next.gear.head==='leatherHelmet';hair.visible=!helmet.visible;}
+          if(next.gear){chest.material=material(next.gear.chest==='leatherTunic'?'#65513c':next.gear.chest?'#b2a182':'#eed0a3');for(const mesh of sleeves)mesh.material=chest.material;for(const mesh of trousers)mesh.material=material(next.gear.legs==='leatherPants'?'#65513c':next.gear.legs?'#b2a182':'#493d34');cloak.visible=next.gear.cape==='deerCape';helmet.visible=next.gear.head==='leatherHelmet';hair.visible=!helmet.visible;}
         },
         animate(dt: number): void {
           const p = group.position, distance = initialized ? Math.hypot(p.x - previousX, p.z - previousZ) : 0;

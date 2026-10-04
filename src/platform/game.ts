@@ -129,9 +129,9 @@ export function startGame() {
     const dt = Math.min((now - previous) / 1000, 0.05); previous = now;
     if (!document.hidden) {
       readKeyboard(input); if (touch.x || touch.z) { input.x = touch.x; input.z = touch.z; }
-      const menuOpen=!!document.querySelector('[role=dialog]:not([hidden])');if(menuOpen){input.x=0;input.z=0;jump=false;}
+      const sessionOpen=!document.querySelector<HTMLElement>('#session-panel')!.hidden,menuOpen=!!document.querySelector('[role=dialog]:not([hidden])');if(menuOpen){input.x=0;input.z=0;jump=false;}
       if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
-      if(state&&dirtyWorld){world.update(state);sound.update(state);dirtyWorld=false;}
+      if(state&&dirtyWorld&&!sessionOpen){world.update(state);sound.update(state);dirtyWorld=false;}
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
       world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
@@ -159,7 +159,7 @@ export function startGame() {
       }
       terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
-      try { if(state&&(!menuOpen||now-lastDraw>250)){pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);lastDraw=now;} } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
+      try { if(state&&!sessionOpen&&(!menuOpen||now-lastDraw>250)){pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);lastDraw=now;} } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
         const p = state.player, m = state.metrics; if(state.adventure.meadows){document.querySelector('#cast')!.innerHTML=itemIcon(state.adventure.meadows.fishing?'fishingRod':'hammer')+'<span>'+ (state.adventure.meadows.fishing?.phase==='bite'?'合わせる':state.adventure.meadows.fishing?.phase==='fight'?(state.adventure.meadows.fishing.reeling?'緩める':'巻く'):'使う')+'</span>';} adventure.update(state.adventure, p,view.yaw);

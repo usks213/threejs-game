@@ -9,7 +9,7 @@ test('host and three guests share movement, edits and disconnect safely', async 
   const host = pages[0]; await host.locator('#session-host').click();
   await expect(host.locator('#session-code')).toHaveValue(/^[a-f0-9]{48}$/); const code = await host.locator('#session-code').inputValue();
   for (const guest of pages.slice(1)) { await guest.locator('#session-code').fill(code); await guest.locator('#session-join').click(); await expect(guest.locator('#session-status')).toHaveText('協力プレイに参加中',{timeout:45000}); }
-  // Inactive guests stay in the lobby; this is transport coverage, not a four-GPU benchmark.
+  // Inactive guests stay in the lobby with a frozen 3D backdrop; simulation and transport remain active.
   await pages[1].locator('#session-close').click();
   await host.locator('#session-close').click();
   const guest=pages[1], before=Number(await guest.locator('#position').getAttribute('data-x'));

@@ -1,8 +1,10 @@
+import { createFerns } from './ferns';
 import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 import type { MeshData } from '../../world/types';
 /** Attach sparse tufts to the actual meshed surface, including edited terrain. One draw call. */
 export function createGrass(scene:THREE.Scene){
+ const ferns=createFerns(scene);
  const samples=new Map<string,number[]>(),geometry=new THREE.BufferGeometry();
  const vertices:number[]=[];
  for(let i=0;i<5;i++){
@@ -24,11 +26,11 @@ export function createGrass(scene:THREE.Scene){
    }samples.set(data.id,points);dirty=true;
   },
   remove(id:string){samples.delete(id);dirty=true;},
-  update(p:THREE.Vector3,seconds:number){time.value=seconds;if(seconds-last<.3)return;last=seconds;if(!dirty&&Math.hypot(p.x-lastX,p.z-lastZ)<2)return;dirty=false;lastX=p.x;lastZ=p.z;let count=0;
+  update(p:THREE.Vector3,seconds:number){time.value=seconds;ferns.animate(seconds);if(seconds-last<.3)return;last=seconds;if(!dirty&&Math.hypot(p.x-lastX,p.z-lastZ)<2)return;dirty=false;lastX=p.x;lastZ=p.z;let count=0;ferns.begin();
    outer:for(const points of samples.values())for(let i=0;i<points.length;i+=3){const x=points[i],y=points[i+1],z=points[i+2];if((x-p.x)**2+(z-p.z)**2>22**2||Math.abs(y-p.y)>10)continue;
-    const seed=Math.abs(Math.sin(x*17.1+z*35.3)),height=.7+seed*.55;dummy.position.set(x,y,z);dummy.rotation.y=seed*6.28;dummy.scale.setScalar(height);dummy.updateMatrix();mesh.setMatrixAt(count,dummy.matrix);color.setRGB(.27+seed*.1,.40+seed*.13,.16+seed*.09);mesh.setColorAt(count,color);if(++count===2200)break outer;
-   }mesh.count=count;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+    const seed=Math.abs(Math.sin(x*17.1+z*35.3));if(seed>.99&&Math.cos(x*.37+z*.59)>.4)ferns.add(x,y,z,seed);const height=.7+seed*.55;dummy.position.set(x,y,z);dummy.rotation.y=seed*6.28;dummy.scale.setScalar(height);dummy.updateMatrix();mesh.setMatrixAt(count,dummy.matrix);color.setRGB(.27+seed*.1,.40+seed*.13,.16+seed*.09);mesh.setColorAt(count,color);if(++count===2200)break outer;
+   }ferns.end();mesh.count=count;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
   },
-  dispose(){scene.remove(mesh);mesh.dispose();geometry.dispose();material.dispose();samples.clear();}
+  dispose(){ferns.dispose();scene.remove(mesh);mesh.dispose();geometry.dispose();material.dispose();samples.clear();}
  };
 }

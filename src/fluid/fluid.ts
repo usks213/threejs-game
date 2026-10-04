@@ -118,6 +118,10 @@ export class FluidGrid {
   }
   freeze(p: Vec3, radius: number): void { for (const c of this.cells.values()) if (Math.hypot(c.x + 0.5 - p.x, c.y + 0.5 - p.y, c.z + 0.5 - p.z) < radius) this.frozen.set(key(c), this.phase + 80); }
   iceHeight(p: Vec3): number | null { let top: number | null = null; for (const c of this.cells.values()) if (c.x === Math.floor(p.x) && c.z === Math.floor(p.z) && (this.frozen.get(key(c)) ?? 0) > this.phase) top = Math.max(top ?? -Infinity, c.y + this.bottom(c) + c.volume); return top; }
+  surfaceHeight(x:number,z:number):number|null {
+    let top=-Infinity;for(let y=this.world.bounds.minY;y<this.world.bounds.maxY;y++){const c=this.cells.get(`${Math.floor(x)},${y},${Math.floor(z)}`);if(c&&c.volume>.1)top=Math.max(top,y+this.bottom(c)+c.volume);}
+    return Number.isFinite(top)?top:null;
+  }
   immersion(p: Vec3, height: number): number {
     let depth = 0;
     const x = Math.floor(p.x), z = Math.floor(p.z);

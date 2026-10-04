@@ -5,7 +5,7 @@ import { stepVillage } from './village';
 import { fishingAction,stepFishing } from './fishing';
 import { changeLayout, reconcileSlots } from './inventory-layout';
 import { chopWood, stepForestry } from './forestry';
-import { canCarry, occupiedSlots } from './inventory';
+import { canCarry, occupiedSlots, stackSize } from './inventory';
 import { nearestFacility, stepFacilities, waterHeight } from './facilities';
 import type { Adventure } from '../adventure';
 import type { GameAction } from '../types';
@@ -37,7 +37,7 @@ export class MeadowRules{
  if(action==='sell'){if(!s.resources.some(n=>n.kind==='merchant'&&distance(n,p)<4))throw new Error('旅商人へ近づいてください');const price:Record<string,number>={amber:5,amberPearl:10,ruby:20,silverNecklace:30};let coins=0;for(const [key,value]of Object.entries(price)){coins+=(s.inventory[key]??0)*value;s.inventory[key]=0;}if(!coins)throw new Error('売れる琥珀や宝石がありません');this.grant('coins',coins);return ok(`遺物を売却 · ${coins}硬貨`);}
  if(action==='trade'){
   if(!s.resources.some(n=>n.kind==='merchant'&&distance(n,p)<4))throw new Error('旅商人の野営地へ行ってください');
-  const prices:Record<string,number>={fishingRod:350,bait:10,linenHat:100};if(!prices[id])throw new Error('商品を選んでください');this.spend({coins:prices[id]});this.grant(id,id==='bait'?20:1);return ok(`${ITEM_NAMES[id]}を購入`);
+  const prices:Record<string,number>={fishingRod:350,bait:10,linenHat:100};if(!Object.hasOwn(prices,id))throw new Error('商品を選んでください');this.spend({coins:prices[id]});this.grant(id,id==='bait'?20:1);return ok(`${ITEM_NAMES[id]}を購入`);
  }
  if(action==='repairBuilding'){if(!s.inventory.hammer)throw new Error('ハンマーが必要です');const b=s.buildings.filter(b=>distance(p,b)<4).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!b)throw new Error('建物に近づいてください');b.health=100;return ok('建物を修理しました');}
  if(action==='gather'){
@@ -46,6 +46,7 @@ export class MeadowRules{
   if(s.death&&distance(p,s.death)<2.5){for(const [key,n]of Object.entries(s.grave??{}))this.grant(key,n);s.grave={};s.death=null;m.corpseRun=50;s.stamina=foodStats(s).stamina;return ok('墓標から持ち物を回収しました');}
   const n=s.resources.filter(n=>n.ready<=s.seconds&&distance(p,n)<3).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!n)throw new Error('拾えるものへ近づいてください');
   if(['dolmen','stoneCircle','graveyard'].includes(n.kind))return ok('古い遺跡です。周囲を探し、地面を掘ると遺物が見つかることがあります');
+  if(['perch','pike'].includes(n.kind)){const top=waterHeight(this.game,n.x,n.z);if(top!==null&&top-this.sim.groundAt(n.x,n.z)>.15)throw new Error('泳ぐ魚は釣り竿で釣ってください');this.grant('rawFish',n.kind==='pike'?2:1);n.ready=s.seconds+300;return ok('岸に打ち上がった魚を拾いました');}
   if(n.kind==='merchant')return ok('旅商人：釣り竿と餌を販売しています。野営タブから取引できます');
   if(n.kind==='runestone'){m.tutorial=Math.max(m.tutorial,1);return ok('旅の石碑：鹿の証を二つ集め、北の雷鹿の祭壇へ。肉は火で焼き、屋根の下で休め。');}
   if(n.kind==='sacrifice')return this.action('offer','',ground);
@@ -75,7 +76,7 @@ export class MeadowRules{
   if(!MEADOW_CRAFT_IDS.has(id))throw new Error('この装備は草原の制作対象ではありません');
   const r=meadowRecipe(RECIPES.find(r=>r.id===id)!);if(r.station||id==='shield')this.station();
   this.spend(r.cost);this.grant(r.output,r.amount);if(!id.endsWith('Arrow'))m.durability[id]=maxDurability(id,m.quality[id]??1);
-  if(WEAPONS[id]&&s.inventory[id])s.equipment=id;if(ARMOR[id]&&s.inventory[id])m.gear[ARMOR[id].slot]=id;if(['shield','towerShield'].includes(id)&&s.inventory[id])m.gear.offhand=id;
+  if(WEAPONS[id]&&!['hammer','hoe'].includes(id)&&s.inventory[id])s.equipment=id;if(ARMOR[id]&&s.inventory[id])m.gear[ARMOR[id].slot]=id;if(['shield','towerShield'].includes(id)&&s.inventory[id])m.gear.offhand=id;
   return ok(`${r.name}を作りました`);
  }
  if(action==='equip'&&['shield','towerShield'].includes(id)){if(!s.inventory[id])throw new Error('持っていません');m.gear.offhand=id;return ok(`${ITEM_NAMES[id]}を構えました`);}
@@ -126,7 +127,7 @@ export class MeadowRules{
  if(action==='feed'){const e=s.enemies.find(e=>e.definition==='boar'&&e.health>0&&distance(e,p)<5);if(!e)throw new Error('猪に近づいてください');const food=['berry','mushroom'].find(k=>s.inventory[k]>0);if(!food)throw new Error('木の実かキノコが必要です');this.spend({[food]:1});e.fed=300;e.tame??=0;return ok('餌を置きました。離れて猪を落ち着かせてください');}
  if(action==='drop'){const [key,requested]=id.split(':');id=key;if(!s.inventory[id])throw new Error('持っていません');const count=Math.min(s.inventory[id],Math.max(1,Math.floor(Number(requested)||10)));s.inventory[id]-=count;s.resources.push({id:this.sim.allocateEntityId(),kind:id,x:p.x+1,y:p.y,z:p.z,amount:count,ready:0});return ok(`${ITEM_NAMES[id]}を地面に置きました`);}
  if(action==='plant'){if(!s.inventory.cultivator)throw new Error('植樹には黒い森の金属で作る耕運具が必要です');const seed=id||'beechSeed',kind=({beechSeed:'beech',birchSeed:'birch',acorn:'oak'} as Record<string,string>)[seed];if(!kind)throw new Error('木の種を選んでください');if(s.resources.some(n=>TREE_KINDS.has(n.kind)&&distance(n,ground)<3))throw new Error('木から3m離してください');this.spend({[seed]:1});s.resources.push({id:this.sim.allocateEntityId(),kind:'sapling',growth:{kind,remaining:3000+(this.sim.tick%5001)},x:ground.x,y:this.sim.groundAt(ground.x,ground.z),z:ground.z,amount:1,ready:0});return ok('苗木を植えました');}
- if(action==='chest'){const b=s.buildings.find(b=>b.definition==='chest'&&distance(p,b)<3);if(!b)throw new Error('箱に近づいてください');if(Object.values(b.contents).some(n=>n>0)){for(const [key,n]of Object.entries(b.contents))this.grant(key,n);b.contents={};}else for(const [key,n]of Object.entries(s.inventory))if(!WEAPONS[key]&&!ARMOR[key]&&n){b.contents[key]=n;s.inventory[key]=0;}return ok('箱の素材を出し入れしました');}
+ if(action==='chest'){const b=s.buildings.find(b=>b.definition==='chest'&&distance(p,b)<3);if(!b)throw new Error('箱に近づいてください');if(Object.values(b.contents).some(n=>n>0)){for(const [key,n]of Object.entries(b.contents))this.grant(key,n);b.contents={};}else for(const [key,n]of Object.entries(s.inventory))if(!WEAPONS[key]&&!ARMOR[key]&&n){const size=stackSize(key),current=b.contents[key]??0,space=Math.max(0,10-occupiedSlots(b.contents))*size+(current%size?size-current%size:0),count=Math.min(n,space);if(count){b.contents[key]=current+count;s.inventory[key]-=count;}}return ok('箱の素材を出し入れしました');}
  return undefined;
  }
  damage(amount:number):number{const armor=armorValue(this.s);return armor<amount/2?amount-armor:amount*amount/(4*Math.max(1,armor));}

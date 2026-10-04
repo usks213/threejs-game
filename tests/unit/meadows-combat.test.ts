@@ -12,3 +12,10 @@ it('hits in front but not behind, and a exhausted guard does not nullify damage'
 it('recovers stamina when a run toggle is on but the player is standing still',()=>{
  const {g}=setup();g.state.stamina=10;g.state.meadows!.sprinting=true;movementSpeed(g,false,0,1/30);g.stepPersonal(1);expect(g.state.stamina).toBeGreaterThan(10);
 });
+it('drops the active weapon on death and cannot attack with unowned gear',()=>{
+ const {g,p}=setup();g.state.inventory.club=1;g.state.equipment='club';g.state.meadows!.riding=123;g.hurtPlayer(999,'physical');expect(g.state.equipment).toBe('hands');expect(g.state.grave?.club).toBe(1);expect(g.state.meadows!.riding).toBeUndefined();
+ g.state.health=25;g.state.stamina=50;g.state.equipment='club';g.attack=0;g.action('attack','',p,{x:1,y:0,z:0});expect(g.state.equipment).toBe('hands');
+});
+it('does not block environmental damage with a shield',()=>{
+ const {g}=setup();g.state.inventory.shield=1;g.state.meadows!.gear.offhand='shield';g.guarding=true;g.attack=.25;g.hurtPlayer(5,'fire');expect(g.state.health).toBeLessThan(25);
+});

@@ -82,7 +82,7 @@ export class Adventure {
   if (this.hurt > 0 || this.dodge > 0 || this.state.health <= 0) return;
   const held=this.state.meadows?.gear.offhand;const shield=held?(this.state.inventory[held]?held:''):this.state.inventory.towerShield?'towerShield':this.state.inventory.shield?'shield':'';
   const facing=!source||((source.x-player.x)*Math.sin(player.heading)+(source.z-player.z)*Math.cos(player.heading))>=0;
-  if(this.guarding&&shield&&facing&&(!this.state.meadows||this.state.meadows.durability[shield]!==0)){
+  if(this.guarding&&shield&&source&&facing&&(!this.state.meadows||this.state.meadows.durability[shield]!==0)){
    const cost=amount*.4,parry=shield==='shield'&&this.attack>.05;
    if(this.state.stamina>=cost){this.state.stamina-=cost;const q=this.state.meadows?.quality[shield]??1,block=(shield==='shield'?6+6*(q-1):10+6*(q-1))*(parry?1.5:1);amount=Math.max(0,amount-block);if(parry&&source){const enemy=this.state.enemies.find(e=>e===source);if(enemy&&!enemy.boss)enemy.stagger=2;}}
    else{this.state.stamina=0;this.guarding=false;}
@@ -93,6 +93,7 @@ export class Adventure {
   if (element === 'poison') this.state.poison = 8; if (element === 'frost') this.state.chill = 5;
   this.state.health = Math.max(0, this.state.health - amount * armor * (element === 'frost' && this.state.rested > 0 ? 0.8 : 1)); this.hurt = 0.65;
   if (this.state.health <= 0) {if(this.state.meadows){const m=this.state.meadows;if(!(m.noSkillDrain??0))for(const key of Object.keys(m.skills))m.skills[key]=Math.floor(m.skills[key]*.95);m.noSkillDrain=600;m.foods=[];this.state.food=0;} const p = player;if(this.state.meadows&&this.state.death&&Object.values(this.state.grave??{}).some(n=>n>0)){this.state.meadows.graves??=[];this.state.meadows.graves.push({...this.state.death,items:{...this.state.grave}});}
+   if(this.state.meadows){this.state.equipment='hands';this.guarding=false;this.state.meadows.fishing=undefined;this.state.meadows.riding=undefined;}
    this.state.death = { x: p.x, y: p.y, z: p.z }; this.state.stamina = 0; this.respawn = 3; this.state.grave = {}; for (const id of this.state.meadows?Object.keys(this.state.inventory):['wood', 'stone', 'copper', 'iron', 'crystal', 'aether', 'resin', 'fang', 'berry']) { const lost = Math.floor((this.state.inventory[id] ?? 0) * (this.state.meadows?1:0.2)); if (lost) { this.state.grave[id] = lost; this.state.inventory[id] -= lost; } } }
  }
  action(action: GameAction, id = '', target?: Vec3, aim: Vec3 = { x: 0, y: 0, z: -1 }): { dirty: string[]; message: string } {
@@ -119,7 +120,9 @@ export class Adventure {
   if (action === 'dodge') { if (this.dodge > 0) throw new Error('回避中です'); this.stamina(22*(s.meadows?.gear.offhand==='towerShield'?1.1:1)); this.dodge = 0.4; this.dodgeX = aim.x; this.dodgeZ = aim.z; this.guarding = false; return { dirty: [], message: '回避' }; }
   if (action === 'attack' || action === 'heavy') {
    p.heading = Math.atan2(aim.x, aim.z);
+   if(s.meadows&&s.equipment!=='hands'&&!s.inventory[s.equipment])s.equipment='hands';
    if (this.attack > 0) throw new Error('攻撃の回復を待ってください'); const weapon = WEAPONS[s.equipment] ?? WEAPONS.hands, heavy = action === 'heavy';
+   if(s.meadows&&['hammer','hoe','fishingRod'].includes(s.equipment))throw new Error('持ち物から斧・棍棒・槍・弓を装備して攻撃してください');
    if(s.meadows&&s.meadows.durability[s.equipment]===0)throw new Error('装備が壊れています。作業台で修理してください');
    if(s.stamina<weapon.stamina*(heavy?1.8:1))throw new Error('スタミナが足りません');
    let arrow='';if(s.meadows&&weapon.ranged){arrow=['fireArrow','flintArrow','woodArrow'].find(k=>s.inventory[k]>0)??'';if(!arrow)throw new Error('矢が必要です');this.spend({[arrow]:1});}
