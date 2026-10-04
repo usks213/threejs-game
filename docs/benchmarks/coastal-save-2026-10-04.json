@@ -1,0 +1,37 @@
+{
+  "method": "One SessionAuthority fresh world; same location/tick progression as original diagnosis. Drain concurrently added coastline-generation queue to reproduce the completed old coastline regions. At each location, compare exact old GameSimulation.save body versus patched GameSimulation.save through authority.save on identical state. Full save JSON compared. Cloud Node CPU only; no browser or real-device FPS claim.",
+  "results": [
+    {
+      "x": 0,
+      "z": 8,
+      "cells": 12608,
+      "oldSaveMs": 42.706015000000036,
+      "newSaveMs": 3.802976000000001,
+      "identicalSaveJSON": true
+    },
+    {
+      "x": -64,
+      "z": 8,
+      "cells": 12768,
+      "oldSaveMs": 14.984083999999996,
+      "newSaveMs": 4.543995999999993,
+      "identicalSaveJSON": true
+    },
+    {
+      "x": -96,
+      "z": 8,
+      "cells": 86681,
+      "oldSaveMs": 2639.71427,
+      "newSaveMs": 23.082034999999905,
+      "identicalSaveJSON": true
+    },
+    {
+      "x": -128,
+      "z": 8,
+      "cells": 160409,
+      "oldSaveMs": 4914.8647169999995,
+      "newSaveMs": 40.77999699999964,
+      "identicalSaveJSON": true
+    }
+  ]
+}

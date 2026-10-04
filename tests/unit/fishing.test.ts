@@ -1,0 +1,4 @@
+import { it,expect } from 'vitest';
+import { GameSimulation } from '../../src/simulation/game-simulation';
+import { stepFishing } from '../../src/game/meadows/fishing';
+it('requires a timed hook and balances line tension before awarding a fish',()=>{const sim=new GameSimulation(),g=sim.adventure,n=g.state.resources.find(n=>n.kind==='perch')!;Object.assign(sim.player,{x:n.x+2,y:n.y,z:n.z});Object.assign(g.state.inventory,{fishingRod:1,bait:2});g.action('fish');expect(g.state.inventory.rawFish).toBeUndefined();expect(()=>g.action('fish')).toThrow('待って');stepFishing(g,8);g.action('fish');for(let i=0;i<400&&g.state.meadows!.fishing;i++){const f=g.state.meadows!.fishing;if(f.strain>.65&&f.reeling||f.strain<.2&&!f.reeling)g.action('fish');g.state.stamina=100;stepFishing(g,.1);}expect(g.state.inventory.rawFish).toBe(1);expect(g.state.inventory.bait).toBe(1);});

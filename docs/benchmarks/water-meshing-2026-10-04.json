@@ -1,0 +1,65 @@
+{
+  "method": "Cloud Node CPU only. Identical actual new-game fluid snapshots, after 60 simulation steps per location. Ten surface/packing/copy warmups then 60 alternating samples. Compares old main-thread waterSurface to new main-thread Float64 input packing plus copies into existing dynamic GPU-attribute arrays. Worker construction/compute/transfer latency, browser GPU upload and real-device FPS are not measured. Exact positions/normals/colors asserted before timing. Worker output meshing still uses unchanged waterSurface.",
+  "results": [
+    {
+      "location": "starting spawn",
+      "cells": 6521,
+      "vertices": 20088,
+      "samples": 60,
+      "exactGeometryMatch": true,
+      "beforeSurfaceMainCPUms": {
+        "mean": 8.3343,
+        "p95": 10.4828,
+        "max": 19.4127
+      },
+      "afterPackingMainCPUms": {
+        "mean": 0.0632,
+        "p95": 0.0991,
+        "max": 0.554
+      },
+      "afterArrayCopyMainCPUms": {
+        "mean": 0.0372,
+        "p95": 0.0905,
+        "max": 0.1158
+      },
+      "afterPackingPlusCopyMainCPUms": {
+        "mean": 0.1005,
+        "p95": 0.1565,
+        "max": 0.5968
+      },
+      "inputBytes": 365176,
+      "outputBytes": 723168,
+      "fullOutputCapacityBytes": 10616832
+    },
+    {
+      "location": "river bank",
+      "cells": 8192,
+      "vertices": 25158,
+      "samples": 60,
+      "exactGeometryMatch": true,
+      "beforeSurfaceMainCPUms": {
+        "mean": 10.564,
+        "p95": 14.7805,
+        "max": 30.385
+      },
+      "afterPackingMainCPUms": {
+        "mean": 0.0904,
+        "p95": 0.1845,
+        "max": 0.2293
+      },
+      "afterArrayCopyMainCPUms": {
+        "mean": 0.0547,
+        "p95": 0.1265,
+        "max": 0.3452
+      },
+      "afterPackingPlusCopyMainCPUms": {
+        "mean": 0.1451,
+        "p95": 0.2903,
+        "max": 0.4118
+      },
+      "inputBytes": 458752,
+      "outputBytes": 905688,
+      "fullOutputCapacityBytes": 10616832
+    }
+  ]
+}

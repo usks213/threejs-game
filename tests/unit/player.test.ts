@@ -1,9 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { createPlayer, stepPlayer, WORLD_LIMIT } from '../../src/core/player';
-describe('player movement', () => {
-  it('moves at 4 units per second', () => { const p = createPlayer(); for (let i=0;i<20;i++) stepPlayer(p,{x:1,z:0},0.05); expect(p.x).toBeCloseTo(4); });
-  it('normalizes diagonal speed', () => { const p=createPlayer(); stepPlayer(p,{x:1,z:1},0.05); expect(Math.hypot(p.x,p.z)).toBeCloseTo(0.2); });
-  it('preserves analog input strength', () => { const p=createPlayer(); stepPlayer(p,{x:0.5,z:0},0.05); expect(p.x).toBeCloseTo(0.1); });
-  it('clamps long frames and world bounds', () => { const p=createPlayer(); stepPlayer(p,{x:1,z:0},10); expect(p.x).toBeCloseTo(0.2); for(let i=0;i<1000;i++) stepPlayer(p,{x:1,z:-1},0.05); expect(p.x).toBe(WORLD_LIMIT); expect(p.z).toBe(-WORLD_LIMIT); });
-  it('ignores invalid inputs and does not move while idle', () => { const p=createPlayer(); stepPlayer(p,{x:NaN,z:0},0.05); stepPlayer(p,{x:1,z:0},-1); stepPlayer(p,{x:0,z:0},0.05); expect(p).toEqual(createPlayer()); });
-});
+import { expect, it } from 'vitest';
+import { GameSimulation } from '../../src/simulation/game-simulation';
+const idle = { x: 0, z: 0, jump: false };
+it('starts inside the finite world', () => { const sim = new GameSimulation(); expect(sim.player.x).toBe(0); expect(sim.player.z).toBe(8); expect(sim.player.y).toBeGreaterThan(-16); });
+it('clamps movement to the world boundary', () => { const sim = new GameSimulation(); sim.player.x = 999; sim.step({ ...idle, x: 1 }); expect(sim.player.x).toBe(999); });
+it('caps oversized input without increasing speed', () => { const a = new GameSimulation(), b = new GameSimulation(); a.step({...idle,x:1}); b.step({...idle,x:1000}); expect(a.player.x).toBe(b.player.x); });
+it('ignores nonfinite movement without corrupting player state', () => { const sim = new GameSimulation(), control = new GameSimulation(); sim.step({...idle,x:Infinity,z:NaN}); control.step(idle); expect(sim.player).toEqual(control.player); });
+it('returns a fallen player to a safe spawn', () => { const sim = new GameSimulation(); sim.player.y = -20; sim.step(idle); expect(sim.player.x).toBe(0); expect(sim.player.z).toBe(8); expect(sim.player.y).toBeGreaterThan(0); });

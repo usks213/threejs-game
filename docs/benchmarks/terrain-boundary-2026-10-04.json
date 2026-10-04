@@ -1,0 +1,165 @@
+{
+  "environment": {
+    "node": "v24.19.0",
+    "cpu": "AMD EPYC 9V74 80-Core Processor"
+  },
+  "methodology": "Generator 3 and original 0.5 m extraction, seed 7319. Warm 800-brick demand at x=15.75, z=8; cross x=16 boundary by 0.5 m six times. Drain real jobs per crossing and transfer every prepared fine/coarse/grass buffer through both simulated worker hops. transferredBytes counts mesh payload per hop; both hops transfer that amount. Geometry counts checked equal for demanded terrain. Compare prior no-cache/no-retention behavior against bounded hidden-resident halo and cache. Timed CPU wall time covers demand drain, meshing/copy/transfers; it excludes visibility calculation, browser, GPU and simulation. This is not device FPS.",
+  "before": {
+    "mode": "prior-no-retention-or-cache",
+    "warmup": {
+      "x": 15.75,
+      "jobs": 800,
+      "transferredBytes": 8013648,
+      "removed": 0,
+      "residentBricks": 800,
+      "activeTriangles": 224766,
+      "elapsedMs": 3645.07
+    },
+    "crossings": [
+      {
+        "x": 16.25,
+        "jobs": 160,
+        "transferredBytes": 1514700,
+        "removed": 160,
+        "residentBricks": 800,
+        "activeTriangles": 212860,
+        "elapsedMs": 744.21
+      },
+      {
+        "x": 15.75,
+        "jobs": 160,
+        "transferredBytes": 1977756,
+        "removed": 160,
+        "residentBricks": 800,
+        "activeTriangles": 224766,
+        "elapsedMs": 814.85
+      },
+      {
+        "x": 16.25,
+        "jobs": 160,
+        "transferredBytes": 1514700,
+        "removed": 160,
+        "residentBricks": 800,
+        "activeTriangles": 212860,
+        "elapsedMs": 667.58
+      },
+      {
+        "x": 15.75,
+        "jobs": 160,
+        "transferredBytes": 1977756,
+        "removed": 160,
+        "residentBricks": 800,
+        "activeTriangles": 224766,
+        "elapsedMs": 826.73
+      },
+      {
+        "x": 16.25,
+        "jobs": 160,
+        "transferredBytes": 1514700,
+        "removed": 160,
+        "residentBricks": 800,
+        "activeTriangles": 212860,
+        "elapsedMs": 672.66
+      },
+      {
+        "x": 15.75,
+        "jobs": 160,
+        "transferredBytes": 1977756,
+        "removed": 160,
+        "residentBricks": 800,
+        "activeTriangles": 224766,
+        "elapsedMs": 832.39
+      }
+    ],
+    "crossingTotals": {
+      "jobs": 960,
+      "transferredBytes": 10477368,
+      "elapsedMs": 4558.42
+    },
+    "cache": {
+      "entries": 0,
+      "bytes": 0,
+      "hits": 0,
+      "misses": 1760
+    }
+  },
+  "after": {
+    "mode": "retention-and-cache",
+    "warmup": {
+      "x": 15.75,
+      "jobs": 800,
+      "transferredBytes": 8013648,
+      "removed": 0,
+      "residentBricks": 800,
+      "activeTriangles": 224766,
+      "elapsedMs": 3426.54
+    },
+    "crossings": [
+      {
+        "x": 16.25,
+        "jobs": 160,
+        "transferredBytes": 1514700,
+        "removed": 0,
+        "residentBricks": 960,
+        "activeTriangles": 212860,
+        "elapsedMs": 639.18
+      },
+      {
+        "x": 15.75,
+        "jobs": 0,
+        "transferredBytes": 0,
+        "removed": 0,
+        "residentBricks": 960,
+        "activeTriangles": 224766,
+        "elapsedMs": 0.12
+      },
+      {
+        "x": 16.25,
+        "jobs": 0,
+        "transferredBytes": 0,
+        "removed": 0,
+        "residentBricks": 960,
+        "activeTriangles": 212860,
+        "elapsedMs": 0.07
+      },
+      {
+        "x": 15.75,
+        "jobs": 0,
+        "transferredBytes": 0,
+        "removed": 0,
+        "residentBricks": 960,
+        "activeTriangles": 224766,
+        "elapsedMs": 0.09
+      },
+      {
+        "x": 16.25,
+        "jobs": 0,
+        "transferredBytes": 0,
+        "removed": 0,
+        "residentBricks": 960,
+        "activeTriangles": 212860,
+        "elapsedMs": 0.06
+      },
+      {
+        "x": 15.75,
+        "jobs": 0,
+        "transferredBytes": 0,
+        "removed": 0,
+        "residentBricks": 960,
+        "activeTriangles": 224766,
+        "elapsedMs": 0.14
+      }
+    ],
+    "crossingTotals": {
+      "jobs": 160,
+      "transferredBytes": 1514700,
+      "elapsedMs": 639.66
+    },
+    "cache": {
+      "entries": 960,
+      "bytes": 9528348,
+      "hits": 0,
+      "misses": 960
+    }
+  }
+}
