@@ -248,6 +248,8 @@ jobs:
         with:
           name: preview-release
       - run: npx playwright install --with-deps chromium
+      - name: Probe public authority without GPU dependencies
+        run: E2E_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync('preview-release.json')).url") node scripts/probe-public-coop.mjs
       - name: Test two independent browsers against the public authority
         run: E2E_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync('preview-release.json')).url") npm run e2e -- --project=desktop-chromium --grep 'two real browsers' --retries=0
       - uses: actions/upload-artifact@v4

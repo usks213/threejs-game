@@ -50,7 +50,7 @@ export class AuthorityRoom {
    else if (packet.type === 'action') {
     if (typeof packet.commandId !== 'string' || !/^[a-zA-Z0-9_-]{1,96}$/.test(packet.commandId)) throw new Error('Invalid command id');
     const commandId = packet.commandId, seen = this.receipts.get(connection.playerId) ?? new Set<string>();
-    if (seen.has(commandId)) { connection.wire.send({ type: 'ack', commandId, accepted: true, message: '操作は反映済みです' }); return { changed: false }; }
+    if (seen.has(commandId)) return { changed: true, acknowledgment: () => connection.wire.send({ type: 'ack', commandId, accepted: true, message: '操作は反映済みです' }) };
     const action = packet.message as CoopAction;
     if (!action || (action.type !== 'action' && action.type !== 'game-action')) throw new Error('Invalid action');
     let message: string;

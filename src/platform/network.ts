@@ -16,7 +16,7 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
   else edits = [...edits.slice(0,base),...incoming];
   if (edits.length !== state.edits) { session?.resync(); return; }
   lastTick = state.tick; post({ type:'replica-state', state, edits });
-  status.dataset.players = String((state.peers?.length ?? 0) + 1); status.dataset.tick = String(state.tick);
+  status.dataset.players = String((state.peers?.length ?? 0) + 1); status.dataset.peers = JSON.stringify(state.peers?.map(p=>({id:p.id,...p.player}))??[]); status.dataset.tick = String(state.tick);
  };
  const welcome = (save: WorldSave, state: Snapshot) => { edits = save.edits; lastTick = -1; post({type:'replica-init',save}); receiveState(state,edits); show('online'); };
  const close = (restore = true) => {

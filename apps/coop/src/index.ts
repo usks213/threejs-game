@@ -1,3 +1,4 @@
+import { CheckpointQueue } from '../../../src/networking/checkpoint-queue';
 import { DurableObject } from 'cloudflare:workers';
 import { AuthorityRoom, type RoomCheckpoint } from '../../../src/networking/authority-room';
 import { validateSave } from '../../../src/save/format';
@@ -6,7 +7,7 @@ export class CoopRoom extends DurableObject<Env> {
  private room: AuthorityRoom | null = null;
  private loading: Promise<AuthorityRoom> | null = null;
  private timer: ReturnType<typeof setInterval> | undefined;
- private writes = Promise.resolve();
+ private readonly saves = new CheckpointQueue(() => this.writeCheckpoint());
  private lastSave = 0;
  private async load(): Promise<AuthorityRoom> {
   if (this.room) return this.room;
@@ -40,14 +41,15 @@ export class CoopRoom extends DurableObject<Env> {
   }, 1000 / 30);
   return new Response(null, { status: 101, webSocket: client });
  }
- private persist(): Promise<void> {
+ private persist(): Promise<void> { return this.saves.request(); }
+ private writeCheckpoint(): Promise<void> {
   if (!this.room) return Promise.resolve();
   const text = JSON.stringify(this.room.checkpoint()), pieces: Record<string, unknown> = {};
   const count = Math.ceil(text.length / 32000); if (count > 1024) return Promise.reject(new Error('World checkpoint is too large'));
   for (let i = 0; i < count; i++) pieces[`world:${i}`] = text.slice(i * 32000, (i + 1) * 32000);
   pieces.segments = count;
-  const operation = this.writes.then(() => this.ctx.storage.transaction(async tx => { const old = await tx.get<number>('segments') ?? 0; await tx.put(pieces); for (let i = count; i < old; i++) await tx.delete(`world:${i}`); }));
-  this.writes = operation.catch(() => {}); return operation;
+  const operation = this.ctx.storage.transaction(async tx => { const old = await tx.get<number>('segments') ?? 0; await tx.put(pieces); for (let i = count; i < old; i++) await tx.delete(`world:${i}`); });
+  return operation;
  }
 }
 export default { async fetch(request: Request, env: Env): Promise<Response> {
