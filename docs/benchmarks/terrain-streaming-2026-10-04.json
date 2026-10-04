@@ -1,0 +1,34 @@
+{
+  "environment": {
+    "node": "v24.19.0",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9
+  },
+  "methodology": "Identical generator-3, 0.5m bricks and real GameSimulation.step at 30 Hz. Empty saved fluids/bodies isolate meshing contention. Four mesh warmups, worker boot and world initialization excluded from timed workload. Shared reproduces old synchronous meshBrick inside an 8ms time-sliced loop. Isolated runs the same extraction plus LOD/grass/local-bounds preparation in one worker, transfers every typed buffer, and dispatches one brick at a time. Node event-loop timing is not device FPS, GPU upload time or full-game performance.",
+  "shared": {
+    "mode": "shared",
+    "bricks": 64,
+    "sampleStepMeters": 0.5,
+    "triangles": 118943,
+    "workloadMs": 1432.4,
+    "simulatedTicks": 32,
+    "maxSimulationTickGapMs": 59.13,
+    "p95SimulationTickGapMs": 56.38,
+    "p95SimulationStepMs": 4.41,
+    "maxHeartbeatDelayMs": 32.76,
+    "p95HeartbeatDelayMs": 21.36
+  },
+  "isolated": {
+    "mode": "isolated",
+    "bricks": 64,
+    "sampleStepMeters": 0.5,
+    "triangles": 118943,
+    "workloadMs": 1270.43,
+    "simulatedTicks": 39,
+    "maxSimulationTickGapMs": 34.16,
+    "p95SimulationTickGapMs": 33.79,
+    "p95SimulationStepMs": 3.49,
+    "maxHeartbeatDelayMs": 3.02,
+    "p95HeartbeatDelayMs": 1.78
+  }
+}

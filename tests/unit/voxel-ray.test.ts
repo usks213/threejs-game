@@ -1,0 +1,5 @@
+import {expect,it} from 'vitest';
+import {buildingVoxels,carveVoxels,rayVoxel,treeVoxels} from '../../src/game/voxel/model';
+it('finds an exact incoming cell face without half-cell probing',()=>{expect(rayVoxel(buildingVoxels('wall'),{x:0,y:1,z:2},{x:0,y:0,z:-1})).toBeCloseTo(1.875);expect(rayVoxel(buildingVoxels('wall'),{x:0,y:1,z:-2},{x:0,y:0,z:1})).toBeCloseTo(1.875);});
+it('rejects empty rays by bounds and handles zero directions',()=>{const model=treeVoxels('beech',1);expect(rayVoxel(model,{x:20,y:1,z:20},{x:1,y:0,z:0})).toBeNull();expect(rayVoxel(model,{x:0,y:1,z:0},{x:0,y:0,z:0})).toBeNull();});
+it('traverses removed cells and respects the distance limit',()=>{const model=buildingVoxels('wall'),removed:string[]=[];carveVoxels(model,{x:0,y:1,z:0},.7,removed);expect(rayVoxel(model,{x:0,y:1,z:2},{x:0,y:0,z:-1},removed)).toBeNull();expect(rayVoxel(model,{x:.9,y:1,z:2},{x:0,y:0,z:-1},removed,1)).toBeNull();expect(rayVoxel(model,{x:.9,y:1,z:2},{x:0,y:0,z:-1},removed,2)).toBeCloseTo(1.875);});

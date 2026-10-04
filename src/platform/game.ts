@@ -1,3 +1,4 @@
+import { TerrainQueue } from './terrain-queue';
 import { objectOcclusion } from '../game/voxel/occlusion';
 import { configureLandscape,landscapeSize } from './viewport/landscape';
 import { mouseActions } from '../input/mouse/actions';
@@ -27,7 +28,8 @@ import { createWorld } from '../rendering/scene/world';
 import { createTerrain } from '../rendering/voxel/terrain';
 import { persistenceUI } from '../ui/persistence';
 import { terrainHeight } from '../world/density';
-import type { ClientMessage, Snapshot, Tool, WorkerMessage } from '../simulation/protocol';
+import type { ClientMessage, Snapshot, Tool } from '../simulation/protocol';
+import type {SimulationClientMessage,SimulationWorkerMessage as WorkerMessage} from '../simulation/local-protocol';
 import type { Vec3 } from '../world/types';
 export function startGame() {
   const controller = new AbortController(), { signal } = controller;
@@ -40,6 +42,8 @@ export function startGame() {
   const notice = (message: string) => { const el = document.querySelector<HTMLElement>('#notice')!; if (el.textContent === message && performance.now()-lastNotice<900) return; lastNotice=performance.now(); el.textContent=message; el.classList.add('visible'); clearTimeout(noticeTimer); noticeTimer=setTimeout(()=>el.classList.remove('visible'),2200); sound.effect(message); };
   signal.addEventListener('abort',()=>clearTimeout(noticeTimer),{once:true});
   let stopped = false, frame = 0, worker: Worker | undefined;
+  const terrainQueue=new TerrainQueue();let terrainEpoch=-1,awaitTerrainReset=true,readyPending=false;
+  const acknowledgeMeshes=(count:number)=>{if(count>0&&terrainEpoch>=0)worker?.postMessage({type:'mesh-ack',epoch:terrainEpoch,count} satisfies SimulationClientMessage);};
   const fail = (message: string) => { stopped = true; cancelAnimationFrame(frame); worker?.terminate(); error.hidden = false; error.textContent = message; status.textContent = '起動エラー'; app.dataset.state = 'error'; };
   let renderer: THREE.WebGLRenderer;
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' }); }
@@ -72,7 +76,7 @@ export function startGame() {
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
-  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){app.dataset.state='loading';status.textContent='ワールドを準備中…';state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message); };
+  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message); };
   const network = networkUI(signal, post, notice);
   const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
   const persistence = persistenceUI(send, signal, notice);
@@ -133,12 +137,16 @@ export function startGame() {
     worker.onerror = () => fail('地形処理を開始できませんでした。ページを再読み込みしてください。');
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       if (stopped) return;
-      const message = event.data; if (network.receive(message)) return;
-      if (message.type === 'mesh') terrain.update(message.mesh);
-      else if (message.type === 'mesh-batch') for (const mesh of message.meshes) terrain.update(mesh);
-      else if (message.type === 'remove') terrain.remove(message.ids);
+      const message = event.data; if (message.type!=='terrain-reset'&&network.receive(message)) return;
+      if(message.type==='terrain-reset'){terrainEpoch=message.epoch;awaitTerrainReset=false;readyPending=false;terrainQueue.clear();terrainQueue.remove(terrain.ids());}
+      else if(message.type==='mesh'||message.type==='mesh-batch'){
+        if(awaitTerrainReset||message.epoch!==terrainEpoch)return;
+        const meshes=message.type==='mesh'?[message.mesh]:message.meshes;let discarded=0;
+        for(const mesh of meshes)discarded+=terrainQueue.enqueue(mesh);acknowledgeMeshes(discarded);
+      }
+      else if(message.type==='remove'){if(awaitTerrainReset||message.epoch!==terrainEpoch)return;acknowledgeMeshes(terrainQueue.remove(message.ids,id=>terrain.has(id)));}
       else if (message.type === 'snapshot') { state = message.state;dirtyWorld=true; if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
-      else if (message.type === 'ready') { status.textContent = 'プレイ中'; app.dataset.state = 'running'; send({ type: 'save' }); }
+      else if(message.type==='ready'){if(!awaitTerrainReset&&message.epoch===terrainEpoch)readyPending=true;}
       else if (message.type === 'save' && !network.guest) persistence.receive(message.save);
       else if (message.type === 'notice') notice(message.message);
       else if (message.type === 'error') fail(message.message);
@@ -146,14 +154,19 @@ export function startGame() {
     void persistence.load().then(save => { if (!stopped) send({ type: 'init', save }); });
   } catch { fail('このブラウザで地形Workerを起動できませんでした。ChromeまたはSafariを更新してください。'); }
   let lastDraw=0;let previous = performance.now(), fpsStarted = previous, frames = 0, fps = 0, lastShadow=0;
-  document.addEventListener('visibilitychange', () => { previous = performance.now(); if(document.hidden)send({type:'save'}); send({ type: 'pause', paused: document.hidden }); }, { signal });
+  document.addEventListener('visibilitychange', () => { previous = performance.now(); if(document.hidden)send({type:'save'}); post({ type: 'pause', paused: document.hidden }); }, { signal });
   const position = document.querySelector<HTMLElement>('#position')!;
   const animate = (now: number) => {
     if (stopped) return;
     const dt = Math.min((now - previous) / 1000, 0.05); previous = now;
     if (!document.hidden) {
+      const sessionOpen=!document.querySelector<HTMLElement>('#session-panel')!.hidden,menuOpen=!!document.querySelector('[role=dialog]:not([hidden])');
+      const renderDue=!sessionOpen&&(!menuOpen||now-lastDraw>250);
+      const uploaded=renderDue?terrainQueue.flush(data=>terrain.update(data),id=>terrain.remove([id])):0;
+      const terrainTouched=renderDue&&terrainQueue.stats.applied>0;
+      if(readyPending&&!terrainQueue.size){readyPending=false;status.textContent='プレイ中';app.dataset.state='running';send({type:'save'});}
       readKeyboard(input); if (touch.x || touch.z) { input.x = touch.x; input.z = touch.z; }
-      const sessionOpen=!document.querySelector<HTMLElement>('#session-panel')!.hidden,menuOpen=!!document.querySelector('[role=dialog]:not([hidden])');if(menuOpen){input.x=0;input.z=0;jump=false;}
+      if(menuOpen){input.x=0;input.z=0;jump=false;}
       if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
       if(state&&dirtyWorld&&!sessionOpen){world.update(state);sound.update(state);dirtyWorld=false;}
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
@@ -185,21 +198,22 @@ export function startGame() {
       }
       terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
-      try { if(state&&!sessionOpen&&(!menuOpen||now-lastDraw>250)){pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);lastDraw=now;} } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
+      try { if(renderDue&&(state||terrainTouched)){pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);lastDraw=now;acknowledgeMeshes(uploaded);} } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
         const p = state.player, m = state.metrics; if(state.adventure.meadows){document.querySelector('#cast')!.innerHTML=itemIcon(state.adventure.meadows.fishing?'fishingRod':'hammer')+'<span>'+ (state.adventure.meadows.fishing?.phase==='bite'?'合わせる':state.adventure.meadows.fishing?.phase==='fight'?(state.adventure.meadows.fishing.reeling?'緩める':'巻く'):'使う')+'</span>';} adventure.update(state.adventure, p,view.yaw);
         if(state.adventure.meadows){const slots=reconcileSlots(state.adventure.meadows,state.adventure.inventory);const markup=slots.slice(0,8).map((slot,i)=>`<button type=button data-quick=${i} aria-label="${slot?slot.id:'空き'}" class="${slot?.id===state!.adventure.equipment?'selected':''}"><kbd>${i+1}</kbd>${slot?itemIcon(slot.id)+'<small>'+slot.count+'</small>':'·'}</button>`).join('');const hotbar=document.querySelector('#hotbar')!;if(hotbar.innerHTML!==markup)hotbar.innerHTML=markup;}
+        app.dataset.performance=JSON.stringify({terrainQueue:terrainQueue.stats,terrainWorkers:1,meshThread:'dedicated-worker'});
         app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']});
         app.dataset.cameraPitch = String(view.pitch); app.dataset.cameraYaw = String(view.yaw);
         position.textContent = `X ${p.x.toFixed(1)} · Y ${p.y.toFixed(1)} · Z ${p.z.toFixed(1)}`; position.dataset.x = String(p.x); position.dataset.y = String(p.y); position.dataset.z = String(p.z); position.dataset.grounded = String(p.grounded); app.dataset.tick = String(state.tick);
         const edits = document.querySelector<HTMLElement>('#edit-count')!; edits.textContent = `地形編集 ${state.edits}`; edits.dataset.count = String(state.edits);
-        document.querySelector('#metrics')!.textContent = `${fps} FPS · 描画 ${renderer.info.render.calls}回 · ${renderer.info.render.triangles.toLocaleString()}面 / Tick ${m.tickMs.toFixed(2)}ms · Mesh ${m.meshMs.toFixed(1)}ms · 編集 ${m.editMs.toFixed(0)}ms / 水 ${state.fluids.length}セル (${m.fluidMs.toFixed(2)}ms) · 物理 ${state.bodies.length}個 (${m.physicsMs.toFixed(2)}ms) · ジャンプ ${m.jumpHeight.toFixed(2)}m / Brick ${m.bricks} · 待機 ${m.pending} · Geometry ${renderer.info.memory.geometries}個`;
+        document.querySelector('#metrics')!.textContent = `${fps} FPS · 描画 ${renderer.info.render.calls}回 · ${renderer.info.render.triangles.toLocaleString()}面 / Tick ${m.tickMs.toFixed(2)}ms · Mesh ${m.meshMs.toFixed(1)}ms · 編集 ${m.editMs.toFixed(0)}ms / 水 ${state.fluids.length}セル (${m.fluidMs.toFixed(2)}ms) · 物理 ${state.bodies.length}個 (${m.physicsMs.toFixed(2)}ms) · ジャンプ ${m.jumpHeight.toFixed(2)}m / Brick ${m.bricks} · 待機 ${m.pending} / Upload ${terrainQueue.stats.milliseconds.toFixed(2)}ms · 待機 ${terrainQueue.size} · Geometry ${renderer.info.memory.geometries}個`;
         lastUI = now;
       }
     }
     frame = requestAnimationFrame(animate);
   };
   frame = requestAnimationFrame(animate);
-  return () => { stopped = true; cancelAnimationFrame(frame); controller.abort(); worker?.terminate(); pipeline.dispose(); terrain.dispose(); world.dispose(); disposeSurfaceMaps(); renderer.dispose(); };
+  return () => { stopped = true; cancelAnimationFrame(frame); controller.abort(); worker?.terminate();terrainQueue.clear(); pipeline.dispose(); terrain.dispose(); world.dispose(); disposeSurfaceMaps(); renderer.dispose(); };
 }

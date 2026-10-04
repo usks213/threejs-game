@@ -5,7 +5,7 @@ import type { MeshData } from '../../world/types';
 /** Attach sparse tufts to the actual meshed surface, including edited terrain. One draw call. */
 export function createGrass(scene:THREE.Scene){
  const ferns=createFerns(scene);
- const samples=new Map<string,number[]>(),geometry=new THREE.BufferGeometry();
+ const samples=new Map<string,readonly number[]|Float32Array>(),geometry=new THREE.BufferGeometry();
  const vertices:number[]=[];
  for(let i=0;i<5;i++){
   const a=i*2.4,c=Math.cos(a),s=Math.sin(a),h=.22+(i%3)*.055,w=.026;
@@ -19,7 +19,7 @@ export function createGrass(scene:THREE.Scene){
  const mesh=new THREE.InstancedMesh(geometry,material,2200);mesh.count=0;mesh.frustumCulled=false;mesh.receiveShadow=true;scene.add(mesh);
  const dummy=new THREE.Object3D(),color=new THREE.Color();let dirty=true,lastX=Infinity,lastZ=Infinity,last=0;
  return {
-  set(data:MeshData){const points:number[]=[],seen=new Set<string>();
+  set(data:MeshData){if(data.grass){samples.set(data.id,data.grass);dirty=true;return;}const points:number[]=[],seen=new Set<string>();
    for(let i=0;i<data.positions.length;i+=3){if(data.normals[i+1]<.82||data.colors[i+1]<data.colors[i]*1.07)continue;
     const x=data.positions[i],y=data.positions[i+1],z=data.positions[i+2],key=`${Math.floor(x*1.4)},${Math.floor(y)},${Math.floor(z*1.4)}`;
     if(seen.has(key))continue;seen.add(key);points.push(x,y-.035,z);

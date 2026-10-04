@@ -51,7 +51,32 @@ export function occupied(model:VoxelModel,point:Vec3,removed:ReadonlySet<string>
 export function carveVoxels(model:VoxelModel,point:Vec3,radius:number,removed:string[]):ObjectVoxel[]{const gone=new Set(removed),hits:ObjectVoxel[]=[];for(const c of model.cells.values()){if(gone.has(c.key)||Math.hypot((c.x+.5)*model.size-point.x,(c.y+.5)*model.size-point.y,(c.z+.5)*model.size-point.z)>radius)continue;hits.push(c);removed.push(c.key);}return hits;}
 /** Finds a real occupied surface, including holes and rotated pieces. */
 export function rayVoxel(model:VoxelModel,origin:Vec3,direction:Vec3,removed:readonly string[]=[],limit=20):number|null {
- const gone=new Set(removed);for(let distance=0;distance<=limit;distance+=model.size/2){const p={x:origin.x+direction.x*distance,y:origin.y+direction.y*distance,z:origin.z+direction.z*distance};if(occupied(model,p,gone))return distance;}return null;
+ const bounds=voxelBounds(model),size=model.size;
+ let near=0,far=limit;
+ for(const axis of ['x','y','z'] as const){
+  const d=direction[axis];
+  if(Math.abs(d)<1e-10){if(origin[axis]<bounds.min[axis]||origin[axis]>=bounds.max[axis])return null;continue;}
+  const a=(bounds.min[axis]-origin[axis])/d,b=(bounds.max[axis]-origin[axis])/d;
+  near=Math.max(near,Math.min(a,b));far=Math.min(far,Math.max(a,b));
+ }
+ if(near>far||!Number.isFinite(near)||Math.hypot(direction.x,direction.y,direction.z)<1e-10)return null;
+ const gone=new Set(removed),axes=['x','y','z'] as const;
+ const cell={x:0,y:0,z:0},step={x:0,y:0,z:0},next={x:Infinity,y:Infinity,z:Infinity},stride={x:Infinity,y:Infinity,z:Infinity};
+ for(const axis of axes){
+  const d=direction[axis],p=origin[axis]+d*(near+1e-8);cell[axis]=Math.floor(p/size);
+  if(Math.abs(d)<1e-10)continue;step[axis]=Math.sign(d);stride[axis]=size/Math.abs(d);
+  next[axis]=((cell[axis]+(d>0?1:0))*size-origin[axis])/d;
+ }
+ let distance=near;
+ // Traverse each crossed cell once. Broad-phase bounds reject most trees/buildings
+ // before allocating probe points; tied boundaries advance together.
+ while(distance<=far+1e-8){
+  const key=voxelKey(cell.x,cell.y,cell.z);if(model.cells.has(key)&&!gone.has(key))return distance;
+  const crossing=Math.min(next.x,next.y,next.z);if(!Number.isFinite(crossing)||crossing>far+1e-8)return null;
+  for(const axis of axes)if(next[axis]<=crossing+1e-8){cell[axis]+=step[axis];next[axis]+=stride[axis];}
+  distance=crossing;
+ }
+ return null;
 }
 export function bodyTouchesVoxels(model:VoxelModel,point:Vec3,removed:readonly string[]=[]):boolean{
  const gone=new Set(removed);for(const dx of [-.28,0,.28])for(const dz of [-.28,0,.28])for(let y=.1;y<1.45;y+=.2)if(occupied(model,{x:point.x+dx,y:point.y+y,z:point.z+dz},gone))return true;return false;

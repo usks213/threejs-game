@@ -4,9 +4,12 @@ import { SessionAuthority } from './session';
 import { sessionFrame } from '../networking/frame';
 import { GameSimulation, TICK_RATE } from './game-simulation';
 import { visibleBricks } from '../world/streaming';
-import { meshBrick } from '../world/mesher';
-import { CHUNK_SIZE, type Brick, type MeshData } from '../world/types';
-import type { ClientMessage, PlayerInput, WorkerMessage } from './protocol';
+import { meshTransferables } from '../world/mesh-preparation';
+import { TerrainScheduler, TerrainUploadWindow } from '../world/terrain-scheduler';
+import type { TerrainRequest, TerrainResponse } from '../world/terrain-protocol';
+import { CHUNK_SIZE, type MeshData } from '../world/types';
+import type { PlayerInput } from './protocol';
+import type { SimulationClientMessage as ClientMessage,SimulationWorkerMessage as WorkerMessage } from './local-protocol';
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const emit = (message: WorkerMessage, transfer: Transferable[] = []) => scope.postMessage(message, transfer);
@@ -14,97 +17,130 @@ let sim: GameSimulation | null = null, authority: SessionAuthority | null = null
 let prediction: Prediction | null = null, replicaState: import('./protocol').Snapshot | null = null;
 const peerEdits = new Map<string, number>();
 let input: PlayerInput = { x: 0, z: 0, jump: false };
-let bricks = new Map<string, Brick>();
-const pending = new Map<string, Brick>();
-const triangles = new Map<string, number>();
-const dirtyMeshes = new Set<string>(), editedMeshes = new Map<string, MeshData>();
-let center = '', initialized = false, paused = false, meshing = false;
+const terrain = new TerrainScheduler(), uploads = new TerrainUploadWindow(4);
+const triangles = new Map<string, number>(), editedMeshes = new Map<string, MeshData>();
+let mesher: Worker | null = null, sentEditCount = 0;
+let center = '', initialized = false, paused = false;
 let previous = performance.now(), accumulator = 0, meshMs = 0, editMs = 0, editStart = 0;
-function stream() {
+function sendTerrain(message: TerrainRequest): void { mesher?.postMessage(message); }
+function initializeTerrain(): void {
+  // Reinitialization also cancels a synchronous in-flight job in the old world.
+  mesher?.terminate(); mesher = null;
+  terrain.reset(); uploads.reset(terrain.epoch); triangles.clear(); editedMeshes.clear();
+  center = ''; initialized = false; meshMs = 0; editMs = 0; editStart = 0;
+  emit({ type: 'terrain-reset', epoch: terrain.epoch });
+  const worker = new Worker(new URL('../world/terrain-worker.ts', import.meta.url), { type: 'module' });
+  mesher = worker;
+  worker.onerror = () => {
+    if (mesher !== worker) return;
+    paused = true; terrain.paused = true; worker.terminate(); mesher = null;
+    emit({ type: 'error', message: '地形の背景処理を開始できませんでした。ページを再読み込みしてください。' });
+  };
+  worker.onmessage = (event: MessageEvent<TerrainResponse>) => {
+    if (mesher !== worker) return;
+    const result = event.data;
+    if (result.type === 'error') {
+      if (result.epoch !== terrain.epoch) return;
+      paused = true; terrain.paused = true; worker.terminate(); mesher = null;
+      emit({ type: 'error', message: result.message }); return;
+    }
+    const accepted = terrain.complete(result.job);
+    if (accepted) {
+      const mesh = result.mesh;
+      meshMs = mesh.milliseconds; triangles.set(mesh.id, mesh.indices.length / 3);
+      if (accepted === 'edit') editedMeshes.set(mesh.id, mesh);
+      else { uploads.sent(1); emit({ type: 'mesh', epoch: terrain.epoch, mesh }, meshTransferables([mesh])); }
+      publishEdit(); checkReady();
+    }
+    scheduleMesh();
+  };
+  sentEditCount = sim!.world.edits.length;
+  sendTerrain({ type: 'init', epoch: terrain.epoch, bounds: sim!.world.bounds, generator: sim!.world.generator, edits: sim!.world.edits });
+}
+function invalidateTerrain(ids: Iterable<string>): void {
+  const dirty = new Set(ids);
+  if (!dirty.size) return;
+  if (!editStart) editStart = performance.now();
+  terrain.invalidate(dirty);
+  for (const id of dirty) editedMeshes.delete(id);
+}
+function stream(): void {
   if (!sim) return;
+  terrain.setFocus(sim.player);
   const id = `${Math.floor(sim.player.x / CHUNK_SIZE)},${Math.floor(sim.player.z / CHUNK_SIZE)}`;
   if (id === center) return;
   center = id;
-  const next = visibleBricks(sim.player, sim.world.bounds), removed: string[] = [];
-  for (const key of bricks.keys()) if (!next.has(key)) { removed.push(key); pending.delete(key); triangles.delete(key); dirtyMeshes.delete(key); editedMeshes.delete(key); }
-  const ordered = [...next.values()].sort((a, b) => Math.hypot(a.origin.x - sim!.player.x, a.origin.y - sim!.player.y, a.origin.z - sim!.player.z) - Math.hypot(b.origin.x - sim!.player.x, b.origin.y - sim!.player.y, b.origin.z - sim!.player.z));
-  for (const b of ordered) if (!bricks.has(b.id) || bricks.get(b.id)!.step !== b.step) pending.set(b.id, b);
-  bricks = next; if (removed.length) emit({ type: 'remove', ids: removed }); publishEdit(); scheduleMesh();
+  const removed = terrain.setVisible(visibleBricks(sim.player, sim.world.bounds), sim.player);
+  for (const key of removed) { triangles.delete(key); editedMeshes.delete(key); }
+  if (removed.length) emit({ type: 'remove', epoch: terrain.epoch, ids: removed });
+  publishEdit(); scheduleMesh();
 }
-function publishEdit() {
-  if (dirtyMeshes.size || !editedMeshes.size) return;
-  const meshes = [...editedMeshes.values()], transfer: Transferable[] = [];
-  for (const mesh of meshes) transfer.push(mesh.positions.buffer, mesh.normals.buffer, mesh.colors.buffer, mesh.indices.buffer);
-  // Replace all affected bricks in a single main-thread message/animation frame.
-  emit({ type: 'mesh-batch', meshes }, transfer); editedMeshes.clear();
+function publishEdit(): void {
+  if (terrain.dirtyPending || !editedMeshes.size || !uploads.available) return;
+  const meshes = [...editedMeshes.values()]; editedMeshes.clear();
+  // All affected neighboring bricks are prepared before publishing the replacement batch.
+  uploads.sent(meshes.length);
+  emit({ type: 'mesh-batch', epoch: terrain.epoch, meshes }, meshTransferables(meshes));
   if (editStart) { editMs = performance.now() - editStart; editStart = 0; }
 }
-function scheduleMesh() {
-  if (meshing || !pending.size) return;
-  meshing = true;
-  setTimeout(() => {
-    try {
-      const started = performance.now();
-      while (sim && pending.size && performance.now() - started < 8) {
-        const b = pending.values().next().value!; pending.delete(b.id);
-        const mesh = meshBrick(sim.world, b); meshMs = mesh.milliseconds; triangles.set(b.id, mesh.indices.length / 3);
-        if (dirtyMeshes.delete(b.id)) { editedMeshes.set(b.id, mesh); publishEdit(); }
-        else emit({ type: 'mesh', mesh }, [mesh.positions.buffer, mesh.normals.buffer, mesh.colors.buffer, mesh.indices.buffer]);
-      }
-      if(!initialized&&sim&&![...pending.values()].some(b=>Math.hypot(b.origin.x+4-sim!.player.x,b.origin.z+4-sim!.player.z)<14&&Math.abs(b.origin.y+4-sim!.player.y)<12)){initialized=true;emit({type:'ready'});}
-      meshing = false;
-      if (pending.size) scheduleMesh();
-      else {
-        if (editStart) { editMs = performance.now() - editStart; editStart = 0; }
-        if (!initialized) { initialized = true; emit({ type: 'ready' }); }
-      }
-    } catch (error) { meshing = false; emit({ type: 'error', message: String(error) }); }
-  }, 0);
+function checkReady(): void {
+  if (!initialized && sim && !editedMeshes.size && terrain.readyNear(sim.player)) {
+    initialized = true; emit({ type: 'ready', epoch: terrain.epoch });
+  }
+}
+function scheduleMesh(): void {
+  if (!sim || !mesher || paused) return;
+  // The retained meshing world receives only newly appended operations, never a save per brick.
+  if (sentEditCount !== sim.world.edits.length) {
+    sendTerrain({ type: 'edits', epoch: terrain.epoch, base: sentEditCount, edits: sim.world.edits.slice(sentEditCount) });
+    sentEditCount = sim.world.edits.length;
+  }
+  publishEdit(); checkReady();
+  if (!uploads.available) return;
+  const job = terrain.next(sentEditCount);
+  if (job) sendTerrain({ type: 'mesh', job });
 }
 scope.onmessage = (event: MessageEvent<ClientMessage>) => {
   const message = event.data;
   try {
     if (message.type === 'init' || message.type === 'replica-init') {
-      if (bricks.size) emit({ type: 'remove', ids: [...bricks.keys()] });
-      authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); bricks.clear(); pending.clear(); triangles.clear(); dirtyMeshes.clear(); editedMeshes.clear(); center = ''; initialized = false; accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
+      authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
     } else if (message.type === 'peer-join' && authority && !replica) { authority.join(message.peer); peerEdits.set(message.peer, sim!.world.edits.length); emit({ type: 'peer-welcome', peer: message.peer, save: sim!.save(), state: sessionFrame(authority, message.peer) }); }
     else if (message.type === 'peer-leave' && authority) { authority.leave(message.peer); peerEdits.delete(message.peer); }
     else if (message.type === 'peer-input' && authority && !replica) authority.input(message.peer, message.input, message.sequence);
     else if (message.type === 'peer-action' && authority && !replica) {
       const result = authority.action(message.peer, message.message);
-      for (const id of result.dirty) { const b = bricks.get(id); if (b) { pending.set(id, b); dirtyMeshes.add(id); } } scheduleMesh();
+      invalidateTerrain(result.dirty); scheduleMesh();
       emit({ type: 'notice', message: result.message });
     } else if (message.type === 'replica-state' && sim && replica) {
       replicaState = message.state;
-      for (const edit of message.edits.slice(sim.world.edits.length)) for (const id of sim.world.apply(edit)) { const b = bricks.get(id); if (b) { pending.set(id, b); dirtyMeshes.add(id); } }
+      const dirty = new Set<string>();
+      for (const edit of message.edits.slice(sim.world.edits.length)) for (const id of sim.world.apply(edit)) dirty.add(id);
+      invalidateTerrain(dirty);
       prediction!.reconcile(message.state);
       stream(); scheduleMesh(); emit({ type: 'snapshot', state: { ...message.state, player: { ...sim.player } } });
     } else if (message.type === 'replica-input' && sim && replica && replicaState) {
       prediction!.input(message.sequence,message.input);stream();
       emit({type:'snapshot',state:{...replicaState,player:{...sim.player}}});
     } else if (message.type === 'input') input = { ...message.input, jump: input.jump || message.input.jump };
-    else if (message.type === 'pause') { paused = message.paused; input = { x: 0, z: 0, jump: false }; previous = performance.now(); accumulator = 0; }
+    else if (message.type === 'pause') { paused = message.paused; terrain.paused = paused; input = { x: 0, z: 0, jump: false }; previous = performance.now(); accumulator = 0; if (!paused) scheduleMesh(); }
+    else if (message.type === 'mesh-ack') { uploads.acknowledge(message.epoch, message.count); scheduleMesh(); }
     else if (sim && message.type === 'reset-player') sim.resetPlayer();
     else if (sim && message.type === 'save' && !replica) emit({ type: 'save', save: authority!.save() });
     else if (sim && initialized && (message.type === 'action' || message.type === 'game-action')) {
       const result = message.type === 'action' ? sim.act(message.tool, message.target) : sim.adventure.action(message.action, message.id, message.target, message.aim);
-      if (result.dirty.length) {
-        editStart = performance.now(); const queue = new Map(pending); pending.clear();
-        for (const id of result.dirty) { const b = bricks.get(id); if (b) { pending.set(id, b); dirtyMeshes.add(id); editedMeshes.delete(id); } }
-        for (const [id, b] of queue) if (!pending.has(id)) pending.set(id, b);
-        scheduleMesh();
-      }
+      invalidateTerrain(result.dirty); scheduleMesh();
       emit({ type: 'notice', message: result.message });
       if (message.type !== 'action' || message.tool !== 'water') emit({ type: 'save', save: authority!.save() });
     }
-  } catch (error) { emit({ type: message.type === 'init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
+  } catch (error) { emit({ type: message.type === 'init' || message.type === 'replica-init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
 };
 setInterval(() => {
   if (!sim || replica || paused || !initialized) { previous = performance.now(); return; }
   try {
     const now = performance.now(); accumulator += Math.min(0.1, (now - previous) / 1000); previous = now;
     while (accumulator >= 1 / TICK_RATE) { authority!.step(input); input.jump = false; accumulator -= 1 / TICK_RATE; }
-    if(sim.pendingEdits.size){for(const id of sim.pendingEdits){const b=bricks.get(id);if(b){pending.set(id,b);dirtyMeshes.add(id);}}sim.pendingEdits.clear();scheduleMesh();}
+    if (sim.pendingEdits.size) { invalidateTerrain(sim.pendingEdits); sim.pendingEdits.clear(); scheduleMesh(); }
     stream();
     if (sim.tick % 150 === 0) emit({type:'save',save:authority!.save()});
     if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') {
@@ -112,7 +148,7 @@ setInterval(() => {
       emit({ type: 'peer-frame', peer, state: sessionFrame(authority!, peer), editBase: base, edits: sim.world.edits.slice(base) });
       peerEdits.set(peer,sim.world.edits.length);
     }
-    emit({ type: 'snapshot', state: { peers: authority!.view('host').peers, tick: sim.tick, adventure: sim.adventure.snapshot(), player: { ...sim.player }, edits: sim.world.edits.length, fluids: sim.fluid.snapshot(sim.player), bodies: sim.bodies.filter(b => Math.hypot(b.position.x - sim!.player.x, b.position.z - sim!.player.z) < 65).map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })), metrics: { ...sim.metrics, meshMs, editMs, bricks: bricks.size, pending: pending.size, triangles: [...triangles.values()].reduce((a, b) => a + b, 0) } } });
+    emit({ type: 'snapshot', state: { peers: authority!.view('host').peers, tick: sim.tick, adventure: sim.adventure.snapshot(), player: { ...sim.player }, edits: sim.world.edits.length, fluids: sim.fluid.snapshot(sim.player), bodies: sim.bodies.filter(b => Math.hypot(b.position.x - sim!.player.x, b.position.z - sim!.player.z) < 65).map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })), metrics: { ...sim.metrics, meshMs, editMs, bricks: terrain.size, pending: terrain.pending, triangles: [...triangles.values()].reduce((a, b) => a + b, 0) } } });
   } catch (error) { paused = true; emit({ type: 'error', message: String(error) }); }
 }, 1000 / TICK_RATE);
 
