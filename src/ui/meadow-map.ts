@@ -1,0 +1,10 @@
+import type { AdventureSnapshot } from '../game/types';
+import type { Vec3 } from '../world/types';
+import { meadowsHeight } from '../world/density';
+const escape=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+export function meadowMap(s:AdventureSnapshot,p:Vec3,range:number){
+ const m=s.meadows!,known=new Set(m.mapCells),size=256,scale=size/(range*2),left=p.x-range,top=p.z-range,px=(x:number)=>(x-left)*scale,pz=(z:number)=>(z-top)*scale;
+ let tiles='';for(let x=Math.floor(left/8);x<=(p.x+range)/8;x++)for(let z=Math.floor(top/8);z<=(p.z+range)/8;z++){if(!known.has(x+','+z))continue;const h=meadowsHeight(x*8+4,z*8+4);tiles+=`<rect x="${px(x*8)}" y="${pz(z*8)}" width="${8*scale+.5}" height="${8*scale+.5}" fill="${h<0?'#426d79':h>4?'#797c51':'#638257'}"/>`;}
+ const pins=[...(m.pins??[]),...s.resources.filter(n=>n.kind==='sacrifice'||n.kind==='altar'&&m.tutorial>0).map(n=>({id:n.id,x:n.x,z:n.z,label:n.kind==='altar'?'雷鹿の祭壇':'出発地点'})),...(s.death?[{...s.death,id:0,label:'墓標'}]:[])];
+ return `<div class="map-controls"><button data-map-zoom="${Math.max(24,range/2)}">＋ 拡大</button><button data-map-zoom="${Math.min(512,range*2)}">− 縮小</button><span>北 ↑ · ${range*2}m</span></div><svg class="exploration-map" viewBox="0 0 256 256" role="img" aria-label="探索済みの草原と目印"><rect width="256" height="256" fill="#172624"/>${tiles}${pins.filter(n=>Math.abs(n.x-p.x)<range&&Math.abs(n.z-p.z)<range).map(n=>`<circle cx="${px(n.x)}" cy="${pz(n.z)}" r="3" fill="#ecd29a"/><text x="${px(n.x)+4}" y="${pz(n.z)-4}" fill="#faf0d2" font-size="7">${escape(n.label)}</text>`).join('')}<path d="M128 122 L124 133 L128 130 L132 133Z" fill="white"/></svg><label>目印の名前 <input id="map-label" maxlength="24" placeholder="拠点・採集場所など"></label><button data-custom-action="pin" data-field="map-label">現在地に目印を置く</button><div class="map-pin-list">${(m.pins??[]).map(n=>`<div>${escape(n.label)} · ${Math.round(Math.hypot(n.x-p.x,n.z-p.z))}m <button data-game-action="unpin" data-id="${n.id}">削除</button></div>`).join('')}</div>`;
+}

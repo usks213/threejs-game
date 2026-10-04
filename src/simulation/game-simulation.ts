@@ -1,3 +1,4 @@
+import { updateWaterObstacles } from '../game/meadows/water-obstacles';
 import { driveRaft } from '../game/meadows/facilities';
 import { movementSpeed, payJump } from '../game/meadows/movement';
 import { detachedVoxels } from '../world/support';
@@ -40,6 +41,7 @@ export class GameSimulation {
     }
     for (const entity of [...(save?.adventure?.resources ?? []), ...(save?.adventure?.enemies ?? []), ...(save?.adventure?.buildings ?? [])]) this.nextEntity = Math.max(this.nextEntity, entity.id + 1);
     this.adventure = new Adventure(this, save?.adventure);
+    if(save&&this.adventure.state.meadows)updateWaterObstacles(this);
     if(!save){this.player.y=this.groundAt(0,8);for(let x=-49;x<=-16;x++)for(let z=-55;z<=24;z++){const h=this.groundAt(x+.5,z+.5);for(let y=Math.max(-4,Math.ceil(h));y<0;y++)this.fluid.add({x,y,z},.95);}}
   }
   allocateEntityId(): number { return this.nextEntity++; }
@@ -78,7 +80,7 @@ export class GameSimulation {
     this.character.reconcile(p);
     for (let i = this.bodies.length - 1; i >= 0; i--) if (!insideBounds(this.bodies[i].position, this.world.bounds, 0.6)) this.bodies.splice(i, 1);
     this.metrics.physicsMs = performance.now() - physics;
-    if (this.tick % 3 === 0) { const fluid = performance.now(); this.fluid.step(this.targets.length ? this.targets.map(t => t.player) : [this.player]); this.metrics.fluidMs = performance.now() - fluid; }
+    if (this.tick % 3 === 0) { const fluid = performance.now(); if(this.adventure.state.meadows)updateWaterObstacles(this);this.fluid.step(this.targets.length ? this.targets.map(t => t.player) : [this.player]); this.metrics.fluidMs = performance.now() - fluid; }
     this.adventure.step(dt);
     this.metrics.tickMs = performance.now() - started;
   }
@@ -133,6 +135,7 @@ export class GameSimulation {
   }
   resetPlayer(): void { this.character.reset(); this.player.x = 0; this.player.z = 8; this.player.y = this.groundAt(0, 8) + 1; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
   save(): WorldSave {
+    if(this.adventure.state.meadows)updateWaterObstacles(this);
     return { version: 2, adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot().map(c => ({ x: c.x, y: c.y, z: c.z, volume: c.volume, vx: c.vx ?? 0, vz: c.vz ?? 0 })), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }
 }

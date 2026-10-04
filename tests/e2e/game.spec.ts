@@ -108,11 +108,11 @@ test('survival adventure opens Meadows recipes and persists gathered materials',
  await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeCloseTo(sim.player.x);
  await expect(page.locator('#adventure-hud')).toContainText('草原');await expect(page.locator('#journey')).toContainText('落ち枝と石');
  await page.locator('#gather').click();await expect(page.locator('#notice')).toContainText('木材');
- await page.locator('#adventure-menu').click();await expect(page.locator('#adventure-content')).toContainText('木材');
+ await page.locator('#adventure-menu').click();await page.getByRole('button',{name:/^木材 /}).first().click();await expect(page.locator('#adventure-content')).toContainText('木材');
  await page.locator('[data-tab=craft]').click();await expect(page.locator('#adventure-content')).toContainText('粗末な弓');
  await page.screenshot({scale:'css',path:info.outputPath('meadows-recipes.png')});await page.locator('#adventure-close').click();
  await systemAction(page,'save');await page.reload();await expect(page.locator('#app')).toHaveAttribute('data-state','running');
- await page.locator('#adventure-menu').click();await expect(page.locator('#adventure-content')).toContainText('木材');expect(errors).toEqual([]);
+ await page.locator('#adventure-menu').click();await page.getByRole('button',{name:/^木材 /}).first().click();await expect(page.locator('#adventure-content')).toContainText('木材');expect(errors).toEqual([]);
 });
 
 test('renders equipped characters, textured terrain and water without shader errors', async ({ page }, info) => {
@@ -161,5 +161,5 @@ test('survival adventure previews, rotates and places a building on mobile',asyn
  await page.screenshot({scale:'css',path:info.outputPath('building-preview.png')});
  await page.locator('#use-tool').click();await expect(page.locator('#notice')).toContainText('作業台を設置');
  await page.locator('#build-cancel').click();await expect(page.locator('#build-controls')).toBeHidden();
- await page.setViewportSize({width:844,height:390});await page.screenshot({scale:'css',path:info.outputPath('quality-landscape.png')});expect(errors).toEqual([]);
+ expect(errors).toEqual([]);
 });

@@ -96,3 +96,5 @@ const meadowBuildings:[string,string,Record<string,number>,[number,number,number
 ];
 ITEM_NAMES.corewood='丸太';
 for(const [id,name,cost,size] of meadowBuildings)BUILDINGS.push({id,name,cost,size,support:4,color:'#a5875b'});
+
+for(const id of ['roofCorner45','roofInner45'])BUILDINGS.push({id,name:id==='roofCorner45'?'屋根の外隅 45°':'屋根の内隅 45°',cost:{wood:2},size:[2,2,2],support:3,color:'#a38d58'});

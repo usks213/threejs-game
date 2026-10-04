@@ -50,9 +50,11 @@ export function startGame() {
   const raycaster = new THREE.Raycaster(), center = new THREE.Vector2(0, 0), normal = new THREE.Vector3(), markerAxis = new THREE.Vector3(0, 0, 1);
   const cameraPosition = new THREE.Vector3(), focus = new THREE.Vector3(), orbit = new THREE.Vector3();
   const obstruction = new THREE.Raycaster();
-  let building = '', buildRotation=0, placement:Vec3|null=null, spell = 'ember';
+  let buildHeight=0,freePlacement=false;let building = '', buildRotation=0, placement:Vec3|null=null, spell = 'ember';
   const buildControls=document.querySelector<HTMLElement>('#build-controls')!;
   document.querySelector('#build-rotate')!.addEventListener('click',()=>{buildRotation+=Math.PI/2;},{signal});
+  for(const [id,delta]of [['build-up',.5],['build-down',-.5]] as const)document.querySelector('#'+id)!.addEventListener('click',()=>{buildHeight=Math.max(-2,Math.min(6,buildHeight+delta));},{signal});
+  document.querySelector('#build-snap')!.addEventListener('click',e=>{freePlacement=!freePlacement;(e.currentTarget as HTMLButtonElement).textContent=freePlacement?'自由配置':'接続配置';},{signal});
   document.querySelector('#build-cancel')!.addEventListener('click',()=>{building='';buildControls.hidden=true;use.textContent=names[tool];},{signal});
   for(const [id,property] of [['camera-distance','distance'],['camera-sensitivity','sensitivity']] as const)document.querySelector<HTMLInputElement>('#'+id)!.addEventListener('input',e=>{view[property]=Number((e.target as HTMLInputElement).value);},{signal});
   document.querySelector<HTMLInputElement>('#shadows-enabled')!.addEventListener('change',e=>{renderer.shadowMap.enabled=(e.target as HTMLInputElement).checked;renderer.shadowMap.needsUpdate=true;},{signal});
@@ -77,7 +79,7 @@ export function startGame() {
     if(action==='dodge'&&(input.x||input.z)){const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw),length=Math.hypot(input.x,input.z);aim={x:(input.x*cos+input.z*sin)/length,y:0,z:(input.z*cos-input.x*sin)/length};}
     send({type:'game-action',action,id,target:action==='build'?placement??undefined:target??undefined,aim});
   };
-  const adventure = adventureUI(signal, gameAction, id => { building=id;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
+  const adventure = adventureUI(signal, gameAction, id => { building=id;buildHeight=0;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
   for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
   for(const id of ['sprint','sneak'] as const)actionInput(document.querySelector<HTMLButtonElement>('#'+id)!,()=>gameAction(id),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#quick-eat')!,()=>gameAction('eat'),signal);
@@ -143,10 +145,11 @@ export function startGame() {
         if (hit && hit.point.distanceTo(focus.set(state.player.x, state.player.y + 0.7, state.player.z)) <= 7) {
           target = { x: hit.point.x, y: hit.point.y, z: hit.point.z };
           normal.copy(hit.face?.normal ?? markerAxis); world.marker.position.copy(hit.point).addScaledVector(normal, 0.04); world.marker.quaternion.setFromUnitVectors(markerAxis, normal); world.marker.visible = true;
-        } else if (!building && tool==='add' && hasEditedPoint && editedPoint.distanceTo(focus)<7 && raycaster.ray.distanceToPoint(editedPoint)<1.6 && editedPoint.clone().sub(raycaster.ray.origin).dot(raycaster.ray.direction)>0) {
+        } else if (!building && tool==='add' && hasEditedPoint && editedPoint.distanceTo(focus)<7 && raycaster.ray.distanceToPoint(editedPoint)<1.6 && normal.copy(editedPoint).sub(raycaster.ray.origin).dot(raycaster.ray.direction)>0) {
           target={x:editedPoint.x,y:editedPoint.y,z:editedPoint.z};world.marker.position.copy(editedPoint);world.marker.quaternion.setFromUnitVectors(markerAxis,normal.set(0,1,0));world.marker.visible=true;
         } else { target = null; world.marker.visible = false; }
-        placement=building&&target?placementPoint(target):null;
+        placement=building&&target?(freePlacement?{...target}:placementPoint(target)):null;if(placement)placement.y+=buildHeight;
+        if(building==='cook'&&placement){const fire=state.adventure.buildings.find(b=>b.definition==='fire'&&Math.hypot(b.x-placement!.x,b.z-placement!.z)<1);if(fire){placement.x=fire.x;placement.z=fire.z;placement.y=fire.y+.65;}}
         const def=BUILDINGS.find(b=>b.id===building),issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory):'地面に照準を合わせる';
         world.preview(building,placement,buildRotation,!issue);
         document.querySelector('#build-hint')!.textContent=building?(issue||`${def?.name}を設置`):'';

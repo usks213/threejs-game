@@ -1,3 +1,4 @@
+import { roofHeight } from '../../game/meadows/building-shapes';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
@@ -13,13 +14,14 @@ export function buildingKit() {
   const g=new THREE.Group(),def=BUILDINGS.find(b=>b.id===id)!;
   const part=(color:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,shape:THREE.BufferGeometry=box)=>{const m=new THREE.Mesh(shape,mat(color));m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;};
   const beam='#644731',plank='#ad8457',metal='#585d57';
-  if(['roof','roof45','ridge','ridge45','roofCorner','roofInner'].includes(id)){
-   const slope=id==='roof45'||id==='ridge45'?Math.PI/4:Math.PI/180*26,ridge=id.startsWith('ridge');
-   for(let side=0;side<(ridge?2:1);side++)for(let i=0;i<9;i++){
-    const m=part(i%2?'#807048':'#a38d58',-.94+i*.235,ridge?.25:.5,0,.23,.12,ridge?1.15:2.25);m.rotation.x=(side?-1:1)*slope;
-    if(ridge)m.position.z=side?.5:-.5;
+  if(['roof','roof45','ridge','ridge45','roofCorner','roofInner','roofCorner45','roofInner45'].includes(id)){
+   const positions:number[]=[],uv:number[]=[];const grid=8;
+   for(let ix=0;ix<grid;ix++)for(let iz=0;iz<grid;iz++){
+    const x=-1+ix*2/grid,z=-1+iz*2/grid,d=2/grid;
+    for(const [px,pz]of [[x,z],[x,z+d],[x+d,z],[x+d,z],[x,z+d],[x+d,z+d]]){positions.push(px,roofHeight(id,px,pz)!+.1,pz);uv.push((px+1)/2,(pz+1)/2);}
    }
-   part(beam,0,.05,-.9,2,.15,.16);part(beam,0,ridge?.5:1,.9,2,.15,.16);
+   const shape=new THREE.BufferGeometry();shape.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));shape.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));shape.computeVertexNormals();mergedGeometries.push(shape);const roof=part('#a38d58',0,0,0,1,1,1,shape);(roof.material as THREE.MeshStandardMaterial).side=THREE.DoubleSide;
+   for(const x of [-.92,.92]){const y0=roofHeight(id,x,-1)!,y1=roofHeight(id,x,1)!,strut=part(beam,x,(y0+y1)/2,0,.1,.13,Math.hypot(2,y1-y0));strut.rotation.x=-Math.atan2(y1-y0,2);}
   }else if(['stairs','ladder'].includes(id)){
    for(let i=0;i<6;i++)part(plank,0,(i+.5)/3,-1+(i+.5)/3,id==='ladder'?.8:2,.12,.36);
    for(const x of [-.38,.38])part(beam,x,1,0,.12,2.8,.13).rotation.x=Math.PI/4;
@@ -41,6 +43,7 @@ export function buildingKit() {
    part(beam,0,.5,0,.1,1,.1);part(plank,0,.9,0,1,.4,.1);
   }else if(id==='standingTorch'){
    part(beam,0,.7,0,.12,1.4,.12);const flame=part('#ffc066',0,1.5,0,.18,.4,.18,cone);flame.name='flame';(flame.material as THREE.MeshStandardMaterial).emissive.set('#ff791e');(flame.material as THREE.MeshStandardMaterial).emissiveIntensity=5;
+  }else if(id==='beam26'||id==='beam45'){const m=part(beam,0,def.size[1]/2,0,Math.hypot(2,def.size[1]),.15,.15);m.rotation.z=Math.atan2(def.size[1],2);
   }else if(id==='smallFloor'||id==='halfWall'||id==='slantWall'){
    for(let i=0;i<8;i++){const h=id==='smallFloor'?.15:id==='halfWall'?1:(i+1)/4;part(plank,-def.size[0]/2+(i+.5)*def.size[0]/8,h/2,0,def.size[0]/8-.015,h,def.size[2]);}
   }else if(id==='floor'||id==='wall'){

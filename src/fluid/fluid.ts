@@ -1,3 +1,4 @@
+import { voxelizeObstacles, type WaterObstacle } from './obstacles';
 import type { SdfWorld } from '../world/density';
 import { insideBounds, type Vec3 } from '../world/types';
 export interface FluidCell extends Vec3 { volume: number; bottom?: number; frozen?: boolean; vx?: number; vz?: number }
@@ -9,12 +10,16 @@ const MIN_FILM = 0.04;
 export class FluidGrid {
   readonly cells = new Map<string, FluidCell>();
   displaced = 0;
+  private solids=new Map<string,number>();
+  private barriers=new Set<string>();
+  setObstacles(obstacles:readonly WaterObstacle[]):void{const v=voxelizeObstacles(obstacles);this.solids=v.occupied;this.barriers=v.barriers;}
+  private bottom(p:Vec3):number{return Math.min(1,this.terrainBottom(p)+(this.solids.get(key(p))??0));}
   private revision = -1;
   private phase = 0;
   private readonly frozen = new Map<string, number>();
   private readonly floors = new Map<string, number>();
   constructor(private readonly world: SdfWorld) {}
-  private bottom(p: Vec3): number {
+  private terrainBottom(p: Vec3): number {
     if (!insideBounds(p, this.world.bounds, 1)) return 1;
     if (this.revision !== this.world.edits.length) { this.floors.clear(); this.revision = this.world.edits.length; }
     const id = key(p), cached = this.floors.get(id);
@@ -56,7 +61,8 @@ export class FluidGrid {
     // Old saves may contain water overlapped by terrain: preserve it until redistribution.
     for (const c of cells) { this.cells.set(key(c), { x: c.x, y: c.y, z: c.z, volume: c.volume, vx: c.vx ?? 0, vz: c.vz ?? 0 }); if(c.frozen)this.frozen.set(key(c),this.phase+80); }
   }
-  private transfer(cell: FluidCell, p: Vec3, wanted: number): number {
+  private transfer(cell: FluidCell, p: Vec3, wanted: number, displacing=false): number {
+    if(!displacing&&this.barriers.has(`${key(cell)}/${key(p)}`))return 0;
     const amount = Math.min(cell.volume, Math.max(0, wanted));
     if (amount <= 0.000001) return 0;
     const id = key(cell), target = this.cells.get(key(p));
@@ -94,10 +100,10 @@ export class FluidGrid {
         for (let height = 0; height <= 2 && excess > 0.000001; height++) {
           for (let i = 0; i < 4 && excess > 0.000001; i++) {
             const [dx, dz] = directions[(i + this.phase) % 4];
-            const moved = this.transfer(cell, { x: cell.x + dx, y: cell.y + height, z: cell.z + dz }, excess);
+            const moved = this.transfer(cell, { x: cell.x + dx, y: cell.y + height, z: cell.z + dz }, excess,true);
             excess -= moved; this.displaced += moved;
           }
-          if (height > 0 && excess > 0.000001) { const moved = this.transfer(cell, { x: cell.x, y: cell.y + height, z: cell.z }, excess); excess -= moved; this.displaced += moved; }
+          if (height > 0 && excess > 0.000001) { const moved = this.transfer(cell, { x: cell.x, y: cell.y + height, z: cell.z }, excess,true); excess -= moved; this.displaced += moved; }
         }
       }
       if (cell.volume <= 0.000001 || capacity <= 0) continue;

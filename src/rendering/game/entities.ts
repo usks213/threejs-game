@@ -1,3 +1,4 @@
+import { bossTells } from './boss-tells';
 import { creatureKit } from './creatures';
 import { pbrMaterial } from '../materials/pbr';
 import { buildingKit } from './building-model';
@@ -7,7 +8,7 @@ import * as THREE from 'three';
 import { BIOMES, BOSSES, BUILDINGS, ENEMIES } from '../../content/catalog';
 import type { AdventureSnapshot } from '../../game/types';
 export function createEntities(scene: THREE.Scene) {
- const resources = createResources(scene), buildings = buildingKit(), creatures=creatureKit();
+ const tells=bossTells(scene), resources = createResources(scene), buildings = buildingKit(), creatures=creatureKit();
  const objects = new Map<string, THREE.Group>(), geometry = new Map<string, THREE.BufferGeometry>(), materials = new Map<string, THREE.MeshStandardMaterial>();
  const geo = (id: string, make: () => THREE.BufferGeometry) => { let g = geometry.get(id); if (!g) { g = make(); geometry.set(id, g); } return g; };
  const mat = (color: string) => { let m = materials.get(color); if (!m) { m = pbrMaterial(color, color==='#8b8c84'?'stone':['#e2baff','#b6eafa','#ffc077'].includes(color)?'crystal':'skin'); materials.set(color, m); } return m; };
@@ -17,7 +18,7 @@ export function createEntities(scene: THREE.Scene) {
  let latest: AdventureSnapshot | null = null;
  return {
   update(state: AdventureSnapshot,player?:{x:number;z:number}) {
-   latest = state; for (const group of objects.values()) group.visible = false;
+   tells.update(state);latest = state; for (const group of objects.values()) group.visible = false;
    resources.update(state);
    for (const e of state.enemies) {
     if (e.health <= 0) continue;
@@ -37,9 +38,10 @@ export function createEntities(scene: THREE.Scene) {
      const bar = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.09), new THREE.MeshBasicMaterial({ color: '#e4a17a', side: THREE.DoubleSide })); bar.name = 'health'; bar.position.y = 2; g.add(bar);
     });
     const scale = e.definition==='stormstag'?2:e.boss ? 2.5 : e.baby?.55:1+(e.stars??0)*.12; group.scale.setScalar(scale * (e.windup > 0 ? 1.05 : 1)); group.position.set(e.x, e.y + Math.sin(state.seconds * 5 + e.id) * 0.035, e.z); const old=group.userData.previous as {x:number;z:number}|undefined; if(old&&Math.hypot(e.x-old.x,e.z-old.z)>.005)group.rotation.y=Math.atan2(old.x-e.x,old.z-e.z);creatures.animate(group,state.seconds,!!old&&Math.hypot(e.x-old.x,e.z-old.z)>.002,e.windup);group.userData.previous={x:e.x,z:e.z}; group.visible = true;
-    group.getObjectByName('health')!.visible=e.boss||e.health<def.health*(1+(e.tier-1)*.4);
-    group.getObjectByName('warning')!.visible = e.windup > 0;
-    group.getObjectByName('health')!.scale.x = Math.max(0.01, e.health / (def.health * (e.boss ? 1 : 1 + (e.tier - 1) * 0.4)));
+    group.getObjectByName('health')!.visible=e.boss||e.health<def.health*(1+(e.stars??0))*(1+(e.tier-1)*.4);
+    if(e.definition==='stormstag')group.rotation.y=(e.heading??0)+Math.PI;
+    group.getObjectByName('warning')!.visible = e.windup > 0&&e.definition!=='stormstag';
+    group.getObjectByName('health')!.scale.x = Math.max(0.01, e.health / (def.health * (e.boss ? 1 : (1+(e.stars??0))*(1 + (e.tier - 1) * 0.4))));
    }
    for(const n of state.resources)if(n.kind==='merchant'){
     const group=object('merchant'+n.id,g=>{
@@ -64,7 +66,7 @@ export function createEntities(scene: THREE.Scene) {
    for (const [key, group] of objects) if (!group.visible) { scene.remove(group); group.traverse(o => { if (o instanceof THREE.Mesh) { if (o.name === 'health') o.geometry.dispose(); if (o.name === 'health') (o.material as THREE.Material).dispose(); } }); objects.delete(key); }
   },
   faceCamera(camera:THREE.Camera){for(const [key,g] of objects)if(key.startsWith('enemy'))g.getObjectByName('health')?.lookAt(camera.position);},
-  dispose(){resources.dispose();buildings.dispose();creatures.dispose();for(const g of geometry.values())g.dispose();for(const m of materials.values())m.dispose();},
+  dispose(){tells.dispose();resources.dispose();buildings.dispose();creatures.dispose();for(const g of geometry.values())g.dispose();for(const m of materials.values())m.dispose();},
   raycast(ray: THREE.Raycaster) { return ray.intersectObjects([...objects.entries()].filter(([key]) => key.startsWith('building')).map(([, group]) => group), true)[0]; },
   collision(player: THREE.Vector3) {
    if (!latest) return;
