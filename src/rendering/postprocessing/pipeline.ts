@@ -20,11 +20,14 @@ export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,ca
  const inspect=new URLSearchParams(location.search).has('graphicsProbe'),diagnostics={stageSamples:0,reflectionPixels:0,bloomEnergy:0,volumeEnergy:0,invalidPixels:0,beautyEnergy:0};let reading=false,lastRead=0,disposed=false;
  async function measure(target:THREE.WebGLRenderTarget,alpha=false){const data=new Uint16Array(target.width*target.height*4);await renderer.readRenderTargetPixelsAsync(target,0,0,target.width,target.height,data);let sum=0;for(let i=0;i<data.length;i+=4){const v=THREE.DataUtils.fromHalfFloat(data[i+(alpha?3:0)]);if(!Number.isFinite(v)){diagnostics.invalidPixels++;continue;}sum+=alpha?(v>.001?1:0):Math.max(0,v);}return alpha?sum:sum/(data.length/4);}
  const renderSSR=ssr.render.bind(ssr);ssr.render=(r,write,read,delta,mask)=>{if(reflections.length){renderSSR(r,write,read,delta,mask);return;}r.setRenderTarget(ssr.beautyRenderTarget);r.clear();r.render(scene,camera);ssr.copyMaterial.uniforms.tDiffuse.value=ssr.beautyRenderTarget.texture;ssr.copyMaterial.blending=THREE.NoBlending;ssr.fsQuad.material=ssr.copyMaterial;r.setRenderTarget(write);ssr.fsQuad.render(r);};
- let width=1,height=1,scale=1,frames=0,slowFrames=0,lastFrame=0;
+ // Start software-rendered WebGL at the budget the adaptive controller would otherwise reach slowly.
+ const gl=renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info'),driver=debug?String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)):'';
+ const softwareRendering=/SwiftShader|llvmpipe|software/i.test(driver);
+ let width=1,height=1,scale=softwareRendering?.6:1,frames=0,slowFrames=0,lastFrame=0;
  function resize(w:number,h:number){width=w;height=h;const ratio=Math.min(window.devicePixelRatio,1,720/Math.max(w,h))*scale;renderer.setPixelRatio(ratio);renderer.setSize(w,h,false);composer.setPixelRatio(ratio);composer.setSize(w,h);fxaa.uniforms.resolution.value.set(1/(w*ratio),1/(h*ratio));ssr.ssrMaterial.defines.MAX_STEP=48;ssr.ssrMaterial.needsUpdate=true;}
  let lastSelect=-Infinity;const reflections:THREE.Mesh[]=[];
  return {
-  get stats(){return {reflectionSources:reflections.length,...exposure.stats,...diagnostics,renderScale:scale};},
+  get stats(){return {softwareRendering,reflectionSources:reflections.length,...exposure.stats,...diagnostics,renderScale:scale};},
   resize,
   render(dt:number,throttled=false){
    const now=performance.now();if(!throttled&&lastFrame&&now-lastFrame>48)slowFrames++;lastFrame=now;
