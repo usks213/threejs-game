@@ -3,7 +3,7 @@ import { GameSimulation } from '../../src/simulation/game-simulation';
 import { SdfWorld } from '../../src/world/density';
 import { FluidGrid } from '../../src/fluid/fluid';
 import { validateSave } from '../../src/save/format';
-import { buildingVoxels,carveVoxels,occupied,localPoint } from '../../src/game/voxel/model';
+import { buildingVoxels,carveVoxels,occupied,localPoint,footSurface } from '../../src/game/voxel/model';
 import { interactionTarget } from '../../src/game/interaction/target';
 import { dropItem,pickupItem } from '../../src/game/interaction/drops';
 import { landscapeDelta,landscapePoint,landscapeSize } from '../../src/platform/viewport/landscape';
@@ -15,3 +15,9 @@ it('picks the aimed resource instead of a nearer off-axis resource and rejects r
 it('preserves partial pickup counts, merges stacks, and restores physical drops',()=>{const sim=new GameSimulation(),g=sim.adventure;g.state.resources=[];g.state.inventory={wood:149};dropItem(g,'wood',10,sim.player);const n=g.state.resources[0];expect(pickupItem(g,n.id)).toBe(1);expect(n.amount).toBe(9);expect(g.state.inventory.wood).toBe(150);dropItem(g,'wood',3,sim.player);expect(g.state.resources).toHaveLength(1);expect(n.amount).toBe(12);expect(new GameSimulation(validateSave(sim.save())).adventure.state.resources[0].drop).toBe(true);});
 it('commits stamina at attack start and hits only after windup, without aim assistance',()=>{const sim=new GameSimulation(),g=sim.adventure;g.state.buildings=[];g.state.resources=[];Object.assign(sim.player,{x:0,y:20,z:0});const enemy={...g.state.enemies[0],x:0,y:20,z:-1,health:50,alerted:1};g.state.enemies=[enemy];g.action('attack','',undefined,{x:0,y:0,z:-1});expect(enemy.health).toBe(50);expect(g.state.stamina).toBeLessThan(50);g.stepPersonal(.1);expect(enemy.health).toBe(50);g.stepPersonal(.1);expect(enemy.health).toBeLessThan(50);const hp=enemy.health,stamina=g.state.stamina;g.action('attack');expect(enemy.health).toBe(hp);expect(g.state.stamina).toBe(stamina);});
 it('snaps a wall to the side and top sockets of an existing piece',()=>{const anchor={id:1,definition:'wall',x:0,y:5,z:0,rotation:0,support:4,contents:{}};expect(snapBuilding('wall',{x:.9,y:6,z:0},{x:1,y:0,z:0},0,anchor)).toEqual({x:2,y:5,z:0});expect(snapBuilding('wall',anchor,{x:0,y:1,z:0},0,anchor).y).toBe(7);expect(localPoint({x:0,y:6,z:-1},anchor,Math.PI/2).x).toBeCloseTo(1);});
+
+it('lets an attack follow guard release and shares the visible cell height for landing',()=>{const sim=new GameSimulation(),g=sim.adventure;g.state.resources=[];g.state.buildings=[];g.state.enemies=[];g.action('guard','on');expect(g.guarding).toBe(true);g.action('guard','off');expect(g.guarding).toBe(false);expect(()=>g.action('attack')).not.toThrow();const model=buildingVoxels('floor');expect(footSurface(model,{x:0,y:.25,z:0},.3)).toBe(.25);});
+
+it('aims at the actual upper roof voxels rather than the old thin bounding box',()=>{const sim=new GameSimulation(),g=sim.adventure;g.state.resources=[];g.state.equipment='hammer';g.state.buildings=[{id:12,definition:'roof',x:0,y:10,z:0,rotation:0,support:4,contents:{}}];Object.assign(sim.player,{x:0,y:10,z:2});expect(interactionTarget(g.snapshot(),sim.player,{x:0,y:11.1,z:3},{x:0,y:0,z:-1})?.id).toBe('b:12');});
+
+it('exits the specifically aimed raft after boarding it',()=>{const sim=new GameSimulation(),g=sim.adventure,p=sim.player;g.state.buildings=[{id:12,definition:'raft',x:p.x,y:p.y,z:p.z-1,rotation:0,support:4,contents:{}}];const target={x:p.x,y:p.y,z:p.z-1};g.action('interact','b:12',target);expect(g.state.meadows!.riding).toBe(12);g.action('interact','b:12',target);expect(g.state.meadows!.riding).toBeUndefined();});

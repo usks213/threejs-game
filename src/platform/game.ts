@@ -61,7 +61,7 @@ export function startGame() {
   document.querySelector('#build-rotate')!.addEventListener('click',()=>{buildRotation+=Math.PI/2;},{signal});
   for(const [id,delta]of [['build-up',.5],['build-down',-.5]] as const)document.querySelector('#'+id)!.addEventListener('click',()=>{buildHeight=Math.max(-2,Math.min(6,buildHeight+delta));},{signal});
   document.querySelector('#build-snap')!.addEventListener('click',e=>{freePlacement=!freePlacement;(e.currentTarget as HTMLButtonElement).textContent=freePlacement?'自由配置':'接続配置';},{signal});
-  document.querySelector('#build-cancel')!.addEventListener('click',()=>{building='';app.dataset.building='false';buildControls.hidden=true;use.textContent=names[tool];},{signal});
+  document.querySelector('#build-cancel')!.addEventListener('click',()=>{building='';app.dataset.building='false';app.dataset.sandbox='false';buildControls.hidden=true;use.textContent=names[tool];},{signal});
   for(const [id,property] of [['camera-distance','distance'],['camera-sensitivity','sensitivity']] as const)document.querySelector<HTMLInputElement>('#'+id)!.addEventListener('input',e=>{view[property]=Number((e.target as HTMLInputElement).value);},{signal});
   document.querySelector<HTMLInputElement>('#shadows-enabled')!.addEventListener('change',e=>{renderer.shadowMap.enabled=(e.target as HTMLInputElement).checked;renderer.shadowMap.needsUpdate=true;},{signal});
   let first=true,dirtyWorld=false;
@@ -76,20 +76,20 @@ export function startGame() {
   const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
   const persistence = persistenceUI(send, signal, notice);
   const gameAction = (action: GameAction, id?: string) => {
-    if(action==='spell'&&id)spell=id;
+    if(action==='equip'){building='';app.dataset.building='false';app.dataset.sandbox='false';buildControls.hidden=true;}if(action==='spell'&&id)spell=id;
     const direction=camera.getWorldDirection(normal);let aim={x:direction.x,y:direction.y,z:direction.z};
     if(action==='build')aim={x:Math.sin(buildRotation),y:0,z:Math.cos(buildRotation)};
     if(action==='dodge'&&(input.x||input.z)){const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw),length=Math.hypot(input.x,input.z);aim={x:(input.x*cos+input.z*sin)/length,y:0,z:(input.z*cos-input.x*sin)/length};}
     send({type:'game-action',action,id,target:action==='build'?placement??undefined:target??undefined,aim});
   };
-  const adventure = adventureUI(signal, gameAction, id => { building=id;app.dataset.building='true';buildHeight=0;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
+  const adventure = adventureUI(signal, gameAction, id => { building=id;app.dataset.sandbox='false';app.dataset.building='true';buildHeight=0;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
   for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='guard'){button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);gameAction('guard','on');},{signal});for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>gameAction('guard','off'),{signal});}else if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
   for(const id of ['sprint','sneak'] as const)actionInput(document.querySelector<HTMLButtonElement>('#'+id)!,()=>gameAction(id),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#quick-eat')!,()=>gameAction('eat'),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#cast')!, () => gameAction(state?.adventure.meadows?'interact':'spell', spell), signal);
   const use = document.querySelector<HTMLButtonElement>('#use-tool')!;
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]')) button.addEventListener('click', () => {
-    building = '';app.dataset.building='false';buildControls.hidden=true; tool = button.dataset.tool as Tool; use.textContent = names[tool]; app.dataset.tool=tool; use.disabled = tool !== 'water' && !target;
+    building = '';app.dataset.building='false';app.dataset.sandbox='true';buildControls.hidden=false; tool = button.dataset.tool as Tool; use.textContent = names[tool]; app.dataset.tool=tool; use.disabled = tool !== 'water' && !target;
     for (const b of document.querySelectorAll('[data-tool]')) b.setAttribute('aria-pressed', String(b === button));
   }, { signal });
   for(const [id,icon,label] of [['attack','sword','攻撃'],['water-cast','water','放水'],['guard','shield','盾'],['heavy','axe','強撃'],['cast','staff','魔法'],['adventure-menu','bag','持物'],['build-rotate','hammer','回転'],['quick-eat','berry','食事']] ){const button=document.querySelector<HTMLButtonElement>('#'+id)!;button.innerHTML=itemIcon(icon)+'<span>'+label+'</span>';if(id==='attack')button.setAttribute('aria-label','攻撃');}
@@ -99,16 +99,16 @@ export function startGame() {
   holdAction(use, act, () => !building && tool === 'water', signal);
   actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { jump = true; }, signal);
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
-  const interact=()=>{if(!contextual){if(state?.adventure.equipment==='fishingRod'||state?.adventure.meadows?.riding)gameAction('interact');return;}const t=contextual;if(state?.adventure.equipment==='hammer'&&t.id.startsWith('b:')&&!t.panel){gameAction('repairBuilding',t.id.slice(2));return;}if(t.panel){adventure.openContext(t.panel,t.id);mouse.unlock();}send({type:'game-action',action:'interact',id:t.id,target:t.point,aim:{...raycaster.ray.direction}});};
+  const interact=()=>{if(!contextual){if(state?.adventure.equipment==='fishingRod'||state?.adventure.meadows?.riding)gameAction('interact');return;}const t=contextual;if(t.id==='fishing'){gameAction('fish');return;}if(t.id==='dismount'){gameAction('interact');return;}if(state?.adventure.equipment==='hammer'&&t.id.startsWith('b:')&&!t.panel){gameAction('repairBuilding',t.id.slice(2));return;}if(t.panel){adventure.openContext(t.panel,t.id);mouse.unlock();}send({type:'game-action',action:'interact',id:t.id,target:t.point,aim:{...raycaster.ray.direction}});};
   actionInput(interactButton,interact,signal);actionInput(document.querySelector<HTMLButtonElement>('#dismantle')!,()=>{if(contextual?.id.startsWith('b:'))gameAction('remove',contextual.id.slice(2));},signal);
   const quick=(index:number)=>{if(!state?.adventure.meadows)return;const slot=reconcileSlots(state.adventure.meadows,state.adventure.inventory)[index];if(slot)gameAction(FOODS[slot.id]?'eat':'equip',slot.id);};
   document.querySelector('#hotbar')!.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLElement>('[data-quick]');if(b)quick(Number(b.dataset.quick));},{signal});
-  const mouse=mouseActions(canvas,signal,()=>building?act():gameAction('attack'),held=>{if(building){if(held)document.querySelector<HTMLButtonElement>('#build-cancel')!.click();}else gameAction('guard',held?'on':'off');});
+  const mouse=mouseActions(canvas,signal,()=>building||app.dataset.sandbox==='true'?act():gameAction('attack'),held=>{if(building||app.dataset.sandbox==='true'){if(held)document.querySelector<HTMLButtonElement>('#build-cancel')!.click();}else gameAction('guard',held?'on':'off');});
   const sprint=(held:boolean)=>{if(state?.adventure.meadows)gameAction('sprint',held?'on':'off');};window.addEventListener('blur',()=>sprint(false),{signal});
   window.addEventListener('keydown',e=>{
     if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
-    if(e.code==='Escape'){mouse.unlock();gameAction('guard','off');sprint(false);document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
-    if(e.code==='Tab'){e.preventDefault();if(!e.repeat){adventure.open('bag');mouse.unlock();}return;}
+    if(e.code==='Escape'){mouse.unlock();gameAction('guard','off');sprint(false);if(building||app.dataset.sandbox==='true')document.querySelector<HTMLButtonElement>('#build-cancel')!.click();document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
+    if(e.code==='Tab'){e.preventDefault();if(!e.repeat){const panel=document.querySelector<HTMLElement>('#adventure-panel')!;if(panel.hidden){adventure.open('bag');mouse.unlock();}else panel.hidden=true;}return;}
     if(e.repeat||document.querySelector('[role=dialog]:not([hidden])'))return;
     if(e.code==='Space'){e.preventDefault();jump=true;}
     if(e.code==='KeyE')interact();if(e.code==='KeyB'){adventure.open('build');mouse.unlock();}
@@ -164,7 +164,7 @@ export function startGame() {
       world.player.visible = camera.position.distanceTo(world.player.position) > 1.6;
       if (state && now - lastRay > 80) {
         raycaster.setFromCamera(center, camera); let hit = terrain.raycast(raycaster);
-        contextual=interactionTarget(state.adventure,state.player,raycaster.ray.origin,raycaster.ray.direction,hit?.distance);interactButton.hidden=!contextual||!!building;document.querySelector('#interaction-label')!.textContent=contextual?.label??'';app.dataset.interaction=contextual?.id??'';document.querySelector<HTMLButtonElement>('#dismantle')!.hidden=!!building||state.adventure.equipment!=='hammer'||!contextual?.id.startsWith('b:');
+        contextual=interactionTarget(state.adventure,state.player,raycaster.ray.origin,raycaster.ray.direction,hit?.distance);if(!contextual&&(state.adventure.meadows?.fishing||state.adventure.equipment==='fishingRod'))contextual={id:'fishing',label:state.adventure.meadows?.fishing?.phase==='bite'?'合わせる':state.adventure.meadows?.fishing?.phase==='fight'?'巻く / 緩める':'釣り糸を投げる',point:{...state.player},distance:0};if(!contextual&&state.adventure.meadows?.riding)contextual={id:'dismount',label:'いかだから降りる',point:{...state.player},distance:0};interactButton.hidden=!contextual||!!building;document.querySelector('#interaction-label')!.textContent=contextual?.label??'';app.dataset.interaction=contextual?.id??'';document.querySelector<HTMLButtonElement>('#dismantle')!.hidden=!!building||state.adventure.equipment!=='hammer'||!contextual?.id.startsWith('b:');
         let anchorId:number|undefined;if (building) { const piece = world.raycastBuildings(raycaster); if (piece && (!hit || piece.distance < hit.distance)) {hit = piece;let o:THREE.Object3D|null=piece.object;while(o){if(o.userData.buildingId){anchorId=o.userData.buildingId;break;}o=o.parent;}} }
         if (hit && hit.point.distanceTo(focus.set(state.player.x, state.player.y + 0.7, state.player.z)) <= 7) {
           target = { x: hit.point.x, y: hit.point.y, z: hit.point.z };

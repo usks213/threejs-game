@@ -105,7 +105,7 @@ export class MeadowRules{
  if(action==='fuel'){const b=s.buildings.find(b=>['fire','standingTorch'].includes(b.definition)&&(!id||b.id===Number(id))&&distance(p,b)<3.5);if(!b)throw new Error('火へ近づいてください');this.spend({[b.definition==='fire'?'wood':'resin']:1});b.fuel=Math.min(3600,(b.fuel??0)+300);return ok('燃料を追加しました');}
  if(action==='interact'){
   if(!id&&(m.fishing||s.equipment==='fishingRod'))return ok(fishingAction(this.game));
-  if(m.riding&&!id){m.riding=undefined;p.x+=2.5;return ok('いかだから降りました');}
+  if(m.riding&&(!id||Number(id)===m.riding)){m.riding=undefined;p.x+=2.5;return ok('いかだから降りました');}
   const boat=id?s.buildings.find(b=>b.id===Number(id)&&b.definition==='raft'&&distance(b,p)<3.5):nearestFacility(this.game,['raft']);if(boat){m.riding=boat.id;return ok('いかだに乗りました。スティックで操舵、使うボタンで降ります');}
 
   const b=id?s.buildings.find(b=>b.id===Number(id)&&distance(p,b)<3.5):s.buildings.filter(b=>['door','gate','beehive','cook','bed'].includes(b.definition)&&distance(p,b)<3).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!b)throw new Error('扉・設備へ近づいてください');

@@ -33,7 +33,7 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
  if(b.dataset.mapZoom){mapRange=Number(b.dataset.mapZoom);signature='';render();return;}
  if(b.dataset.quantityAction){const value=(content.querySelector('#item-quantity') as HTMLInputElement)?.value??'1';action(b.dataset.quantityAction as GameAction,b.dataset.id+':'+value);return;}
  if(b.dataset.customAction){const value=(document.getElementById(b.dataset.field!) as HTMLInputElement)?.value??'';action(b.dataset.customAction as GameAction,value);return;}
- if(b.dataset.tab)open(b.dataset.tab);if(b.dataset.gameAction==='place'){selectBuilding(b.dataset.id!);panel.hidden=true;}else if(b.dataset.gameAction){action(b.dataset.gameAction as GameAction,b.dataset.id);if(['spell','travel'].includes(b.dataset.gameAction))panel.hidden=true;}},{signal});
+ if(b.dataset.gameAction==='tool'){document.querySelector<HTMLButtonElement>(`[data-tool="${b.dataset.id}"]`)?.click();panel.hidden=true;return;}if(b.dataset.tab)open(b.dataset.tab);if(b.dataset.gameAction==='place'){selectBuilding(b.dataset.id!);panel.hidden=true;}else if(b.dataset.gameAction){action(b.dataset.gameAction as GameAction,b.dataset.id);if(['spell','travel'].includes(b.dataset.gameAction))panel.hidden=true;}},{signal});
  let lastHealth:number|undefined,hurtTimer:ReturnType<typeof setTimeout>|undefined;
  signal.addEventListener('abort',()=>clearTimeout(hurtTimer),{once:true});
  return {open,openContext(next:string,id:string){chestId=id.startsWith('b:')?Number(id.slice(2)):undefined;open(next);},update(s:AdventureSnapshot,p:{x:number;y?:number;z:number},yaw=0){

@@ -1,4 +1,4 @@
-import { buildingVoxels,treeVoxels,localPoint,rayVoxel } from '../voxel/model';
+import { buildingVoxels,treeVoxels,localPoint,rayVoxel,voxelBounds } from '../voxel/model';
 import type { AdventureSnapshot } from '../types';
 import type { Vec3 } from '../../world/types';
 import { BUILDINGS,ITEM_NAMES } from '../../content/catalog';
@@ -13,9 +13,9 @@ export function interactionTarget(s:AdventureSnapshot,player:Vec3,origin:Vec3,di
  let best:InteractionTarget|null=null,blocker=terrainDistance;
  const consider=(id:string,label:string,min:Vec3,max:Vec3,panel?:InteractionTarget['panel'],voxelDistance?:number)=>{const distance=voxelDistance??rayBox(origin,direction,min,max);if(distance===null||distance>blocker+.06)return;const point={x:origin.x+direction.x*distance,y:origin.y+direction.y*distance,z:origin.z+direction.z*distance};if(Math.hypot(point.x-player.x,point.y-player.y-.7,point.z-player.z)>3.5)return;if(!best||distance<best.distance)best={id,label,point,distance,panel};};
  for(const n of s.resources)if(TREE_KINDS.has(n.kind)&&n.ready<=s.seconds&&Math.hypot(n.x-player.x,n.z-player.z)<15){const d=rayVoxel(treeVoxels(n.kind,n.id),localPoint(origin,n),direction,n.removed);if(d!==null)blocker=Math.min(blocker,d);}
- for(const b of s.buildings){const d=BUILDINGS.find(d=>d.id===b.definition);if(!d)continue;const c=Math.abs(Math.cos(b.rotation)),r=Math.abs(Math.sin(b.rotation)),hx=(d.size[0]*c+d.size[2]*r)/2,hz=(d.size[0]*r+d.size[2]*c)/2;
- const min={x:b.x-hx,y:b.y,z:b.z-hz},max={x:b.x+hx,y:b.y+d.size[1],z:b.z+hz};
- const label=s.equipment==='hammer'&&!['door','gate','chest','bench','cook','fire','bed'].includes(b.definition)?'修理 / Xで解体':({door:b.open?'閉める':'開ける',gate:b.open?'閉める':'開ける',chest:'箱を開く',bench:'制作・修理',cook:'料理を取り出す／焼く',fire:'薪を入れる',standingTorch:'燃料を入れる',beehive:'蜂蜜を採る',bed:'休む・復活地点',raft:s.meadows?.riding?'降りる':'乗る',sign:b.label||'看板'} as Record<string,string>)[b.definition];
+ for(const b of s.buildings){const d=BUILDINGS.find(d=>d.id===b.definition);if(!d)continue;const bounds=voxelBounds(buildingVoxels(b.definition)),w=bounds.max.x-bounds.min.x,depth=bounds.max.z-bounds.min.z,c=Math.abs(Math.cos(b.rotation)),r=Math.abs(Math.sin(b.rotation)),hx=(w*c+depth*r)/2,hz=(w*r+depth*c)/2;
+ const min={x:b.x-hx,y:b.y+bounds.min.y,z:b.z-hz},max={x:b.x+hx,y:b.y+bounds.max.y,z:b.z+hz};
+ const label=s.equipment==='hammer'&&!['door','gate','chest','bench','cook','fire','bed'].includes(b.definition)?'建物を修理':({door:b.open?'閉める':'開ける',gate:b.open?'閉める':'開ける',chest:'箱を開く',bench:'制作・修理',cook:'料理を取り出す／焼く',fire:'薪を入れる',standingTorch:'燃料を入れる',beehive:'蜂蜜を採る',bed:'休む・復活地点',raft:s.meadows?.riding?'降りる':'乗る',sign:b.label||'看板'} as Record<string,string>)[b.definition];
  if(rayBox(origin,direction,min,max)===null)continue;const zero={x:0,y:0,z:0},localDirection=localPoint(direction,zero,b.rotation),distance=rayVoxel(buildingVoxels(b.definition),localPoint(origin,b,b.rotation),localDirection,b.removed);if(distance===null)continue;blocker=Math.min(blocker,distance);if((best as InteractionTarget|null)?.distance!>blocker+.06)best=null;if(label)consider('b:'+b.id,label,min,max,b.definition==='chest'?'bag':b.definition==='bench'?'craft':undefined,distance);
  }
  for(const n of s.resources){if(n.ready>s.seconds||TREE_KINDS.has(n.kind)||['fallenLog','stump','sapling','dolmen','stoneCircle','graveyard','bodyPile','beeNest'].includes(n.kind))continue;

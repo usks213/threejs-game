@@ -1,4 +1,4 @@
-import { buildingVoxels,treeVoxels,localPoint as voxelLocal,bodyTouchesVoxels } from './voxel/model';
+import { buildingVoxels,treeVoxels,localPoint as voxelLocal,bodyTouchesVoxels,footSurface } from './voxel/model';
 import { strikeVoxels } from './voxel/destruction';
 import { dropItem,stepDrops } from './interaction/drops';
 import { strikeBarrier,shamanMagic } from './meadows/defense';
@@ -30,6 +30,7 @@ export class Adventure {
  private fallPeak:number|null=null;
  private readonly charges = new Map<number,{x:number;z:number;seconds:number}>();
  projectiles: Projectile[] = [];
+ private parryTime=0;
  guarding = false; dodge = 0; attack = 0; private cast = 0; private tiles = new Set<number>(); private dodgeX = 0; private dodgeZ = 0; private hurt = 0; private respawn = 0; private portalCooldown = 0; private poisonTick = 0;
  constructor(readonly sim: GameSimulation, saved?: AdventureSave) {
   this.state = saved ?? { seconds: 0, health: 100, stamina: 100, mana: 70, inventory: { berry: 3 }, equipment: 'hands', unlocked: 1, defeated: [], resources: [], enemies: [], buildings: [], death: null, food: 0, rested: 0, spawn: null, meadows:newMeadows() };
@@ -98,7 +99,7 @@ export class Adventure {
   const held=this.state.meadows?.gear.offhand;const shield=held?(this.state.inventory[held]?held:''):this.state.inventory.towerShield?'towerShield':this.state.inventory.shield?'shield':'';
   const facing=!source||((source.x-player.x)*Math.sin(player.heading)+(source.z-player.z)*Math.cos(player.heading))>=0;
   if(this.guarding&&shield&&source&&facing&&(!this.state.meadows||this.state.meadows.durability[shield]!==0)){
-   const cost=amount*.4,parry=shield==='shield'&&this.attack>.05;
+   const cost=amount*.4,parry=shield==='shield'&&this.parryTime>0;
    if(this.state.stamina>=cost){this.state.stamina-=cost;const q=this.state.meadows?.quality[shield]??1,block=(shield==='shield'?6+6*(q-1):10+6*(q-1))*(parry?1.5:1);amount=Math.max(0,amount-block);if(parry&&source){const enemy=this.state.enemies.find(e=>e===source);if(enemy&&!enemy.boss)enemy.stagger=2;}}
    else{this.state.stamina=0;this.guarding=false;}
    if(this.state.meadows){learn(this.state,'blocking',.2);this.meadowRules.wear(shield);}
@@ -139,7 +140,7 @@ export class Adventure {
   if(action==='equip'&&id==='fishingRod'&&s.inventory.fishingRod){s.equipment=id;return {dirty:[],message:'釣り竿を装備しました'};}
   if (action === 'equip') { if (!(s.inventory[id] > 0) || !WEAPONS[id]) throw new Error('その装備は持っていません'); s.equipment = id; return { dirty: [], message: `${ITEM_NAMES[id]}を装備` }; }
   if (action === 'eat') { const food = s.inventory.stew ? 'stew' : 'berry'; this.spend({ [food]: 1 }); s.food = food === 'stew' ? 300 : 90; s.health = Math.min(100, s.health + (food === 'stew' ? 35 : 12)); return { dirty: [], message: '食事で回復。しばらく体力が自然回復します' }; }
-  if (action === 'guard') { p.heading=Math.atan2(aim.x,aim.z); this.guarding = id==='on'?true:id==='off'?false:!this.guarding; this.attack = 0.25; return { dirty: [], message: this.guarding ? 'ガード中：もう一度押して解除' : 'ガード解除' }; }
+  if(action==='guard'){const enabled=id==='on'?true:id==='off'?false:!this.guarding;if(!enabled){this.guarding=false;this.parryTime=0;return {dirty:[],message:''};}if(this.swing||this.dodge>0)throw new Error('動作の回復を待ってください');p.heading=Math.atan2(aim.x,aim.z);if(!this.guarding)this.parryTime=.2;this.guarding=true;return {dirty:[],message:''};}
   if (action === 'dodge') { if (this.dodge > 0) throw new Error('回避中です'); this.stamina(22*(s.meadows?.gear.offhand==='towerShield'?1.1:1)); this.dodge = 0.48;this.swing=null;this.buffered=null; this.dodgeX = aim.x; this.dodgeZ = aim.z; this.guarding = false; return { dirty: [], message: '回避' }; }
   if (action === 'attack' || action === 'heavy') {
    p.heading = Math.atan2(aim.x, aim.z);
@@ -220,6 +221,7 @@ export class Adventure {
    const def = BUILDINGS.find(d => d.id === b.definition)!;
    if (b.definition === 'portal' || b.definition === 'fire' || b.definition === 'cook' || ((b.definition==='door'||b.definition==='gate')&&b.open)) continue;
    const cos = Math.cos(b.rotation), sin = Math.sin(b.rotation), dx = p.x - b.x, dz = p.z - b.z, x = dx * cos - dz * sin, z = dx * sin + dz * cos;
+   const cellTop=footSurface(buildingVoxels(b.definition),voxelLocal(p,b,b.rotation),previousY-b.y,b.removed);if(cellTop!==null&&p.vy<=0&&p.y<=b.y+cellTop+.15&&previousY>=b.y+cellTop-.45){p.y=b.y+cellTop;p.vy=0;p.grounded=true;continue;}
    if(b.removed?.length&&!bodyTouchesVoxels(buildingVoxels(b.definition),voxelLocal(p,b,b.rotation),b.removed))continue;
    const rx = def.size[0] / 2 + 0.3, rz = def.size[2] / 2 + 0.3, surface=surfaceHeight(b,Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,z))),top = surface??b.y + def.size[1],bottom=surface!==null&&!['stairs','ladder'].includes(b.definition)?surface-.22:b.y;
    if (Math.abs(x) >= rx || Math.abs(z) >= rz || p.y > top + 0.18 || p.y + 1.45 < bottom) continue;
@@ -231,7 +233,7 @@ export class Adventure {
   }
  }
  stepPersonal(dt: number): void {
-  const s = this.state, p = this.sim.player; stepDrops(this,dt); s.seconds += dt;if(this.swing){this.swing.time-=dt;if(this.swing.time<=0){const swing=this.swing;this.swing=null;if(s.health>0)this.resolveSwing(swing.damage,swing.reach,swing.heavy,swing.aim);}} this.attack = Math.max(0, this.attack - dt); this.cast = Math.max(0, this.cast - dt); this.hurt = Math.max(0, this.hurt - dt); this.dodge = Math.max(0, this.dodge - dt);
+  const s = this.state, p = this.sim.player; stepDrops(this,dt); s.seconds += dt;this.parryTime=Math.max(0,this.parryTime-dt);if(this.swing){this.swing.time-=dt;if(this.swing.time<=0){const swing=this.swing;this.swing=null;if(s.health>0)this.resolveSwing(swing.damage,swing.reach,swing.heavy,swing.aim);}} this.attack = Math.max(0, this.attack - dt); this.cast = Math.max(0, this.cast - dt); this.hurt = Math.max(0, this.hurt - dt); this.dodge = Math.max(0, this.dodge - dt);
   if(this.attack<=0&&this.buffered){const buffered=this.buffered;this.buffered=null;if(s.health>0){try{this.action(buffered.action,'',undefined,buffered.aim);}catch{}}}
   this.portalCooldown = Math.max(0, this.portalCooldown - dt);
   s.poison = Math.max(0, (s.poison ?? 0) - dt); s.chill = Math.max(0, (s.chill ?? 0) - dt);

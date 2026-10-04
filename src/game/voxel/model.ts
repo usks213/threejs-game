@@ -45,3 +45,11 @@ export function rayVoxel(model:VoxelModel,origin:Vec3,direction:Vec3,removed:rea
 export function bodyTouchesVoxels(model:VoxelModel,point:Vec3,removed:readonly string[]=[]):boolean{
  const gone=new Set(removed);for(const dx of [-.28,0,.28])for(const dz of [-.28,0,.28])for(let y=.1;y<1.45;y+=.2)if(occupied(model,{x:point.x+dx,y:point.y+y,z:point.z+dz},gone))return true;return false;
 }
+/** Query a cell-top under the feet; collision heights follow the visible voxel staircase. */
+export function footSurface(model:VoxelModel,point:Vec3,previousY:number,removed:readonly string[]=[]):number|null{
+ const gone=new Set(removed);let top:number|null=null;
+ for(const dx of [-.22,0,.22])for(const dz of [-.22,0,.22]){const x=Math.floor((point.x+dx)/model.size),z=Math.floor((point.z+dz)/model.size);for(let y=Math.floor((previousY+.45)/model.size);y>=Math.floor((point.y-.35)/model.size);y--){const key=voxelKey(x,y,z);if(!model.cells.has(key)||gone.has(key))continue;const height=(y+1)*model.size;if(height<=previousY+.45)top=Math.max(top??-Infinity,height);break;}}
+ return top;
+}
+const boundsCache=new WeakMap<VoxelModel,{min:Vec3;max:Vec3}>();
+export function voxelBounds(model:VoxelModel){let bounds=boundsCache.get(model);if(bounds)return bounds;const min={x:Infinity,y:Infinity,z:Infinity},max={x:-Infinity,y:-Infinity,z:-Infinity};for(const cell of model.cells.values())for(const axis of ['x','y','z'] as const){min[axis]=Math.min(min[axis],cell[axis]*model.size);max[axis]=Math.max(max[axis],(cell[axis]+1)*model.size);}bounds={min,max};boundsCache.set(model,bounds);return bounds;}

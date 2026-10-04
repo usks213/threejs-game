@@ -60,3 +60,7 @@ header,.world-info,.hint,#combat-more,#combat-extra,#session-menu,#session-statu
 #dismantle{position:absolute;left:calc(50% + 90px);top:58%;min-height:48px;transform:translateY(0);background:#532f22e6;padding:8px 14px;z-index:7}@media(pointer:fine){#dismantle{display:none}}
 
 @media(max-width:650px) and (orientation:landscape){#hotbar{bottom:82px;display:grid;grid-template-columns:repeat(4,48px)}}
+
+#app{container:game / inline-size}@container game (min-width:600px){.slot-grid{grid-template-columns:repeat(8,1fr)}.recipe-grid{grid-template-columns:repeat(2,1fr)}}#app[data-rotated=true] #stick{width:112px;height:112px}#app[data-rotated=true] #adventure-hud{left:12px;top:10px;width:195px}
+
+#app[data-sandbox=true] #use-tool{display:block;min-width:80px;min-height:56px}#app[data-sandbox=true] #attack{display:none}#app[data-sandbox=true] #build-controls{display:flex}#app[data-sandbox=true] #build-controls button:not(#build-cancel){display:none}#app[data-sandbox=true] #build-hint{display:none}
