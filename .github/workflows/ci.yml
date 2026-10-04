@@ -36,10 +36,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [desktop-chromium, android-chromium]
+        include:
+          - project: desktop-chromium
+            group: desktop-input
+            cases: landscape|portrait
+          - project: desktop-chromium
+            group: desktop-motion
+            cases: motion review
+          - project: desktop-chromium
+            group: desktop-duel
+            cases: desktop duel
+          - project: desktop-chromium
+            group: desktop-sdf
+            cases: desktop SDF
+          - project: android-chromium
+            group: android-chromium
+            cases: .*
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 22
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,11 +69,11 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --project=${{ matrix.project }}
+      - run: npm run e2e -- --project="${{ matrix.project }}" --grep="${{ matrix.cases }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: core-browser-results-${{ matrix.project }}
+          name: core-browser-results-${{ matrix.group }}
           path: |
             playwright-report/
             test-results/
