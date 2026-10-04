@@ -5,7 +5,7 @@ const cached=new Map<string,string>();
 let writes=Promise.resolve();
 function database():Promise<IDBDatabase>{
  return new Promise((resolve,reject)=>{
-  const request=indexedDB.open('threejs-survival-phase0',2);
+  const request=indexedDB.open(new URLSearchParams(location.search).get('campaign')==='legacy'?'threejs-survival-phase0':'threejs-survival-meadows',2);
   request.onupgradeneeded=()=>{
    const db=request.result;if(!db.objectStoreNames.contains('worlds'))db.createObjectStore('worlds');
    if(!db.objectStoreNames.contains('chunks'))db.createObjectStore('chunks');
@@ -53,3 +53,4 @@ export function saveWorld(save:WorldSave):Promise<void>{
  };
  writes=writes.catch(()=>{}).then(write);return writes;
 }
+

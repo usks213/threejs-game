@@ -152,6 +152,6 @@ export class FluidGrid {
       const distance = (c: Vec3) => (c.x-center.x)**2+(c.z-center.z)**2;
       cells = cells.filter(c => distance(c) < 48**2).sort((a,b) => distance(a)-distance(b)).slice(0, MAX_FLUID_CELLS);
     }
-    return cells.map(c => ({ ...c, bottom: this.bottom(c), vx: Math.round((c.vx ?? 0) * 1000) / 1000, vz: Math.round((c.vz ?? 0) * 1000) / 1000, frozen: (this.frozen.get(key(c)) ?? 0) > this.phase }));
+    return cells.map(c => ({ ...c, bottom: this.bottom(c), vx: Math.round((c.vx ?? 0) * 1000) / 1000 || 0, vz: Math.round((c.vz ?? 0) * 1000) / 1000 || 0, frozen: (this.frozen.get(key(c)) ?? 0) > this.phase }));
   }
 }

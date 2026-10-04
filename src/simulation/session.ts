@@ -1,3 +1,5 @@
+import { movementSpeed, payJump } from '../game/meadows/movement';
+import { newMeadows } from '../game/meadows/state';
 import { GameSimulation, TICK_RATE } from './game-simulation';
 import { CharacterMotor } from '../physics/character';
 import { collidePlayerRocks } from '../physics/contacts';
@@ -19,7 +21,7 @@ export class SessionAuthority {
   if (this.actors.size >= (this.dedicated ? 9 : 8)) throw new Error('セッションは8人までです');
   const saved = this.sim.save().adventure!;
   const stored = this.dormant.get(id);
-  const personal: AdventureSave = stored?.adventure ?? { ...saved, inventory: { berry: 3 }, equipment: 'hands', health: 100, stamina: 100, mana: 70, food: 0, rested: 0, spawn: null, death: null };
+  const personal: AdventureSave = stored?.adventure ?? { ...saved, inventory: { berry: 3 }, equipment: 'hands', ...(saved.meadows?{meadows:newMeadows()}:{}), health: saved.meadows?25:100, stamina: saved.meadows?50:100, mana: 70, food: 0, rested: 0, spawn: null, death: null };
   const p = this.sim.player;
   const actor = { id, player: stored?.player ?? { ...p, x: p.x + this.actors.size * 0.8, grounded: false }, adventure: new Adventure(this.sim, personal), input: { ...idle }, motor: new CharacterMotor(this.sim.world), sequence: 0, lastAction: -100 };
   actor.adventure.owner = id; actor.adventure.projectiles = this.sim.adventure.projectiles;
@@ -51,10 +53,10 @@ export class SessionAuthority {
   const started = performance.now();
   const host = this.actors.get('host')!; this.sim.step(hostInput ?? host.input); host.input.jump = false;
   for (const actor of this.actors.values()) if (actor.id !== 'host') this.withActor(actor, () => {
-   const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, 1.45), speed = actor.adventure.state.health <= 0 ? 0 : actor.adventure.guarding ? 2 : 4 * (1 - water * 0.45) * (actor.adventure.state.chill ? 0.65 : 1);
+   const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, 1.45), speed = movementSpeed(actor.adventure,!!(input.x||input.z),water,dt);
    const flow = this.sim.fluid.current(p);
    const beforeY = p.y, dx = input.x / length * speed * dt + flow.x * Math.min(1, water * 3) * dt, dz = input.z / length * speed * dt + flow.z * Math.min(1, water * 3) * dt;
-   actor.motor.step(p, dx, dz, input.jump, dt, water); input.jump = false;
+   actor.motor.step(p, dx, dz, payJump(actor.adventure,input.jump,p.grounded), dt, water); input.jump = false;
    if (dx || dz) p.heading = Math.atan2(dx, dz);
    collidePlayerRocks(p, this.sim.bodies, dx, dz, dt);
    const ice = this.sim.fluid.iceHeight(p); if (ice !== null && p.vy <= 0 && beforeY >= ice - 0.1 && p.y <= ice) { p.y = ice; p.vy = 0; p.grounded = true; }

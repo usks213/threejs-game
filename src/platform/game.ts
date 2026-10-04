@@ -76,8 +76,9 @@ export function startGame() {
   };
   const adventure = adventureUI(signal, gameAction, id => { building=id;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
   for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
+  for(const id of ['sprint','sneak'] as const)actionInput(document.querySelector<HTMLButtonElement>('#'+id)!,()=>gameAction(id),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#quick-eat')!,()=>gameAction('eat'),signal);
-  actionInput(document.querySelector<HTMLButtonElement>('#cast')!, () => gameAction('spell', spell), signal);
+  actionInput(document.querySelector<HTMLButtonElement>('#cast')!, () => gameAction(state?.adventure.meadows?'interact':'spell', spell), signal);
   const use = document.querySelector<HTMLButtonElement>('#use-tool')!;
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]')) button.addEventListener('click', () => {
     building = '';buildControls.hidden=true; tool = button.dataset.tool as Tool; use.textContent = names[tool]; app.dataset.tool=tool; use.disabled = tool !== 'water' && !target;
@@ -107,7 +108,7 @@ export function startGame() {
       if (message.type === 'mesh') terrain.update(message.mesh);
       else if (message.type === 'mesh-batch') for (const mesh of message.meshes) terrain.update(mesh);
       else if (message.type === 'remove') terrain.remove(message.ids);
-      else if (message.type === 'snapshot') { state = message.state; world.update(state); if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
+      else if (message.type === 'snapshot') { state = message.state; world.update(state);sound.update(state); if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
       else if (message.type === 'ready') { status.textContent = 'プレイ中'; app.dataset.state = 'running'; send({ type: 'save' }); }
       else if (message.type === 'save' && !network.guest) persistence.receive(message.save);
       else if (message.type === 'notice') notice(message.message);
@@ -152,7 +153,7 @@ export function startGame() {
       try { if(state)pipeline.render(dt); } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
-        const p = state.player, m = state.metrics; adventure.update(state.adventure, p,view.yaw);
+        const p = state.player, m = state.metrics; if(state.adventure.meadows){document.querySelector('#cast')!.innerHTML=itemIcon('hammer')+'<span>使う</span>';} adventure.update(state.adventure, p,view.yaw);
         app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']});
         app.dataset.cameraPitch = String(view.pitch); app.dataset.cameraYaw = String(view.yaw);
         position.textContent = `X ${p.x.toFixed(1)} · Y ${p.y.toFixed(1)} · Z ${p.z.toFixed(1)}`; position.dataset.x = String(p.x); position.dataset.y = String(p.y); position.dataset.z = String(p.z); position.dataset.grounded = String(p.grounded); app.dataset.tick = String(state.tick);

@@ -100,24 +100,19 @@ test('two fingers move and jump together, and camera reaches both vertical poles
  expect(errors).toEqual([]);
 });
 
-test('survival adventure collects food, opens crafting and persists its inventory', async ({ page }, info) => {
- const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
- await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
- await expect(page.locator('#adventure-hud')).toContainText('若葉の林');
- await expect(page.locator('#journey')).toContainText('最初の道具');
- await page.getByRole('button', { name: '採集', exact: true }).click(); await expect(page.locator('#notice')).toContainText('木の実');
- await page.getByRole('button', { name: '冒険メニュー', exact: true }).click();
- await expect(page.locator('#adventure-content')).toContainText('木の実 ×5');
- await page.getByRole('button', { name: '作る', exact: true }).first().click();
- await expect(page.locator('#adventure-content')).toContainText('森の煮込み');
- await page.screenshot({scale:'css',path:info.outputPath('crafting-cards.png')});
- await page.locator('[data-game-action="craft"][data-id="stew"]').click(); await expect(page.locator('#notice')).toContainText('森の煮込みを作りました');
- await page.locator('[data-tab="bag"]').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
- await page.locator('#adventure-close').click(); await systemAction(page, 'save'); await page.reload();
- await expect(page.locator('#app')).toHaveAttribute('data-state', 'running'); await page.locator('#adventure-menu').click(); await expect(page.locator('#adventure-content')).toContainText('森の煮込み ×1');
- expect(errors).toEqual([]);
+test('survival adventure opens Meadows recipes and persists gathered materials', async ({page},info)=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ const sim=new GameSimulation();const n=sim.adventure.state.resources.find(n=>n.kind==='branch')!;Object.assign(sim.player,{x:n.x,y:n.y,z:n.z});
+ await page.goto('/');await expect(page.locator('#app')).toHaveAttribute('data-state','running');
+ await page.locator('#import-file').setInputFiles({name:'gather.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});
+ await expect(page.locator('#adventure-hud')).toContainText('草原');await expect(page.locator('#journey')).toContainText('落ち枝と石');
+ await page.locator('#gather').click();await expect(page.locator('#notice')).toContainText('木材');
+ await page.locator('#adventure-menu').click();await expect(page.locator('#adventure-content')).toContainText('木材');
+ await page.locator('[data-tab=craft]').click();await expect(page.locator('#adventure-content')).toContainText('粗末な弓');
+ await page.screenshot({scale:'css',path:info.outputPath('meadows-recipes.png')});await page.locator('#adventure-close').click();
+ await systemAction(page,'save');await page.reload();await expect(page.locator('#app')).toHaveAttribute('data-state','running');
+ await page.locator('#adventure-menu').click();await expect(page.locator('#adventure-content')).toContainText('木材');expect(errors).toEqual([]);
 });
-
 
 test('renders equipped characters, textured terrain and water without shader errors', async ({ page }, info) => {
  test.setTimeout(120000);
@@ -156,7 +151,7 @@ test('renders equipped characters, textured terrain and water without shader err
 
 test('survival adventure previews, rotates and places a building on mobile',async({page},info)=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/THREE|WebGL|shader/i.test(m.text()))errors.push(m.text());});
- const sim=new GameSimulation();sim.adventure.state.inventory={wood:40,stone:40,sword:1};sim.adventure.state.equipment='sword';
+ const sim=new GameSimulation();sim.adventure.state.inventory={wood:40,stone:40,sword:1,hammer:1};sim.adventure.state.equipment='sword';
  await page.goto('/');await expect(page.locator('#app')).toHaveAttribute('data-state','running');
  await page.locator('#import-file').setInputFiles({name:'building.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});
  await expect(page.locator('#adventure-hud')).toContainText('石剣');

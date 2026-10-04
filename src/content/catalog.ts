@@ -73,3 +73,26 @@ export const SPELLS = [
  { id: 'raise', name: '隆起', mana: 20, cooldown: 2, damage: 12, element: 'earth', color: '#8cbb76' },
  { id: 'mend', name: '癒し', mana: 25, cooldown: 3, damage: 0, element: 'heal', color: '#abffd0' },
 ];
+
+
+// Meadows content extends the old campaign rather than making existing saves unreadable.
+import { MEADOW_ITEMS, MEADOW_RECIPE_COSTS } from './meadows/data';
+Object.assign(ITEM_NAMES,MEADOW_ITEMS,{bone:'骨片'});
+BIOMES[0].name='草原';
+ENEMIES.push(
+ {id:'deer',name:'鹿',health:10,damage:0,speed:5,reach:0,color:'#9c704a',shape:'boar',element:'physical',resistance:'none'},
+ {id:'neck',name:'ネック',health:5,damage:5,speed:1.7,reach:1.1,color:'#739c53',shape:'slime',element:'physical',resistance:'none'},
+ {id:'greyling',name:'グレイリング',health:20,damage:5,speed:2,reach:1.4,color:'#706b4b',shape:'walker',element:'physical',resistance:'none'},
+ {id:'gull',name:'カモメ',health:1,damage:0,speed:6,reach:0,color:'#deded1',shape:'flyer',element:'physical',resistance:'none'},
+ {id:'greydwarf',name:'森人',health:40,damage:14,speed:2,reach:1.5,color:'#616954',shape:'walker',element:'physical',resistance:'none'},
+ {id:'draugr',name:'村の亡者',health:100,damage:40,speed:2,reach:1.8,color:'#788b74',shape:'walker',element:'physical',resistance:'none'});
+BOSSES.push({id:'stormstag',name:'雷角の主',health:500,damage:20,color:'#746359',summon:{deerTrophy:2},reward:'hardAntler',element:'lightning'});
+Object.assign(WEAPONS,{
+ club:{damage:12,reach:2.4,stamina:6,cooldown:.65},torch:{damage:8,reach:2.2,stamina:5,cooldown:.55},flintAxe:{damage:20,reach:2.5,stamina:8,cooldown:.6},flintKnife:{damage:12,reach:1.8,stamina:5,cooldown:.3},flintSpear:{damage:20,reach:3,stamina:7,cooldown:.5},crudeBow:{damage:22,reach:35,stamina:8,cooldown:1,ranged:true},hammer:{damage:0,reach:2,stamina:0,cooldown:.3},hoe:{damage:0,reach:2,stamina:0,cooldown:.3},antlerPickaxe:{damage:18,reach:2.2,stamina:8,cooldown:.8}
+});
+for(const [id,cost] of Object.entries(MEADOW_RECIPE_COSTS))RECIPES.push({id,name:ITEM_NAMES[id],cost,output:id,amount:id.endsWith('Arrow')?20:1,tier:1,station:!['club','torch','hammer'].includes(id)});
+const meadowBuildings:[string,string,Record<string,number>,[number,number,number]][]=[
+ ['smallFloor','木の床 1m',{wood:1},[1,.15,1]],['halfWall','木の半壁',{wood:1},[2,1,.2]],['slantWall','斜めの壁',{wood:2},[2,2,.2]],['shortPole','柱 1m',{wood:1},[.2,1,.2]],['beam','梁 2m',{wood:2},[2,.2,.2]],['shortBeam','梁 1m',{wood:1},[1,.2,.2]],['beam26','斜梁 26°',{wood:2},[2,1,.2]],['beam45','斜梁 45°',{wood:2},[2,2,.2]],['roof45','茅葺き屋根 45°',{wood:2},[2,2,2]],['ridge','屋根の棟 26°',{wood:2},[2,.5,2]],['ridge45','屋根の棟 45°',{wood:2},[2,1,2]],['roofCorner','屋根の外隅',{wood:2},[2,1,2]],['roofInner','屋根の内隅',{wood:2},[2,1,2]],['stairs','木の階段',{wood:2},[2,2,2]],['ladder','木の梯子',{wood:2},[1,2,2]],['door','木の扉',{wood:4},[1,2,.2]],['gate','木の門',{wood:12},[2,3,.3]],['fence','木の柵',{wood:1},[2,1,.15]],['stakeWall','丸太の防壁',{wood:4},[2,3,.3]],['spikes','防御杭',{wood:6,corewood:4},[2,1,2]],['cook','料理台',{wood:2},[1,1.2,.6]],['choppingBlock','切り株',{wood:10,flint:10},[1,.7,1]],['tanningRack','皮なめし台',{wood:10,flint:15,leatherScraps:20,deerHide:5},[2,2,.4]],['beehive','蜂箱',{wood:10,queenBee:1},[.8,1.4,.8]],['sign','看板',{wood:2,coal:1},[1,1,.2]],['standingTorch','立て松明',{wood:2,resin:2},[.3,1.5,.3]],['raft','いかだ',{wood:20,leatherScraps:6,resin:6},[4,.5,4]]
+];
+ITEM_NAMES.corewood='丸太';
+for(const [id,name,cost,size] of meadowBuildings)BUILDINGS.push({id,name,cost,size,support:4,color:'#a5875b'});

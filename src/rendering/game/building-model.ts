@@ -10,8 +10,38 @@ export function buildingKit() {
   const g=new THREE.Group(),def=BUILDINGS.find(b=>b.id===id)!;
   const part=(color:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,shape:THREE.BufferGeometry=box)=>{const m=new THREE.Mesh(shape,mat(color));m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;};
   const beam='#644731',plank='#ad8457',metal='#585d57';
-  if(id==='floor'||id==='roof'||id==='wall'){
-   const wall=id==='wall',roof=id==='roof';
+  if(['roof','roof45','ridge','ridge45','roofCorner','roofInner'].includes(id)){
+   const slope=id==='roof45'||id==='ridge45'?Math.PI/4:Math.PI/180*26,ridge=id.startsWith('ridge');
+   for(let side=0;side<(ridge?2:1);side++)for(let i=0;i<9;i++){
+    const m=part(i%2?'#807048':'#a38d58',-.94+i*.235,ridge?.25:.5,0,.23,.12,ridge?1.15:2.25);m.rotation.x=(side?-1:1)*slope;
+    if(ridge)m.position.z=side?.5:-.5;
+   }
+   part(beam,0,.05,-.9,2,.15,.16);part(beam,0,ridge?.5:1,.9,2,.15,.16);
+  }else if(['stairs','ladder'].includes(id)){
+   for(let i=0;i<6;i++)part(plank,0,(i+.5)/3,-1+(i+.5)/3,id==='ladder'?.8:2,.12,.36);
+   for(const x of [-.38,.38])part(beam,x,1,0,.12,2.8,.13).rotation.x=Math.PI/4;
+  }else if(['door','gate','fence','stakeWall'].includes(id)){
+   const h=def.size[1],w=def.size[0];for(let i=0;i<7;i++)part(plank,-w/2+(i+.5)*w/7,h/2,0,w/9,h,.16);
+   part(beam,0,h*.25,.12,w,.16,.15);part(beam,0,h*.8,.12,w,.16,.15);
+  }else if(id==='cook'){
+   for(const x of [-.5,.5])part(beam,x,.6,0,.08,1.2,.1);part(beam,0,1.18,0,1.2,.08,.1);
+   for(const x of [-.25,.25])part(metal,x,.95,0,.035,.4,.035);
+  }else if(id==='beehive'){
+   part(beam,0,.4,0,.12,.8,.12);for(let i=0;i<4;i++)part('#bc9a56',0,.85+i*.12,0,.65-i*.1,.12,.65-i*.1,stone);
+  }else if(id==='choppingBlock'){
+   part(beam,0,.3,0,.6,.6,.6,stone);part(metal,.1,.75,0,.25,.2,.05);part(beam,0,.65,0,.08,.6,.08).rotation.z=.4;
+  }else if(id==='tanningRack'){
+   for(const x of [-.8,.8])part(beam,x,1,0,.1,2,.1);part(beam,0,1.9,0,1.8,.1,.1);part('#b99973',0,1,0,1.4,1.5,.06);
+  }else if(id==='raft'){
+   for(let i=0;i<8;i++)part(beam,-1.75+i*.5,.2,0,.45,.4,4);part(beam,0,2,0,.2,4,.2);part('#d2c8a7',0,2.8,0,2.8,1.8,.05);part(beam,0,3.7,0,3,.1,.1);
+  }else if(id==='sign'){
+   part(beam,0,.5,0,.1,1,.1);part(plank,0,.9,0,1,.4,.1);
+  }else if(id==='standingTorch'){
+   part(beam,0,.7,0,.12,1.4,.12);const flame=part('#ffc066',0,1.5,0,.18,.4,.18,cone);flame.name='flame';(flame.material as THREE.MeshStandardMaterial).emissive.set('#ff791e');(flame.material as THREE.MeshStandardMaterial).emissiveIntensity=5;
+  }else if(id==='smallFloor'||id==='halfWall'||id==='slantWall'){
+   for(let i=0;i<8;i++){const h=id==='smallFloor'?.15:id==='halfWall'?1:(i+1)/4;part(plank,-def.size[0]/2+(i+.5)*def.size[0]/8,h/2,0,def.size[0]/8-.015,h,def.size[2]);}
+  }else if(id==='floor'||id==='wall'){
+   const wall=id==='wall',roof=false;
    for(let i=0;i<8;i++){const c=i%3===0?'#9a714a':roof?'#625d49':plank;
     if(wall)part(c,-.88+i*.25,1,0,.235,2,.18);else part(c,-.88+i*.25,roof?.13:.075,0,.235,roof?.2:.15,2);
    }

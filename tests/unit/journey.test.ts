@@ -1,10 +1,11 @@
+import { legacySimulation } from '../helpers/legacy';
 import { expect,it } from 'vitest';
 import { GameSimulation } from '../../src/simulation/game-simulation';
 import { journeyGoal } from '../../src/game/journey';
 import { placementPoint,placementIssue } from '../../src/game/placement';
 import { BUILDINGS } from '../../src/content/catalog';
 it('guides a new and returning player using real inventory, buildings and boss state',()=>{
- const sim=new GameSimulation(),game=sim.adventure;
+ const sim=legacySimulation(),game=sim.adventure;
  expect(journeyGoal(game.snapshot(),sim.player).title).toBe('最初の道具を作ろう');
  game.state.inventory={wood:3,stone:2};expect(journeyGoal(game.snapshot(),sim.player).progress).toBe(1);
  game.action('craft','axe');expect(journeyGoal(game.snapshot(),sim.player).tab).toBe('build');

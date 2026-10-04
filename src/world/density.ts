@@ -20,6 +20,13 @@ export function landscapeHeight(x:number,z:number,seed=WORLD.seed):number {
  if(biome.id==='rift')return base+edge*(Math.sin(x/13)*Math.cos(z/16)*2);
  return base;
 }
+export function meadowsHeight(x:number,z:number,seed=WORLD.seed):number {
+ const hills=terrainHeight(x,z,seed)+noise(x/60,z/60,seed+71)*2;
+ const creek=-24+Math.sin(z*.04)*4,river=Math.exp(-(((x-creek)/3.5)**2))*5;
+ const lake=Math.max(0,1-Math.hypot(x+34,z+40)/15)*7;
+ const shore=Math.max(0,Math.min(1,(-x-65)/20));
+ return hills*(1-shore)-shore*3-Math.max(river,lake);
+}
 const caveFloors=new Map<string,number>();
 function generatedCave(p:Vec3,seed:number):number {
  if(p.y>18 || p.y<-14)return 100;
@@ -60,8 +67,8 @@ export class SdfWorld {
   readonly edits: EditOperation[] = [];
   private readonly heights = new Map<string,number>();
   private readonly index = new Map<string, EditOperation[]>();
-  constructor(readonly bounds: WorldBounds = { ...WORLD }, readonly generator: 1 | 2 = 1) {}
-  heightAt(x:number,z:number):number {const id=x+','+z,previous=this.heights.get(id);if(previous!==undefined)return previous;const h=this.generator===2?landscapeHeight(x,z,this.bounds.seed):terrainHeight(x,z,this.bounds.seed);if(this.heights.size>=16384)this.heights.clear();this.heights.set(id,h);return h;}
+  constructor(readonly bounds: WorldBounds = { ...WORLD }, readonly generator: 1 | 2 | 3 = 1) {}
+  heightAt(x:number,z:number):number {const id=x+','+z,previous=this.heights.get(id);if(previous!==undefined)return previous;const h=this.generator===3?meadowsHeight(x,z,this.bounds.seed):this.generator===2?landscapeHeight(x,z,this.bounds.seed):terrainHeight(x,z,this.bounds.seed);if(this.heights.size>=16384)this.heights.clear();this.heights.set(id,h);return h;}
   isAnchor(p:Vec3):boolean {
     if(p.y<this.bounds.minY+2)return true;
     if(Math.hypot(p.x-13,p.y-15,p.z+17)<1.2)return true;
@@ -70,7 +77,7 @@ export class SdfWorld {
   }
   density(p: Vec3): number {
     if (!insideBounds(p, this.bounds)) return 100;
-    let d = Math.min(Math.max(p.y - this.heightAt(p.x, p.z), -cave(p)), island(p));
+    let d = this.generator===3?p.y-this.heightAt(p.x,p.z):Math.min(Math.max(p.y - this.heightAt(p.x, p.z), -cave(p)), island(p));
     if(this.generator===2) d=Math.min(Math.max(d,-generatedCave(p,this.bounds.seed)),naturalArch(p,this.bounds.seed),riftIsland(p));
     const entries = this.index.get(brickId(Math.floor(p.x / BRICK_SIZE), Math.floor(p.y / BRICK_SIZE), Math.floor(p.z / BRICK_SIZE)));
     if (entries) for (const e of entries) {
@@ -120,3 +127,4 @@ export class SdfWorld {
     return density / Math.max(density >= 0 ? 1 : 0.25, slope);
   }
 }
+

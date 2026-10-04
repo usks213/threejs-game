@@ -4,11 +4,11 @@ import { SdfWorld } from '../world/density';
 import { WORLD, MAX_EDITS, finiteVec, insideBounds, type Vec3, type EditOperation } from '../world/types';
 import { type FluidCell } from '../fluid/fluid';
 import type { SphereBody } from '../physics/sphere';
-export interface WorldSave { version: 1 | 2; adventure?: AdventureSave; members?: { id: string; player: Vec3; adventure: AdventureSave }[]; generator: 1 | 2; seed: number; player: Vec3; edits: EditOperation[]; fluids: FluidCell[]; bodies: SphereBody[] }
+export interface WorldSave { version: 1 | 2; adventure?: AdventureSave; members?: { id: string; player: Vec3; adventure: AdventureSave }[]; generator: 1 | 2 | 3; seed: number; player: Vec3; edits: EditOperation[]; fluids: FluidCell[]; bodies: SphereBody[] }
 export function validateSave(raw: unknown): WorldSave {
   if (!raw || typeof raw !== 'object') throw new Error('セーブ形式が不正です');
   const s = raw as WorldSave;
-  if ((s.version !== 1 && s.version !== 2) || (s.generator !== 1 && s.generator !== 2) || s.seed !== WORLD.seed || !s.player || !insideBounds(s.player, WORLD, 1) || !Array.isArray(s.edits) || s.edits.length > MAX_EDITS || !Array.isArray(s.fluids) || !Array.isArray(s.bodies)) throw new Error('対応しないセーブ、または上限を超えています');
+  if ((s.version !== 1 && s.version !== 2) || (s.generator !== 1 && s.generator !== 2 && s.generator !== 3) || s.seed !== WORLD.seed || !s.player || !insideBounds(s.player, WORLD, 1) || !Array.isArray(s.edits) || s.edits.length > MAX_EDITS || !Array.isArray(s.fluids) || !Array.isArray(s.bodies)) throw new Error('対応しないセーブ、または上限を超えています');
   const world = new SdfWorld(undefined,s.generator);
   for (const edit of s.edits) { if (!edit?.position) throw new Error('編集データが不正です'); world.apply(edit); }
   const cells = new Set<string>();

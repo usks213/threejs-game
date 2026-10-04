@@ -1,3 +1,4 @@
+import { legacySimulation } from '../helpers/legacy';
 import { it, expect } from 'vitest';
 import { Client } from '@colyseus/sdk';
 import { startDedicated } from '../../apps/dedicated/server';
@@ -26,7 +27,7 @@ it('runs the Node authority with eight actual Colyseus clients and confirms auth
 
 it('supports eight clients building, fighting and editing amid water and 128 bodies, then restores a returning player', async () => {
  const directory = await mkdtemp(join(tmpdir(), 'survival-load-')), previousDirectory = process.env.GAME_SAVE_DIRECTORY;
- const seed = new SessionAuthority(null, true), sim = seed.sim;
+ const seed = new SessionAuthority(legacySimulation().save(), true), sim = seed.sim;
  const tokens = Array.from({ length: 8 }, (_, i) => (i + 1).toString(16).padStart(64, '0'));
  sim.adventure.state.resources = []; sim.adventure.state.enemies = [];
  for (let i = 0; i < 8; i++) {

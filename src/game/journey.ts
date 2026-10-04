@@ -4,6 +4,20 @@ import type { Vec3 } from '../world/types';
 export interface JourneyGoal { title: string; detail: string; tab: string; target?: { x:number; z:number }; progress:number }
 /** Derive objectives from existing saves; no tutorial flags can become stale. */
 export function journeyGoal(s: AdventureSnapshot, p: Vec3): JourneyGoal {
+ if(s.meadows){
+  const nearest=(kind:string)=>s.resources.filter(n=>n.kind===kind&&n.ready<=s.seconds).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
+  if(s.death&&Object.values(s.grave??{}).some(n=>n>0))return {title:'墓標へ戻ろう',detail:'落とした荷物は「採集」で回収',tab:'bag',target:s.death,progress:0};
+  if(!s.inventory.axe)return {title:'落ち枝と石を拾おう',detail:'木材3・石2 → 石斧。近づいて採集',tab:'craft',target:nearest((s.inventory.wood??0)<3?'branch':'stone'),progress:.05};
+  if(!s.inventory.hammer)return {title:'ハンマーを作ろう',detail:'木材3・石2。道具で拠点を築く',tab:'craft',progress:.12};
+  if(!s.buildings.some(b=>b.definition==='bench'))return {title:'作業台と屋根を作ろう',detail:'屋根の下の作業台で弓・防具・修理を解放',tab:'build',progress:.2};
+  if(!s.buildings.some(b=>b.definition==='cook'))return {title:'火を起こして料理しよう',detail:'焚き火の上に料理台。猪と鹿を狩って肉を焼く',tab:'build',progress:.3};
+  if(s.meadows.foods.length<3)return {title:'3種類の食事で備えよう',detail:'焼肉・木の実・キノコや蜂蜜を組み合わせる',tab:'bag',progress:.4};
+  if(!s.inventory.crudeBow&&!s.inventory.flintSpear)return {title:'狩猟の道具を整えよう',detail:'猪の皮と木で弓、または火打石の槍を制作',tab:'craft',progress:.5};
+  const boss=s.enemies.find(e=>e.boss&&e.health>0);if(boss)return {title:'雷角の主を倒す',detail:'角・雷撃・足踏みの予兆から逃れ、隙に攻撃',tab:'world',target:boss,progress:.8};
+  if(!s.defeated.includes('stormstag'))return {title:'鹿の証を2個、祭壇へ',detail:'食事と盾を準備して北の祭壇で召喚',tab:'world',target:nearest('altar'),progress:.65};
+  if(!s.meadows.offered)return {title:'雷鹿の証を奉納しよう',detail:'出発地点の供物石へ戻り「採集」',tab:'world',target:nearest('sacrifice'),progress:.9};
+  return {title:'草原の試練を越えた',detail:'角のつるはしを作り、拠点と水路を広げよう',tab:'craft',progress:1};
+ }
  const biome=BIOMES.find(b=>b.id===s.biome)!, boss=BOSSES.find(b=>b.id===biome.boss)!;
  const nearest=(kind:string)=>s.resources.filter(n=>n.kind===kind&&n.ready<=s.seconds).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
  if(s.death&&Object.values(s.grave??{}).some(n=>n>0))return {title:'落とした素材を回収',detail:'墓標へ戻り「採集」',tab:'bag',target:s.death,progress:0};
