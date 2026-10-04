@@ -4,10 +4,12 @@ import { pbrMaterial } from '../materials/pbr';
 /** Original articulated low-poly wildlife, built from a shared mesh palette. */
 export function creatureKit(){
  const sphere=new THREE.IcosahedronGeometry(1,1),box=new THREE.BoxGeometry(1,1,1),cylinder=new THREE.CylinderGeometry(.05,.09,1,5);
+ const templates=new Map<string,THREE.Group>(),bodyGeometries:THREE.BufferGeometry[]=[];
  const lods=new Map<string,THREE.BufferGeometry>();
  const mats=new Map<string,THREE.MeshStandardMaterial>();
  const material=(color:string,wood=false)=>{const key=color+wood;let m=mats.get(key);if(!m){m=pbrMaterial(color,wood?'wood':'skin');mats.set(key,m);}return m;};
  function make(kind:string){
+  const template=templates.get(kind);if(template)return template.clone(true);
   const g=new THREE.Group(),deer=kind==='deer'||kind==='stormstag',boar=kind==='boar',bird=kind==='gull',neck=kind==='neck',boss=kind==='stormstag';
   const fur=boss?'#50493e':deer?'#966b43':boar?'#5a4636':neck?'#648753':bird?'#d8dad5':'#625c43';
   const part=(shape:THREE.BufferGeometry,c:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,name='')=>{const m=new THREE.Mesh(shape,material(c));m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.name=name;m.castShadow=true;m.receiveShadow=true;g.add(m);return m;};
@@ -32,8 +34,15 @@ export function creatureKit(){
    for(let i=0;i<5;i++)part(cylinder,fur,(i-2)*.12,1.68+Math.sin(i)*.08,0,.8,.34,.8).rotation.z=(i-2)*.25;
   }
   if(kind.startsWith('draugr')){part(box,'#6d5340',.38,.8,-.1,.12,.7,.12);if(kind==='draugrArcher')part(cylinder,'#a7865e',.4,.9,-.3,1,1.1,1);if(kind==='draugrElite'){g.scale.setScalar(1.2);part(sphere,'#758875',0,1.75,-.05,.3,.2,.22);}}
-  return g;
+  if(kind==='greydwarfBrute'){g.scale.setScalar(1.35);part(sphere,'#766849',.42,.85,0,.28,.5,.25);}if(kind==='greydwarfShaman'){part(sphere,'#6d9e63',0,1.7,0,.35,.3,.3);part(cylinder,'#b4c18c',.45,.75,0,1,1.5,1);}
+  const bodyParts:THREE.BufferGeometry[]=[];
+  for(const o of [...g.children])if(o instanceof THREE.Mesh&&!o.name.startsWith('wing')){
+   o.updateMatrix();const transformed=o.geometry.clone().applyMatrix4(o.matrix),part=transformed.index?transformed.toNonIndexed():transformed;if(part!==transformed)transformed.dispose();
+   const c=(o.material as THREE.MeshStandardMaterial).color,values=new Float32Array(part.getAttribute('position').count*3);for(let i=0;i<values.length;i+=3){values[i]=c.r;values[i+1]=c.g;values[i+2]=c.b;}part.setAttribute('color',new THREE.BufferAttribute(values,3));bodyParts.push(part);g.remove(o);
+  }
+  if(bodyParts.length){const geometry=mergeGeometries(bodyParts)!;bodyParts.forEach(part=>part.dispose());bodyGeometries.push(geometry);let m=mats.get('body');if(!m){m=pbrMaterial('#ffffff','skin',{vertexColors:true});mats.set('body',m);}const body=new THREE.Mesh(geometry,m);body.castShadow=body.receiveShadow=true;g.add(body);}
+  templates.set(kind,g);return g.clone(true);
  }
- function far(kind:string){let geometry=lods.get(kind);if(!geometry){const source=make(kind),parts:THREE.BufferGeometry[]=[];source.updateMatrixWorld(true);source.traverse(o=>{if(o instanceof THREE.Mesh){const transformed=o.geometry.clone().applyMatrix4(o.matrixWorld),g=transformed.index?transformed.toNonIndexed():transformed;if(g!==transformed)transformed.dispose();const color=(o.material as THREE.MeshStandardMaterial).color,values=new Float32Array(g.getAttribute('position').count*3);for(let i=0;i<values.length;i+=3){values[i]=color.r;values[i+1]=color.g;values[i+2]=color.b;}g.setAttribute('color',new THREE.BufferAttribute(values,3));g.deleteAttribute('uv');parts.push(g);}});geometry=mergeGeometries(parts)!;parts.forEach(g=>g.dispose());lods.set(kind,geometry);}let m=mats.get('lod');if(!m){m=pbrMaterial('#ffffff','skin',{vertexColors:true});mats.set('lod',m);}const mesh=new THREE.Mesh(geometry,m);mesh.receiveShadow=true;const group=new THREE.Group();group.add(mesh);return group;}
- return {make,far,animate(g:THREE.Group,time:number,moving:boolean,attack:number){g.traverse(o=>{if(o.name.startsWith('leg'))o.rotation.x=moving?Math.sin(time*9+(o.name==='leg-1-1'||o.name==='leg11'?0:Math.PI))*.6:0;if(o.name.startsWith('wing'))o.rotation.z=Math.sin(time*7)*.4*(o.name==='wing-1'?-1:1);});g.rotation.x=attack>0?-.1:0;},dispose(){for(const g of lods.values())g.dispose();sphere.dispose();box.dispose();cylinder.dispose();for(const m of mats.values())m.dispose();}};
+ function far(kind:string){let geometry=lods.get(kind);if(!geometry){const source=make(kind),parts:THREE.BufferGeometry[]=[];source.updateMatrixWorld(true);source.traverse(o=>{if(o instanceof THREE.Mesh){const transformed=o.geometry.clone().applyMatrix4(o.matrixWorld),g=transformed.index?transformed.toNonIndexed():transformed;if(g!==transformed)transformed.dispose();const color=(o.material as THREE.MeshStandardMaterial).color,values=new Float32Array(g.getAttribute('position').count*3);for(let i=0;i<values.length;i+=3){const existing=g.getAttribute('color');values[i]=color.r*(existing?.getX(i/3)??1);values[i+1]=color.g*(existing?.getY(i/3)??1);values[i+2]=color.b*(existing?.getZ(i/3)??1);}g.setAttribute('color',new THREE.BufferAttribute(values,3));g.deleteAttribute('uv');parts.push(g);}});geometry=mergeGeometries(parts)!;parts.forEach(g=>g.dispose());lods.set(kind,geometry);}let m=mats.get('lod');if(!m){m=pbrMaterial('#ffffff','skin',{vertexColors:true});mats.set('lod',m);}const mesh=new THREE.Mesh(geometry,m);mesh.receiveShadow=true;const group=new THREE.Group();group.add(mesh);return group;}
+ return {make,far,animate(g:THREE.Group,time:number,moving:boolean,attack:number){g.traverse(o=>{if(o.name.startsWith('leg'))o.rotation.x=moving?Math.sin(time*9+(o.name==='leg-1-1'||o.name==='leg11'?0:Math.PI))*.6:0;if(o.name.startsWith('wing'))o.rotation.z=Math.sin(time*7)*.4*(o.name==='wing-1'?-1:1);});g.rotation.x=attack>0?-.1:0;},dispose(){templates.clear();bodyGeometries.forEach(g=>g.dispose());for(const g of lods.values())g.dispose();sphere.dispose();box.dispose();cylinder.dispose();for(const m of mats.values())m.dispose();}};
 }

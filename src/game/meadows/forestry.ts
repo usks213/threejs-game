@@ -6,7 +6,7 @@ import { TREE_KINDS } from '../../content/meadows/data';
 export interface LogState { a:SphereBody; b:SphereBody; length:number; wood:string; fall:number; heading:number; hits:number[] }
 const dist=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 export function fellTree(game:Adventure,n:ResourceNode,heading:number):void{
- const kind=n.kind,sim=game.sim;n.kind='stump';n.health=80;n.amount=2;
+ const kind=n.kind,sim=game.sim;const roll=((Math.imul(n.id,374761393)>>>0)%100);if(roll<67)game.meadowRules.grant(kind==='beech'?'beechSeed':kind==='birch'?'birchSeed':'acorn',2+n.id%2);if(roll%6===0)game.meadowRules.grant('resin',1);if(roll%6===1)game.meadowRules.grant('feathers',1);n.kind='stump';n.health=80;n.amount=2;
  const body=(x:number,y:number,z:number):SphereBody=>({id:0,position:{x,y,z},velocity:{x:Math.sin(heading)*1.5,y:0,z:Math.cos(heading)*1.5},radius:.32,sleeping:false,kind:'wood'});
  const log:ResourceNode={id:sim.allocateEntityId(),kind:'fallenLog',x:n.x,y:n.y+2,z:n.z,amount:20,ready:0,health:60,log:{a:body(n.x,n.y+.4,n.z),b:body(n.x,n.y+4.4,n.z),length:4,wood:kind==='beech'?'wood':'finewood',fall:0,heading,hits:[]}};
  game.state.resources.push(log);
@@ -26,7 +26,7 @@ export function chopWood(game:Adventure,n:ResourceNode):string{
 }
 export function stepForestry(game:Adventure,dt:number):void{
  const sim=game.sim,actors=sim.targets.length?sim.targets:[{player:sim.player,adventure:game}];
- for(const n of game.state.resources){const l=n.log;if(!l||n.ready>game.state.seconds||!actors.some(a=>Math.hypot(a.player.x-n.x,a.player.z-n.z)<48))continue;
+ for(const n of game.state.resources){if(n.growth){const blocked=game.state.resources.some(t=>t!==n&&TREE_KINDS.has(t.kind)&&Math.hypot(t.x-n.x,t.z-n.z)<3);if(!blocked)n.growth.remaining=Math.max(0,n.growth.remaining-dt);if(!n.growth.remaining){n.kind=n.growth.kind;n.growth=undefined;}continue;}const l=n.log;if(!l||n.ready>game.state.seconds||!actors.some(a=>Math.hypot(a.player.x-n.x,a.player.z-n.z)<48))continue;
   const previous={x:n.x,y:n.y,z:n.z};
   if(l.fall<1.5){l.fall=Math.min(1.5,l.fall+dt);const angle=(l.fall/1.5)**2*Math.PI/2;l.b.position.x=l.a.position.x+Math.sin(l.heading)*Math.sin(angle)*l.length;l.b.position.z=l.a.position.z+Math.cos(l.heading)*Math.sin(angle)*l.length;l.b.position.y=l.a.position.y+Math.cos(angle)*l.length;}
   else{
@@ -37,6 +37,7 @@ export function stepForestry(game:Adventure,dt:number):void{
   const closest=(p:Vec3)=>{const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy+(p.z-a.z)*dz)/(dx*dx+dy*dy+dz*dz||1)));return{x:a.x+dx*t,y:a.y+dy*t,z:a.z+dz*t};};
   const speed=dist(previous,n)/Math.max(dt,.001);
   for(const actor of actors){const p=actor.player,q=closest({x:p.x,y:p.y+.65,z:p.z}),d=Math.hypot(p.x-q.x,p.z-q.z);if(d<.65&&q.y>p.y-.2&&q.y<p.y+1.4){if(speed>1.5)actor.adventure.hurtPlayer(Math.min(30,speed*4),'physical',p,n);const dx=(p.x-q.x)/(d||1),dz=(p.z-q.z)/(d||1);p.x+=dx*(.65-d);p.z+=dz*(.65-d);if(l.fall>=1.5)for(const end of [l.a,l.b]){end.velocity.x-=dx*.5;end.velocity.z-=dz*.5;end.sleeping=false;}}}
+  if(speed>2)for(const e of game.state.enemies){if(e.health<=0||l.hits.includes(e.id))continue;const q=closest({x:e.x,y:e.y+.6,z:e.z});if(Math.hypot(q.x-e.x,q.y-e.y-.6,q.z-e.z)<.8){game.hit(e,Math.min(60,speed*6),'physical',false);l.hits.push(e.id);}}
   if(speed>2)for(const tree of game.state.resources){if(!TREE_KINDS.has(tree.kind)||tree.ready>game.state.seconds||l.hits.includes(tree.id))continue;const q=closest({x:tree.x,y:tree.y+1,z:tree.z});if(Math.hypot(q.x-tree.x,q.z-tree.z)<.65&&q.y>tree.y&&q.y<tree.y+4){l.hits.push(tree.id);tree.health=(tree.health??80)-60;if(tree.health<=0)fellTree(game,tree,l.heading);}}
  }
 }

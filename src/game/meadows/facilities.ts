@@ -25,6 +25,7 @@ export function stepFacilities(game:Adventure,dt:number):void{
  const env=environmentAt(s.seconds),rain=['rain','storm'].includes(env.weather);
  for(const b of s.buildings){
   if(b.definition==='raft'){const top=waterHeight(game,b.x,b.z);if(top!==null)b.y=top-.2;}
+  if(b.definition==='spikes'){for(const e of s.enemies)if(e.health>0&&distance(e,b)<1.2){game.hit(e,20*dt,'physical',false);e.slow=Math.max(e.slow,.2);}for(const a of game.sim.targets.length?game.sim.targets:[{player:game.sim.player,adventure:game}])if(distance(a.player,b)<1.2)a.adventure.hurtPlayer(10,'physical');}
   const cover=roofed(b,s.buildings);
   if(rain&&!cover&&!['fire','raft'].includes(b.definition))b.health=Math.max(50,(b.health??100)-dt*.04);
   if(b.definition==='fire'&&(b.fuel??0)>0&&!b.open){

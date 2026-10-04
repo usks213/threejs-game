@@ -1,10 +1,11 @@
+import { stepRaids } from './raids';
 import { landscape } from './landscaping';
 import { meadowRecipe,MAX_QUALITY,upgradeCost } from '../../content/meadows/recipes';
 import { stepVillage } from './village';
 import { fishingAction,stepFishing } from './fishing';
 import { changeLayout, reconcileSlots } from './inventory-layout';
 import { chopWood, stepForestry } from './forestry';
-import { canCarry } from './inventory';
+import { canCarry, occupiedSlots } from './inventory';
 import { nearestFacility, stepFacilities, waterHeight } from './facilities';
 import type { Adventure } from '../adventure';
 import type { GameAction } from '../types';
@@ -29,10 +30,11 @@ export class MeadowRules{
  if(action==='pin'){m.pins??=[];if(m.pins.length>=100)throw new Error('地図の目印を削除してください');m.pins.push({id:this.sim.allocateEntityId(),x:p.x,z:p.z,label:(id||'目印').slice(0,24)});return ok('現在地を地図に記録しました');}
  if(action==='unpin'){m.pins=m.pins?.filter(pin=>pin.id!==Number(id));return ok('目印を削除しました');}
  if(action==='label'){const b=nearestFacility(this.game,['sign']);if(!b)throw new Error('看板へ近づいてください');b.label=id.slice(0,40);return ok('看板を書き換えました');}
- if(action==='store'||action==='take'){const b=nearestFacility(this.game,['chest']);if(!b)throw new Error('箱へ近づいてください');const [key,raw]=id.split(':'),source=action==='store'?s.inventory:b.contents,n=Math.min(source[key]??0,Math.max(1,Math.floor(Number(raw)||1)));if(!n)throw new Error('移動する品物がありません');if(action==='take'&&!canCarry(s.inventory,key,n,m))throw new Error('持ち物に空きがありません');source[key]-=n;if(action==='store')b.contents[key]=(b.contents[key]??0)+n;else this.grant(key,n);return ok('品物を移しました');}
+ if(action==='store'||action==='take'){const b=nearestFacility(this.game,['chest']);if(!b)throw new Error('箱へ近づいてください');const [key,raw]=id.split(':'),source=action==='store'?s.inventory:b.contents,n=Math.min(source[key]??0,Math.max(1,Math.floor(Number(raw)||1)));if(!n)throw new Error('移動する品物がありません');if(action==='store'&&occupiedSlots({...b.contents,[key]:(b.contents[key]??0)+n})>10)throw new Error('箱の10枠がいっぱいです');if(action==='take'&&!canCarry(s.inventory,key,n,m))throw new Error('持ち物に空きがありません');source[key]-=n;if(action==='store')b.contents[key]=(b.contents[key]??0)+n;else this.grant(key,n);return ok('品物を移しました');}
  if(action==='sprint'){m.sprinting=!m.sprinting;m.sneaking=false;return ok(m.sprinting?'走る':'歩く');}
  if(action==='sneak'){m.sneaking=!m.sneaking;m.sprinting=false;return ok(m.sneaking?'忍び足':'歩く');}
  if(action==='fish')return ok(fishingAction(this.game));
+ if(action==='sell'){if(!s.resources.some(n=>n.kind==='merchant'&&distance(n,p)<4))throw new Error('旅商人へ近づいてください');const price:Record<string,number>={amber:5,amberPearl:10,ruby:20,silverNecklace:30};let coins=0;for(const [key,value]of Object.entries(price)){coins+=(s.inventory[key]??0)*value;s.inventory[key]=0;}if(!coins)throw new Error('売れる琥珀や宝石がありません');this.grant('coins',coins);return ok(`遺物を売却 · ${coins}硬貨`);}
  if(action==='trade'){
   if(!s.resources.some(n=>n.kind==='merchant'&&distance(n,p)<4))throw new Error('旅商人の野営地へ行ってください');
   const prices:Record<string,number>={fishingRod:350,bait:10,linenHat:100};if(!prices[id])throw new Error('商品を選んでください');this.spend({coins:prices[id]});this.grant(id,id==='bait'?20:1);return ok(`${ITEM_NAMES[id]}を購入`);
@@ -48,6 +50,7 @@ export class MeadowRules{
   if(n.kind==='runestone'){m.tutorial=Math.max(m.tutorial,1);return ok('旅の石碑：鹿の証を二つ集め、北の雷鹿の祭壇へ。肉は火で焼き、屋根の下で休め。');}
   if(n.kind==='sacrifice')return this.action('offer','',ground);
   if(n.kind==='altar')return this.action('summon','',ground);
+  if(n.kind==='sapling'){this.grant('wood',2);n.ready=1e10;n.growth=undefined;return ok('若木から木材を回収しました');}
   if(TREE_KINDS.has(n.kind)||n.kind==='fallenLog'||n.kind==='stump'){
    if(!['axe','flintAxe'].includes(s.equipment))throw new Error('木は斧を装備して伐採します');
    if(TREE_KINDS.has(n.kind)&&n.kind!=='beech')throw new Error('この硬い木には青銅以上の斧が必要です');
@@ -98,6 +101,7 @@ export class MeadowRules{
  }
  if(action==='fuel'){const b=s.buildings.find(b=>['fire','standingTorch'].includes(b.definition)&&distance(p,b)<3);if(!b)throw new Error('火へ近づいてください');this.spend({[b.definition==='fire'?'wood':'resin']:1});b.fuel=Math.min(3600,(b.fuel??0)+300);return ok('燃料を追加しました');}
  if(action==='interact'){
+  if(m.fishing||s.equipment==='fishingRod')return ok(fishingAction(this.game));
   if(m.riding){m.riding=undefined;p.x+=2.5;return ok('いかだから降りました');}
   const boat=nearestFacility(this.game,['raft']);if(boat){m.riding=boat.id;return ok('いかだに乗りました。スティックで操舵、使うボタンで降ります');}
 
@@ -121,7 +125,7 @@ export class MeadowRules{
  if(action==='power'){if(!m.offered)throw new Error('ボスの証を供物石に奉納してください');if(m.powerCooldown>0)throw new Error(`加護はあと ${Math.ceil(m.powerCooldown)} 秒`);m.power=300;m.powerCooldown=1200;return ok('雷鹿の加護 · 5分間、走行と跳躍の消費を軽減');}
  if(action==='feed'){const e=s.enemies.find(e=>e.definition==='boar'&&e.health>0&&distance(e,p)<5);if(!e)throw new Error('猪に近づいてください');const food=['berry','mushroom'].find(k=>s.inventory[k]>0);if(!food)throw new Error('木の実かキノコが必要です');this.spend({[food]:1});e.fed=300;e.tame??=0;return ok('餌を置きました。離れて猪を落ち着かせてください');}
  if(action==='drop'){const [key,requested]=id.split(':');id=key;if(!s.inventory[id])throw new Error('持っていません');const count=Math.min(s.inventory[id],Math.max(1,Math.floor(Number(requested)||10)));s.inventory[id]-=count;s.resources.push({id:this.sim.allocateEntityId(),kind:id,x:p.x+1,y:p.y,z:p.z,amount:count,ready:0});return ok(`${ITEM_NAMES[id]}を地面に置きました`);}
- if(action==='plant'){const seed=id||'beechSeed',kind=({beechSeed:'beech',birchSeed:'birch',acorn:'oak'} as Record<string,string>)[seed];if(!kind)throw new Error('木の種を選んでください');if(s.resources.some(n=>TREE_KINDS.has(n.kind)&&distance(n,ground)<3))throw new Error('木から3m離してください');this.spend({[seed]:1});s.resources.push({id:this.sim.allocateEntityId(),kind,x:ground.x,y:this.sim.groundAt(ground.x,ground.z),z:ground.z,amount:1,ready:s.seconds+300});return ok('苗木を植えました');}
+ if(action==='plant'){if(!s.inventory.cultivator)throw new Error('植樹には黒い森の金属で作る耕運具が必要です');const seed=id||'beechSeed',kind=({beechSeed:'beech',birchSeed:'birch',acorn:'oak'} as Record<string,string>)[seed];if(!kind)throw new Error('木の種を選んでください');if(s.resources.some(n=>TREE_KINDS.has(n.kind)&&distance(n,ground)<3))throw new Error('木から3m離してください');this.spend({[seed]:1});s.resources.push({id:this.sim.allocateEntityId(),kind:'sapling',growth:{kind,remaining:3000+(this.sim.tick%5001)},x:ground.x,y:this.sim.groundAt(ground.x,ground.z),z:ground.z,amount:1,ready:0});return ok('苗木を植えました');}
  if(action==='chest'){const b=s.buildings.find(b=>b.definition==='chest'&&distance(p,b)<3);if(!b)throw new Error('箱に近づいてください');if(Object.values(b.contents).some(n=>n>0)){for(const [key,n]of Object.entries(b.contents))this.grant(key,n);b.contents={};}else for(const [key,n]of Object.entries(s.inventory))if(!WEAPONS[key]&&!ARMOR[key]&&n){b.contents[key]=n;s.inventory[key]=0;}return ok('箱の素材を出し入れしました');}
  return undefined;
  }
@@ -145,7 +149,6 @@ export class MeadowRules{
   if(b.definition==='beehive'&&!roofed(b,s.buildings)){b.progress=(b.progress??0)+dt;if(b.progress>=300){b.progress=0;b.contents.honey=Math.min(4,(b.contents.honey??0)+1);}}
  }
  for(const e of s.enemies)if(e.definition==='boar'&&e.health>0){e.fed=Math.max(0,(e.fed??0)-dt);if(e.fed>0&&distance(e,p)>8&&!s.buildings.some(b=>b.definition==='fire'&&(b.fuel??0)>0&&distance(b,e)<6))e.tame=Math.min(1,(e.tame??0)+dt/1800);if(e.baby)e.baby=Math.max(0,e.baby-dt);}
- if(s.seconds>=m.raidAt){m.raidAt=s.seconds+600;if(s.buildings.filter(b=>distance(b,p)<20).length>=3){m.raid=90;for(let i=0;i<3;i++)s.enemies.push(meadowEnemy(this.sim,s.defeated.includes('stormstag')?'greydwarf':i%2?'neck':'boar',p.x+Math.sin(i*2.1)*24,p.z+Math.cos(i*2.1)*24));}}
- m.raid=Math.max(0,m.raid-dt);
+ stepRaids(this.game,dt);
  }
 }

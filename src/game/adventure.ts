@@ -1,3 +1,4 @@
+import { strikeBarrier,shamanMagic } from './meadows/defense';
 import { meadowBuilding } from '../content/meadows/recipes';
 import { archerAttack } from './meadows/village';
 import { senseActor,wander } from './meadows/senses';
@@ -57,15 +58,17 @@ export class Adventure {
    this.state.enemies.push(this.enemy(2000000 + tile, ENEMIES[tile % ENEMIES.length].id, biome.tier, center.x, center.z));
   }
  }
- private grant(id: string, amount: number): void { this.state.inventory[id] = (this.state.inventory[id] ?? 0) + amount; }
+ private grant(id: string, amount: number): void { if(this.state.meadows){this.meadowRules.grant(id,amount);return;}this.state.inventory[id] = (this.state.inventory[id] ?? 0) + amount; }
  private spend(cost: Record<string, number>): void {
   for (const [id, amount] of Object.entries(cost)) if ((this.state.inventory[id] ?? 0) < amount) throw new Error(`${ITEM_NAMES[id] ?? id}が${amount}個必要です`);
   for (const [id, amount] of Object.entries(cost)) this.state.inventory[id] -= amount;
  }
  private stamina(amount: number): void { if (this.state.stamina < amount) throw new Error('スタミナが足りません'); this.state.stamina -= amount; }
- private hit(enemy: EnemyState, damage: number, element: string): void {
+ hit(enemy: EnemyState, damage: number, element: string, byWeapon=true): void {
+  if(enemy.health<=0)return;
   const def = ENEMIES.find(d => d.id === enemy.definition);
-  if(this.state.meadows)damage*=1+(this.state.meadows.skills[this.state.equipment]??0)*.005;
+  if(byWeapon&&this.state.meadows)damage*=1+(this.state.meadows.skills[this.state.equipment]??0)*.005;
+  if(this.state.meadows&&enemy.stagger)damage*=2;if(this.state.meadows&&element==='fire'&&enemy.definition.startsWith('grey'))damage*=2;
   enemy.health -= damage * (def?.resistance === element ? 0.65 : 1);
   enemy.slow = Math.max(enemy.slow, element === 'frost' ? 3 : 0.25);
   if (enemy.health <= 0) {
@@ -81,7 +84,7 @@ export class Adventure {
   const facing=!source||((source.x-player.x)*Math.sin(player.heading)+(source.z-player.z)*Math.cos(player.heading))>=0;
   if(this.guarding&&shield&&facing&&(!this.state.meadows||this.state.meadows.durability[shield]!==0)){
    const cost=amount*.4,parry=shield==='shield'&&this.attack>.05;
-   if(this.state.stamina>=cost){this.state.stamina-=cost;const q=this.state.meadows?.quality[shield]??1,block=(shield==='shield'?6+6*(q-1):10+6*(q-1))*(parry?1.5:1);amount=Math.max(0,amount-block);}
+   if(this.state.stamina>=cost){this.state.stamina-=cost;const q=this.state.meadows?.quality[shield]??1,block=(shield==='shield'?6+6*(q-1):10+6*(q-1))*(parry?1.5:1);amount=Math.max(0,amount-block);if(parry&&source){const enemy=this.state.enemies.find(e=>e===source);if(enemy&&!enemy.boss)enemy.stagger=2;}}
    else{this.state.stamina=0;this.guarding=false;}
    if(this.state.meadows){learn(this.state,'blocking',.2);this.meadowRules.wear(shield);}
   }
@@ -150,7 +153,7 @@ export class Adventure {
    const issue=placementIssue(def,p,{x,y,z},s.buildings,s.inventory);if(issue)throw new Error(issue);
    if (Math.hypot(x - p.x, z - p.z) < 1.1 && Math.abs(y - p.y) < 1.8) throw new Error('自分の体から少し離して設置してください');
    if (s.buildings.some(b => Math.hypot(b.x - x, b.y - y, b.z - z) < 0.6)) throw new Error('同じ場所には設置できません');
-   this.spend(def.cost); s.buildings.push({ id: this.sim.allocateEntityId(), definition: id, x, y, z, rotation: Math.atan2(aim.x, aim.z), support: def.support, contents: {}, ...(s.meadows?{health:100,fuel:id==='fire'?300:0}:{}) });
+   this.spend(def.cost); s.buildings.push({ id: this.sim.allocateEntityId(), definition: id, x, y, z, rotation: Math.atan2(aim.x, aim.z), support: def.support, contents: {}, ...(s.meadows?{health:100,fuel:['fire','standingTorch'].includes(id)?300:0}:{}) });
    this.support(); return { dirty: [], message: `${def.name}を設置。支持がないものは崩れます` };
   }
   if (action === 'remove') {
@@ -236,6 +239,8 @@ export class Adventure {
    if (e.health <= 0 && !e.boss && e.respawnAt && e.respawnAt <= s.seconds) { const def = ENEMIES.find(d => d.id === e.definition)!; e.health = def.health * (1 + (e.stars??0)) * (1 + (e.tier - 1) * 0.4); e.x = e.homeX; e.z = e.homeZ; e.cooldown = 3; }
    if (e.health <= 0 || distance(p, e) > 45) continue;
    if((e.burn??0)>0){e.burn=Math.max(0,e.burn!-dt);this.hit(e,dt*4.4,'fire');if(e.health<=0)continue;}
+   if(s.meadows&&(e.stagger??0)>0){e.stagger=Math.max(0,e.stagger!-dt);e.windup=0;continue;}
+   if((e.attackReady?.healing??0)>s.seconds)e.health=Math.min(ENEMIES.find(n=>n.id===e.definition)!.health*(1+(e.stars??0)),e.health+5*dt);
    if(s.meadows&&e.boss&&e.definition==='stormstag'){stepStag(this,e,dt);continue;}
    const def = e.boss ? BOSSES.find(d => d.id === e.definition)! : ENEMIES.find(d => d.id === e.definition)!;
    const d = distance(p, e), reach = e.boss ? 3.3 : (def as typeof ENEMIES[number]).reach, speed = e.boss ? (e.health < def.health / 2 ? 2.3 : 1.4) : (def as typeof ENEMIES[number]).speed;
@@ -254,6 +259,7 @@ export class Adventure {
     e.slow = Math.max(e.slow, water * 0.5);
    }
    e.y = this.sim.groundAt(e.x, e.z);if(s.meadows)reconcileCreature(this.sim,e,previousEnemy);
+   if(s.meadows&&!passive&&detected){if(strikeBarrier(this,e,p))continue;shamanMagic(this,e,dt);}
    if(e.definition==='draugrArcher'){archerAttack(this,e,p,dt);continue;}
    if (e.boss) {
     const ability = bossAttack(e.definition, e.health < def.health / 2, e.attackKind), charge = this.charges.get(e.id);

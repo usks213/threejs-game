@@ -38,6 +38,7 @@ export function createResources(scene: THREE.Scene) {
           }else{
             for(let j=0;j<22;j++){const a=j*2.4+n.id,r=.4+(j%4)*.45;rotation.setFromEuler(leafRotation.set(Math.sin(a)*1.1,a,Math.cos(a)*.5));part('leaves',n.x+Math.sin(a)*r,n.y+(2.55+Math.sin(j*1.7)*.35)*height,n.z+Math.cos(a)*r,2.2,height*.82,1);}rotation.setFromAxisAngle(axis,n.id*2.399);
           }
+        } else if(n.kind==='sapling'){part('trunk',n.x,n.y+.4,n.z,.25,.3,.25);for(let j=0;j<4;j++){rotation.setFromEuler(leafRotation.set(.5,j*1.5,0));part('leaves',n.x,n.y+.7+j*.15,n.z,.5,.45,1);}
         } else if(n.kind==='fallenLog'&&n.log){const a=n.log.a.position,b=n.log.b.position;rotation.setFromUnitVectors(axis,logDirection.set(b.x-a.x,b.y-a.y,b.z-a.z).normalize());part('trunk',n.x,n.y,n.z,1.6,n.log.length/2.8,1.6);
         } else if(n.kind==='stump'){part('trunk',n.x,n.y+.2,n.z,1.6,.15,1.6);
         } else if (n.kind === 'berry') {

@@ -100,3 +100,5 @@ for(const [id,name,cost,size] of meadowBuildings)BUILDINGS.push({id,name,cost,si
 for(const id of ['roofCorner45','roofInner45'])BUILDINGS.push({id,name:id==='roofCorner45'?'屋根の外隅 45°':'屋根の内隅 45°',cost:{wood:2},size:[2,2,2],support:3,color:'#a38d58'});
 
 ENEMIES.push({id:'draugrArcher',name:'弓を持つ亡者',health:100,damage:40,speed:1.6,reach:12,color:'#718271',shape:'walker',element:'physical',resistance:'poison'},{id:'draugrElite',name:'亡者の精鋭',health:200,damage:58,speed:2,reach:2,color:'#5a715f',shape:'walker',element:'physical',resistance:'poison'});
+
+ENEMIES.push({id:'greydwarfBrute',name:'森の剛腕',health:150,damage:30,speed:2,reach:2,color:'#686b43',shape:'walker',element:'physical',resistance:'poison'},{id:'greydwarfShaman',name:'森の祈祷師',health:60,damage:14,speed:1.6,reach:1.7,color:'#659e67',shape:'walker',element:'physical',resistance:'poison'});

@@ -26,7 +26,7 @@ export function createEntities(scene: THREE.Scene) {
     const def = e.boss ? BOSSES.find(d => d.id === e.definition)! : ENEMIES.find(d => d.id === e.definition)!;
     const far=!!player&&Math.hypot(e.x-player.x,e.z-player.z)>18;
     const group = object('enemy' + e.id+(far?'far':''), g => {
-     if(['deer','boar','neck','greyling','greydwarf','draugr','draugrArcher','draugrElite','gull','stormstag'].includes(e.definition))g.add(far?creatures.far(e.definition):creatures.make(e.definition));
+     if(['deer','boar','neck','greyling','greydwarf','greydwarfBrute','greydwarfShaman','draugr','draugrArcher','draugrElite','gull','stormstag'].includes(e.definition))g.add(far?creatures.far(e.definition):creatures.make(e.definition));
      else {
      const shape = e.boss ? ({root:'walker',tusk:'boar',mirelord:'slime',frostwing:'flyer',riftheart:'walker'} as const)[e.definition as 'root'] : ENEMIES.find(d => d.id === e.definition)!.shape;
      part(g, sphere, def.color, 0, 0.7, 0, shape === 'slime' ? 1.5 : 1.1, shape === 'slime' ? 0.8 : 1.5, shape === 'boar' ? 1.8 : 1.1);

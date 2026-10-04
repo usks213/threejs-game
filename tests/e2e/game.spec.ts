@@ -1,5 +1,8 @@
 import { GameSimulation } from '../../src/simulation/game-simulation';
 import { test, expect } from '@playwright/test';
+// Keep CSS phone geometry and all render features, but reduce raster work in functional cases.
+// The dedicated HDR case below uses full device scale and retains its image/readback checks.
+test.use({deviceScaleFactor:0.5});
 test('starts, moves with keyboard and stick, jumps, and rotates safely', async ({ page }) => {
  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
  await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
@@ -48,7 +51,7 @@ test('edits terrain, pours water, drops a rock, saves and restores after reload'
  await expect(page.locator('#edit-count')).toHaveAttribute('data-count','2');
  await expect(page.locator('#metrics')).toContainText('物理 1個');
  await expect.poll(async () => Number((await page.locator('#metrics').textContent())?.match(/水 (\d+)セル/)?.[1] ?? '0')).toBeGreaterThan(0);
- await page.screenshot({scale:'css',path:info.outputPath('terra-restored.png')}); expect(errors).toEqual([]);
+ expect(errors).toEqual([]);
 });
 test('exports world data and rejects malformed imports without losing the current world', async ({page}) => {
  await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
@@ -110,21 +113,23 @@ test('survival adventure opens Meadows recipes and persists gathered materials',
  await page.locator('#gather').click();await expect(page.locator('#notice')).toContainText('木材');
  await page.locator('#adventure-menu').click();await page.getByRole('button',{name:/^木材 /}).first().click();await expect(page.locator('#adventure-content')).toContainText('木材');
  await page.locator('[data-tab=craft]').click();await expect(page.locator('#adventure-content')).toContainText('粗末な弓');
- await page.screenshot({scale:'css',path:info.outputPath('meadows-recipes.png')});await page.locator('#adventure-close').click();
+ await page.locator('#adventure-close').click();
  await systemAction(page,'save');await page.reload();await expect(page.locator('#app')).toHaveAttribute('data-state','running');
  await page.locator('#adventure-menu').click();await page.getByRole('button',{name:/^木材 /}).first().click();await expect(page.locator('#adventure-content')).toContainText('木材');expect(errors).toEqual([]);
 });
 
+test.describe('HDR visual acceptance',()=>{
+test.use({deviceScaleFactor:1});
 test('renders equipped characters, textured terrain and water without shader errors', async ({ page }, info) => {
  test.setTimeout(120000);
  const errors: string[] = [];
  page.on('pageerror', error => errors.push(error.message));
  page.on('console', message => { if (message.type() === 'error' && /THREE|WebGL|shader/i.test(message.text())) errors.push(message.text()); });
- const sim = new GameSimulation(); sim.adventure.state.inventory = { sword: 1, staff: 1, shield: 1 }; sim.adventure.state.equipment = 'staff';
+ const sim = new GameSimulation(); sim.adventure.state.inventory = { torch:1,shield:1,leatherTunic:1,leatherHelmet:1,leatherPants:1,deerCape:1 };sim.adventure.state.meadows!.gear={chest:'leatherTunic',legs:'leatherPants',head:'leatherHelmet',cape:'deerCape',offhand:'shield'};sim.adventure.state.equipment='torch';
  const save = sim.save();
  await page.goto('/?graphicsProbe=1'); await expect(page.locator('#app')).toHaveAttribute('data-state', 'running');
  await page.locator('#import-file').setInputFiles({ name: 'visual-fixture.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)) });
- await expect(page.locator('#adventure-hud')).toContainText('杖');
+ await expect(page.locator('#adventure-hud')).toContainText('松明');
  await page.locator('[data-tool="water"]').click(); await page.locator('#use-tool').click();
  await expect(page.locator('#notice')).toContainText('水を流しました');
  await cooldown(page, 10); await page.locator('#attack').click();
@@ -137,7 +142,7 @@ test('renders equipped characters, textured terrain and water without shader err
  expect(day.features).toEqual(['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']);
  await page.setViewportSize({width:844,height:390});await page.screenshot({scale:'css',path:info.outputPath('pbr-day-hdr.png')});
  sim.adventure.state.seconds=450; // Midnight, using the same authoritative save/import path as players.
- sim.adventure.state.equipment='staff';
+ sim.adventure.state.equipment='torch';
  await page.locator('#import-file').setInputFiles({name:'night-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});
  await expect.poll(async()=>(await graphics()).hour).toBeLessThan(3);
  await expect.poll(async()=>(await graphics()).shUpdates).toBeGreaterThan(day.shUpdates);
@@ -148,6 +153,8 @@ test('renders equipped characters, textured terrain and water without shader err
  await page.screenshot({scale:'css',path:info.outputPath('pbr-night-hdr.png')});
  await info.attach('graphics-measurements',{body:JSON.stringify({day,night:await graphics()},null,2),contentType:'application/json'});
  await expect(page.locator('#error')).toBeHidden(); expect(errors).toEqual([]);
+});
+
 });
 
 test('survival adventure previews, rotates and places a building on mobile',async({page},info)=>{

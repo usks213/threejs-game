@@ -1,4 +1,5 @@
-const paths:Record<string,string>={
+import { meadowIcons } from './meadow';
+const paths:Record<string,string>={...meadowIcons,
  wood:'M5 17 16 6l5 5L10 22 5 17Zm1-5 7-7m4 3 2 2M7 16l3 3',
  stone:'m4 17 2-9 7-4 7 7-2 9H8L4 17Zm2-9 6 5 8-2m-8 2-4 7',
  sword:'m6 21 4-4M4 14l6 6M8 16 18 4l3-1-1 4L10 18',
@@ -18,6 +19,6 @@ const paths:Record<string,string>={
 };
 export function itemIcon(id:string):string {
  const aliases:Record<string,string>={branch:'wood',beech:'wood',birch:'wood',oak:'wood',flint:'stone',crudeBow:'bow',flintAxe:'axe',flintSpear:'sword',flintKnife:'sword',antlerPickaxe:'axe',club:'wood',honey:'berry',mushroom:'berry',boarMeat:'berry',deerMeat:'berry',cookedDeer:'berry',cookedBoar:'berry',towerShield:'shield',ragTunic:'bag',leatherTunic:'bag',leatherHelmet:'shield',leatherPants:'bag',deerTrophy:'map'};
- const key=aliases[id]??(id.endsWith('Sword')||id==='greatsword'?'sword':id==='stew'?'berry':id==='foundation'?'stone':id==='floor'||id==='pillar'?'wall':id==='bed'?'roof':id==='chest'?'bag':id==='book'?'staff':id==='resin'?'water':id);
+ const key=paths[id]?id:aliases[id]??(id.endsWith('Sword')||id==='greatsword'?'sword':id==='stew'?'berry':id==='foundation'?'stone':id==='floor'||id==='pillar'?'wall':id==='bed'?'roof':id==='chest'?'bag':id==='book'?'staff':id==='resin'?'water':id);
  return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="${paths[key]??'m12 2 9 10-9 10-9-10L12 2Zm0 0v20M3 12h18'}"/></svg>`;
 }

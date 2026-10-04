@@ -12,8 +12,8 @@ export function seedMeadows(sim:GameSimulation,s:AdventureSave):void{
  const node=(kind:string,x:number,z:number,amount=1)=>s.resources.push({id:sim.allocateEntityId(),kind,x,y:sim.groundAt(x,z),z,amount,ready:0});
  for(let i=0;i<210;i++){
   const a=i*2.399963,r=10+Math.sqrt(i)*4.3,x=Math.sin(a)*r-12,z=Math.cos(a)*r-15;
-  const kind=i%13===0?'oak':i%7===0?'birch':i%4===0?'beech':i%5===0?'mushroom':i%6===0?'dandelion':i%3===0?'berry':i%2===0?'stone':'branch';
-  node(kind,x,z,['branch','stone'].includes(kind)?3:1);
+  const kind=i%11===0?'sapling':i%13===0?'oak':i%7===0?'birch':i%4===0?'beech':i%5===0?'mushroom':i%6===0?'dandelion':i%3===0?'berry':i%2===0?'stone':'branch';
+  if(sim.groundAt(x,z)<.2&&!['stone','branch'].includes(kind))continue;node(kind,x,z,['branch','stone'].includes(kind)?3:1);
  }
  for(let i=0;i<8;i++)node(i%2?'stone':'branch',Math.sin(i*2.4)*(3+i*.3),8+Math.cos(i*2.4)*(3+i*.3),3);
  for(let i=0;i<22;i++)node('flint',-24+Math.sin(i)*3,-2-i*1.8,2);

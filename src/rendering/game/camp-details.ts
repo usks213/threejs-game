@@ -1,8 +1,11 @@
+import { COOKING } from '../../content/meadows/data';
 import * as THREE from 'three';
 import type { AdventureSnapshot } from '../../game/types';
 import type { Vec3 } from '../../world/types';
 /** Small readable details; textures are generated only when sign text changes. */
 export function campDetails(scene:THREE.Scene){
+ const lights=Array.from({length:3},()=>{const light=new THREE.PointLight('#ff9b46',0,9,2);scene.add(light);return light;});
+ const meatGeometry=new THREE.IcosahedronGeometry(.14,1),meatMaterial=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:.8}),meat=new THREE.InstancedMesh(meatGeometry,meatMaterial,32),dummy=new THREE.Object3D(),color=new THREE.Color();meat.frustumCulled=false;scene.add(meat);
  const signs=new Map<number,{mesh:THREE.Mesh;texture:THREE.CanvasTexture;text:string}>();
  const signGeometry=new THREE.PlaneGeometry(1.1,.55);
  const lineGeometry=new THREE.BufferGeometry(),linePoints=new Float32Array(9*3);lineGeometry.setAttribute('position',new THREE.BufferAttribute(linePoints,3));
@@ -15,6 +18,8 @@ export function campDetails(scene:THREE.Scene){
  const remove=(id:number)=>{const sign=signs.get(id);if(sign){scene.remove(sign.mesh);(sign.mesh.material as THREE.Material).dispose();sign.texture.dispose();signs.delete(id);}};
  return {
  update(s:AdventureSnapshot,p?:Vec3){
+  const fires=s.buildings.filter(b=>['fire','standingTorch'].includes(b.definition)&&(b.fuel??0)>0&&!b.open).sort((a,b)=>p?Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z):a.id-b.id);for(let i=0;i<lights.length;i++){const b=fires[i];lights[i].intensity=b?12+Math.sin(s.seconds*8+b.id)*2:0;if(b)lights[i].position.set(b.x,b.y+(b.definition==='fire'?.6:1.5),b.z);}
+  let chunks=0;for(const b of s.buildings)if(b.cooking&&(!p||Math.hypot(b.x-p.x,b.z-p.z)<25))for(let i=0;i<b.cooking.length&&chunks<32;i++){const c=b.cooking[i],raw=c.time<COOKING[c.id].seconds,burn=c.time>=COOKING[c.id].seconds*2;dummy.position.set(b.x+(i-.5)*.5*Math.cos(b.rotation),b.y+.8,b.z-(i-.5)*.5*Math.sin(b.rotation));dummy.scale.set(.75,1.5,.75);dummy.updateMatrix();meat.setMatrixAt(chunks,dummy.matrix);meat.setColorAt(chunks,color.set(burn?'#251e18':raw?'#b55e4e':'#986133'));chunks++;}meat.count=chunks;meat.instanceMatrix.needsUpdate=true;if(meat.instanceColor)meat.instanceColor.needsUpdate=true;
   const live=new Set<number>();
   for(const b of s.buildings)if(b.definition==='sign'&&b.label&&(!p||Math.hypot(b.x-p.x,b.z-p.z)<30)){
    live.add(b.id);let sign=signs.get(b.id);
@@ -26,6 +31,6 @@ export function campDetails(scene:THREE.Scene){
   if(p&&f&&fish){const progress=f.phase==='fight'?f.progress:0,x=fish.x+(p.x-fish.x)*progress*.85,z=fish.z+(p.z-fish.z)*progress*.85,y=fish.y+.3+(f.phase==='bite'?-Math.abs(Math.sin(s.seconds*12))*.18:Math.sin(s.seconds*3)*.025);bobber.position.set(x,y,z);for(let i=0;i<9;i++){const t=i/8;linePoints[i*3]=p.x+(x-p.x)*t;linePoints[i*3+1]=p.y+1.7+(y-p.y-1.7)*t-Math.sin(t*Math.PI)*(f.reeling?.12:.4);linePoints[i*3+2]=p.z+(z-p.z)*t;}lineGeometry.getAttribute('position').needsUpdate=true;}
   let count=0;for(const b of s.buildings)if(['fire','standingTorch'].includes(b.definition)&&(b.fuel??0)>0&&!b.open&&(!p||Math.hypot(b.x-p.x,b.z-p.z)<24))for(let i=0;i<4&&count<32;i++){const age=(s.seconds*.55+i*.6+b.id*.13)%2.4;smokePositions[count*3]=b.x+Math.sin(age*2+i)*age*.15;smokePositions[count*3+1]=b.y+.5+age;smokePositions[count*3+2]=b.z+Math.cos(age+i)*age*.15;count++;}smokeGeometry.setDrawRange(0,count);smokeGeometry.getAttribute('position').needsUpdate=true;
  },
- dispose(){for(const id of signs.keys())remove(id);scene.remove(line,bobber,smoke);for(const g of [signGeometry,lineGeometry,floatGeometry,smokeGeometry])g.dispose();for(const m of [lineMaterial,floatMaterial,smokeMaterial])m.dispose();smokeMap.dispose();}
+ dispose(){for(const id of signs.keys())remove(id);scene.remove(line,bobber,smoke,meat,...lights);meat.dispose();meatGeometry.dispose();meatMaterial.dispose();for(const g of [signGeometry,lineGeometry,floatGeometry,smokeGeometry])g.dispose();for(const m of [lineMaterial,floatMaterial,smokeMaterial])m.dispose();smokeMap.dispose();}
  };
 }
