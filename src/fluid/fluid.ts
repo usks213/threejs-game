@@ -12,7 +12,11 @@ export class FluidGrid {
   displaced = 0;
   private solids=new Map<string,number>();
   private barriers=new Set<string>();
-  setObstacles(obstacles:readonly WaterObstacle[]):void{const v=voxelizeObstacles(obstacles,this.cellSize);this.solids=v.occupied;this.barriers=v.barriers;}
+  private staticKey='';private staticSolids=new Map<string,number>();private staticBarriers=new Set<string>();
+  setObstacles(obstacles:readonly WaterObstacle[],fixed:readonly WaterObstacle[]=[]):void{
+   const key=JSON.stringify(fixed);if(key!==this.staticKey){const v=voxelizeObstacles(fixed,this.cellSize);this.staticKey=key;this.staticSolids=v.occupied;this.staticBarriers=v.barriers;}
+   const v=voxelizeObstacles(obstacles,this.cellSize);this.solids=new Map(this.staticSolids);for(const [id,n]of v.occupied)this.solids.set(id,Math.min(1,(this.solids.get(id)??0)+n));this.barriers=new Set([...this.staticBarriers,...v.barriers]);
+  }
   private bottom(p:Vec3):number{return Math.min(this.cellSize,this.terrainBottom(p)+(this.solids.get(key(p))??0)*this.cellSize);}
   private revision = -1;
   private phase = 0;

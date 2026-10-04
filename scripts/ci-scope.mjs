@@ -23,7 +23,7 @@ const checks = manual || game || signaling || network || changed(/^tests\/unit\/
 const patterns = new Set();
 if (config || changed(/^(index\.html$|src\/main\.ts$|tests\/e2e\/game\.spec\.ts$)/)) patterns.add('core landscape');
 if (changed(/^src\/(input\/|platform\/game\.ts$|physics\/character\.ts$)/)) { patterns.add('starts, moves'); patterns.add('two fingers'); }
-if (changed(/^src\/(world\/|fluid\/|save\/|simulation\/(game-simulation|worker)\.ts$)/)) patterns.add('edits terrain');
+if (changed(/^src\/(world\/|fluid\/|save\/|simulation\/(game-simulation|worker)\.ts$)/)) {patterns.add('water is always available');patterns.add('core landscape');patterns.add('renders equipped');}
 if (changed(/^src\/(game\/|content\/|ui\/)/)) patterns.add('survival adventure');
 if (changed(/^src\/rendering\//)) patterns.add('renders equipped');
 const outputs = { game: manual || game, checks, signaling, network, host, browser: patterns.size > 0, browser_grep: [...patterns].join('|') };

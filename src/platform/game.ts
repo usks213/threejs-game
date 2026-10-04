@@ -107,7 +107,7 @@ export function startGame() {
   const sprint=(held:boolean)=>{if(state?.adventure.meadows)gameAction('sprint',held?'on':'off');};window.addEventListener('blur',()=>sprint(false),{signal});
   window.addEventListener('keydown',e=>{
     if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
-    if(e.code==='Escape'){mouse.unlock();document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
+    if(e.code==='Escape'){mouse.unlock();gameAction('guard','off');sprint(false);document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
     if(e.code==='Tab'){e.preventDefault();if(!e.repeat){adventure.open('bag');mouse.unlock();}return;}
     if(e.repeat||document.querySelector('[role=dialog]:not([hidden])'))return;
     if(e.code==='Space'){e.preventDefault();jump=true;}

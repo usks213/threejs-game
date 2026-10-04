@@ -94,7 +94,7 @@ export class Adventure {
   for(const id of strikeVoxels(this,aim,reach,heavy))this.sim.pendingEdits.add(id);
  }
  hurtPlayer(amount: number, element: string, player = this.sim.player, source?:Vec3): void {
-  if (this.hurt > 0 || (this.dodge>.1&&this.dodge<.34) || this.state.health <= 0) return;
+  if (this.hurt > 0 || (this.dodge>.16&&this.dodge<.46) || this.state.health <= 0) return;
   const held=this.state.meadows?.gear.offhand;const shield=held?(this.state.inventory[held]?held:''):this.state.inventory.towerShield?'towerShield':this.state.inventory.shield?'shield':'';
   const facing=!source||((source.x-player.x)*Math.sin(player.heading)+(source.z-player.z)*Math.cos(player.heading))>=0;
   if(this.guarding&&shield&&source&&facing&&(!this.state.meadows||this.state.meadows.durability[shield]!==0)){
