@@ -1,5 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
-interface Probe {position:{x:number;y:number;z:number};phase:string;seconds:number;yaw:number;pitch:number;door:boolean;tool:boolean;stats:{shUpdates:number;exposure:number}}
+interface Probe {position:{x:number;y:number;z:number};phase:string;phaseTime:number;attack:string;timeScale:number;weapon:{tip:{x:number;y:number;z:number}};seconds:number;yaw:number;pitch:number;door:boolean;tool:boolean;stats:{shUpdates:number;exposure:number}}
 const probe=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__coreProbe') as Probe);
 test('landscape first-person input, aimed door, attack and HDR render',async({page,isMobile})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
@@ -26,4 +26,14 @@ test('portrait stops play and landscape requires an explicit resume',async({page
  await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await page.locator('#start').click();await expect(page.locator('#game')).toHaveAttribute('data-running','true');
  await page.setViewportSize({width:390,height:844});await expect(page.locator('#rotate')).toBeVisible();await expect(page.locator('#game')).toHaveAttribute('data-running','false');const time=(await probe(page)).seconds;await page.waitForTimeout(300);expect((await probe(page)).seconds).toBe(time);
  await page.setViewportSize({width:844,height:390});await expect(page.locator('#rotate')).toBeHidden();await expect(page.locator('#menu')).toBeVisible();await page.locator('#start').click();await expect(page.locator('#game')).toHaveAttribute('data-running','true');
+});
+
+test('motion review: windup, moving blade, follow-through and recovery',async({page,isMobile})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await page.locator('#motion-toggle').click();await page.locator('#start').click();expect((await probe(page)).timeScale).toBe(.25);
+ const prefix=isMobile?'mobile':'desktop';await page.screenshot({path:`test-results/${prefix}-motion-0-guard.png`});
+ if(isMobile)await page.locator('[data-action=attack]').tap();else await page.mouse.click(480,270);
+ await expect.poll(async()=>(await probe(page)).phase).toBe('windup');await expect.poll(async()=>(await probe(page)).phaseTime).toBeGreaterThan(.17);await page.screenshot({path:`test-results/${prefix}-motion-1-windup.png`});
+ await expect.poll(async()=>(await probe(page)).phase,{timeout:60000}).toBe('strike');const start=(await probe(page)).weapon.tip;await page.screenshot({path:`test-results/${prefix}-motion-2-strike.png`});
+ await expect.poll(async()=>(await probe(page)).phase,{timeout:60000}).toBe('recover');const finish=(await probe(page)).weapon.tip;expect(Math.hypot(start.x-finish.x,start.y-finish.y,start.z-finish.z)).toBeGreaterThan(.3);await page.screenshot({path:`test-results/${prefix}-motion-3-followthrough.png`});
+ await expect.poll(async()=>(await probe(page)).phase,{timeout:60000}).toBe('idle');if(isMobile)await page.locator('[data-action=heavy]').tap();else await page.keyboard.press('KeyR');await expect.poll(async()=>(await probe(page)).phaseTime).toBeGreaterThan(.35);expect((await probe(page)).attack).toBe('overhead');await page.screenshot({path:`test-results/${prefix}-motion-4-overhead.png`});expect(errors).toEqual([]);
 });
