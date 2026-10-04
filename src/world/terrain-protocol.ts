@@ -2,7 +2,7 @@ import type { TerrainJob } from './terrain-scheduler';
 import type { EditOperation, MeshData, WorldBounds } from './types';
 
 export type TerrainRequest =
-  | { type: 'init'; epoch: number; bounds: WorldBounds; generator: 1 | 2 | 3; edits: EditOperation[] }
+  | { type: 'init'; direct?:boolean; epoch: number; bounds: WorldBounds; generator: 1 | 2 | 3; edits: EditOperation[] }
   | { type: 'edits'; epoch: number; base: number; edits: EditOperation[] }
   | { type: 'mesh'; job: TerrainJob };
 export type TerrainResponse =

@@ -32,7 +32,7 @@ export function prepareTerrainMesh(mesh: MeshData, brick: Brick): MeshData {
 export function meshTransferables(meshes: readonly MeshData[]): ArrayBuffer[] {
   const buffers = new Set<ArrayBuffer>();
   const collect = (mesh: MeshData) => {
-    for (const array of [mesh.positions, mesh.normals, mesh.colors, mesh.indices, mesh.grass]) if (array) buffers.add(array.buffer as ArrayBuffer);
+    for (const array of [mesh.positions, mesh.normals, mesh.colors, mesh.indices, mesh.grass, mesh.field?.density]) if (array) buffers.add(array.buffer as ArrayBuffer);
     if (mesh.coarse) collect(mesh.coarse);
   };
   meshes.forEach(collect);

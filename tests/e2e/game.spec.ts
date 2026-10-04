@@ -47,3 +47,21 @@ test('desktop mouse keeps movement responsive across a terrain boundary',async({
  const frames=await frameRun,phases=JSON.parse((await page.locator('#app').getAttribute('data-performance'))??'{}');await info.attach('movement-profile.json',{body:JSON.stringify({frames,phases,note:'CI software GPU; seconds-long-stall regression, not phone FPS'},null,2),contentType:'application/json'});
  console.log('MOVEMENT_PROFILE',JSON.stringify({frames,phases}));expect(frames.samples).toBeGreaterThan(5);expect(frames.maxGap,'No multi-second main-frame freeze while crossing x=16').toBeLessThan(2000);await expect(page.locator('#error')).toBeHidden();
 });
+
+test('direct field terrain renders, moves, mines and preserves saves with comparable frame samples',async({page},info)=>{
+ test.setTimeout(150000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));const profiles:Record<string,unknown>={};
+ const sim=sparse();sim.bodies.length=0;sim.adventure.state.inventory={antlerPickaxe:1,wood:37};sim.adventure.state.equipment='antlerPickaxe';Object.assign(sim.player,{x:15.5,z:8,y:sim.groundAt(15.5,8),vy:0,grounded:true});
+ for(const mode of ['mesh','direct']){
+  await page.goto(mode==='direct'?'/?terrain=direct':'/');await expect(page.locator('#app')).toHaveAttribute('data-state','running');await fixture(page,sim);
+  await expect(page.locator('#app')).toHaveAttribute('data-terrain-mode',mode==='direct'?'direct-field':'surface-mesh');
+  const frames=page.evaluate(()=>new Promise(resolve=>{const gaps:number[]=[];let previous=performance.now();const start=previous;const step=(now:number)=>{gaps.push(now-previous);previous=now;if(now-start<4000)requestAnimationFrame(step);else{gaps.sort((a,b)=>a-b);resolve({samples:gaps.length,maxGap:gaps.at(-1),p95Gap:gaps[Math.floor((gaps.length-1)*.95)]});}};requestAnimationFrame(step);}));
+  await page.keyboard.down('KeyD');try{await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(18);}finally{await page.keyboard.up('KeyD');}
+  profiles[mode]={frames:await frames,diagnostics:JSON.parse((await page.locator('#app').getAttribute('data-diagnostics'))??'{}')};
+  if(mode==='direct'){
+   const before=Number(await page.locator('#edit-count').getAttribute('data-count'));if(info.project.name==='desktop-chromium'){await page.mouse.click(550,300);await page.mouse.click(550,300);}else await page.locator('#attack').click();await expect.poll(async()=>Number(await page.locator('#edit-count').getAttribute('data-count'))).toBeGreaterThan(before);
+   await page.screenshot({path:info.outputPath('direct-field-mining.png'),scale:'css'});await page.locator('#system-menu').click();await page.locator('#save').click();await expect.poll(async()=>Number(await page.locator('#save-status').getAttribute('data-edits'))).toBeGreaterThan(before);await page.locator('#system-close').click();await page.goto('/');await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect.poll(async()=>Number(await page.locator('#edit-count').getAttribute('data-count'))).toBeGreaterThan(before);
+  }
+  await expect(page.locator('#error')).toBeHidden();
+ }
+ console.log('DIRECT_FIELD_COMPARISON',JSON.stringify(profiles));await info.attach('direct-field-comparison.json',{body:JSON.stringify(profiles,null,2),contentType:'application/json'});expect(errors).toEqual([]);
+});

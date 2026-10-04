@@ -3,7 +3,7 @@ import type { MeshData } from '../world/types';
 type Pending = {kind:'mesh';data:MeshData;bytes:number}|{kind:'remove'};
 export interface UploadStats { pending:number;applied:number;uploaded:number;removed:number;bytes:number;milliseconds:number;maxMilliseconds:number }
 export function meshBytes(data:MeshData):number {
- return data.positions.byteLength+data.normals.byteLength+data.colors.byteLength+data.indices.byteLength+(data.grass?.byteLength??0)+(data.coarse?meshBytes(data.coarse):0);
+ return (data.field?.density.byteLength??0)+data.positions.byteLength+data.normals.byteLength+data.colors.byteLength+data.indices.byteLength+(data.grass?.byteLength??0)+(data.coarse?meshBytes(data.coarse):0);
 }
 /** Main-thread intake is cheap; generation bursts cannot become an unbounded RAF upload. */
 export class TerrainQueue {

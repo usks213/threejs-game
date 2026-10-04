@@ -1,3 +1,5 @@
+import {liveDiagnostics} from './live-diagnostics';
+import {createFieldTerrain} from '../rendering/voxel/field-terrain';
 import { FrameTimings } from './frame-timings';
 import { TerrainQueue } from './terrain-queue';
 import { objectOcclusion } from '../game/voxel/occlusion';
@@ -31,12 +33,12 @@ import { persistenceUI } from '../ui/persistence';
 import { terrainHeight } from '../world/density';
 import type { ClientMessage, Snapshot, Tool } from '../simulation/protocol';
 import type {SimulationClientMessage,SimulationWorkerMessage as WorkerMessage} from '../simulation/local-protocol';
-import type { Vec3 } from '../world/types';
+import type { Vec3,MeshData } from '../world/types';
 export function startGame() {
   const controller = new AbortController(), { signal } = controller;
   const canvas = document.querySelector<HTMLCanvasElement>('#game')!, app = document.querySelector<HTMLElement>('#app')!;
   const status = document.querySelector<HTMLElement>('#status')!, error = document.querySelector<HTMLElement>('#error')!;
-  configureLandscape(app,signal);gameShell(signal);
+  configureLandscape(app,signal);gameShell(signal);const diagnostics=liveDiagnostics(app,signal);
   const sound = gameSound(signal);document.querySelector<HTMLInputElement>('#sound-volume')!.addEventListener('input',e=>sound.setVolume(Number((e.target as HTMLInputElement).value)),{signal});
   document.querySelector('#sound-toggle')!.addEventListener('click', () => { document.querySelector('#sound-toggle')!.textContent = sound.toggle() ? '音 OFF' : '音 ON'; }, { signal });
   let noticeTimer: ReturnType<typeof setTimeout> | undefined, lastNotice = 0;
@@ -46,7 +48,7 @@ export function startGame() {
   const terrainQueue=new TerrainQueue();let terrainEpoch=-1,awaitTerrainReset=true,readyPending=false;let readyFence:ReadonlySet<string>=new Set();
   let loadingStarted=performance.now(),streamLog=0,receivedMeshes=0,submittedMeshes=0,uploadMs=0,nearReadyMs=-1,draws=0;
   const acknowledgeMeshes=(count:number)=>{if(count>0&&terrainEpoch>=0)worker?.postMessage({type:'mesh-ack',epoch:terrainEpoch,count} satisfies SimulationClientMessage);};
-  const fail = (message: string) => { stopped = true; cancelAnimationFrame(frame); worker?.terminate(); error.hidden = false; error.textContent = message; status.textContent = '起動エラー'; app.dataset.state = 'error'; };
+  const fail = (message: string) => { diagnostics.error(message); stopped = true; cancelAnimationFrame(frame); worker?.terminate(); error.hidden = false; error.textContent = message; status.textContent = '起動エラー'; app.dataset.state = 'error'; };
   let renderer: THREE.WebGLRenderer;
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' }); }
   catch { fail('WebGLを起動できませんでした。ブラウザを更新し、ハードウェアアクセラレーションを確認してください。'); return () => controller.abort(); }
@@ -55,7 +57,10 @@ export function startGame() {
   renderer.info.autoReset=false;
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
-  const world = createWorld(renderer), terrain = createTerrain(world.scene);
+  const direct=new URLSearchParams(location.search).get('terrain')==='direct';
+  const world = createWorld(renderer),field=direct?createFieldTerrain(world.scene):null;
+  const terrain=field?{...field,update:(data:MeshData,r:THREE.WebGLRenderer)=>{if(data.field)field.update(data.field,r);}}:createTerrain(world.scene);
+  app.dataset.terrainMode=direct?'direct-field':'surface-mesh';if(direct)renderer.shadowMap.enabled=false;
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 80);
   const pipeline=createPipeline(renderer,world.scene,camera,world.atmosphere);
   const readKeyboard = keyboardInput(signal), touch = touchInput(document.querySelector('#stick')!, document.querySelector('#knob')!, signal), view = cameraInput(canvas, signal);
@@ -78,7 +83,7 @@ export function startGame() {
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
-  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message); };
+  const post = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input); if(message.type==='init'||message.type==='replica-init'){loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
   const network = networkUI(signal, post, notice);
   const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
   const persistence = persistenceUI(send, signal, notice);
@@ -137,10 +142,11 @@ export function startGame() {
   try {
     terrain.prepareUploads(renderer);
     worker = new Worker(new URL('../simulation/worker.ts', import.meta.url), { type: 'module' });
+    worker.onmessageerror=()=>fail('ゲーム計算の受信データを読み取れませんでした。');
     worker.onerror = () => fail('地形処理を開始できませんでした。ページを再読み込みしてください。');
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       if (stopped) return;
-      const message = event.data; if (message.type!=='terrain-reset'&&message.type!=='terrain-visibility'&&network.receive(message)) return;
+      const message = event.data;if(message.type==='health'){diagnostics.heartbeat(message.health);return;} if (message.type!=='terrain-reset'&&message.type!=='terrain-visibility'&&network.receive(message)) return;
       if(message.type==='terrain-reset'){terrainEpoch=message.epoch;app.dataset.worldEpoch=String(terrainEpoch);awaitTerrainReset=false;readyPending=false;terrainQueue.clear();terrainQueue.remove(terrain.ids());terrain.setActive([]);}
       else if(message.type==='terrain-visibility'){if(!awaitTerrainReset&&message.epoch===terrainEpoch)terrain.setActive(message.ids);}
       else if(message.type==='mesh'||message.type==='mesh-batch'){
@@ -149,7 +155,7 @@ export function startGame() {
         receivedMeshes+=meshes.length;for(const mesh of meshes)discarded+=terrainQueue.enqueue(mesh);acknowledgeMeshes(discarded);
       }
       else if(message.type==='remove'){if(awaitTerrainReset||message.epoch!==terrainEpoch)return;acknowledgeMeshes(terrainQueue.remove(message.ids,id=>terrain.has(id)));}
-      else if (message.type === 'snapshot') { if(awaitTerrainReset||message.epoch!==terrainEpoch)return;state = message.state;dirtyWorld=true; if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
+      else if (message.type === 'snapshot') { if(awaitTerrainReset||message.epoch!==terrainEpoch)return;diagnostics.snapshot();state = message.state;dirtyWorld=true; if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
       else if(message.type==='ready'){if(!awaitTerrainReset&&message.epoch===terrainEpoch){nearReadyMs=performance.now()-loadingStarted;readyPending=true;readyFence=terrainQueue.fence();}}
       else if (message.type === 'save' && !network.guest) persistence.receive(message.save);
       else if (message.type === 'notice') notice(message.message);
@@ -211,7 +217,7 @@ export function startGame() {
       const grassStart=performance.now();terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);frameTimings.record('grassUpdate',performance.now()-grassStart);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
       try { if(renderDue&&state&&!loading){const renderStart=performance.now();
-        world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);
+        world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}if(direct){renderer.setRenderTarget(null);renderer.render(world.scene,camera);}else pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);
         draws++;lastDraw=now;frameTimings.record('renderWall',performance.now()-renderStart);
       } } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }

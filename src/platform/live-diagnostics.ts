@@ -1,0 +1,13 @@
+import type {PlayerInput} from '../simulation/protocol';
+import type {WorkerHealth} from '../simulation/local-protocol';
+export function liveDiagnostics(app:HTMLElement,signal:AbortSignal){
+ let receivedAt=0,snapshotAt=0,health:WorkerHealth|null=null,lastInput={x:0,z:0,jump:false},lastMotion={...lastInput},error:string|null=null;
+ const text=document.createElement('pre');text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.4';text.id='live-diagnostics';
+ const button=document.createElement('button');button.type='button';button.textContent='診断をコピー';button.style.minHeight='48px';
+ document.querySelector('#performance')!.append(text,button);
+ const report=()=>({build:document.querySelector<HTMLElement>('#build-version')?.dataset.commit??'local',mode:app.dataset.terrainMode,state:app.dataset.state,epoch:app.dataset.worldEpoch,hidden:document.hidden,dialogs:[...document.querySelectorAll<HTMLElement>('[role=dialog]:not([hidden])')].map(x=>x.id),snapshotAgeMs:snapshotAt?Math.round(performance.now()-snapshotAt):null,workerAgeMs:receivedAt?Math.round(performance.now()-receivedAt):null,input:lastInput,lastMotion,worker:health,error,streaming:app.dataset.streaming?JSON.parse(app.dataset.streaming):null,performance:app.dataset.performance?JSON.parse(app.dataset.performance):null,viewport:{width:document.documentElement.clientWidth,height:document.documentElement.clientHeight,dpr:devicePixelRatio}});
+ const refresh=()=>{const r=report();app.dataset.diagnostics=JSON.stringify(r);text.textContent=`${r.mode} / ${r.build.slice(0,7)}\nSIM ${health?.tick??'—'} / snapshot ${r.snapshotAgeMs??'—'}ms / worker ${r.workerAgeMs??'—'}ms\ninput ${lastInput.x.toFixed(2)},${lastInput.z.toFixed(2)} → worker ${health?.input.x.toFixed(2)??'—'},${health?.input.z.toFixed(2)??'—'}\npause ${health?.paused??'—'} / ready ${health?.nearReady??'—'} / epoch ${r.epoch??'—'}\n${error??health?.error??''}`;};
+ const timer=setInterval(refresh,500);signal.addEventListener('abort',()=>clearInterval(timer),{once:true});
+ button.addEventListener('click',()=>{const value=JSON.stringify(report(),null,2);void (navigator.clipboard?navigator.clipboard.writeText(value):Promise.reject()).then(()=>button.textContent='診断をコピーしました').catch(()=>{text.textContent=value;button.textContent='診断を選択してコピー';});},{signal});
+ return {heartbeat(value:WorkerHealth){health=value;receivedAt=performance.now();},snapshot(){snapshotAt=performance.now();},input(value:PlayerInput){lastInput={...value};if(value.x||value.z||value.jump)lastMotion={...value};},error(value:string){error=value;refresh();}};
+}
