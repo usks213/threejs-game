@@ -15,6 +15,9 @@ describe('browser/Node shared authority simulation', () => {
  });
  it('settles on terrain and jumps under gravity', () => {
   const sim = new GameSimulation();
+  // This dry-land character test must not also simulate the entire starting river
+  // for 181 ticks. Fluid conservation/immersion are covered separately below.
+  sim.fluid.restore([]);
   for (let i = 0; i < 60; i++) sim.step(idle);
   const ground = sim.player.y; expect(sim.player.grounded).toBe(true);
   sim.step({ ...idle, jump: true }); expect(sim.player.y).toBeGreaterThan(ground);
