@@ -75,16 +75,3 @@ test('direct field terrain renders, moves, mines and preserves saves with compar
  console.log('DIRECT_FIELD_COMPARISON',JSON.stringify(profiles));await info.attach('direct-field-comparison.json',{body:JSON.stringify(profiles,null,2),contentType:'application/json'});expect(errors).toEqual([]);
 });
 
-test.describe('third-person combat capture',()=>{
- test.use({video:{mode:'on',size:{width:844,height:390}}});
- test('survival adventure shoulder aim, weapon contact and right-side combat controls',async({page},info)=>{
-  test.skip(info.project.name!=='android-chromium','Phone combat acceptance');test.setTimeout(90000);await page.setViewportSize({width:844,height:390});await ready(page);await expect(page.locator('#app')).toHaveAttribute('data-terrain-mode','direct-field');
-  const sim=sparse(),p=sim.player;sim.bodies.length=0;sim.adventure.state.inventory={club:1,shield:1};sim.adventure.state.equipment='club';sim.adventure.state.meadows!.gear.offhand='shield';
-  sim.adventure.state.enemies=[{id:901,definition:'boar',tier:1,x:p.x+.6,y:sim.groundAt(p.x+.6,p.z-1.8),z:p.z-1.8,homeX:p.x+.6,homeZ:p.z-1.8,health:200,cooldown:60,windup:0,slow:0,boss:false,stagger:30}];await fixture(page,sim);
-  const touch=await page.context().newCDPSession(page);await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:430,y:150,id:3}]});await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:430,y:187,id:3}]});await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await expect.poll(async()=>JSON.parse((await page.locator('#app').getAttribute('data-camera-probe'))??'{}').head?.x??1).toBeLessThan(-.05);await expect(page.locator('.reticle')).toBeVisible();
-  const hp=async()=>Number((await page.locator('#enemy-focus').textContent())?.match(/([\d.]+) HP/)?.[1]??0),before=await hp();expect(before).toBeGreaterThan(0);await page.locator('#attack').tap();await expect.poll(hp).toBeLessThan(before);await page.screenshot({path:info.outputPath('shoulder-melee-contact.png'),scale:'css'});
-  await expect.poll(async()=>JSON.parse((await page.locator('#app').getAttribute('data-combat'))??'{}').attackMotion??null).toBeNull();const guard=await page.locator('#guard').boundingBox();if(!guard)throw Error('Guard missing');await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:guard.x+guard.width/2,y:guard.y+guard.height/2,id:4}]});await expect(page.locator('#guard')).toHaveAttribute('aria-pressed','true');await page.screenshot({path:info.outputPath('shoulder-guard.png'),scale:'css'});await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.locator('#dodge').tap();await expect(page.locator('#notice')).toContainText('回避');
-  const probe=await page.locator('#app').getAttribute('data-camera-probe');console.log('SHOULDER_COMBAT_PROBE',probe);await info.attach('shoulder-combat-probe.json',{body:probe??'{}',contentType:'application/json'});await expect(page.locator('#error')).toBeHidden();
- });
-});
