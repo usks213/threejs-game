@@ -17,6 +17,15 @@ export function extractSurface(field:VoxelField,samples:Iterable<Cell>=field.cel
   const nodes=corners.map(([dx,dy,dz])=>({x:cube.x+dx,y:cube.y+dy,z:cube.z+dz})),values=nodes.map(p=>field.sample(p.x,p.y,p.z));if(values.every(v=>v<0)||values.every(v=>v>=0))continue;
   const edge=(a:number,b:number):Vertex=>{const t=values[a]/(values[a]-values[b]),aa=nodes[a],bb=nodes[b],na=gradient(aa.x,aa.y,aa.z),nb=gradient(bb.x,bb.y,bb.z),n={x:na.x+(nb.x-na.x)*t,y:na.y+(nb.y-na.y)*t,z:na.z+(nb.z-na.z)*t},l=Math.hypot(n.x,n.y,n.z)||1,inside=values[a]<0?aa:bb;
    return {p:{x:(aa.x+.5+(bb.x-aa.x)*t)*s,y:(aa.y+.5+(bb.y-aa.y)*t)*s,z:(aa.z+.5+(bb.z-aa.z)*t)*s},n:{x:n.x/l,y:n.y/l,z:n.z/l},m:field.get(inside.x,inside.y,inside.z)?.material??3};};
+  // An axis-aligned affine field has the exact same planar iso-surface in all six
+  // tetrahedra. Emit that quad directly, retaining the sampled boundary and normals.
+  const insideMaterial=nodes.filter((_,i)=>values[i]<0).map(p=>field.get(p.x,p.y,p.z)?.material??3);
+  const axes=[[[0,1],[3,2],[7,6],[4,5]],[[0,3],[1,2],[5,6],[4,7]],[[0,4],[1,5],[2,6],[3,7]]];
+  const planar=insideMaterial.every(m=>m===insideMaterial[0])?axes.find((edges,axis)=>{
+   const low=values[edges[0][0]],high=values[edges[0][1]];
+   return low*high<0&&corners.every((c,i)=>Math.abs(values[i]-(c[axis]?high:low))<1e-9);
+  }):undefined;
+  if(planar){const [a,b,c,d]=planar.map(([lo,hi])=>edge(lo,hi));triangle(a,b,c);triangle(a,c,d);continue;}
   for(const tet of tetrahedra){const inside=tet.filter(i=>values[i]<0),outside=tet.filter(i=>values[i]>=0);
    if(inside.length===1)triangle(edge(inside[0],outside[0]),edge(inside[0],outside[1]),edge(inside[0],outside[2]));
    else if(inside.length===3)triangle(edge(outside[0],inside[0]),edge(outside[0],inside[1]),edge(outside[0],inside[2]));

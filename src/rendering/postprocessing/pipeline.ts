@@ -23,6 +23,7 @@ export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,ca
  // Start software-rendered WebGL at the budget the adaptive controller would otherwise reach slowly.
  const gl=renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info'),driver=debug?String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)):'';
  const softwareRendering=/SwiftShader|llvmpipe|software/i.test(driver);
+ if(softwareRendering)atmosphere.volume.sun.shadow.mapSize.set(512,512);
  let width=1,height=1,scale=softwareRendering?.6:1,frames=0,slowFrames=0,lastFrame=0;
  function resize(w:number,h:number){width=w;height=h;const ratio=Math.min(window.devicePixelRatio,1,720/Math.max(w,h))*scale;renderer.setPixelRatio(ratio);renderer.setSize(w,h,false);composer.setPixelRatio(ratio);composer.setSize(w,h);fxaa.uniforms.resolution.value.set(1/(w*ratio),1/(h*ratio));ssr.ssrMaterial.defines.MAX_STEP=48;ssr.ssrMaterial.needsUpdate=true;}
  let lastSelect=-Infinity;const reflections:THREE.Mesh[]=[];
