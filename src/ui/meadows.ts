@@ -18,6 +18,6 @@ export function meadowPanel(s:AdventureSnapshot,p:Vec3,tab:string,selected=0,mov
  return `<div class="panel-intro">${s.objective}</div>${meadowMap(s,p,mapRange)}<article class="recipe-card"><strong>雷角の主</strong><div class="costs">${cost({deerTrophy:2})}</div>${button('祭壇に供物を捧げる','summon')}${button('ボスの証を奉納','offer')}</article><p>草原で食事と拠点を整え、最初のボスを討伐する旅。Voxelの掘削と放水はいつでも使用できます。</p>`;
 }
 export function meadowStatus(s:AdventureSnapshot):string{
- const m=s.meadows!;return [m.fishing?m.fishing.phase==='bite'?'魚が食いついた！ 合わせる':m.fishing.phase==='fight'?`釣り ${Math.round(m.fishing.progress*100)}% · 張り ${Math.round(m.fishing.strain*100)}%`:'釣り · 浮きを待つ':'',m.smoke?'煙で息苦しい':'',m.shelter?'雨除け':'',m.warmth?'暖かい':'',m.cold?'寒い':'',m.wet>0?'濡れ':'',s.rested>0?`休息 ${Math.ceil(s.rested/60)}分`:'',m.corpseRun?'遺品回収の加護':'',m.power>0?'雷鹿の加護':'',m.raid>0?'⚠ 拠点への襲撃':''].filter(Boolean).join(' · ');
+ const m=s.meadows!;return [m.fishing?m.fishing.phase==='bite'?'魚が食いついた！ 合わせる':m.fishing.phase==='fight'?`釣り ${Math.round(m.fishing.progress*100)}% · 張り ${Math.round(m.fishing.strain*100)}%`:'釣り · 浮きを待つ':'',m.resting&&m.resting<20?`休憩中 ${Math.ceil(20-m.resting)}秒`:'',m.smoke?'煙で息苦しい':'',m.shelter?'雨除け':'',m.warmth?'暖かい':'',m.cold?'寒い':'',m.wet>0?'濡れ':'',s.rested>0?`休息 ${Math.ceil(s.rested/60)}分`:'',m.corpseRun?'遺品回収の加護':'',m.power>0?'雷鹿の加護':'',m.raid>0?'⚠ 拠点への襲撃':''].filter(Boolean).join(' · ');
 }
 export { foodStats, ENEMIES };

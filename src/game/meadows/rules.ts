@@ -115,7 +115,8 @@ export class MeadowRules{
   const bed=s.buildings.find(b=>b.definition==='bed'&&distance(p,b)<3);if(!bed)throw new Error('ベッドに近づいてください');s.spawn={x:bed.x+1.5,y:bed.y+.5,z:bed.z};
   if(!roofed(bed,s.buildings))throw new Error('復活地点を設定しました。眠るにはベッドを屋根で覆ってください');
   if(!s.buildings.some(b=>b.definition==='fire'&&(b.fuel??0)>0&&!b.open&&distance(b,bed)<6))throw new Error('眠るには近くに火が必要です');
-  if(s.enemies.some(e=>e.health>0&&!['deer','gull'].includes(e.definition)&&distance(e,bed)<12))throw new Error('近くに敵がいます');
+  if(s.enemies.some(e=>e.health>0&&(e.tame??0)<1&&!['deer','gull'].includes(e.definition)&&distance(e,bed)<12))throw new Error('近くに敵がいます');
+  const hour=environmentAt(s.seconds).hour;if(hour>=6&&hour<18)return ok('復活地点を設定しました。夜になったら眠れます');
   s.rested=480+m.comfort*60;s.health=foodStats(s).health;s.seconds+=((7-environmentAt(s.seconds).hour+24)%24)/24*720;return ok('朝まで休みました。ベッドが復活地点です');
  }
  if(action==='summon'){
@@ -141,7 +142,7 @@ export class MeadowRules{
  m.comfort=(m.shelter?2:0)+(m.warmth?1:0)+(s.buildings.some(b=>b.definition==='bed'&&distance(b,p)<8)?1:0);m.weight=weight(s.inventory);
  const stats=foodStats(s);s.health=Math.min(s.health,stats.health);s.stamina=Math.min(s.stamina,stats.stamina);
  if(s.health>0)s.health=Math.min(stats.health,s.health+stats.healing*dt*(m.cold?.5:1));
- if(m.shelter&&m.warmth&&!this.game.attack)s.rested=Math.max(s.rested,480+m.comfort*60);
+ const calm=m.shelter&&m.warmth&&!m.smoke&&!m.exerting&&!this.game.attack&&!s.enemies.some(e=>e.health>0&&(e.tame??0)<1&&!['deer','gull'].includes(e.definition)&&distance(e,p)<10);m.resting=calm?Math.min(20,(m.resting??0)+dt):0;if(m.resting>=20)s.rested=Math.max(s.rested,480+m.comfort*60);
  if(this.game.owner!=='host')return;
  stepFacilities(this.game,dt);stepForestry(this.game,dt);stepVillage(this.game,dt);
  for(const b of s.buildings){
@@ -149,7 +150,7 @@ export class MeadowRules{
   if(b.definition==='cook'&&s.buildings.some(f=>f.definition==='fire'&&(f.fuel??0)>0&&!f.open&&distance(f,b)<2))for(const c of b.cooking??[])c.time+=dt;
   if(b.definition==='beehive'&&!roofed(b,s.buildings)){b.progress=(b.progress??0)+dt;if(b.progress>=300){b.progress=0;b.contents.honey=Math.min(4,(b.contents.honey??0)+1);}}
  }
- for(const e of s.enemies)if(e.definition==='boar'&&e.health>0){e.fed=Math.max(0,(e.fed??0)-dt);if(e.fed>0&&distance(e,p)>8&&!s.buildings.some(b=>b.definition==='fire'&&(b.fuel??0)>0&&distance(b,e)<6))e.tame=Math.min(1,(e.tame??0)+dt/1800);if(e.baby)e.baby=Math.max(0,e.baby-dt);}
+ for(const e of s.enemies)if(e.definition==='boar'&&e.health>0){e.fed=Math.max(0,(e.fed??0)-dt);if(e.fed>0&&!(e.alerted??0)&&(this.sim.targets.length?this.sim.targets.map(t=>t.player):[p]).every(actor=>distance(e,actor)>8)&&!s.buildings.some(b=>b.definition==='fire'&&(b.fuel??0)>0&&!b.open&&distance(b,e)<6))e.tame=Math.min(1,(e.tame??0)+dt/1800);if(e.baby)e.baby=Math.max(0,e.baby-dt);}
  stepRaids(this.game,dt);
  }
 }

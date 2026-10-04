@@ -30,3 +30,10 @@ it('keeps smoke below a closed ceiling and vents through an opened door',()=>{
  expect(smokeColumn(fire,room)).toEqual({ceiling:2,ventilated:false});room[1].open=true;
  expect(smokeColumn(fire,room).ventilated).toBe(true);room.shift();expect(smokeColumn(fire,room).ceiling).toBeNull();
 });
+it('sets a spawn in daytime without skipping a day or restoring health instantly',()=>{
+ const sim=new GameSimulation(),g=sim.adventure,p=sim.player;g.state.enemies=[];g.state.health=10;
+ const b:BuildingState={id:sim.allocateEntityId(),definition:'bed',x:p.x,y:p.y,z:p.z,rotation:0,support:3,contents:{}};
+ g.state.buildings=[b,{...b,id:sim.allocateEntityId(),definition:'fire',x:p.x+2,fuel:100},{...b,id:sim.allocateEntityId(),definition:'roof',y:p.y+2}];
+ g.action('rest');expect(g.state.spawn).not.toBeNull();expect(g.state.seconds).toBe(0);expect(g.state.health).toBe(10);
+ g.state.seconds=360;g.action('rest');expect(g.state.seconds).toBeGreaterThan(360);expect(g.state.health).toBe(25);
+});

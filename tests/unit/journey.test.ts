@@ -21,3 +21,9 @@ it('shares placement snapping and invalid-preview rules with the authority',()=>
  expect(placementIssue(def,p,p,[],{stone:4})).toContain('自分');
  expect(placementIssue(def,p,{x:20,y:0,z:0},[],{stone:4})).toContain('近く');
 });
+
+it('keeps the completed Meadows objective when food expires or tools are stored',()=>{
+ const sim=new GameSimulation(),g=sim.adventure;g.state.defeated=['stormstag'];g.state.inventory={};
+ expect(journeyGoal(g.snapshot(),sim.player).title).toContain('奉納');g.state.meadows!.offered=true;
+ expect(journeyGoal(g.snapshot(),sim.player).title).toContain('試練を越えた');
+});
