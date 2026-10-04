@@ -27,7 +27,7 @@ export function createView(canvas:HTMLCanvasElement,sim:CoreSimulation){
   render(dt:number,block:boolean){
    const p=sim.player;camera.position.set(p.position.x,p.position.y+1.52,p.position.z);camera.rotation.set(p.pitch,p.yaw,0);
    world.sync();waterElapsed+=dt;if(previousWater!==sim.water.revision&&waterElapsed>.2){waterMesh.geometry.dispose();waterMesh.geometry=waterGeometry(sim.water);previousWater=sim.water.revision;waterElapsed=0;}
-   for(const e of sim.enemies){const m=creatures[e.id];m.position.set(e.position.x,e.position.y,e.position.z);m.rotation.set(e.phase==='windup'?-.2:e.phase==='strike'?.24:0,e.yaw,e.phase==='stagger'?.17:0);m.visible=e.hp>0;m.scale.y=e.phase==='windup'?.96:1;}
+   for(const e of sim.enemies){const m=creatures[e.id];m.position.set(e.position.x,e.position.y,e.position.z);m.rotation.set(e.phase==='windup'?.12:e.phase==='strike'?-.24:0,e.yaw,e.phase==='stagger'?.17:0);m.visible=e.hp>0;m.scale.y=e.phase==='windup'?.96:1;}
    if(lastTool!==p.tool){blade.geometry=p.tool?toolGeometry:bladeGeometry;lastTool=p.tool;}
    const wind=p.phase==='windup'?Math.min(1,p.time/(p.heavy?.46:.22)):p.phase==='strike'?1-p.time/.15:0;
    blade.position.set(.35-wind*.18,-.52+wind*.15,-.48);blade.rotation.set(-.4+(p.phase==='strike'?-1.6*wind:.7*wind),0,-.18+(p.phase==='strike'?-1.2*wind:.6*wind));

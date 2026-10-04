@@ -4,13 +4,13 @@ import { VoxelWater } from './water';
 export interface Controls {x:number;z:number;sprint:boolean;block:boolean;water:boolean}
 export type Action='attack'|'heavy'|'dodge'|'jump'|'interact'|'heal'|'tool'|'sword'|'chisel';
 export interface Event {kind:'swing'|'hit'|'hurt'|'parry'|'step'|'interact'|'water'|'break';text?:string}
-export interface Enemy {id:number;position:Vec3;yaw:number;hp:number;phase:'idle'|'windup'|'strike'|'recover'|'stagger'|'dead';time:number;hit:boolean}
+export interface Enemy {id:number;position:Vec3;yaw:number;hp:number;vy:number;phase:'idle'|'windup'|'strike'|'recover'|'stagger'|'dead';time:number;hit:boolean}
 export interface Target {hit:Hit;enemy?:Enemy;label:string;action:string}
 const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
 export class CoreSimulation {
  readonly arena=createArena();readonly water=new VoxelWater(this.arena.field);readonly enemyShape=creatureVoxels();
  readonly player={position:{x:0,y:.25,z:6},yaw:0,pitch:0,hp:100,stamina:100,vy:0,grounded:true,flasks:1,tool:false,phase:'idle' as 'idle'|'windup'|'strike'|'recover'|'dodge',time:0,heavy:false,hit:false,blockTime:0,dodgeX:0,dodgeZ:0};
- readonly enemies:Enemy[]=[{id:0,position:{x:0,y:.25,z:-6},yaw:0,hp:100,phase:'idle',time:0,hit:false},{id:1,position:{x:2,y:.25,z:-9},yaw:0,hp:100,phase:'idle',time:0,hit:false}];
+ readonly enemies:Enemy[]=[{id:0,position:{x:0,y:.25,z:-6},yaw:0,hp:100,vy:0,phase:'idle',time:0,hit:false},{id:1,position:{x:2,y:.25,z:-9},yaw:0,hp:100,vy:0,phase:'idle',time:0,hit:false}];
  readonly events:Event[]=[];seconds=0;waterOn=false;defeated=0;private fluidTime=0;private footTime=0;private regenDelay=0;
  look(dx:number,dy:number){this.player.yaw-=dx;this.player.pitch=clamp(this.player.pitch-dy,-Math.PI/2+.03,Math.PI/2-.03);}
  eye():Vec3{return {...this.player.position,y:this.player.position.y+1.52};}
@@ -39,10 +39,13 @@ export class CoreSimulation {
  }
  private interact(){
   const target=this.target();if(!target||target.enemy||!target.hit.cell.object)return;const o=this.arena.objects.get(target.hit.cell.object);if(!o||o.kind==='tree')return;
-  if(o.kind==='door'){o.open=!o.open;setDoor(this.arena.field,o.open);}
+  if(o.kind==='door'){setDoor(this.arena.field,!o.open);
+   if(this.arena.field.overlaps(this.player.position)||this.enemies.some(e=>e.hp>0&&this.arena.field.overlaps(e.position,.27,1.7))){setDoor(this.arena.field,o.open);this.events.push({kind:'interact',text:'扉が体に当たるため動かせない'});return;}
+   o.open=!o.open;
+  }
   if(o.kind==='chest'&&!o.open){o.open=true;this.player.flasks+=2;this.arena.field.box({x:-3.25,y:1,z:-3.75},{x:-1.75,y:1.25,z:-3},0);this.events.push({kind:'interact',text:'回復薬 ×2'});}
   if(o.kind==='valve')this.waterOn=!this.waterOn;
-  if(o.kind==='altar'){for(const e of this.enemies){e.hp=100;e.phase='idle';e.time=0;e.position={x:e.id*2,y:.25,z:-6-e.id*3};}this.defeated=0;this.player.stamina=100;}
+  if(o.kind==='altar'){for(const e of this.enemies){e.hp=100;e.phase='idle';e.time=0;e.vy=0;e.position={x:e.id*2,y:.25,z:-6-e.id*3};}this.defeated=0;this.player.stamina=100;}
   this.events.push({kind:'interact',text:o.name+' · '+(o.kind==='valve'?(this.waterOn?'放水':'止水'):o.kind==='door'?(o.open?'開く':'閉じる'):'操作')});
  }
  private axes(input:Controls){const p=this.player;return {x:Math.cos(p.yaw)*input.x-Math.sin(p.yaw)*input.z,z:-Math.sin(p.yaw)*input.x-Math.cos(p.yaw)*input.z};}
@@ -58,7 +61,11 @@ export class CoreSimulation {
   // Blade sweep samples a cone, but every sample is still occlusion-tested voxel DDA.
   let enemy=target?.enemy;
   if(!p.tool&&!enemy){const yaw=p.yaw;for(const offset of [-.24,-.12,.12,.24]){p.yaw=yaw+offset;enemy=this.target(2.6)?.enemy;if(enemy)break;}p.yaw=yaw;}
-  if(enemy){enemy.hp=Math.max(0,enemy.hp-(p.heavy?55:32));enemy.phase=enemy.hp?'stagger':'dead';enemy.time=0;if(!enemy.hp)this.defeated++;this.events.push({kind:'hit',text:enemy.hp?'命中':'番兵を倒した'});return;}
+  if(enemy){enemy.hp=Math.max(0,enemy.hp-(p.heavy?55:32));
+   if(!enemy.hp){enemy.phase='dead';enemy.time=0;this.defeated++;}
+   else if(p.heavy){enemy.phase='stagger';enemy.time=0;}
+   // Light hits do not cancel the enemy's committed attack; heavy hits and parries do.
+   this.events.push({kind:'hit',text:enemy.hp?'命中':'番兵を倒した'});return;}
   if(!target)return;const c=target.hit.cell,o=c.object?this.arena.objects.get(c.object):null;
   if(p.tool){
    const radius=p.heavy?1:0;for(let x=-radius;x<=radius;x++)for(let y=-radius;y<=radius;y++)for(let z=-radius;z<=radius;z++)this.arena.field.set(c.x+x,c.y+y,c.z+z,0);
@@ -86,7 +93,11 @@ export class CoreSimulation {
   if(p.phase==='strike'&&p.time>=.15){p.phase='recover';p.time=0;}
   if(p.phase==='recover'&&p.time>=(p.heavy?.62:.36)){p.phase='idle';p.time=0;}
   if(p.phase==='dodge'){this.move(p.position,p.dodgeX*6.2*dt,p.dodgeZ*6.2*dt);if(p.time>=.36){p.phase='idle';p.time=0;}}
-  for(const e of this.enemies)this.enemyTick(e,dt,blocking);
+  for(const e of this.enemies){this.enemyTick(e,dt,blocking);if(e.hp<=0)continue;e.vy-=14*dt;const next=e.position.y+e.vy*dt;
+   if(e.vy<=0&&this.arena.field.overlaps({...e.position,y:next-.02},.27,1.7)){e.position.y=Math.ceil((next-.005)/this.arena.field.size)*this.arena.field.size;e.vy=0;}
+   else if(!this.arena.field.overlaps({...e.position,y:next},.27,1.7))e.position.y=next;else e.vy=0;
+   if(e.position.y<-4){e.hp=0;e.phase='dead';this.defeated++;}
+  }
   this.fluidTime+=dt;if(this.fluidTime>=.1){this.fluidTime=0;if(this.waterOn||input.water)for(let z=20;z<26;z++)this.water.add(2,10,z,.8);this.water.step();}
  }
  private enemyTick(e:Enemy,dt:number,blocking:boolean){
