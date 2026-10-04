@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
-import { chunkKey,VoxelField,type Cell } from '../core/voxel';
+import { chunkKey,VoxelField,type Cell,type Vec3 } from '../core/voxel';
 import { extractSurface } from '../core/surface';
 import type { VoxelWater } from '../core/water';
 const palette=['#000000','#3b3630','#455044','#64605a','#37281f','#806346','#9ca4aa','#26392e','#475461','#ffb25c','#33343a','#8e8475','#574633','#635448'].map(c=>new THREE.Color(c));
@@ -11,18 +11,57 @@ export function voxelGeometry(field:VoxelField,cells:Iterable<Cell>=field.cells.
 }
 export class WorldMeshes {
  readonly material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.87,metalness:.04});readonly chunks=new Map<string,THREE.Mesh>();remeshes=0;lastRemeshMs=0;
+ readonly loadRadius=24;readonly evictionRadius=32;bucketScans=0;lastBuiltChunks=0;
+ private cachedRevision=-1;private buckets=new Map<string,Cell[]>();private emptyChunks=new Set<string>();
  constructor(readonly field:VoxelField,readonly scene:THREE.Scene){this.material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
 #ifdef USE_COLOR
  totalEmissiveRadiance += vColor.rgb * step(.8,vColor.r) * step(vColor.b,.2) * 1.8;
 #endif`);};}
- sync(){if(!this.field.dirty.size)return;const start=performance.now();const dirty=new Set(this.field.dirty),buckets=new Map<string,Cell[]>();
-  // Include a one-sample halo. Cube ownership is unique, so neighbouring chunks share exact vertices.
-  for(const c of this.field.cells.values()){if(c.distance>=0)continue;const owners=new Set([chunkKey(c.x,c.z),chunkKey(c.x-1,c.z),chunkKey(c.x,c.z-1),chunkKey(c.x-1,c.z-1)]);for(const id of owners){if(!dirty.has(id))continue;let list=buckets.get(id);if(!list)buckets.set(id,list=[]);list.push(c);}}
-  for(const id of dirty){const old=this.chunks.get(id);if(old){this.scene.remove(old);old.geometry.dispose();this.chunks.delete(id);}const list=buckets.get(id);if(!list)continue;
-   const geometry=voxelGeometry(this.field,list,id);if(!geometry.getAttribute('position').count){geometry.dispose();continue;}const m=new THREE.Mesh(geometry,this.material);m.castShadow=true;m.receiveShadow=true;this.chunks.set(id,m);this.scene.add(m);this.remeshes++;
-  }this.field.dirty.clear();this.lastRemeshMs=performance.now()-start;
+ private distance(id:string,center:Vec3){const [x,z]=id.split(',').map(Number),width=16*this.field.size;return Math.hypot((x+.5)*width-center.x,(z+.5)*width-center.z);}
+ private remove(id:string){const mesh=this.chunks.get(id);if(!mesh)return;this.scene.remove(mesh);mesh.geometry.dispose();this.chunks.delete(id);}
+ /** Reuse owner buckets across unchanged frames. The one-sample halo is identical to
+  * full-world meshing, so streamed neighbours retain exact surface ownership/seams. */
+ private refreshBuckets(){
+  if(this.cachedRevision===this.field.revision)return;
+  this.buckets.clear();this.emptyChunks.clear();this.bucketScans++;
+  for(const c of this.field.cells.values()){if(c.distance>=0)continue;
+   const owners=new Set([chunkKey(c.x,c.z),chunkKey(c.x-1,c.z),chunkKey(c.x,c.z-1),chunkKey(c.x-1,c.z-1)]);
+   for(const id of owners){let list=this.buckets.get(id);if(!list)this.buckets.set(id,list=[]);list.push(c);}
+  }
+  this.cachedRevision=this.field.revision;
  }
- dispose(){for(const m of this.chunks.values()){this.scene.remove(m);m.geometry.dispose();}this.chunks.clear();this.material.dispose();}
+ /** Builds at most budget chunks (default four) nearest the view. Dirty near-player
+  * edits outrank new distant chunks. Unloaded dirty flags survive until visited.
+  * Geometry beyond 32 m is disposed; 24/32 m hysteresis prevents boundary thrashing.
+  * The authoritative collision/SDF world is never altered or unloaded here. */
+ sync(center:Vec3={x:0,y:0,z:6},budget=4){
+  const start=performance.now();this.lastBuiltChunks=0;
+  if(!Number.isFinite(center.x)||!Number.isFinite(center.z)){this.lastRemeshMs=0;return;}
+  for(const id of this.chunks.keys())if(this.distance(id,center)>this.evictionRadius)this.remove(id);
+  const limit=Number.isFinite(budget)?Math.max(0,Math.min(64,Math.floor(budget))):4;
+  if(!limit){this.lastRemeshMs=performance.now()-start;return;}
+  this.refreshBuckets();
+  // Dirty chunks without solid samples still need their old geometry removed.
+  const ids=new Set([...this.buckets.keys(),...this.field.dirty]);
+  const pending:[string,number,number][]=[];
+  for(const id of ids){const distance=this.distance(id,center);if(distance>this.loadRadius)continue;
+   const dirty=this.field.dirty.has(id),existing=this.chunks.has(id);
+   if(!dirty&&(existing||this.emptyChunks.has(id)))continue;
+   const priority=dirty&&existing&&distance<=8?0:distance<=8?1:dirty&&existing?2:3;
+   pending.push([id,distance,priority]);
+  }
+  pending.sort((a,b)=>a[2]-b[2]||a[1]-b[1]||a[0].localeCompare(b[0]));
+  for(const [id] of pending.slice(0,limit)){
+   const list=this.buckets.get(id);let geometry:THREE.BufferGeometry|undefined;
+   if(list)geometry=voxelGeometry(this.field,list,id);
+   this.remove(id);
+   if(geometry&&geometry.getAttribute('position').count){const mesh=new THREE.Mesh(geometry,this.material);mesh.castShadow=true;mesh.receiveShadow=true;this.chunks.set(id,mesh);this.scene.add(mesh);this.emptyChunks.delete(id);this.remeshes++;}
+   else{geometry?.dispose();this.emptyChunks.add(id);}
+   this.field.dirty.delete(id);this.lastBuiltChunks++;
+  }
+  this.lastRemeshMs=performance.now()-start;
+ }
+ dispose(){for(const id of this.chunks.keys())this.remove(id);this.buckets.clear();this.emptyChunks.clear();this.cachedRevision=-1;this.material.dispose();}
 }
 /** Reconstruct the fluid free-surface distance band from conserved 0.125m volume cells. */
 export function waterGeometry(w:VoxelWater){

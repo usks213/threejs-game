@@ -7,7 +7,13 @@ if (!process.env.CLOUDFLARE_API_TOKEN) throw new Error('Add CLOUDFLARE_API_TOKEN
 if (process.env.CLOUDFLARE_ACCOUNT_ID !== 'c3ca485329f03044432fbd5164083278' || !/^\d+$/.test(pr ?? '') || !/^[a-f0-9]{40}$/.test(expected ?? '')) throw new Error('Invalid deployment context');
 const manifest = JSON.parse(readFileSync('dist/deployment.json', 'utf8'));
 if (manifest.application !== 'threejs-game' || manifest.commit !== expected) throw new Error('Build artifact does not match the requested commit');
-const result = spawnSync('npx', ['--yes', 'wrangler@4.147.0', 'preview', '--name', `pr-${pr}`, '--json'], { encoding: 'utf8', timeout: 300000, maxBuffer: 5 * 1024 * 1024, env: { ...process.env, CI: 'true', WRANGLER_SEND_METRICS: 'false' } });
+// Relay deployment is opt-in and restricted to PR4's actually enabled adapter.
+// Other previews and the default path keep their existing assets-only config.
+const campaignRelay = pr === '4' && process.env.PR4_CAMPAIGN_RELAY_ENABLED === 'true';
+if (campaignRelay && manifest.campaignCoop !== true) throw new Error('PR4 co-op adapter is not enabled in this verified artifact');
+const previewArgs = ['--yes', 'wrangler@4.147.0', 'preview', '--name', `pr-${pr}`, '--json'];
+if (campaignRelay) previewArgs.push('--config', 'apps/campaign-room/wrangler.preview.jsonc');
+const result = spawnSync('npx', previewArgs, { encoding: 'utf8', timeout: 300000, maxBuffer: 5 * 1024 * 1024, env: { ...process.env, CI: 'true', WRANGLER_SEND_METRICS: 'false' } });
 if (result.error || result.status !== 0) {
   console.error(result.stderr || result.stdout || result.error?.message);
   throw new Error('Cloudflare Preview deployment failed');

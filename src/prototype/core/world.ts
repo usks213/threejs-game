@@ -1,7 +1,7 @@
 import { VoxelField,capsule,ellipsoid,type Vec3 } from './voxel';
-export interface ObjectState {id:string;kind:'door'|'chest'|'tree'|'valve'|'altar'|'resource';name:string;open:boolean;hp:number}
-export function createArena(){
- const field=new VoxelField(),objects=new Map<string,ObjectState>();
+export interface ObjectState {id:string;kind:'door'|'chest'|'tree'|'valve'|'altar'|'resource'|'hearth'|'artisan'|'cache'|'gate'|'anchor'|'plant';name:string;open:boolean;hp:number}
+export function createArena(field=new VoxelField()){
+ const objects=new Map<string,ObjectState>();
  const box=(x:number,y:number,z:number,w:number,h:number,d:number,m:number,id?:string,r=.08)=>field.box({x,y,z},{x:x+w,y:y+h,z:z+d},m,id,r);
  const orb=(c:Vec3,r:Vec3,m:number,id?:string)=>field.shape({x:c.x-r.x,y:c.y-r.y,z:c.z-r.z},{x:c.x+r.x,y:c.y+r.y,z:c.z+r.z},ellipsoid(c,r),m,id);
  const limb=(a:Vec3,b:Vec3,r:number,m:number,id?:string)=>field.shape({x:Math.min(a.x,b.x)-r,y:Math.min(a.y,b.y)-r,z:Math.min(a.z,b.z)-r},{x:Math.max(a.x,b.x)+r,y:Math.max(a.y,b.y)+r,z:Math.max(a.z,b.z)+r},capsule(a,b,r),m,id);

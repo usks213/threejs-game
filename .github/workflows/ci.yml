@@ -58,9 +58,15 @@ jobs:
           - project: android-chromium
             group: android-elements
             cases: elemental
+          - project: desktop-chromium
+            group: desktop-campaign
+            cases: campaign
+          - project: android-chromium
+            group: android-campaign
+            cases: campaign
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:

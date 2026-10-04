@@ -1,3 +1,4 @@
+import {record,number,integer,text,vector} from '../../save/validation';
 import { materialDefinition } from './materials';
 import { key, type Cell, type Hit, type Vec3, type VoxelField } from './voxel';
 import type { VoxelWater } from './water';
@@ -7,11 +8,12 @@ export interface MaterialShard { material:number; position:Vec3; life:number }
 export interface DamageResult { damaged:number; destroyed:number }
 export interface ElementState { position:Vec3; fire:number; wet:number; charge:number }
 export interface ElementEffect { element:Element; position:Vec3; direction:Vec3; life:number; strength:number }
+export interface ElementSaveState {version:1;states:[string,ElementState][];damagedObjects:string[];health:[string,{material:number;object?:string;remaining:number}][];drops:MaterialDrop[];accumulator:number}
 const NEIGHBORS=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]] as const;
 /** Deterministic bounded local gameplay approximation, not full thermodynamics. */
 export class ElementSystem {
  readonly states=new Map<string,ElementState>();
- readonly damagedObjects=new Set<string>();
+ readonly damagedObjects=new Set<string>();readonly protectedObjects=new Set<string>();
  readonly effects:ElementEffect[]=[];
  readonly shards:MaterialShard[]=[];
  readonly maxStates=256;readonly maxEffects=64;
@@ -19,12 +21,23 @@ export class ElementSystem {
  private drops:MaterialDrop[]=[];
  private accumulator=0;
  constructor(readonly field:VoxelField,readonly water:VoxelWater){}
+ exportState():ElementSaveState {return {version:1,states:[...this.states].map(([id,s])=>[id,{...s,position:{...s.position}}]),damagedObjects:[...this.damagedObjects],health:[...this.health].map(([id,h])=>[id,{...h}]),drops:this.drops.map(d=>({...d,position:{...d.position}})),accumulator:this.accumulator};}
+ restoreState(value:unknown):boolean {
+  if(!record(value)||value.version!==1||!Array.isArray(value.states)||value.states.length>this.maxStates||!Array.isArray(value.health)||value.health.length>1000000||!Array.isArray(value.drops)||value.drops.length>100000||!Array.isArray(value.damagedObjects)||value.damagedObjects.length>1024||!number(value.accumulator,0,1))return false;
+  const states=new Map<string,ElementState>(),health=new Map<string,{material:number;object?:string;remaining:number}>(),objects=new Set<string>(),drops:MaterialDrop[]=[];
+  for(const entry of value.states){if(!Array.isArray(entry)||entry.length!==2)return false;const [id,s]=entry;if(!text(id)||states.has(id)||!record(s)||!vector(s.position)||!number(s.fire,0,1e6)||!number(s.wet,0,1e6)||!number(s.charge,0,1e6))return false;states.set(id,{position:{...s.position},fire:s.fire,wet:s.wet,charge:s.charge});}
+  for(const entry of value.health){if(!Array.isArray(entry)||entry.length!==2)return false;const [id,h]=entry;if(!text(id,240)||health.has(id)||!record(h)||!integer(h.material,1,10)||!number(h.remaining,0,materialDefinition(h.material).durability)||h.object!==undefined&&!text(h.object))return false;health.set(id,{material:h.material,remaining:h.remaining,...(h.object?{object:h.object as string}:{})});}
+  for(const id of value.damagedObjects){if(!text(id)||objects.has(id))return false;objects.add(id);}
+  for(const d of value.drops){if(!record(d)||!integer(d.material,1,10)||!integer(d.count,1,1e6)||!vector(d.position))return false;drops.push({material:d.material,count:d.count,position:{...d.position}});}
+  this.states.clear();for(const [id,s] of states)this.states.set(id,s);this.health.clear();for(const [id,h] of health)this.health.set(id,h);this.damagedObjects.clear();for(const id of objects)this.damagedObjects.add(id);this.drops=drops;this.accumulator=value.accumulator;this.effects.length=0;this.shards.length=0;return true;
+ }
  private position(c:Vec3):Vec3{return {x:(c.x+.5)*this.field.size,y:(c.y+.5)*this.field.size,z:(c.z+.5)*this.field.size};}
  private healthKey(cell:Cell){return `${key(cell.x,cell.y,cell.z)}:${cell.material}:${cell.object??'base'}`;}
  durability(cell:Cell){const saved=this.health.get(this.healthKey(cell));return saved&&saved.material===cell.material&&saved.object===cell.object?saved.remaining:materialDefinition(cell.material).durability;}
  getDurability(cell:Cell){return {hp:this.durability(cell),max:materialDefinition(cell.material).durability};}
  private damageCell(cell:Cell,power:number):DamageResult{
   const current=this.field.get(cell.x,cell.y,cell.z),def=materialDefinition(cell.material);
+  if(cell.object&&this.protectedObjects.has(cell.object))return {damaged:0,destroyed:0};
   if(!current||current.material!==cell.material||current.object!==cell.object||!def.collectible||power<=0)return {damaged:0,destroyed:0};
   if(cell.object)this.damagedObjects.add(cell.object);
   const id=key(cell.x,cell.y,cell.z),remaining=Math.max(0,this.durability(cell)-power);
@@ -61,7 +74,7 @@ export class ElementSystem {
    const p={x:hit.point.x+hit.normal.x*.2,y:hit.point.y+hit.normal.y*.2,z:hit.point.z+hit.normal.z*.2};
    this.water.add(Math.floor((p.x-this.water.origin.x)/this.water.size),Math.floor((p.y-this.water.origin.y)/this.water.size),Math.floor((p.z-this.water.origin.z)/this.water.size),1);
   }else if(element==='fire'){
-   for(const c of cells){if(!materialDefinition(c.material).combustible)continue;const state=this.state(c);if(state&&state.wet<=0)state.fire=1;}
+   for(const c of cells){if(!materialDefinition(c.material).combustible||c.object&&this.protectedObjects.has(c.object))continue;const state=this.state(c);if(state&&state.wet<=0)state.fire=1;}
   }else if(element==='earth'){
    const result={damaged:0,destroyed:0};for(const c of cells){const state=this.states.get(key(c.x,c.y,c.z));if(state)state.fire=0;
     if(c.material===2||c.material===3||c.material===8){const r=this.damageCell(c,28);result.damaged+=r.damaged;result.destroyed+=r.destroyed;}}
@@ -70,7 +83,7 @@ export class ElementSystem {
    // Advect ignition toward the cast direction, visiting only a short 1.5 m segment.
    for(const c of cells){const state=this.states.get(key(c.x,c.y,c.z));if(!state||state.fire<=0)continue;
     for(let step=1;step<=6;step++){const p=this.position(c),next=this.field.get(Math.floor((p.x+d.x*step*this.field.size)/this.field.size),Math.floor((p.y+d.y*step*this.field.size)/this.field.size),Math.floor((p.z+d.z*step*this.field.size)/this.field.size));
-     if(next&&materialDefinition(next.material).combustible){const target=this.state(next);if(target&&target.wet<=0)target.fire=1;}}
+     if(next&&!(next.object&&this.protectedObjects.has(next.object))&&materialDefinition(next.material).combustible){const target=this.state(next);if(target&&target.wet<=0)target.fire=1;}}
    }
    for(const drop of this.drops)if(Math.hypot(drop.position.x-hit.point.x,drop.position.y-hit.point.y,drop.position.z-hit.point.z)<2){drop.position.x+=d.x*.7;drop.position.y+=Math.max(.1,d.y*.7);drop.position.z+=d.z*.7;}
   }else{
@@ -94,10 +107,10 @@ export class ElementSystem {
    if(!cell){this.states.delete(id);continue;}
    state.wet=Math.max(0,state.wet-.1);state.charge=Math.max(0,state.charge-.2);
    if(this.water.surface(state.position.x,state.position.z)>state.position.y)state.wet=2;
-   if(state.wet>0)state.fire=0;
+   if(state.wet>0||cell.object&&this.protectedObjects.has(cell.object))state.fire=0;
    if(state.fire>0){
     this.damageCell(cell,1.5);
-    for(const [dx,dy,dz] of NEIGHBORS){const next=this.field.get(x+dx,y+dy,z+dz);if(next&&materialDefinition(next.material).combustible)ignite.push(next);}
+    for(const [dx,dy,dz] of NEIGHBORS){const next=this.field.get(x+dx,y+dy,z+dz);if(next&&!(next.object&&this.protectedObjects.has(next.object))&&materialDefinition(next.material).combustible)ignite.push(next);}
    }
    if(state.fire<=0&&state.wet<=0&&state.charge<=0)this.states.delete(id);
   }

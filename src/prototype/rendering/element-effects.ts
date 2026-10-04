@@ -6,7 +6,7 @@ interface VisualEffect { element:Element; position:Vec3; direction:Vec3; life:nu
 interface VisualState { position:Vec3; fire:number; wet:number; charge:number }
 interface VisualDrop { id:number; material:number; position:Vec3; count:number }
 const colors:Record<Element,string>={fire:'#ff8841',water:'#75c8f4',earth:'#d3ab74',wind:'#d9f5e1',lightning:'#d6b9ff'};
-export const materialColors:Record<number,string>={2:'#c7a27b',3:'#b7bcc7',4:'#c9955e',5:'#c9955e',6:'#a9d9e6',7:'#8cac69'};
+export const materialColors:Record<number,string>={2:'#c7a27b',3:'#b7bcc7',4:'#c9955e',5:'#c9955e',6:'#a9d9e6',7:'#8cac69',10:'#c2afca'};
 const MAX_PARTICLES=768,MAX_DROPS=192;
 interface VisualShard { position:Vec3; material:number; life:number }
 /** Bounded instancing: purely visual particles never edit or remesh the terrain. */

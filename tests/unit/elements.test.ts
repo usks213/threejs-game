@@ -65,3 +65,9 @@ describe('material sample durability and local elements',()=>{
   elements.tick(.5);expect(elements.states.size).toBeLessThanOrEqual(elements.maxStates);expect(elements.effects.length).toBeLessThanOrEqual(elements.maxEffects);
  });
 });
+
+it('protected quest objects neither ignite nor relay fire from adjacent wood or wind',()=>{
+ const {field,elements}=make();for(let i=0;i<12;i++)field.set(i,0,0,4,i===4?'quest':undefined);elements.protectedObjects.add('quest');
+ const first=hit(field.get(0,0,0)!);elements.cast('fire',first,forward);elements.cast('wind',first,forward);elements.tick(.5);
+ expect(elements.states.get('4,0,0')?.fire??0).toBe(0);expect(elements.getDurability(field.get(4,0,0)!).hp).toBe(45);
+});
