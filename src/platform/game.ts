@@ -77,7 +77,7 @@ export function startGame() {
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
-  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message); };
+  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message); };
   const network = networkUI(signal, post, notice);
   const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
   const persistence = persistenceUI(send, signal, notice);
@@ -140,7 +140,7 @@ export function startGame() {
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       if (stopped) return;
       const message = event.data; if (message.type!=='terrain-reset'&&message.type!=='terrain-visibility'&&network.receive(message)) return;
-      if(message.type==='terrain-reset'){terrainEpoch=message.epoch;awaitTerrainReset=false;readyPending=false;terrainQueue.clear();terrainQueue.remove(terrain.ids());terrain.setActive([]);}
+      if(message.type==='terrain-reset'){terrainEpoch=message.epoch;app.dataset.worldEpoch=String(terrainEpoch);awaitTerrainReset=false;readyPending=false;terrainQueue.clear();terrainQueue.remove(terrain.ids());terrain.setActive([]);}
       else if(message.type==='terrain-visibility'){if(!awaitTerrainReset&&message.epoch===terrainEpoch)terrain.setActive(message.ids);}
       else if(message.type==='mesh'||message.type==='mesh-batch'){
         if(awaitTerrainReset||message.epoch!==terrainEpoch)return;
@@ -148,7 +148,7 @@ export function startGame() {
         for(const mesh of meshes)discarded+=terrainQueue.enqueue(mesh);acknowledgeMeshes(discarded);
       }
       else if(message.type==='remove'){if(awaitTerrainReset||message.epoch!==terrainEpoch)return;acknowledgeMeshes(terrainQueue.remove(message.ids,id=>terrain.has(id)));}
-      else if (message.type === 'snapshot') { state = message.state;dirtyWorld=true; if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
+      else if (message.type === 'snapshot') { if(awaitTerrainReset||message.epoch!==terrainEpoch)return;state = message.state;dirtyWorld=true; if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
       else if(message.type==='ready'){if(!awaitTerrainReset&&message.epoch===terrainEpoch){readyPending=true;readyFence=terrainQueue.fence();}}
       else if (message.type === 'save' && !network.guest) persistence.receive(message.save);
       else if (message.type === 'notice') notice(message.message);
