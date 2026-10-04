@@ -36,7 +36,7 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
    session = new CoopClient(token.value.trim(), packet => {
     if (operation !== generation) return;
     if (packet.type === 'welcome') { status.dataset.player = packet.playerId; welcome(packet.save,packet.state); }
-    else if (packet.type === 'frame') receiveState(packet.state,packet.edits,packet.editBase);
+    else if (packet.type === 'frame') receiveState(packet.state,packet.edits,packet.editBase);else if(packet.type==='ack')status.dataset.lastAck=JSON.stringify(packet);
    }, state => { if(operation===generation)show(state); }, notice);
    session.connect();
   } catch(error) { notice(String(error)); close(); }
@@ -64,7 +64,7 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
    if(message.type==='input'){
     if(dedicated){const seq=++sequence;dedicated.send('input',{input:message.input,sequence:seq});post({type:'replica-input',input:message.input,sequence:seq});}
     else {const seq=session?.input(message.input);if(seq!==undefined&&seq!==null)post({type:'replica-input',input:message.input,sequence:seq});}
-   } else if(message.type==='action'||message.type==='game-action'){if(dedicated)dedicated.send('action',message);else session?.action(message);}
+   } else if(message.type==='action'||message.type==='game-action'){status.dataset.lastCommand=JSON.stringify(message);if(dedicated)dedicated.send('action',message);else session?.action(message);}
    else if(message.type==='save'||message.type==='reset-player'||message.type==='init')notice('共有ワールドはサーバーに保存されます');
    return true;
   },

@@ -67,9 +67,10 @@ export class SessionAuthority {
    if (!message.aim || !finiteVec(message.aim) || Math.hypot(message.aim.x, message.aim.y, message.aim.z) > 1.5) throw new Error('照準データが不正です');
    if (message.target !== undefined && (!message.target || !finiteVec(message.target))) throw new Error('対象の位置が不正です');
   } else if (!['dig', 'add', 'water', 'rock'].includes(message.tool) || !message.target || !finiteVec(message.target)) throw new Error('操作データが不正です');
+  const releaseAction=message.type==='game-action'&&message.id==='off'&&(message.action==='guard'||message.action==='sprint');
   const waterAction = message.type === 'action' && message.tool === 'water';
-  if (!waterAction && this.sim.tick - actor.lastAction < 4) throw new Error('操作の間隔を空けてください');
-  if (!waterAction) actor.lastAction = this.sim.tick;
+  if (!releaseAction && !waterAction && this.sim.tick - actor.lastAction < 4) throw new Error('操作の間隔を空けてください');
+  if (!releaseAction && !waterAction) actor.lastAction = this.sim.tick;
   return this.withActor(actor, () => message.type === 'action' ? this.sim.act(message.tool, message.target, actor.id) : this.sim.adventure.action(message.action, message.id, message.target, message.aim));
  }
  step(hostInput?: PlayerInput): void {

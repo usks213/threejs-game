@@ -41,7 +41,7 @@ export class CoopClient {
      this.packet(message); this.state('online');
      for (const [commandId, action] of this.pending) this.send({ type: 'action', commandId, message: action });
     } else if (message.type === 'frame') { if (this.online && message.epoch === this.epoch) this.packet(message); }
-    else if (message.type === 'ack') { this.pending.delete(message.commandId); this.notice(message.message); }
+    else if (message.type === 'ack') { this.pending.delete(message.commandId); this.packet(message); this.notice(message.message); }
     else if (message.type === 'notice') this.notice(message.message);
    } catch (error) { this.notice(error instanceof Error ? error.message : '同期データを読み取れません'); socket.close(); }
   };
