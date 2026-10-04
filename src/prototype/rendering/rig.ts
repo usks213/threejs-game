@@ -37,7 +37,7 @@ export function createRig(firstPerson=false){
   const pole=new THREE.Vector3(side*.75,-.6,.45),perpendicular=pole.addScaledVector(dir,-pole.dot(dir)).normalize(),elbow=shoulder.clone().addScaledVector(dir,along).addScaledVector(perpendicular,bend);
   // Two-bone IK keeps fingers on the hilt instead of independently rotating a sword billboard.
   const reachable=shoulder.clone().addScaledVector(dir,Math.min(upper+lower-.01,shoulder.distanceTo(hand)));
-  shoulderMeshes[index].position.copy(shoulder);link(upperArms[index],shoulder,elbow);link(forearms[index],elbow,reachable);hands[index].position.copy(hand);hands[index].quaternion.copy(sword.quaternion);
+  shoulderMeshes[index].position.copy(shoulder);link(upperArms[index],shoulder,elbow);link(forearms[index],elbow,reachable);hands[index].position.copy(hand);hands[index].quaternion.copy(side>0?sword.quaternion:shield.quaternion);
  }
  return {
   root,

@@ -24,13 +24,13 @@ export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,ca
  function resize(w:number,h:number){width=w;height=h;const ratio=Math.min(window.devicePixelRatio,1,720/Math.max(w,h))*scale;renderer.setPixelRatio(ratio);renderer.setSize(w,h,false);composer.setPixelRatio(ratio);composer.setSize(w,h);fxaa.uniforms.resolution.value.set(1/(w*ratio),1/(h*ratio));ssr.ssrMaterial.defines.MAX_STEP=48;ssr.ssrMaterial.needsUpdate=true;}
  let lastSelect=-Infinity;const reflections:THREE.Mesh[]=[];
  return {
-  get stats(){return {...exposure.stats,...diagnostics,renderScale:scale};},
+  get stats(){return {reflectionSources:reflections.length,...exposure.stats,...diagnostics,renderScale:scale};},
   resize,
   render(dt:number,throttled=false){
    const now=performance.now();if(!throttled&&lastFrame&&now-lastFrame>48)slowFrames++;lastFrame=now;
    if(!throttled&&++frames===12){if(slowFrames>8&&scale>.55&&!reading){scale=Math.max(.55,scale-.15);resize(width,height);}frames=0;slowFrames=0;}
    renderer.info.reset();atmosphere.prepare(dt);
-   if(performance.now()-lastSelect>350){lastSelect=performance.now();reflections.length=0;scene.traverseVisible(o=>{if(o instanceof THREE.Mesh&&o.geometry.drawRange.count>0&&(!(o instanceof THREE.InstancedMesh)||o.count>0)){const mats=Array.isArray(o.material)?o.material:[o.material];if(mats.some(m=>m instanceof THREE.MeshStandardMaterial&&m.roughness<.25))reflections.push(o);}});ssr.selects=reflections;}
+   if(performance.now()-lastSelect>350){lastSelect=performance.now();reflections.length=0;scene.traverseVisible(o=>{if(o instanceof THREE.Mesh&&o.userData.reflectionVisible!==false&&o.geometry.drawRange.count>0&&(!(o instanceof THREE.InstancedMesh)||o.count>0)){const mats=Array.isArray(o.material)?o.material:[o.material];if(mats.some(m=>m instanceof THREE.MeshStandardMaterial&&m.roughness<.25))reflections.push(o);}});ssr.selects=reflections;}
    renderer.shadowMap.needsUpdate=true;composer.render(dt);
    if(inspect&&!reading&&performance.now()-lastRead>2000){reading=true;lastRead=performance.now();void Promise.all([measure(ssr.ssrRenderTarget,true),measure(bloom.renderTargetsHorizontal[0]),measure(volume.target),measure(ssr.beautyRenderTarget)]).then(([reflectionPixels,bloomEnergy,volumeEnergy,beautyEnergy])=>{if(!disposed)Object.assign(diagnostics,{reflectionPixels,bloomEnergy,volumeEnergy,beautyEnergy,stageSamples:diagnostics.stageSamples+1});}).catch((error:unknown)=>console.error('HDR stage readback failed',error)).finally(()=>{reading=false;});}
   },

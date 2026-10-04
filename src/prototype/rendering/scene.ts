@@ -16,7 +16,15 @@ export function createView(canvas:HTMLCanvasElement,sim:CoreSimulation){
  const lantern=new THREE.PointLight('#eccca6',.3,5.5,2);lantern.position.set(-.2,-.25,.05);camera.add(lantern);
  const lights:THREE.PointLight[]=[];for(const x of [-4,4]){const light=new THREE.PointLight('#ff9c51',7,10,2);light.position.set(x,2,-5);scene.add(light);lights.push(light);}
  const entrance=new THREE.PointLight('#b8c5de',2.2,9,2);entrance.position.set(0,3,2);scene.add(entrance);
- let previousWater=-1,waterElapsed=0,hour=20;
+ const frustum=new THREE.Frustum(),projection=new THREE.Matrix4();
+ let previousWater=-1,waterElapsed=0,hour=20,visibilityTime=0;
+ waterMesh.userData.reflectionVisible=false;
+ function updateWaterVisibility(){camera.updateMatrixWorld();projection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);frustum.setFromProjectionMatrix(projection);let visible=false;
+  for(const x of [4.25,5.5,7.25,9.5])for(const z of [-4.75,-2,.75]){const h=sim.water.surface(x,z);if(!Number.isFinite(h))continue;const point=new THREE.Vector3(x,h+.015,z);if(!frustum.containsPoint(point))continue;const dx=x-camera.position.x,dy=point.y-camera.position.y,dz=z-camera.position.z,d=Math.hypot(dx,dy,dz),hit=sim.arena.field.ray({x:camera.position.x,y:camera.position.y,z:camera.position.z},{x:dx,y:dy,z:dz},d);
+   if(!hit||hit.distance>d-.04){visible=true;break;}
+  }waterMesh.userData.reflectionVisible=visible;
+ }
+
  return {
   renderer,camera,scene,
   resize(){const w=canvas.clientWidth,h=canvas.clientHeight;camera.aspect=w/Math.max(h,1);camera.updateProjectionMatrix();pipeline.resize(w,h);},
@@ -24,7 +32,7 @@ export function createView(canvas:HTMLCanvasElement,sim:CoreSimulation){
   render(dt:number,_block:boolean){
    const p=sim.player,speed=Math.hypot(p.vx,p.vz),breath=Math.sin(sim.seconds*1.7)*.002,bob=Math.sin(p.stride*2)*Math.min(.008,speed*.003);
    camera.position.set(p.position.x,p.position.y+1.52+breath+bob,p.position.z);camera.rotation.set(p.pitch+p.impact*.006,p.yaw,Math.sin(p.stride)*Math.min(.003,speed*.001));
-   world.sync();waterElapsed+=dt;if(previousWater!==sim.water.revision&&waterElapsed>.3){waterMesh.geometry.dispose();waterMesh.geometry=waterGeometry(sim.water);previousWater=sim.water.revision;waterElapsed=0;}
+   world.sync();visibilityTime+=dt;if(visibilityTime>=.2){visibilityTime=0;updateWaterVisibility();}waterElapsed+=dt;if(previousWater!==sim.water.revision&&waterElapsed>.3){waterMesh.geometry.dispose();waterMesh.geometry=waterGeometry(sim.water);previousWater=sim.water.revision;waterElapsed=0;}
    for(const e of sim.enemies){const c=creatures[e.id],position=new THREE.Vector3(e.position.x,e.position.y,e.position.z),velocity=c.last.distanceTo(position)/Math.max(.001,dt);c.speed+=(Math.min(2,velocity)-c.speed)*(1-Math.exp(-dt*8));c.last.copy(position);c.holder.position.copy(position);c.holder.rotation.y=e.yaw;c.holder.visible=e.phase!=='dead'||e.time<6;
     c.rig.update(sim.enemyPose(e),e.stride,c.speed,0,false,e.phase==='stagger'?Math.sin(Math.min(1,e.time/.95)*Math.PI):0,e.phase==='dead'?THREE.MathUtils.smoothstep(e.time,0,.9):0);
    }

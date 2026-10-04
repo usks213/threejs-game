@@ -29,7 +29,7 @@ export class VoxelField {
   const targets=subtract?[this.base,...this.layers.values()]:[layer];
   for(let x=Math.floor((a.x-pad)/s);x<=Math.ceil((b.x+pad)/s);x++)for(let y=Math.floor((a.y-pad)/s);y<=Math.ceil((b.y+pad)/s);y++)for(let z=Math.floor((a.z-pad)/s);z<=Math.ceil((b.z+pad)/s);z++){
    const id=key(x,y,z),d=Math.max(-s*2,Math.min(s*2,sdf({x:(x+.5)*s,y:(y+.5)*s,z:(z+.5)*s})));let changed=false;
-   for(const target of targets){const old=target.get(id),before=old?.distance??s*2,after=subtract?Math.max(before,-d):Math.min(before,d);if(after===before)continue;this.write(target,x,y,z,after,subtract?(old?.material??material):material,subtract?old?.object:object);changed=true;}
+   for(const target of targets){const old=target.get(id),before=old?.distance??s*2,after=subtract?Math.max(before,-d):Math.min(before,d);if(after===before&&(subtract||!old||d>before||old.material===material))continue;this.write(target,x,y,z,after,subtract?(old?.material??material):material,subtract?old?.object:object);changed=true;}
    if(changed)this.compose(x,y,z);
   }this.revision++;
  }

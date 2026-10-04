@@ -33,6 +33,10 @@ jobs:
           path: dist/
           retention-days: 7
   browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, android-chromium]
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 18
@@ -50,11 +54,11 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - run: npm run e2e -- --project=${{ matrix.project }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: core-browser-results
+          name: core-browser-results-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
