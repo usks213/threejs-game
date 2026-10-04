@@ -6,7 +6,7 @@ export function createInput(canvas:HTMLCanvasElement,onAction:(action:Action)=>v
  const mobile=matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>0;
  function reset(){keys.clear();held.clear();stickX=stickZ=0;stickPointer=lookPointer=null;knob.style.transform='translate(-50%, -50%)';for(const b of document.querySelectorAll('[data-action]'))b.classList.remove('pressed');}
  function controls():Controls {return {x:Math.max(-1,Math.min(1,stickX+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0))),z:Math.max(-1,Math.min(1,stickZ+(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0))),sprint:keys.has('ShiftLeft')||held.has('sprint'),block:held.has('block'),water:held.has('water')}};
- const actionKeys:Record<string,Action>={KeyE:'interact',Space:'jump',ControlLeft:'dodge',KeyC:'dodge',KeyR:'heavy',KeyQ:'heal',Digit1:'sword',Digit2:'chisel'};
+ const actionKeys:Record<string,Action>={KeyE:'interact',Space:'jump',ControlLeft:'dodge',KeyC:'dodge',KeyR:'heavy',KeyQ:'heal',Digit1:'sword',Digit2:'chisel',KeyF:'element-next',KeyG:'cast',KeyV:'recipe-next',KeyB:'build'};
  document.addEventListener('keydown',e=>{if(e.code==='Escape'){onPause();reset();return;}if(!enabled)return;if(e.code in actionKeys||/^Key[WASD]$/.test(e.code)||e.code.startsWith('Arrow')||e.code==='ShiftLeft')e.preventDefault();if(!keys.has(e.code)&&actionKeys[e.code])onAction(actionKeys[e.code]);keys.add(e.code);},{signal});
  document.addEventListener('keyup',e=>keys.delete(e.code),{signal});document.addEventListener('contextmenu',e=>e.preventDefault(),{signal});
  document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement===canvas)skipMouse=true;else if(!mobile){reset();if(enabled)onPause();}},{signal});
@@ -21,7 +21,8 @@ export function createInput(canvas:HTMLCanvasElement,onAction:(action:Action)=>v
  look.addEventListener('pointermove',e=>{if(e.pointerId!==lookPointer)return;onLook((e.clientX-lastX)*.004,(e.clientY-lastY)*.004);lastX=e.clientX;lastY=e.clientY;},{signal});
  for(const name of ['pointerup','pointercancel','lostpointercapture'] as const)look.addEventListener(name,e=>{if(e.pointerId===lookPointer)lookPointer=null;},{signal});
  for(const b of document.querySelectorAll<HTMLButtonElement>('[data-action]')){const action=b.dataset.action!;
-  b.addEventListener('pointerdown',e=>{if(!enabled)return;e.preventDefault();b.setPointerCapture(e.pointerId);b.classList.add('pressed');if(['block','sprint','water'].includes(action))held.add(action);else onAction(action as Action);},{signal});
+  b.addEventListener('pointerdown',e=>{if(!enabled||b.disabled)return;e.preventDefault();b.setPointerCapture(e.pointerId);b.classList.add('pressed');if(['block','sprint','water'].includes(action))held.add(action);else onAction(action as Action);},{signal});
+  b.addEventListener('click',e=>{if(enabled&&!b.disabled&&e.detail===0&&!['block','sprint','water'].includes(action))onAction(action as Action);},{signal});
   for(const name of ['pointerup','pointercancel','lostpointercapture'] as const)b.addEventListener(name,()=>{held.delete(action);b.classList.remove('pressed');},{signal});
  }
  window.addEventListener('blur',()=>{reset();if(enabled)onPause();},{signal});

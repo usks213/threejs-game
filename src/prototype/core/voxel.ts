@@ -36,6 +36,16 @@ export class VoxelField {
  box(a:Vec3,b:Vec3,material:number,object?:string,r=0){this.shape(a,b,roundedBox(a,b,r),material,object,material===0);}
  set(x:number,y:number,z:number,material:number,object?:string){const s=this.size;this.box({x:x*s,y:y*s,z:z*s},{x:(x+1)*s,y:(y+1)*s,z:(z+1)*s},material,object);}
  carve(p:Vec3,r:number){this.shape({x:p.x-r,y:p.y-r,z:p.z-r},{x:p.x+r,y:p.y+r,z:p.z+r},sphere(p,r),0,undefined,true);}
+ /** Deplete one occupied distance sample only. Neighbour samples retain their
+  * sign and durability; interpolation still supplies a smooth collision/mesh surface. */
+ depleteSample(cell:Cell){
+  const current=this.get(cell.x,cell.y,cell.z);if(!current||current.material!==cell.material||current.object!==cell.object)return false;
+  const id=key(cell.x,cell.y,cell.z);
+  const layer=current.object?this.layers.get(current.object):this.base;
+  if(!layer)return false;const old=layer.get(id);if(!old||old.distance>=0)return false;
+  layer.set(id,{...old,distance:this.size*.5});
+  this.compose(cell.x,cell.y,cell.z);this.revision++;return true;
+ }
  removeObject(object:string){const layer=this.layers.get(object);if(!layer)return;this.layers.delete(object);for(const c of layer.values())this.compose(c.x,c.y,c.z);this.revision++;}
  distance(p:Vec3){const s=this.size,q=[p.x/s-.5,p.y/s-.5,p.z/s-.5],base=q.map(Math.floor),t=q.map((v,i)=>v-base[i]),order=[0,1,2].sort((a,b)=>t[b]-t[a]),n=[...base];
   let d=this.sample(n[0],n[1],n[2])*(1-t[order[0]]);n[order[0]]++;
@@ -44,7 +54,7 @@ export class VoxelField {
   return d+this.sample(n[0],n[1],n[2])*t[order[2]];
  }
  materialAt(p:Vec3){const s=this.size,ix=Math.floor(p.x/s),iy=Math.floor(p.y/s),iz=Math.floor(p.z/s);let best:Cell|undefined,d=Infinity;
-  for(let x=ix-1;x<=ix+1;x++)for(let y=iy-1;y<=iy+1;y++)for(let z=iz-1;z<=iz+1;z++){const c=this.cells.get(key(x,y,z));if(!c||c.material===0)continue;const dd=((x+.5)*s-p.x)**2+((y+.5)*s-p.y)**2+((z+.5)*s-p.z)**2;if(dd<d){d=dd;best=c;}}return best;
+  for(let x=ix-1;x<=ix+1;x++)for(let y=iy-1;y<=iy+1;y++)for(let z=iz-1;z<=iz+1;z++){const c=this.cells.get(key(x,y,z));if(!c||c.distance>=0||c.material===0)continue;const dd=((x+.5)*s-p.x)**2+((y+.5)*s-p.y)**2+((z+.5)*s-p.z)**2;if(dd<d){d=dd;best=c;}}return best;
  }
  at(p:Vec3){return this.distance(p)<-.0001?this.materialAt(p):undefined;}
  normal(p:Vec3){const h=this.size*.2,dx=this.distance({...p,x:p.x+h})-this.distance({...p,x:p.x-h}),dy=this.distance({...p,y:p.y+h})-this.distance({...p,y:p.y-h}),dz=this.distance({...p,z:p.z+h})-this.distance({...p,z:p.z-h}),n=Math.hypot(dx,dy,dz)||1;return {x:dx/n,y:dy/n,z:dz/n};}

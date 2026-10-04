@@ -49,9 +49,15 @@ jobs:
           - project: desktop-chromium
             group: desktop-sdf
             cases: desktop SDF
+          - project: desktop-chromium
+            group: desktop-elements
+            cases: elemental
           - project: android-chromium
             group: android-chromium
-            cases: .*
+            cases: landscape|portrait|motion review|desktop
+          - project: android-chromium
+            group: android-elements
+            cases: elemental
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10

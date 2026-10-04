@@ -1,5 +1,5 @@
 import { VoxelField,capsule,ellipsoid,type Vec3 } from './voxel';
-export interface ObjectState {id:string;kind:'door'|'chest'|'tree'|'valve'|'altar';name:string;open:boolean;hp:number}
+export interface ObjectState {id:string;kind:'door'|'chest'|'tree'|'valve'|'altar'|'resource';name:string;open:boolean;hp:number}
 export function createArena(){
  const field=new VoxelField(),objects=new Map<string,ObjectState>();
  const box=(x:number,y:number,z:number,w:number,h:number,d:number,m:number,id?:string,r=.08)=>field.box({x,y,z},{x:x+w,y:y+h,z:z+d},m,id,r);
@@ -24,6 +24,17 @@ export function createArena(){
  for(const x of [-2.2,2.2]){limb({x,y:.35,z:4},{x,y:2.3,z:4},.3,3);orb({x,y:2.5,z:4},{x:.45,y:.3,z:.38},3);}
  for(const [x,z,r] of [[-6,6,.8],[7,7,1.1],[-6,-3,.7],[10,-9,1.4]])orb({x,y:.3,z},{x:r,y:r*.7,z:r*.85},3);
  const object=(id:string,kind:ObjectState['kind'],name:string,hp=3)=>objects.set(id,{id,kind,name,open:false,hp});
+ // Labeled, reachable material studies beside spawn; the central approach stays clear.
+ object('sample-wood','resource','木材実験 · 伐採 / 燃焼',100);
+ limb({x:-2.7,y:.58,z:6.25},{x:-1.35,y:.58,z:6.25},.32,4,'sample-wood');
+ limb({x:-2.7,y:.58,z:6.95},{x:-1.35,y:.58,z:6.95},.32,5,'sample-wood');
+ object('sample-grass','resource','草実験 · 燃焼',100);
+ for(const x of [-3.8,-3.45,-3.1])orb({x,y:.5,z:7.9},{x:.24,y:.34,z:.35},7,'sample-grass');
+ object('sample-metal','resource','金属実験 · 電導',100);
+ limb({x:1.6,y:.8,z:7.1},{x:3.8,y:.8,z:7.1},.19,6,'sample-metal');
+ for(const x of [1.6,3.8])limb({x,y:.3,z:7.1},{x,y:1.1,z:7.1},.19,6,'sample-metal');
+ object('sample-stone','resource','石実験 · 冷却 / 採掘',100);
+ orb({x:-4.5,y:.45,z:6.8},{x:.55,y:.55,z:.5},3,'sample-stone');
  object('door','door','樫の扉');setDoor(field,false);
  object('chest','chest','補給箱');box(-3.25,.25,-3.75,1.5,.75,.75,4,'chest',.15);orb({x:-2.5,y:1,z:-3.375},{x:.75,y:.3,z:.375},5,'chest');box(-2.65,.65,-3.86,.3,.3,.13,6,'chest');
  for(const [i,x,z] of [[0,-7,3],[1,-8,-7],[2,8,4],[3,-7,-15]]){
