@@ -9,7 +9,7 @@ test.describe.serial('two real browsers',()=>{
   console.log('COOP_NOTICE',await page.locator('#notice').textContent({timeout:1000}).catch(()=>null));
  };
  test.beforeAll(async({browser})=>{
-  test.setTimeout(180000);stage('startup and room join');errors=[];
+  test.setTimeout(180000);stage('startup and room join');errors=[];try{
   contexts=await Promise.all([0,1].map(()=>browser.newContext({viewport:{width:640,height:360},deviceScaleFactor:.5})));
   await Promise.all(contexts.map(context=>context.tracing.start({screenshots:true,snapshots:true,sources:true})));
   [a,b]=await Promise.all(contexts.map(context=>context.newPage()));
@@ -18,8 +18,8 @@ test.describe.serial('two real browsers',()=>{
   stage('join second browser');await b.locator('#session-code').fill(code);await b.locator('#session-join').click();await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});
   identity=(await b.locator('#session-status').getAttribute('data-player'))!;expect(identity).not.toBe(await a.locator('#session-status').getAttribute('data-player'));
   // Both connections remain live; only one software-GPU view renders at a time.
-  for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-players','2');await page.locator('#session-close').click();await running(page);if(page===a)await a.locator('#session-menu').click();}
-  stage('two browsers ready');
+  for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-players','2');await page.keyboard.press('Escape');await running(page);if(page===a)await a.locator('#session-menu').click();}
+  stage('two browsers ready');}catch(error){failed=true;throw error;}
  });
  test.afterEach(async({},info)=>{if(info.status!==info.expectedStatus){failed=true;for(const page of[a,b].filter(Boolean))await diagnostics(page);}});
  test.afterAll(async()=>{await Promise.allSettled(contexts.map((c,i)=>Promise.race([c.tracing.stop(failed?{path:`test-results/coop-browser-${i}.zip`}:undefined),new Promise<void>(r=>setTimeout(r,5000))])));await Promise.allSettled(contexts.map(c=>Promise.race([c.close(),new Promise<void>(r=>setTimeout(r,5000))])));});
@@ -30,7 +30,7 @@ test.describe.serial('two real browsers',()=>{
   await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('movement verified');
  });
  test('commit a visible terrain edit and converge on both clients',async()=>{
-  test.setTimeout(90000);stage('visible terrain tool');await a.locator('#session-close').click();await a.locator('#adventure-menu').click();await a.locator('[data-tab=build]').click();await a.locator('[data-game-action=tool][data-id=dig]').click();
+  test.setTimeout(90000);stage('visible terrain tool');await a.keyboard.press('Escape');await a.locator('#adventure-menu').click();await a.locator('[data-tab=build]').click();await a.locator('[data-game-action=tool][data-id=dig]').click();
   await a.mouse.move(400,150);await a.mouse.down({button:'middle'});await a.mouse.move(400,220,{steps:4});await a.mouse.up({button:'middle'});await expect(a.locator('#use-tool')).toBeEnabled();
   console.log('COOP_PRE_EDIT_AIM',await a.locator('#app').getAttribute('data-aim'));await a.locator('#use-tool').click();
   await expect(a.locator('#edit-count')).toHaveAttribute('data-count','1',{timeout:20000});await expect(b.locator('#edit-count')).toHaveAttribute('data-count','1',{timeout:20000});
@@ -42,6 +42,6 @@ test.describe.serial('two real browsers',()=>{
   stage('fresh late join');const lateContext=await browser.newContext({viewport:{width:640,height:360},deviceScaleFactor:.5});
   try{const late=await lateContext.newPage();late.setDefaultTimeout(20000);await late.goto('/#join='+code,{waitUntil:'domcontentloaded',timeout:45000});await late.locator('#session-join').click();await expect(late.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await expect(late.locator('#edit-count')).toHaveAttribute('data-count','1',{timeout:30000});await late.locator('#session-leave').click();}finally{await Promise.race([lateContext.close(),new Promise<void>(r=>setTimeout(r,5000))]);}
   stage('creator leaves');await a.locator('#session-leave').click();await expect(b.locator('#session-status')).toHaveAttribute('data-players','1');const tick=Number(await b.locator('#session-status').getAttribute('data-tick'));await expect.poll(async()=>Number(await b.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThan(tick);
-  await b.locator('#session-close').click();await running(b);await b.screenshot({path:'test-results/coop-two-browser.png'});expect(errors).toEqual([]);stage('reconnect and persistence verified');
+  await b.keyboard.press('Escape');await running(b);await b.screenshot({path:'test-results/coop-two-browser.png'});expect(errors).toEqual([]);stage('reconnect and persistence verified');
  });
 });

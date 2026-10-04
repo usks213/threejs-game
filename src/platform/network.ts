@@ -26,6 +26,7 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
   if (oldGuest && restore) void import('../save/storage').then(async storage => { const save = await storage.loadWorld(); if (operation === generation && !guest && !signal.aborted) post({type:'init',save}); }).catch(error=>notice(String(error)));
  };
  document.querySelector('#session-menu')!.addEventListener('click', () => { panel.hidden = !panel.hidden; }, { signal });
+ window.addEventListener('keydown',event=>{if(event.code==='Escape'&&!panel.hidden){panel.hidden=true;event.preventDefault();event.stopImmediatePropagation();}}, {signal,capture:true});
  document.querySelector('#session-close')!.addEventListener('click', () => { panel.hidden = true; }, { signal });
  document.querySelector('#session-leave')!.addEventListener('click', () => close(), { signal });
  const connect = (create: boolean) => {
