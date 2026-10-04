@@ -20,18 +20,19 @@ export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,ca
  const inspect=new URLSearchParams(location.search).has('graphicsProbe'),diagnostics={stageSamples:0,reflectionPixels:0,bloomEnergy:0,volumeEnergy:0,invalidPixels:0,beautyEnergy:0};let reading=false,lastRead=0,disposed=false;
  async function measure(target:THREE.WebGLRenderTarget,alpha=false){const data=new Uint16Array(target.width*target.height*4);await renderer.readRenderTargetPixelsAsync(target,0,0,target.width,target.height,data);let sum=0;for(let i=0;i<data.length;i+=4){const v=THREE.DataUtils.fromHalfFloat(data[i+(alpha?3:0)]);if(!Number.isFinite(v)){diagnostics.invalidPixels++;continue;}sum+=alpha?(v>.001?1:0):Math.max(0,v);}return alpha?sum:sum/(data.length/4);}
  const renderSSR=ssr.render.bind(ssr);ssr.render=(r,write,read,delta,mask)=>{if(reflections.length){renderSSR(r,write,read,delta,mask);return;}r.setRenderTarget(ssr.beautyRenderTarget);r.clear();r.render(scene,camera);ssr.copyMaterial.uniforms.tDiffuse.value=ssr.beautyRenderTarget.texture;ssr.copyMaterial.blending=THREE.NoBlending;ssr.fsQuad.material=ssr.copyMaterial;r.setRenderTarget(write);ssr.fsQuad.render(r);};
+ const wallTimings={atmosphereMs:0,selectionMs:0,composerMs:0};
  let width=1,height=1,scale=1,frames=0,slowFrames=0,lastFrame=0;
  function resize(w:number,h:number){width=w;height=h;const ratio=Math.min(window.devicePixelRatio,1,900/Math.max(w,h))*scale;renderer.setPixelRatio(ratio);renderer.setSize(w,h,false);composer.setPixelRatio(ratio);composer.setSize(w,h);fxaa.uniforms.resolution.value.set(1/(w*ratio),1/(h*ratio));ssr.ssrMaterial.defines.MAX_STEP=128;ssr.ssrMaterial.needsUpdate=true;}
  let lastSelect=-Infinity;const reflections:THREE.Mesh[]=[];
  return {
-  get stats(){return {...exposure.stats,...diagnostics,renderScale:scale};},
+  get stats(){return {...exposure.stats,...diagnostics,renderScale:scale,wallTimings};},
   resize,
   render(dt:number,throttled=false){
    const now=performance.now();if(!throttled&&lastFrame&&now-lastFrame>48)slowFrames++;lastFrame=now;
    if(!throttled&&++frames===12){if(slowFrames>8&&scale>.55&&!reading){scale=Math.max(.55,scale-.15);resize(width,height);}frames=0;slowFrames=0;}
-   renderer.info.reset();atmosphere.prepare(dt);
+   renderer.info.reset();const prepareStart=performance.now();atmosphere.prepare(dt);wallTimings.atmosphereMs=performance.now()-prepareStart;const selectionStart=performance.now();
    if(performance.now()-lastSelect>350){lastSelect=performance.now();reflections.length=0;scene.traverseVisible(o=>{if(o instanceof THREE.Mesh&&o.geometry.drawRange.count>0&&(!(o instanceof THREE.InstancedMesh)||o.count>0)){const mats=Array.isArray(o.material)?o.material:[o.material];if(mats.some(m=>m instanceof THREE.MeshStandardMaterial&&m.roughness<.25))reflections.push(o);}});ssr.selects=reflections;}
-   composer.render(dt);
+   wallTimings.selectionMs=performance.now()-selectionStart;const renderStart=performance.now();composer.render(dt);wallTimings.composerMs=performance.now()-renderStart;
    if(inspect&&!reading&&performance.now()-lastRead>2000){reading=true;lastRead=performance.now();void Promise.all([measure(ssr.ssrRenderTarget,true),measure(bloom.renderTargetsHorizontal[0]),measure(volume.target),measure(ssr.beautyRenderTarget)]).then(([reflectionPixels,bloomEnergy,volumeEnergy,beautyEnergy])=>{if(!disposed)Object.assign(diagnostics,{reflectionPixels,bloomEnergy,volumeEnergy,beautyEnergy,stageSamples:diagnostics.stageSamples+1});}).catch((error:unknown)=>console.error('HDR stage readback failed',error)).finally(()=>{reading=false;});}
   },
   dispose(){disposed=true;for(const pass of [ssr,volume,exposure,bloom,output,fxaa])pass.dispose();ssr.ssrMaterial.dispose();composer.dispose();},

@@ -24,5 +24,7 @@ export class TerrainQueue {
   this.stats.pending=this.pending.size;this.stats.applied=items;this.stats.uploaded=consumed;this.stats.removed=removed;this.stats.bytes=bytes;this.stats.milliseconds=clock()-started;this.stats.maxMilliseconds=Math.max(this.stats.maxMilliseconds,this.stats.milliseconds);
   return consumed;
  }
+ fence():ReadonlySet<string>{return new Set(this.pending.keys());}
+ hasPending(fence:ReadonlySet<string>):boolean{for(const id of fence)if(this.pending.has(id))return true;return false;}
  get size(){return this.pending.size;}
 }

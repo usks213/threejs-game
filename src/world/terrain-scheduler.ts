@@ -7,7 +7,13 @@ export interface TerrainJob {
   editCount: number;
   brick: Brick;
 }
-interface Entry { brick: Brick; version: number; pending: boolean; ready: boolean; dirty: boolean }
+interface Entry { brick: Brick; version: number; pending: boolean; ready: boolean; dirty: boolean; bytes: number }
+/** Only completed extra residents count against this budget; demanded terrain is unchanged. */
+export const TERRAIN_RETENTION_LIMITS = { entries: 768, bytes: 16 * 1024 * 1024 } as const;
+function distanceSquared(brick: Brick, focus: Vec3): number {
+  const p = brick.origin, half = BRICK_SIZE / 2;
+  return (p.x + half - focus.x) ** 2 + (p.y + half - focus.y) ** 2 + (p.z + half - focus.z) ** 2;
+}
 export class TerrainScheduler {
   private readonly entries = new Map<string, Entry>();
   private sequence = 0;
@@ -23,14 +29,25 @@ export class TerrainScheduler {
   get ids(): IterableIterator<string> { return this.entries.keys(); }
   setFocus(focus: Vec3): void { this.focus = { ...focus }; }
 
-  setVisible(bricks: Map<string, Brick>, focus: Vec3): string[] {
+  setVisible(bricks: Map<string, Brick>, focus: Vec3, retain?: (brick: Brick) => boolean): string[] {
     this.setFocus(focus);
-    const removed: string[] = [];
-    for (const id of this.entries.keys()) if (!bricks.has(id)) { this.entries.delete(id); removed.push(id); }
+    const removed: string[] = [], retained: Entry[] = [];
+    const remove = (id: string) => { this.entries.delete(id); removed.push(id); };
+    for (const [id, entry] of this.entries) if (!bricks.has(id)) {
+      // Do not keep speculative/in-flight work alive merely because it is in the halo.
+      if (entry.ready && retain?.(entry.brick)) retained.push(entry);
+      else remove(id);
+    }
+    retained.sort((a, b) => distanceSquared(a.brick, focus) - distanceSquared(b.brick, focus));
+    let retainedBytes = 0, retainedCount = 0;
+    for (const entry of retained) {
+      if (retainedCount >= TERRAIN_RETENTION_LIMITS.entries || retainedBytes + entry.bytes > TERRAIN_RETENTION_LIMITS.bytes) remove(entry.brick.id);
+      else { retainedBytes += entry.bytes; retainedCount++; }
+    }
     for (const [id, brick] of bricks) {
       const previous = this.entries.get(id);
       if (previous && previous.brick.step === brick.step && previous.brick.origin.x === brick.origin.x && previous.brick.origin.y === brick.origin.y && previous.brick.origin.z === brick.origin.z) continue;
-      this.entries.set(id, { brick, version: ++this.sequence, pending: true, ready: false, dirty: previous?.dirty ?? false });
+      this.entries.set(id, { brick, version: ++this.sequence, pending: true, ready: false, dirty: previous?.dirty ?? false, bytes: 0 });
     }
     return removed;
   }
@@ -45,8 +62,7 @@ export class TerrainScheduler {
     let best: Entry | undefined, distance = Infinity;
     for (const entry of this.entries.values()) {
       if (!entry.pending) continue;
-      const p = entry.brick.origin, half = BRICK_SIZE / 2;
-      const nextDistance = (p.x + half - this.focus.x) ** 2 + (p.y + half - this.focus.y) ** 2 + (p.z + half - this.focus.z) ** 2;
+      const nextDistance = distanceSquared(entry.brick, this.focus);
       if (!best || (entry.dirty && !best.dirty) || (entry.dirty === best.dirty && nextDistance < distance)) { best = entry; distance = nextDistance; }
     }
     if (!best) return null;
@@ -54,13 +70,13 @@ export class TerrainScheduler {
     return this.active = { epoch: this.epoch, version: best.version, editCount, brick: best.brick };
   }
   /** Ignore duplicate/out-of-order completions without releasing a different active job. */
-  complete(job: TerrainJob): 'stream' | 'edit' | null {
+  complete(job: TerrainJob, bytes = 0): 'stream' | 'edit' | null {
     if (!this.active || job.epoch !== this.active.epoch || job.version !== this.active.version || job.brick.id !== this.active.brick.id || job.editCount !== this.active.editCount) return null;
     this.active = null;
     const entry = this.entries.get(job.brick.id);
     if (job.epoch !== this.epoch || !entry || entry.version !== job.version) return null;
     const result = entry.dirty ? 'edit' : 'stream';
-    entry.ready = true; entry.dirty = false;
+    entry.ready = true; entry.dirty = false; entry.bytes = bytes;
     return result;
   }
   readyNear(focus: Vec3): boolean {

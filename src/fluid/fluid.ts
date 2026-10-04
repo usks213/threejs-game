@@ -1,3 +1,4 @@
+import { IndexedFluidCells } from './indexed-cells';
 import { voxelizeObstacles, type WaterObstacle } from './obstacles';
 import type { SdfWorld } from '../world/density';
 import { insideBounds, type Vec3 } from '../world/types';
@@ -7,34 +8,67 @@ export const MAX_FLUID_CELLS = 8192;
 const key = (p: Vec3) => `${p.x},${p.y},${p.z}`;
 const directions = [[1, 0], [0, 1], [-1, 0], [0, -1]] as const;
 const MIN_FILM = 0.04;
+const floorSamples = [[0.08, 0.08], [0.92, 0.08], [0.08, 0.92], [0.92, 0.92], [0.5, 0.5]] as const;
+interface CellPosition extends Vec3 { id: string; terrainRevision: number; terrainFloor: number; obstacleRevision: number; floor: number }
+interface Neighbors { below: CellPosition; sides: CellPosition[] }
+
 export class FluidGrid {
-  readonly cells = new Map<string, FluidCell>();
+  readonly cells = new IndexedFluidCells(() => { this.viewKey = ''; });
+  private readonly neighbors = new WeakMap<FluidCell, Neighbors>();
+  private readonly positions = new Map<string, CellPosition>();
+  private obstacleRevision = 0;
+  private position(x: number, y: number, z: number, id = `${x},${y},${z}`): CellPosition {
+    let p = this.positions.get(id);
+    if (!p) {
+      p = { x, y, z, id, terrainRevision: -1, terrainFloor: 0, obstacleRevision: -1, floor: 0 };
+      if (this.positions.size >= 65536) this.positions.delete(this.positions.keys().next().value!);
+      this.positions.set(id, p);
+    }
+    return p;
+  }
+  private adjacent(cell: FluidCell): Neighbors {
+    let neighbors = this.neighbors.get(cell);
+    if (!neighbors) {
+      neighbors = { below: this.position(cell.x, cell.y - this.cellSize, cell.z), sides: directions.map(([dx, dz]) => this.position(cell.x + dx * this.cellSize, cell.y, cell.z + dz * this.cellSize)) };
+      this.neighbors.set(cell, neighbors);
+    }
+    return neighbors;
+  }
   displaced = 0;
   private solids=new Map<string,number>();
   private barriers=new Set<string>();
   private staticKey='';private staticSolids=new Map<string,number>();private staticBarriers=new Set<string>();
   setObstacles(obstacles:readonly WaterObstacle[],fixed:readonly WaterObstacle[]=[]):void{
    const key=JSON.stringify(fixed);if(key!==this.staticKey){const v=voxelizeObstacles(fixed,this.cellSize);this.staticKey=key;this.staticSolids=v.occupied;this.staticBarriers=v.barriers;}
-   const v=voxelizeObstacles(obstacles,this.cellSize);this.solids=new Map(this.staticSolids);for(const [id,n]of v.occupied)this.solids.set(id,Math.min(1,(this.solids.get(id)??0)+n));this.barriers=new Set([...this.staticBarriers,...v.barriers]);
+   this.viewKey='';this.obstacleRevision++;const v=voxelizeObstacles(obstacles,this.cellSize);this.solids=new Map(this.staticSolids);for(const [id,n]of v.occupied)this.solids.set(id,Math.min(1,(this.solids.get(id)??0)+n));this.barriers=new Set([...this.staticBarriers,...v.barriers]);
   }
-  private bottom(p:Vec3):number{return Math.min(this.cellSize,this.terrainBottom(p)+(this.solids.get(key(p))??0)*this.cellSize);}
-  private revision = -1;
+  private bottom(p:Vec3,id=key(p)):number{return this.bottomAt(this.position(p.x,p.y,p.z,id));}
+  private bottomAt(p: CellPosition): number {
+    if (p.terrainRevision !== this.world.edits.length) {
+      p.terrainFloor = this.sampleTerrainBottom(p); p.terrainRevision = this.world.edits.length; p.obstacleRevision = -1;
+    }
+    if (p.obstacleRevision !== this.obstacleRevision) {
+      p.floor = Math.min(this.cellSize, p.terrainFloor + (this.solids.get(p.id) ?? 0) * this.cellSize);
+      p.obstacleRevision = this.obstacleRevision;
+    }
+    return p.floor;
+  }
   private phase = 0;
   private viewKey='';private viewCache:FluidCell[]=[];
   private readonly frozen = new Map<string, number>();
-  private readonly floors = new Map<string, number>();
   constructor(private readonly world: SdfWorld,readonly cellSize=1) {}
   private get area(){return this.cellSize*this.cellSize;}
   private get capacity(){return this.area*this.cellSize;}
   private quantize(value:number){return Math.floor(value/this.cellSize)*this.cellSize;}
   private terrainBottom(p: Vec3): number {
+    const position = this.position(p.x, p.y, p.z);
+    this.bottomAt(position); return position.terrainFloor;
+  }
+  private sampleTerrainBottom(p: Vec3): number {
     if (!insideBounds(p, this.world.bounds, this.cellSize)) return this.cellSize;
-    if (this.revision !== this.world.edits.length) { this.floors.clear(); this.revision = this.world.edits.length; }
-    const id = key(p), cached = this.floors.get(id);
-    if (cached !== undefined) return cached;
     let bottom = 0;
     // Conservative corner samples keep partially occupied cells out of the hillside.
-    for (const [x, z] of [[0.08, 0.08], [0.92, 0.08], [0.08, 0.92], [0.92, 0.92], [0.5, 0.5]]) {
+    for (const [x, z] of floorSamples) {
       const point = { x: p.x + x*this.cellSize, y: p.y + .98*this.cellSize, z: p.z + z*this.cellSize };
       if (this.world.density(point) < 0.02) { bottom = this.cellSize; break; }
       point.y = p.y;
@@ -43,19 +77,18 @@ export class FluidGrid {
       for (let i = 0; i < 7; i++) { const mid = (low + high) / 2; point.y = p.y + mid; if (this.world.density(point) < 0.02) low = mid; else high = mid; }
       bottom = Math.max(bottom, high);
     }
-    if (this.floors.size >= 65536) this.floors.clear();
-    this.floors.set(id, bottom); return bottom;
+    return bottom;
   }
   add(p: Vec3, volume = this.capacity): number {
     const cell = { x: this.quantize(p.x), y: this.quantize(p.y), z: this.quantize(p.z) }, capacity = (this.cellSize - this.bottom(cell))*this.area;
     if (capacity <= 0 || !Number.isFinite(volume) || volume <= 0) return 0;
     const id = key(cell), existing = this.cells.get(id);
     const accepted = Math.max(0, Math.min(volume, capacity - (existing?.volume ?? 0)));
-    if (accepted > 0) { if (existing) existing.volume += accepted; else this.cells.set(id, { ...cell, size:this.cellSize, volume: accepted }); }
+    if (accepted > 0) { this.viewKey=''; if (existing) existing.volume += accepted; else this.cells.set(id, { ...cell, size:this.cellSize, volume: accepted }); }
     return accepted;
   }
   drain(p: Vec3, radius: number, volume = 2): number {
-    let removed = 0;
+    let removed = 0; this.viewKey='';
     for (const [id, cell] of this.cells) {
       if (Math.hypot(cell.x + this.cellSize/2 - p.x, cell.y + this.cellSize/2 - p.y, cell.z + this.cellSize/2 - p.z) > radius) continue;
       const amount = Math.min(cell.volume, volume - removed); cell.volume -= amount; removed += amount;
@@ -73,65 +106,68 @@ export class FluidGrid {
       for(let dx=0;dx<size;dx+=this.cellSize)for(let dz=0;dz<size;dz+=this.cellSize)for(let dy=0;dy<size;dy+=this.cellSize){const volume=Math.max(0,Math.min(top,dy+this.cellSize)-Math.max(bottom,dy))*this.area;if(volume<=1e-8)continue;const n={x:c.x+dx,y:c.y+dy,z:c.z+dz,volume,size:this.cellSize,vx:c.vx??0,vz:c.vz??0};this.cells.set(key(n),n);if(c.frozen)this.frozen.set(key(n),this.phase+80);}
     }
   }
-  private transfer(cell: FluidCell, p: Vec3, wanted: number, displacing=false): number {
-    if(!displacing&&this.barriers.has(`${key(cell)}/${key(p)}`))return 0;
+  private transfer(cell: FluidCell, sourceId: string, p: CellPosition, wanted: number, displacing=false, floor?: number): number {
+    if(!displacing&&this.barriers.has(`${sourceId}/${p.id}`))return 0;
     const amount = Math.min(cell.volume, Math.max(0, wanted));
     if (amount <= 0.000001) return 0;
-    const id = key(cell), target = this.cells.get(key(p));
-    const free = Math.max(0, (this.cellSize - this.bottom(p))*this.area - (target?.volume ?? 0));
-    if ((this.frozen.get(key(p)) ?? 0) > this.phase) return 0;
-    const accepted = this.add(p, Math.min(amount, free)); cell.volume -= accepted;
+    const target = this.cells.get(p.id);
+    const free = Math.max(0, (this.cellSize - (floor ?? this.bottomAt(p)))*this.area - (target?.volume ?? 0));
+    if ((this.frozen.get(p.id) ?? 0) > this.phase) return 0;
+    const accepted = Math.min(amount, free);
+    let destination = target;
     if (accepted > 0) {
-      const destination = this.cells.get(key(p))!;
+      if (destination) destination.volume += accepted;
+      else { destination = { x: p.x, y: p.y, z: p.z, size: this.cellSize, volume: accepted }; this.cells.set(p.id, destination); }
+    }
+    cell.volume -= accepted;
+    if (accepted > 0 && destination) {
       const pushX = (p.x - cell.x) /this.cellSize * accepted/this.capacity * 12, pushZ = (p.z - cell.z) /this.cellSize * accepted/this.capacity * 12;
       destination.vx = Math.max(-6, Math.min(6, (destination.vx ?? 0) * 0.6 + (cell.vx ?? 0) * 0.4 + pushX));
       destination.vz = Math.max(-6, Math.min(6, (destination.vz ?? 0) * 0.6 + (cell.vz ?? 0) * 0.4 + pushZ));
       cell.vx = Math.max(-6, Math.min(6, (cell.vx ?? 0) + pushX));
       cell.vz = Math.max(-6, Math.min(6, (cell.vz ?? 0) + pushZ));
     }
-    if (cell.volume <= 0.000001) this.cells.delete(id);
-    else if (!this.cells.has(id)) this.cells.set(id, cell);
+    if (cell.volume <= 0.000001) this.cells.delete(sourceId);
+    else if (!this.cells.has(sourceId)) this.cells.set(sourceId, cell);
     return accepted;
   }
   step(centers: readonly Vec3[] = []): void {
     this.phase++;
-    let active = [...this.cells.values()];
-    if (active.length > 2048) {
-      if (centers.length) { const nearest = (c: Vec3) => { let best=Infinity; for(const p of centers) best=Math.min(best,(p.x-c.x)**2+(p.z-c.z)**2); return best; }; const distance = (c: Vec3) => nearest(c); active.sort((a,b) => distance(a)-distance(b)); }
-      active = active.slice(0,2048);
-    }
-    active.sort((a, b) => a.y - b.y);
-    for (const cell of active) { cell.vx = (cell.vx ?? 0) * 0.8; cell.vz = (cell.vz ?? 0) * 0.8; }
-    for (const cell of active) {
-      const until = this.frozen.get(key(cell)); if (until && until > this.phase) continue; if (until) this.frozen.delete(key(cell));
-      if (!this.cells.has(key(cell))) continue;
-      const floor = this.bottom(cell), capacity = (this.cellSize - floor)*this.area;
+    this.viewKey = '';
+    const active = this.cells.size > 2048 && centers.length ? this.cells.nearest(centers, 2048) : this.cells.first(2048);
+    active.sort((a, b) => a.cell.y - b.cell.y);
+    for (const { cell } of active) { cell.vx = (cell.vx ?? 0) * 0.8; cell.vz = (cell.vz ?? 0) * 0.8; }
+    for (const { id, cell } of active) {
+      const until = this.frozen.get(id); if (until && until > this.phase) continue; if (until) this.frozen.delete(id);
+      if (!this.cells.has(id)) continue;
+      const floor = this.bottom(cell, id), capacity = (this.cellSize - floor)*this.area;
       if (cell.volume > capacity + 0.000001) {
         // Raised ground pushes water aside/up. If sealed, retain it rather than deleting it.
         let excess = cell.volume - capacity;
         for (let height = 0; height <= 2 && excess > 0.000001; height++) {
           for (let i = 0; i < 4 && excess > 0.000001; i++) {
             const [dx, dz] = directions[(i + this.phase) % 4];
-            const moved = this.transfer(cell, { x: cell.x + dx*this.cellSize, y: cell.y + height*this.cellSize, z: cell.z + dz*this.cellSize }, excess,true);
+            const moved = this.transfer(cell, id, this.position(cell.x + dx*this.cellSize, cell.y + height*this.cellSize, cell.z + dz*this.cellSize), excess,true);
             excess -= moved; this.displaced += moved;
           }
-          if (height > 0 && excess > 0.000001) { const moved = this.transfer(cell, { x: cell.x, y: cell.y + height*this.cellSize, z: cell.z }, excess,true); excess -= moved; this.displaced += moved; }
+          if (height > 0 && excess > 0.000001) { const moved = this.transfer(cell, id, this.position(cell.x, cell.y + height*this.cellSize, cell.z), excess,true); excess -= moved; this.displaced += moved; }
         }
       }
       if (cell.volume <= 0.000001 || capacity <= 0) continue;
-      this.transfer(cell, { x: cell.x, y: cell.y - this.cellSize, z: cell.z }, cell.volume);
+      const adjacent = this.adjacent(cell);
+      this.transfer(cell, id, adjacent.below, cell.volume);
       if (cell.volume > MIN_FILM*this.capacity) for (let i = 0; i < 4; i++) {
-        const [dx, dz] = directions[(i + this.phase) % 4], p = { x: cell.x + dx*this.cellSize, y: cell.y, z: cell.z + dz*this.cellSize };
-        const neighbor = this.cells.get(key(p)), neighborLevel = this.bottom(p) + (neighbor?.volume ?? 0)/this.area;
+        const p = adjacent.sides[(i + this.phase) % 4];
+        const neighbor = this.cells.get(p.id), neighborFloor = this.bottomAt(p), neighborLevel = neighborFloor + (neighbor?.volume ?? 0)/this.area;
         const amount = Math.min(.12*this.capacity, (floor + cell.volume/this.area - neighborLevel)*this.area*.25);
-        if (neighbor || amount >= MIN_FILM*this.capacity) this.transfer(cell, p, amount);
+        if (neighbor || amount >= MIN_FILM*this.capacity) this.transfer(cell, id, p, amount, false, neighborFloor);
       }
     }
   }
-  freeze(p: Vec3, radius: number): void { for (const c of this.cells.values()) if (Math.hypot(c.x + this.cellSize/2 - p.x, c.y + this.cellSize/2 - p.y, c.z + this.cellSize/2 - p.z) < radius) this.frozen.set(key(c), this.phase + 80); }
-  iceHeight(p: Vec3): number | null { let top: number | null = null; for (const c of this.cells.values()) if (c.x === this.quantize(p.x) && c.z === this.quantize(p.z) && (this.frozen.get(key(c)) ?? 0) > this.phase) top = Math.max(top ?? -Infinity, c.y + this.bottom(c) + c.volume/this.area); return top; }
+  freeze(p: Vec3, radius: number): void { this.viewKey=''; for (const c of this.cells.values()) if (Math.hypot(c.x + this.cellSize/2 - p.x, c.y + this.cellSize/2 - p.y, c.z + this.cellSize/2 - p.z) < radius) this.frozen.set(key(c), this.phase + 80); }
+  iceHeight(p: Vec3): number | null { let top: number | null = null; for (const {id,cell:c} of this.cells.column(this.quantize(p.x),this.quantize(p.z))) if ((this.frozen.get(id) ?? 0) > this.phase) top = Math.max(top ?? -Infinity, c.y + this.bottom(c) + c.volume/this.area); return top; }
   surfaceHeight(x:number,z:number):number|null {
-    let top=-Infinity;for(let y=this.world.bounds.minY;y<this.world.bounds.maxY;y+=this.cellSize){const c=this.cells.get(`${this.quantize(x)},${y},${this.quantize(z)}`);if(c&&c.volume>.1*this.capacity)top=Math.max(top,y+this.bottom(c)+c.volume/this.area);}
+    let top=-Infinity;for(const {id,cell:c} of this.cells.column(this.quantize(x),this.quantize(z))){if(c.y>=this.world.bounds.minY&&c.y<this.world.bounds.maxY&&c.volume>.1*this.capacity)top=Math.max(top,c.y+this.bottom(c,id)+c.volume/this.area);}
     return Number.isFinite(top)?top:null;
   }
   immersion(p: Vec3, height: number): number {
@@ -155,7 +191,7 @@ export class FluidGrid {
     return { x: weight ? vx / weight : 0, z: weight ? vz / weight : 0 };
   }
   pour(p: Vec3, direction: { x: number; z: number }, volume = 12): number {
-    let accepted = 0;
+    let accepted = 0; this.viewKey='';
     const length = Math.hypot(direction.x, direction.z) || 1;
     // Find free air above the aimed point, including when it is already full or inside terrain.
     for (let y = this.quantize(p.y); y < this.world.bounds.maxY - this.cellSize && accepted < volume; y+=this.cellSize) {
@@ -169,12 +205,11 @@ export class FluidGrid {
     return accepted;
   }
   snapshot(center?: Vec3): FluidCell[] {
-    const viewKey=center?`${Math.floor(center.x)},${Math.floor(center.z)},${this.phase},${this.cells.size}`:'';if(center&&viewKey===this.viewKey)return this.viewCache;
-    let cells = [...this.cells.values()];
-    if (center) {
-      const distance = (c: Vec3) => (c.x-center.x)**2+(c.z-center.z)**2;
-      cells = cells.filter(c => distance(c) < 48**2).sort((a,b) => distance(a)-distance(b)).slice(0, MAX_FLUID_CELLS);
-    }
-    const result=cells.map(c => ({ ...c, bottom: this.bottom(c), vx: Math.round((c.vx ?? 0) * 1000) / 1000 || 0, vz: Math.round((c.vz ?? 0) * 1000) / 1000 || 0, frozen: (this.frozen.get(key(c)) ?? 0) > this.phase }));if(center){this.viewKey=viewKey;this.viewCache=result;}return result;
+    const viewKey=center?`${center.x},${center.z},${this.phase},${this.world.edits.length}`:'';
+    if(center&&viewKey===this.viewKey)return this.viewCache;
+    const cells = center ? this.cells.nearest([center], MAX_FLUID_CELLS, 48) : this.cells.first(Infinity);
+    // Fixed-shape snapshot objects avoid thousands of object-spread/hidden-class transitions.
+    const result=cells.map(({id,cell:c}) => ({ x:c.x, y:c.y, z:c.z, size:c.size, volume:c.volume, bottom:this.bottom(c,id), vx:Math.round((c.vx ?? 0)*1000)/1000 || 0, vz:Math.round((c.vz ?? 0)*1000)/1000 || 0, frozen:(this.frozen.get(id) ?? 0)>this.phase }));
+    if(center){this.viewKey=viewKey;this.viewCache=result;}return result;
   }
 }

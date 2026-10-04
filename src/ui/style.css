@@ -83,3 +83,5 @@ header,.world-info,.hint,#combat-more,#combat-extra,#session-menu,#session-statu
 [hidden]{display:none!important}
 #app[data-building=true] #notice,#app[data-sandbox=true] #notice{top:calc(8px + var(--safe-top));max-width:35%}#app[data-building=true] #compass,#app[data-sandbox=true] #compass{display:none}
 #adventure-hud{max-height:116px;overflow:hidden}#adventure-hud>small{display:block;max-height:2.8em;line-height:1.4;overflow:hidden}.region-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* A transformed game must not enlarge the mobile layout viewport during rotation. */
+html{overflow:clip}body{position:fixed;inset:0;overflow:hidden}

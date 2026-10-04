@@ -1,4 +1,4 @@
-import { landscapeDelta } from '../../platform/viewport/landscape';
+import { landscapeDelta,viewportSize } from '../../platform/viewport/landscape';
 export const DEFAULT_CAMERA_PITCH=0.32;
 export function cameraInput(canvas: HTMLCanvasElement, signal: AbortSignal) {
   const camera = { yaw: 0, pitch: DEFAULT_CAMERA_PITCH, distance:7, sensitivity:1 };
@@ -7,7 +7,7 @@ export function cameraInput(canvas: HTMLCanvasElement, signal: AbortSignal) {
   canvas.addEventListener('pointerdown', e => { if(e.pointerType==='mouse'&&e.button!==1)return;if (pointer !== null) return; pointer = e.pointerId; x = e.clientX; y = e.clientY; canvas.setPointerCapture(e.pointerId); }, { signal });
   canvas.addEventListener('pointermove', e => {
     if (e.pointerId !== pointer) return;
-    const delta=landscapeDelta(e.clientX-x,e.clientY-y,innerWidth,innerHeight);camera.yaw -= delta.x * 0.006 * camera.sensitivity;
+    const size=viewportSize(),delta=landscapeDelta(e.clientX-x,e.clientY-y,size.width,size.height);camera.yaw -= delta.x * 0.006 * camera.sensitivity;
     camera.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.pitch + delta.y * 0.006 * camera.sensitivity));
     x = e.clientX; y = e.clientY;
   }, { signal });

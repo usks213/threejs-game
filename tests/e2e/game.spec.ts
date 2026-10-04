@@ -37,3 +37,12 @@ test('desktop mouse releases held combat and movement across menus and landscape
  await page.keyboard.press('Tab');await expect(page.locator('#adventure-panel')).toBeVisible();await expect(page.locator('#guard')).toHaveAttribute('aria-pressed','false');await page.mouse.up({button:'right'});await page.keyboard.press('Tab');
  await page.keyboard.down('KeyW');await ticks(page,3);await page.setViewportSize({width:900,height:500});await ticks(page,3);const before=Number(await page.locator('#position').getAttribute('data-z'));await ticks(page,5);const after=Number(await page.locator('#position').getAttribute('data-z'));await page.keyboard.up('KeyW');expect(Math.abs(after-before)).toBeLessThan(.08);await expect(page.locator('#error')).toBeHidden();
 });
+
+test('desktop mouse keeps movement responsive across a terrain boundary',async({page},info)=>{
+ test.skip(info.project.name!=='desktop-chromium','Movement streaming regression');
+ await ready(page);const sim=sparse();sim.bodies.length=0;Object.assign(sim.player,{x:15.5,z:8,y:sim.groundAt(15.5,8),vy:0,grounded:true});await fixture(page,sim);
+ const frameRun=page.evaluate(()=>new Promise<{samples:number;maxGap:number;p95Gap:number}>(resolve=>{const gaps:number[]=[];let last=performance.now();const start=last;const step=(now:number)=>{gaps.push(now-last);last=now;if(now-start<4000)requestAnimationFrame(step);else{gaps.sort((a,b)=>a-b);resolve({samples:gaps.length,maxGap:gaps.at(-1)??0,p95Gap:gaps[Math.floor((gaps.length-1)*.95)]??0});}};requestAnimationFrame(step);}));
+ await page.keyboard.down('KeyD');try{await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(18);}finally{await page.keyboard.up('KeyD');}
+ const frames=await frameRun,phases=JSON.parse((await page.locator('#app').getAttribute('data-performance'))??'{}');await info.attach('movement-profile.json',{body:JSON.stringify({frames,phases,note:'CI software GPU; seconds-long-stall regression, not phone FPS'},null,2),contentType:'application/json'});
+ expect(frames.samples).toBeGreaterThan(5);expect(frames.maxGap,'No multi-second main-frame freeze while crossing x=16').toBeLessThan(2000);await expect(page.locator('#error')).toBeHidden();
+});

@@ -146,7 +146,8 @@ it('keeps save/input handling live while meshing, bounds uploads, and terminates
   try {
     vi.resetModules(); await import('../../src/simulation/worker');
     send({ type: 'init', save });
-    expect(workers).toHaveLength(1); expect(outputs.map(message => message.type)).toEqual(['terrain-reset']);
+    expect(workers).toHaveLength(1); expect(outputs.map(message => message.type)).toEqual(['terrain-reset', 'terrain-visibility']);
+    expect(outputs[1]).toMatchObject({ type: 'terrain-visibility', epoch: 1 });
     expect(workers[0].messages.map(message => message.type)).toEqual(['init', 'mesh']);
     // Meshing has not executed. These messages are still handled immediately by simulation.
     send({ type: 'input', input: { x: 1, z: 0, jump: true } }); send({ type: 'save' });
@@ -161,7 +162,8 @@ it('keeps save/input handling live while meshing, bounds uploads, and terminates
     send({ type: 'mesh-ack', epoch: 1, count: 4 }); expect(workers[0].messages.at(-1)?.type).toBe('mesh');
     send({ type: 'replica-init', save });
     expect(workers[0].terminated).toBe(true); expect(workers).toHaveLength(2);
-    expect(outputs.at(-1)).toEqual({ type: 'terrain-reset', epoch: 2 });
+    expect(outputs.at(-2)).toEqual({ type: 'terrain-reset', epoch: 2 });
+    expect(outputs.at(-1)).toMatchObject({ type: 'terrain-visibility', epoch: 2 });
     const length = outputs.length; workers[0].finishOneJob(); expect(outputs).toHaveLength(length);
     workers[1].finishOneJob(); expect(outputs.at(-1)).toMatchObject({ type: 'mesh', epoch: 2 });
   } finally { vi.unstubAllGlobals(); vi.useRealTimers(); }

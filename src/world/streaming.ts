@@ -1,4 +1,10 @@
 import { BRICK_SIZE, CHUNK_SIZE, WORLD, brickId, type Brick, type Vec3, type WorldBounds } from './types';
+/** Keep completed neighbors one extra chunk so small boundary reversals reuse GPU buffers. */
+export function withinTerrainRetention(brick: Brick, position: Vec3): boolean {
+  const cx = Math.floor(position.x / CHUNK_SIZE), cz = Math.floor(position.z / CHUNK_SIZE);
+  return brick.origin.x >= (cx - 3) * CHUNK_SIZE && brick.origin.x + BRICK_SIZE <= (cx + 4) * CHUNK_SIZE
+    && brick.origin.z >= (cz - 3) * CHUNK_SIZE && brick.origin.z + BRICK_SIZE <= (cz + 4) * CHUNK_SIZE;
+}
 export function visibleBricks(position: Vec3, bounds: WorldBounds = WORLD): Map<string, Brick> {
   const result = new Map<string, Brick>();
   const cx = Math.floor(position.x / CHUNK_SIZE), cz = Math.floor(position.z / CHUNK_SIZE);
@@ -17,4 +23,3 @@ export function visibleBricks(position: Vec3, bounds: WorldBounds = WORLD): Map<
   }
   return result;
 }
-

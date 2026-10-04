@@ -7,7 +7,8 @@ import { createAtmosphere } from '../environment/atmosphere';
 import { createEntities } from '../game/entities';
 import * as THREE from 'three';
 import { meadow } from '../../content/biomes';
-import { waterSurface, WATER_VERTEX_CAPACITY } from '../../fluid/surface';
+import { WATER_VERTEX_CAPACITY } from '../../fluid/surface';
+import { WaterMeshingController } from '../water/controller';
 import type { Snapshot } from '../../simulation/protocol';
 export function createWorld(renderer:THREE.WebGLRenderer) {
   const scene = new THREE.Scene();
@@ -37,9 +38,25 @@ export function createWorld(renderer:THREE.WebGLRenderer) {
   const marker = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.025, 5, 24), new THREE.MeshBasicMaterial({ color: '#ffeab6', depthTest: false })); marker.renderOrder = 2; marker.visible = false; scene.add(marker);
   const remotePlayers = new Map<string, { model: ReturnType<typeof avatars.create>; target: THREE.Vector3; heading: number }>();
   let waterTick = -1;
+  const waterMesher = new WaterMeshingController(() => new Worker(new URL('../water/worker.ts', import.meta.url), { type: 'module' }));
+  const resetWater = () => { waterTick = -1; waterMesher.reset(); waterGeometry.setDrawRange(0, 0); };
   return {
     scene, player, marker, atmosphere, preview:preview.update,faceCamera:entities.faceCamera,
     raycastBuildings: entities.raycast,
+    resetWater,
+    get waterStats() { return waterMesher.stats; },
+    prepareWater() {
+      return waterMesher.prepare(result => {
+        waterPositions.set(result.positions); waterNormals.set(result.normals); waterColors.set(result.colors);
+        waterGeometry.setDrawRange(0, result.count);
+        for (const name of ['position', 'normal', 'color']) {
+          const attribute = waterGeometry.getAttribute(name) as THREE.BufferAttribute;
+          attribute.clearUpdateRanges();
+          // An empty range means a full upload to Three.js, so leave empty water's attributes untouched.
+          if (result.count) { attribute.addUpdateRange(0, result.count * 3); attribute.needsUpdate = true; }
+        }
+      });
+    },
     update(state: Snapshot) {
       waterTime.value = state.adventure.seconds; feedback.update(state);
       localAvatar.setPose({ ...state.adventure, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:state.adventure.meadows?state.adventure.meadows.gear.offhand==='towerShield':!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?Object.fromEntries(Object.entries(state.adventure.meadows.gear).filter(([,id])=>state.adventure.inventory[id]>0)):undefined, grounded: state.player.grounded });
@@ -54,11 +71,9 @@ export function createWorld(renderer:THREE.WebGLRenderer) {
         view.target.set(peer.player.x, peer.player.y, peer.player.z); view.heading = peer.player.heading;
         if (view.model.group.position.distanceToSquared(view.target) > 100) view.model.group.position.copy(view.target);
       }
-      if (Math.floor(state.tick / 3) !== waterTick) {
-        waterTick = Math.floor(state.tick / 3);
-        const count = waterSurface(state.fluids, waterPositions, waterNormals, waterColors); waterGeometry.setDrawRange(0, count);
-        for (const name of ['position', 'normal', 'color']) { const attribute = waterGeometry.getAttribute(name) as THREE.BufferAttribute; attribute.clearUpdateRanges(); if (count) attribute.addUpdateRange(0, count * 3); attribute.needsUpdate = true; }
-      }
+      const revision = Math.floor(state.tick / 3);
+      if (revision < waterTick) resetWater();
+      if (revision !== waterTick) { waterTick = revision; waterMesher.request(state.fluids, revision); }
       entities.update(state.adventure,state.player); atmosphere.update(state.adventure, player.position);
       bodies.update(state); shadows.update(state);
     },
@@ -72,6 +87,7 @@ export function createWorld(renderer:THREE.WebGLRenderer) {
       }
     },
     dispose() {
+      waterMesher.dispose();
       atmosphere.dispose();feedback.dispose();preview.dispose();bodies.dispose(); entities.dispose(); shadows.dispose(); scene.remove(player);
       for (const view of remotePlayers.values()) scene.remove(view.model.group); avatars.dispose();
       const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();

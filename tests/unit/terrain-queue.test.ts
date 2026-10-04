@@ -11,3 +11,5 @@ it('budgets removals and clears pending work on reset',()=>{const queue=new Terr
 
 it('a160-brick boundary unload cannot starve the first incoming mesh',()=>{const queue=new TerrainQueue();queue.remove(Array.from({length:160},(_,i)=>String(i)));queue.enqueue(mesh('new'));const applied:string[]=[];queue.flush(m=>applied.push(m.id),()=>{},()=>0);expect(applied).toEqual(['new']);expect(queue.stats.removed).toBe(32);});
 it('filters unrendered/empty removals while acknowledging queued stale meshes',()=>{const queue=new TerrainQueue();queue.enqueue(mesh('stale'));expect(queue.remove(['stale',...Array.from({length:160},(_,i)=>String(i))],()=>false)).toBe(1);expect(queue.size).toBe(0);queue.enqueue(mesh('new'));expect(queue.flush(()=>{},()=>{},()=>0)).toBe(1);});
+
+it('a ready fence waits for already-published nearby meshes but not continuous distant streaming',()=>{const queue=new TerrainQueue();queue.enqueue(mesh('near'));const ready=queue.fence();queue.enqueue(mesh('far'));expect(queue.hasPending(ready)).toBe(true);queue.flush(()=>{},()=>{},()=>0,{items:1,bytes:512*1024,milliseconds:2});expect(queue.size).toBe(1);expect(queue.hasPending(ready)).toBe(false);});

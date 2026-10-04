@@ -3,7 +3,7 @@ import { Prediction } from '../networking/prediction';
 import { SessionAuthority } from './session';
 import { sessionFrame } from '../networking/frame';
 import { GameSimulation, TICK_RATE } from './game-simulation';
-import { visibleBricks } from '../world/streaming';
+import { visibleBricks, withinTerrainRetention } from '../world/streaming';
 import { meshTransferables } from '../world/mesh-preparation';
 import { TerrainScheduler, TerrainUploadWindow } from '../world/terrain-scheduler';
 import type { TerrainRequest, TerrainResponse } from '../world/terrain-protocol';
@@ -44,7 +44,7 @@ function initializeTerrain(): void {
       paused = true; terrain.paused = true; worker.terminate(); mesher = null;
       emit({ type: 'error', message: result.message }); return;
     }
-    const accepted = terrain.complete(result.job);
+    const accepted = terrain.complete(result.job, meshTransferables([result.mesh]).reduce((sum, buffer) => sum + buffer.byteLength, 0));
     if (accepted) {
       const mesh = result.mesh;
       meshMs = mesh.milliseconds; triangles.set(mesh.id, mesh.indices.length / 3);
@@ -70,7 +70,9 @@ function stream(): void {
   const id = `${Math.floor(sim.player.x / CHUNK_SIZE)},${Math.floor(sim.player.z / CHUNK_SIZE)}`;
   if (id === center) return;
   center = id;
-  const removed = terrain.setVisible(visibleBricks(sim.player, sim.world.bounds), sim.player);
+  const visible = visibleBricks(sim.player, sim.world.bounds);
+  const removed = terrain.setVisible(visible, sim.player, brick => withinTerrainRetention(brick, sim!.player));
+  emit({ type: 'terrain-visibility', epoch: terrain.epoch, ids: [...visible.keys()] });
   for (const key of removed) { triangles.delete(key); editedMeshes.delete(key); }
   if (removed.length) emit({ type: 'remove', epoch: terrain.epoch, ids: removed });
   publishEdit(); scheduleMesh();
@@ -151,4 +153,3 @@ setInterval(() => {
     emit({ type: 'snapshot', state: { peers: authority!.view('host').peers, tick: sim.tick, adventure: sim.adventure.snapshot(), player: { ...sim.player }, edits: sim.world.edits.length, fluids: sim.fluid.snapshot(sim.player), bodies: sim.bodies.filter(b => Math.hypot(b.position.x - sim!.player.x, b.position.z - sim!.player.z) < 65).map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })), metrics: { ...sim.metrics, meshMs, editMs, bricks: terrain.size, pending: terrain.pending, triangles: [...triangles.values()].reduce((a, b) => a + b, 0) } } });
   } catch (error) { paused = true; emit({ type: 'error', message: String(error) }); }
 }, 1000 / TICK_RATE);
-

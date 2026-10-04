@@ -1,4 +1,4 @@
-import { expect,it } from 'vitest';
+import { expect,it,vi } from 'vitest';
 import { GameSimulation } from '../../src/simulation/game-simulation';
 import { SdfWorld } from '../../src/world/density';
 import { FluidGrid } from '../../src/fluid/fluid';
@@ -6,7 +6,7 @@ import { validateSave } from '../../src/save/format';
 import { buildingVoxels,carveVoxels,occupied,localPoint,footSurface } from '../../src/game/voxel/model';
 import { interactionTarget } from '../../src/game/interaction/target';
 import { dropItem,pickupItem } from '../../src/game/interaction/drops';
-import { landscapeDelta,landscapePoint,landscapeSize } from '../../src/platform/viewport/landscape';
+import { landscapeDelta,landscapePoint,landscapeSize,viewportSize } from '../../src/platform/viewport/landscape';
 import { snapBuilding } from '../../src/game/placement';
 it('maps portrait display and touch coordinates into a landscape game',()=>{expect(landscapeSize(390,844)).toEqual({width:844,height:390,rotated:true});expect(landscapePoint(195,422,390,844)).toEqual({x:422,y:195});expect(landscapeDelta(0,25,390,844)).toEqual({x:25,y:0});});
 it('uses an eighth-volume water cell and migrates old volume without losing it',()=>{const world=new SdfWorld();world.density=p=>p.y;const f=new FluidGrid(world,.5);f.restore([{x:0,y:2,z:0,volume:.75,vx:2}]);expect(f.cells.size).toBe(8);expect(f.snapshot().reduce((n,c)=>n+c.volume,0)).toBeCloseTo(.75);expect(f.surfaceHeight(.25,.25)).toBeCloseTo(2.75);expect(f.add({x:1,y:2,z:0},1)).toBe(.125);const before=f.snapshot().reduce((n,c)=>n+c.volume,0);f.step();expect(f.snapshot().reduce((n,c)=>n+c.volume,0)).toBeCloseTo(before,8);});
@@ -21,3 +21,5 @@ it('lets an attack follow guard release and shares the visible cell height for l
 it('aims at the actual upper roof voxels rather than the old thin bounding box',()=>{const sim=new GameSimulation(),g=sim.adventure;g.state.resources=[];g.state.equipment='hammer';g.state.buildings=[{id:12,definition:'roof',x:0,y:10,z:0,rotation:0,support:4,contents:{}}];Object.assign(sim.player,{x:0,y:10,z:2});expect(interactionTarget(g.snapshot(),sim.player,{x:0,y:11.1,z:3},{x:0,y:0,z:-1})?.id).toBe('b:12');});
 
 it('exits the specifically aimed raft after boarding it',()=>{const sim=new GameSimulation(),g=sim.adventure,p=sim.player;g.state.buildings=[{id:12,definition:'raft',x:p.x,y:p.y,z:p.z-1,rotation:0,support:4,contents:{}}];const target={x:p.x,y:p.y,z:p.z-1};g.action('interact','b:12',target);expect(g.state.meadows!.riding).toBe(12);g.action('interact','b:12',target);expect(g.state.meadows!.riding).toBeUndefined();});
+
+it('measures the fixed mobile viewport instead of transformed overflow during rotation',()=>{vi.stubGlobal('document',{documentElement:{clientWidth:390,clientHeight:844}});vi.stubGlobal('innerWidth',844);vi.stubGlobal('innerHeight',1827);try{const size=viewportSize();expect(size).toEqual({width:390,height:844});expect(landscapeSize(size.width,size.height)).toEqual({width:844,height:390,rotated:true});}finally{vi.unstubAllGlobals();}});
