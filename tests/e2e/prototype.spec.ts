@@ -6,7 +6,11 @@ test('landscape first-person input, aimed door, attack and HDR render',async({pa
  await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await expect(page.locator('#error')).toBeHidden();await page.locator('#start').click();await expect(page.locator('#menu')).toBeHidden();await expect(page.locator('#game')).toHaveAttribute('data-running','true');
  expect((await probe(page)).door).toBe(false);
  if(!isMobile){await expect.poll(()=>page.evaluate(()=>!!document.pointerLockElement)).toBe(true);await page.keyboard.down('KeyW');await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.6);await page.keyboard.up('KeyW');await expect(page.locator('#game')).toHaveAttribute('data-target','door');await page.keyboard.press('KeyE');await expect.poll(async()=>(await probe(page)).door).toBe(true);
-  const yaw=(await probe(page)).yaw;await page.mouse.move(520,270);await page.mouse.move(540,270);await expect.poll(async()=>(await probe(page)).yaw).not.toBe(yaw);await page.mouse.click(540,270);await expect.poll(async()=>(await probe(page)).phase).not.toBe('idle');await expect.poll(async()=>(await probe(page)).phase).toBe('idle');await page.keyboard.press('Digit2');await expect.poll(async()=>(await probe(page)).tool).toBe(true);
+  const yaw=(await probe(page)).yaw;
+  // Playwright's CDP mouse move sends absolute x/y, not OS relative motion under Pointer Lock.
+  // Exercise the production event binding while the real browser lock is acquired.
+  await page.evaluate(()=>{for(let i=0;i<2;i++)document.dispatchEvent(new MouseEvent('mousemove',{movementX:24,movementY:0,bubbles:true}));});
+  await expect.poll(async()=>(await probe(page)).yaw).not.toBe(yaw);await page.mouse.click(480,270);await expect.poll(async()=>(await probe(page)).phase).not.toBe('idle');await expect.poll(async()=>(await probe(page)).phase).toBe('idle');await page.keyboard.press('Digit2');await expect.poll(async()=>(await probe(page)).tool).toBe(true);
  }else{
   const session=await page.context().newCDPSession(page),r=(await page.locator('#move-pad').boundingBox())!,attack=(await page.locator('[data-action=attack]').boundingBox())!,cx=r.x+r.width/2,cy=r.y+r.height/2;
   const finger={x:cx,y:cy-30,id:1};await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.6);

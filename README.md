@@ -30,6 +30,7 @@
 `npm ci`, `npm run typecheck`, `npm run test`, `npm run build`, `npm run e2e`。
 Node.js 22以上。Playwrightの前に `npx playwright install --with-deps chromium`。E2Eはビルド済みdistを使う。
 CIは型/単体/ビルドの後、ブラウザ検証とPreview公開を独立実行する。PreviewにはソースSHAを記録して照合する。
+PCのE2Eは実ブラウザでPointer Lockを取得し、相対視点イベントをMouseEventで入力する。自動操作の絶対座標移動はOSの相対マウス入力と異なる。実マウスの手触りと実機FPSをこの自動試験で確認済みとは扱わない。
 `?test=1` は読み取り専用の試験プローブ、F3は描画/水量の診断。
 
 これは24×30mのコア検証場。セーブ、旧セーブ移行、協力通信、大規模ストリーミング、制作ツリー、自由建築、木の汎用剛体倒壊は対象外。旧版のセーブには触れない。
