@@ -10,7 +10,7 @@ export class ExposurePass extends Pass {
  uniform sampler2D sceneColor,previous;uniform float dt,initialized;
  void main(){float total=0.,weights=0.;
   for(int y=0;y<8;y++)for(int x=0;x<8;x++){vec2 uv=(vec2(float(x),float(y))+.5)/8.;float w=1.-length(uv-.5)*.6;vec3 color=texture2D(sceneColor,uv).rgb;total+=log(clamp(dot(color,vec3(.2126,.7152,.0722)),.0001,10000.))*w;weights+=w;}
-  float luminance=exp(total/weights),target=clamp(.18/luminance,.12,8.),old=texture2D(previous,vec2(.5)).r;
+  float luminance=exp(total/weights),target=clamp(.1/luminance,.12,4.),old=texture2D(previous,vec2(.5)).r;
   float speed=target<old?3.:1.2;float adapted=initialized<.5?target:mix(old,target,1.-exp(-dt*speed));gl_FragColor=vec4(adapted,luminance,0.,1.);
  }`});
  private apply=new THREE.ShaderMaterial({vertexShader:screenVertex,depthTest:false,depthWrite:false,uniforms:{sceneColor:{value:null},exposure:{value:null}},fragmentShader:'varying vec2 vUv;uniform sampler2D sceneColor,exposure;void main(){gl_FragColor=vec4(texture2D(sceneColor,vUv).rgb*texture2D(exposure,vec2(.5)).r,1.);}'});

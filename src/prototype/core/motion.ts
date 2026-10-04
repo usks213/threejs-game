@@ -1,22 +1,22 @@
 import { direction,type Vec3 } from './voxel';
 export type AttackKind='slash'|'return'|'overhead';
-export type AttackPhase='idle'|'windup'|'strike'|'recover'|'dodge'|'stagger'|'dead';
+export type AttackPhase='idle'|'windup'|'strike'|'recover'|'dodge'|'stagger'|'dead'|'heal';
 export const attacks={
  slash:{windup:.38,strike:.29,recover:.48,damage:32,cost:20,reach:1.05},
  return:{windup:.32,strike:.31,recover:.5,damage:30,cost:19,reach:1.05},
- overhead:{windup:.7,strike:.34,recover:.78,damage:55,cost:32,reach:1.12},
+ overhead:{windup:.7,strike:.34,recover:.78,damage:55,cost:32,reach:1.05},
 } as const;
-export interface WeaponPose {grip:Vec3;tip:Vec3;twist:number;lean:number;step:number}
+export interface WeaponPose {grip:Vec3;tip:Vec3;twist:number;lean:number;step:number;drink?:number}
 interface Key {t:number;grip:Vec3;vector:Vec3;twist:number;lean:number;step:number}
 const v=(x:number,y:number,z:number):Vec3=>({x,y,z});
-const guard={grip:v(.34,1.1,-.3),vector:v(.07,.97,-.3),twist:0,lean:0,step:0};
+const guard={grip:v(.34,1.16,-.5),vector:v(.07,.97,-.3),twist:0,lean:0,step:0};
 const slash:Omit<Key,'t'>[]=[guard,
- {grip:v(.58,1.38,.03),vector:v(.8,.55,.3),twist:-.42,lean:.035,step:-.06},
+ {grip:v(.5,1.3,-.5),vector:v(.6,.72,.22),twist:-.42,lean:.035,step:-.06},
  {grip:v(.12,1.16,-.55),vector:v(.02,.15,-1),twist:.05,lean:-.09,step:.21},
  {grip:v(-.32,.88,-.22),vector:v(-.88,-.32,-.35),twist:.48,lean:-.04,step:.12},
  {grip:v(-.12,.94,-.26),vector:v(-.45,.28,-.85),twist:.22,lean:0,step:.05},guard];
 const overhead:Omit<Key,'t'>[]=[guard,
- {grip:v(.15,1.91,.03),vector:v(.12,.85,.51),twist:-.16,lean:.1,step:-.1},
+ {grip:v(.15,1.75,-.35),vector:v(.08,.92,.38),twist:-.16,lean:.1,step:-.1},
  {grip:v(.08,1.47,-.5),vector:v(.03,.12,-1),twist:.04,lean:-.14,step:.3},
  {grip:v(.1,.78,-.45),vector:v(.12,-.74,-.67),twist:.2,lean:-.13,step:.2},
  {grip:v(.27,.9,-.29),vector:v(.09,.5,-.86),twist:.08,lean:.015,step:.06},guard];

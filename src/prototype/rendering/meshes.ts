@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import { chunkKey,VoxelField,type Cell } from '../core/voxel';
 import { extractSurface } from '../core/surface';
 import type { VoxelWater } from '../core/water';
@@ -6,11 +7,14 @@ const palette=['#000000','#3b3630','#455044','#64605a','#37281f','#806346','#9ca
 export function voxelGeometry(field:VoxelField,cells:Iterable<Cell>=field.cells.values(),owner?:string){
  const data=extractSurface(field,cells,owner),colors:number[]=[];
  for(let i=0;i<data.materials.length;i++){const c=palette[data.materials[i]]??palette[3],x=data.positions[i*3],y=data.positions[i*3+1],z=data.positions[i*3+2];const variation=.92+.06*Math.sin(x*7.1+y*9.3+z*4.7)*Math.sin(x*2.3-z*3.8);colors.push(c.r*variation,c.g*variation,c.b*variation);}
- const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(data.normals,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.computeBoundingSphere();return g;
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(data.normals,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));const indexed=mergeVertices(g,.00001);g.dispose();indexed.computeBoundingSphere();return indexed;
 }
 export class WorldMeshes {
  readonly material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.87,metalness:.04});readonly chunks=new Map<string,THREE.Mesh>();remeshes=0;lastRemeshMs=0;
- constructor(readonly field:VoxelField,readonly scene:THREE.Scene){}
+ constructor(readonly field:VoxelField,readonly scene:THREE.Scene){this.material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+#ifdef USE_COLOR
+ totalEmissiveRadiance += vColor.rgb * step(.8,vColor.r) * step(vColor.b,.2) * 1.8;
+#endif`);};}
  sync(){if(!this.field.dirty.size)return;const start=performance.now();const dirty=new Set(this.field.dirty),buckets=new Map<string,Cell[]>();
   // Include a one-sample halo. Cube ownership is unique, so neighbouring chunks share exact vertices.
   for(const c of this.field.cells.values()){if(c.distance>=0)continue;const owners=new Set([chunkKey(c.x,c.z),chunkKey(c.x-1,c.z),chunkKey(c.x,c.z-1),chunkKey(c.x-1,c.z-1)]);for(const id of owners){if(!dirty.has(id))continue;let list=buckets.get(id);if(!list)buckets.set(id,list=[]);list.push(c);}}

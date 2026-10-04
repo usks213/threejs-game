@@ -5,7 +5,7 @@ import { createRig } from './rig';
 import { createAtmosphere } from '../../rendering/environment/atmosphere';
 import { createPipeline } from '../../rendering/postprocessing/pipeline';
 export function createView(canvas:HTMLCanvasElement,sim:CoreSimulation){
- const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.info.autoReset=false;
+ const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;renderer.info.autoReset=false;
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(74,1,.035,120);camera.rotation.order='YXZ';scene.add(camera);
  const atmosphere=createAtmosphere(scene,renderer),pipeline=createPipeline(renderer,scene,camera,atmosphere),world=new WorldMeshes(sim.arena.field,scene);world.sync();
  const ambient=new THREE.HemisphereLight('#70829b','#33281e',.16);scene.add(ambient);
@@ -13,9 +13,9 @@ export function createView(canvas:HTMLCanvasElement,sim:CoreSimulation){
  const waterMesh=new THREE.Mesh(waterGeometry(sim.water),waterMaterial);waterMesh.receiveShadow=true;scene.add(waterMesh);
  const creatures=sim.enemies.map(()=>{const rig=createRig(),holder=new THREE.Group();holder.add(rig.root);scene.add(holder);return {rig,holder,last:new THREE.Vector3(),speed:0};});
  const firstPerson=createRig(true),hands=new THREE.Group();hands.position.y=-1.52;hands.add(firstPerson.root);camera.add(hands);
- const lantern=new THREE.PointLight('#eccca6',2.5,5.5,2);lantern.position.set(-.2,-.25,.05);camera.add(lantern);
- const lights:THREE.PointLight[]=[];for(const x of [-4,4]){const light=new THREE.PointLight('#ff9c51',23,10,2);light.position.set(x,2,-5);scene.add(light);lights.push(light);}
- const entrance=new THREE.PointLight('#b8c5de',9,9,2);entrance.position.set(0,3,2);scene.add(entrance);
+ const lantern=new THREE.PointLight('#eccca6',.3,5.5,2);lantern.position.set(-.2,-.25,.05);camera.add(lantern);
+ const lights:THREE.PointLight[]=[];for(const x of [-4,4]){const light=new THREE.PointLight('#ff9c51',7,10,2);light.position.set(x,2,-5);scene.add(light);lights.push(light);}
+ const entrance=new THREE.PointLight('#b8c5de',2.2,9,2);entrance.position.set(0,3,2);scene.add(entrance);
  let previousWater=-1,waterElapsed=0,hour=20;
  return {
   renderer,camera,scene,
@@ -29,7 +29,7 @@ export function createView(canvas:HTMLCanvasElement,sim:CoreSimulation){
     c.rig.update(sim.enemyPose(e),e.stride,c.speed,0,false,e.phase==='stagger'?Math.sin(Math.min(1,e.time/.95)*Math.PI):0,e.phase==='dead'?THREE.MathUtils.smoothstep(e.time,0,.9):0);
    }
    firstPerson.update(sim.pose(),p.stride,speed,p.guard,p.tool);hands.rotation.z=-p.impact*.012;
-   for(let i=0;i<lights.length;i++)lights[i].intensity=23+Math.sin(sim.seconds*9+i)*1.3+Math.sin(sim.seconds*17+i)*.7;
+   for(let i=0;i<lights.length;i++)lights[i].intensity=7+Math.sin(sim.seconds*9+i)*.35+Math.sin(sim.seconds*17+i)*.18;
    atmosphere.update({environment:{hour,seconds:sim.seconds,weather:'clear'},enemies:[]},camera.position);pipeline.render(dt);
   },
   stats(){return {drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,sdfSamples:sim.arena.field.cells.size,remeshes:world.remeshes,remeshMs:world.lastRemeshMs,...pipeline.stats,...atmosphere.stats};},

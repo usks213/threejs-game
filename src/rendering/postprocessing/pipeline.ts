@@ -31,7 +31,7 @@ export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,ca
    if(!throttled&&++frames===12){if(slowFrames>8&&scale>.55&&!reading){scale=Math.max(.55,scale-.15);resize(width,height);}frames=0;slowFrames=0;}
    renderer.info.reset();atmosphere.prepare(dt);
    if(performance.now()-lastSelect>350){lastSelect=performance.now();reflections.length=0;scene.traverseVisible(o=>{if(o instanceof THREE.Mesh&&o.geometry.drawRange.count>0&&(!(o instanceof THREE.InstancedMesh)||o.count>0)){const mats=Array.isArray(o.material)?o.material:[o.material];if(mats.some(m=>m instanceof THREE.MeshStandardMaterial&&m.roughness<.25))reflections.push(o);}});ssr.selects=reflections;}
-   composer.render(dt);
+   renderer.shadowMap.needsUpdate=true;composer.render(dt);
    if(inspect&&!reading&&performance.now()-lastRead>2000){reading=true;lastRead=performance.now();void Promise.all([measure(ssr.ssrRenderTarget,true),measure(bloom.renderTargetsHorizontal[0]),measure(volume.target),measure(ssr.beautyRenderTarget)]).then(([reflectionPixels,bloomEnergy,volumeEnergy,beautyEnergy])=>{if(!disposed)Object.assign(diagnostics,{reflectionPixels,bloomEnergy,volumeEnergy,beautyEnergy,stageSamples:diagnostics.stageSamples+1});}).catch((error:unknown)=>console.error('HDR stage readback failed',error)).finally(()=>{reading=false;});}
   },
   dispose(){disposed=true;for(const pass of [ssr,volume,exposure,bloom,output,fxaa])pass.dispose();ssr.ssrMaterial.dispose();composer.dispose();},

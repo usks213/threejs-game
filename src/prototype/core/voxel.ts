@@ -17,23 +17,26 @@ export class VoxelField {
  constructor(readonly size=SOLID_SIZE){}
  sample(x:number,y:number,z:number){return this.cells.get(key(x,y,z))?.distance??this.size*2;}
  get(x:number,y:number,z:number){const c=this.cells.get(key(x,y,z));return c&&c.distance<0?c:undefined;}
- private write(x:number,y:number,z:number,distance:number,material:number,object?:string){
-  const id=key(x,y,z),d=Math.max(-this.size*2,Math.min(this.size*2,distance));
-  if(d>=this.size*2)this.cells.delete(id);else this.cells.set(id,{x,y,z,distance:d,material,object});
-  for(const dx of [-1,0,1])for(const dz of [-1,0,1])this.dirty.add(chunkKey(x+dx,z+dz));
+ private readonly base=new Map<string,Cell>();private readonly layers=new Map<string,Map<string,Cell>>();
+ private compose(x:number,y:number,z:number){const id=key(x,y,z),old=this.cells.get(id);let cell=this.base.get(id);for(const layer of this.layers.values()){const candidate=layer.get(id);if(candidate&&(!cell||candidate.distance<cell.distance))cell=candidate;}
+  if(cell)this.cells.set(id,cell);else this.cells.delete(id);
+  if(old?.distance!==cell?.distance||old?.material!==cell?.material||old?.object!==cell?.object)for(const dx of [-1,0,1])for(const dz of [-1,0,1])this.dirty.add(chunkKey(x+dx,z+dz));
  }
- /** Rasterize a CSG operation into the distance volume, including its exterior narrow band. */
+ private write(layer:Map<string,Cell>,x:number,y:number,z:number,distance:number,material:number,object?:string){const id=key(x,y,z),d=Math.max(-this.size*2,Math.min(this.size*2,distance));if(d>=this.size*2)layer.delete(id);else layer.set(id,{x,y,z,distance:d,material,object});}
+ /** Rasterize CSG into sampled distances. Object layers preserve underlying terrain when removed. */
  shape(a:Vec3,b:Vec3,sdf:Sdf,material:number,object?:string,subtract=false){
-  const s=this.size,pad=s*2;
+  const s=this.size,pad=s*2;let layer=this.base;if(object&&!subtract){let found=this.layers.get(object);if(!found)this.layers.set(object,found=new Map());layer=found;}
+  const targets=subtract?[this.base,...this.layers.values()]:[layer];
   for(let x=Math.floor((a.x-pad)/s);x<=Math.ceil((b.x+pad)/s);x++)for(let y=Math.floor((a.y-pad)/s);y<=Math.ceil((b.y+pad)/s);y++)for(let z=Math.floor((a.z-pad)/s);z<=Math.ceil((b.z+pad)/s);z++){
-   const old=this.cells.get(key(x,y,z)),before=old?.distance??s*2,d=sdf({x:(x+.5)*s,y:(y+.5)*s,z:(z+.5)*s}),after=subtract?Math.max(before,-d):Math.min(before,d);
-   if(after!==before)this.write(x,y,z,after,subtract?(old?.material??material):material,subtract?old?.object:object);
+   const id=key(x,y,z),d=Math.max(-s*2,Math.min(s*2,sdf({x:(x+.5)*s,y:(y+.5)*s,z:(z+.5)*s})));let changed=false;
+   for(const target of targets){const old=target.get(id),before=old?.distance??s*2,after=subtract?Math.max(before,-d):Math.min(before,d);if(after===before)continue;this.write(target,x,y,z,after,subtract?(old?.material??material):material,subtract?old?.object:object);changed=true;}
+   if(changed)this.compose(x,y,z);
   }this.revision++;
  }
  box(a:Vec3,b:Vec3,material:number,object?:string,r=0){this.shape(a,b,roundedBox(a,b,r),material,object,material===0);}
  set(x:number,y:number,z:number,material:number,object?:string){const s=this.size;this.box({x:x*s,y:y*s,z:z*s},{x:(x+1)*s,y:(y+1)*s,z:(z+1)*s},material,object);}
  carve(p:Vec3,r:number){this.shape({x:p.x-r,y:p.y-r,z:p.z-r},{x:p.x+r,y:p.y+r,z:p.z+r},sphere(p,r),0,undefined,true);}
- removeObject(object:string){for(const c of this.cells.values())if(c.object===object)this.write(c.x,c.y,c.z,this.size*2,0);this.revision++;}
+ removeObject(object:string){const layer=this.layers.get(object);if(!layer)return;this.layers.delete(object);for(const c of layer.values())this.compose(c.x,c.y,c.z);this.revision++;}
  distance(p:Vec3){const s=this.size,q=[p.x/s-.5,p.y/s-.5,p.z/s-.5],base=q.map(Math.floor),t=q.map((v,i)=>v-base[i]),order=[0,1,2].sort((a,b)=>t[b]-t[a]),n=[...base];
   let d=this.sample(n[0],n[1],n[2])*(1-t[order[0]]);n[order[0]]++;
   d+=this.sample(n[0],n[1],n[2])*(t[order[0]]-t[order[1]]);n[order[1]]++;

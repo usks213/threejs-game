@@ -10,7 +10,7 @@ export interface Target {hit:Hit;enemy?:Enemy;label:string;action:string}
 const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
 export class CoreSimulation {
  readonly arena=createArena();readonly water=new VoxelWater(this.arena.field);readonly enemyShape=creatureVoxels();
- readonly player={position:{x:0,y:.25,z:6},yaw:0,pitch:0,hp:100,stamina:100,vy:0,grounded:true,flasks:1,tool:false,phase:'idle' as 'idle'|'windup'|'strike'|'recover'|'dodge',time:0,heavy:false,hit:false,blockTime:0,dodgeX:0,dodgeZ:0,attack:'slash' as AttackKind,combo:0,queued:'' as ''|'attack'|'heavy',hitstop:0,vx:0,vz:0,stride:0,guard:0,impact:0};
+ readonly player={position:{x:0,y:.25,z:6},yaw:0,pitch:0,hp:100,stamina:100,vy:0,grounded:true,flasks:1,tool:false,phase:'idle' as 'idle'|'windup'|'strike'|'recover'|'dodge'|'heal',time:0,heavy:false,hit:false,blockTime:0,dodgeX:0,dodgeZ:0,attack:'slash' as AttackKind,combo:0,queued:'' as ''|'attack'|'heavy',hitstop:0,vx:0,vz:0,stride:0,guard:0,impact:0};
  readonly enemies:Enemy[]=[{id:0,position:{x:0,y:.25,z:-6},yaw:0,hp:100,vy:0,phase:'idle',time:0,hit:false,attack:'slash',hitstop:0,stride:0},{id:1,position:{x:2,y:.25,z:-9},yaw:0,hp:100,vy:0,phase:'idle',time:0,hit:false,attack:'overhead',hitstop:0,stride:0}];
  readonly events:Event[]=[];seconds=0;waterOn=false;defeated=0;private fluidTime=0;private footTime=0;private regenDelay=0;
  look(dx:number,dy:number){const weight=this.player.phase==='strike'?.28:this.player.phase==='windup'?.65:1;this.player.yaw-=dx*weight;this.player.pitch=clamp(this.player.pitch-dy*weight,-Math.PI/2+.03,Math.PI/2-.03);}
@@ -30,7 +30,7 @@ export class CoreSimulation {
  action(action:Action,input:Controls){
   const p=this.player;if(p.hp<=0)return;
   if(action==='tool'||action==='sword'||action==='chisel'){if(p.phase==='idle')p.tool=action==='tool'?!p.tool:action==='chisel';return;}
-  if(action==='heal'){if(p.phase==='idle'&&p.flasks&&p.hp<100){p.flasks--;p.hp=Math.min(100,p.hp+55);this.events.push({kind:'interact',text:'回復薬を使用'});}return;}
+  if(action==='heal'){if(p.phase==='idle'&&p.flasks&&p.hp<100){p.flasks--;p.phase='heal';p.time=0;this.regenDelay=1.6;this.events.push({kind:'interact',text:'回復薬を飲む'});}return;}
   if(action==='interact'){if(p.phase==='idle')this.interact();return;}
   if(action==='jump'){if(p.grounded&&p.stamina>=12){p.vy=5;p.grounded=false;p.stamina-=12;this.regenDelay=.6;}return;}
   if(action==='dodge'){if(p.phase!=='idle'||p.stamina<24)return;const m=this.axes(input),length=Math.hypot(m.x,m.z);p.dodgeX=length?m.x/length:Math.sin(p.yaw);p.dodgeZ=length?m.z/length:Math.cos(p.yaw);p.phase='dodge';p.time=0;p.stamina-=24;this.regenDelay=.8;return;}
@@ -60,8 +60,14 @@ export class CoreSimulation {
    if(bodies.some(b=>b!==position&&Math.abs(b.y-trial.y)<1.65&&Math.hypot(b.x-trial.x,b.z-trial.z)<.55))continue;
    if(!field.overlaps(trial,.27,height))position[axis]+=delta;else if(!field.overlaps({...trial,y:trial.y+.26},.27,height)){position[axis]+=delta;position.y+=.25;}}}
  }
- pose(){const p=this.player;return attackPose(p.attack,p.phase,p.time);}
- enemyPose(e:Enemy){const pose=attackPose(e.attack,e.phase,e.time,1.35);if((e.phase==='stagger'||e.phase==='dead')&&e.interrupted){const u=clamp(e.time/(e.phase==='dead'?.8:.35),0,1),t=u*u*(3-2*u),a=e.interrupted,mix=(x:number,y:number)=>x+(y-x)*t;return {grip:{x:mix(a.grip.x,pose.grip.x),y:mix(a.grip.y,pose.grip.y),z:mix(a.grip.z,pose.grip.z)},tip:{x:mix(a.tip.x,pose.tip.x),y:mix(a.tip.y,pose.tip.y),z:mix(a.tip.z,pose.tip.z)},twist:mix(a.twist,pose.twist),lean:mix(a.lean,pose.lean),step:mix(a.step,pose.step)};}return pose;}
+ pose(){const p=this.player,pose=attackPose(p.attack,p.phase,p.time);if(p.phase==='heal'){const u=clamp(p.time<.55?p.time/.55:p.time<1.05?1:(1.6-p.time)/.55,0,1),t=u*u*(3-2*u);return {...pose,grip:{x:pose.grip.x+(.1-pose.grip.x)*t,y:pose.grip.y+(1.36-pose.grip.y)*t,z:pose.grip.z+(-.24-pose.grip.z)*t},drink:t};}if(p.phase==='dodge'){const t=Math.sin(p.time/.36*Math.PI);return {...pose,grip:{...pose.grip,y:pose.grip.y-t*.13},lean:t*.08};}return pose;}
+ enemyPose(e:Enemy){
+  const pose=attackPose(e.attack,e.phase,e.time,1.35);if((e.phase!=='stagger'&&e.phase!=='dead')||!e.interrupted)return pose;
+  const u=clamp(e.time/(e.phase==='dead'?.8:.35),0,1),t=u*u*(3-2*u),a=e.interrupted,mix=(x:number,y:number)=>x+(y-x)*t;
+  const grip={x:mix(a.grip.x,pose.grip.x),y:mix(a.grip.y,pose.grip.y),z:mix(a.grip.z,pose.grip.z)},raw={x:mix(a.tip.x,pose.tip.x)-grip.x,y:mix(a.tip.y,pose.tip.y)-grip.y,z:mix(a.tip.z,pose.tip.z)-grip.z},scale=attacks[e.attack].reach/(Math.hypot(raw.x,raw.y,raw.z)||1);
+  return {grip,tip:{x:grip.x+raw.x*scale,y:grip.y+raw.y*scale,z:grip.z+raw.z*scale},twist:mix(a.twist,pose.twist),lean:mix(a.lean,pose.lean),step:mix(a.step,pose.step)};
+ }
+
  /** Continuous blade sweep: contact follows the rendered edge, including head/body and walls. */
  private melee(before:WeaponPose,after:WeaponPose){
   const p=this.player;if(p.hit)return;
@@ -91,7 +97,7 @@ export class CoreSimulation {
   const m=this.axes(input),length=Math.hypot(m.x,m.z),speed=p.phase==='dodge'?0:blocking?1.05:p.phase!=='idle'?.8:input.sprint&&p.stamina>0?3.7:input.z<0?1.7:2.5;
   if(length&&input.sprint&&p.phase==='idle'&&!blocking){p.stamina=Math.max(0,p.stamina-18*dt);this.regenDelay=.45;}
   const k=1-Math.exp(-dt*(length?11:15));p.vx+=(m.x/Math.max(1,length)*speed-p.vx)*k;p.vz+=(m.z/Math.max(1,length)*speed-p.vz)*k;
-  const oldPosition={...p.position};this.move(p.position,p.vx*dt,p.vz*dt);const travelled=Math.hypot(p.position.x-oldPosition.x,p.position.z-oldPosition.z);p.stride+=travelled*4.5;
+  const oldPosition={...p.position};if(p.hitstop===0)this.move(p.position,p.vx*dt,p.vz*dt);const travelled=Math.hypot(p.position.x-oldPosition.x,p.position.z-oldPosition.z);p.stride+=travelled*4.5;
   if(travelled>.002&&p.grounded){this.footTime+=travelled;if(this.footTime>.95){this.events.push({kind:'step'});this.footTime=0;}}
   const vertical=this.settle(p.position,p.vy-14*dt,dt);p.vy=vertical.vy;p.grounded=vertical.grounded;
   if(p.position.y<-4){p.hp=0;this.events.push({kind:'hurt',text:'落下した'});}
@@ -101,7 +107,7 @@ export class CoreSimulation {
   if(p.phase==='strike'){this.melee(before,this.pose());if(p.time>=def.strike){p.phase='recover';p.time-=def.strike;}}
   const after=this.pose();if(oldPhase==='windup'||oldPhase==='strike'||oldPhase==='recover'){const forward=direction(p.yaw,0),step=after.step-before.step;this.move(p.position,forward.x*step,forward.z*step);}
   if(p.phase==='recover'&&p.time>=def.recover){p.phase='idle';p.time=0;const queued=p.queued;p.queued='';if(queued)this.action(queued,input);}
-  if(p.phase==='idle'&&p.time>1.2)p.combo=0;
+  if(p.phase==='heal'&&p.time>=1.6){p.hp=Math.min(100,p.hp+55);p.phase='idle';p.time=0;this.events.push({kind:'interact',text:'回復した'});}if(p.phase==='idle'&&p.time>1.2)p.combo=0;
   if(p.phase==='dodge'){this.move(p.position,p.dodgeX*4.1*dt,p.dodgeZ*4.1*dt);if(p.time>=.36){p.phase='idle';p.time=0;}}
   for(const e of this.enemies){this.enemyTick(e,dt,blocking);if(e.hp<=0)continue;const vertical=this.settle(e.position,e.vy-14*dt,dt,1.7);e.vy=vertical.vy;if(e.position.y<-4){e.hp=0;e.phase='dead';this.defeated++;}}
   this.fluidTime+=dt;if(this.fluidTime>=.1){this.fluidTime=0;if(this.waterOn||input.water)for(let z=20;z<26;z++)this.water.add(2,10,z,.8);this.water.step();}
@@ -123,9 +129,9 @@ export class CoreSimulation {
    if(!e.hit)for(let i=0;i<=steps;i++){const t=i/steps,grip={x:a.grip.x+(b.grip.x-a.grip.x)*t,y:a.grip.y+(b.grip.y-a.grip.y)*t,z:a.grip.z+(b.grip.z-a.grip.z)*t},tip={x:a.tip.x+(b.tip.x-a.tip.x)*t,y:a.tip.y+(b.tip.y-a.tip.y)*t,z:a.tip.z+(b.tip.z-a.tip.z)*t},edge={x:tip.x-grip.x,y:tip.y-grip.y,z:tip.z-grip.z},wall=this.arena.field.ray(grip,edge,Math.hypot(edge.x,edge.y,edge.z)),end=wall?.point??tip;
     if(bodyCapsules(p.position,p.yaw,this.pose()).some(c=>segmentDistance(grip,end,c.a,c.b)<c.r+.035)){
      e.hit=true;if(p.phase==='dodge'&&p.time>=.035&&p.time<.27)break;e.hitstop=.06;p.impact=1;
-     if(blocking&&p.guard>.5&&facing(p.yaw,p.position,e.position)>.45&&segmentDistance(grip,end,transformPoint({x:-.38+p.guard*.2,y:1.035+p.guard*.37,z:-.4-p.guard*.15},p.position,p.yaw),transformPoint({x:-.38+p.guard*.2,y:1.035+p.guard*.37,z:-.4-p.guard*.15},p.position,p.yaw))<.44&&p.stamina>=18){p.stamina-=18;this.regenDelay=.8;
+     if(blocking&&p.guard>.5&&facing(p.yaw,p.position,e.position)>.45&&segmentDistance(grip,end,transformPoint({x:-.38+p.guard*.2,y:.865+p.guard*.54,z:-.4-p.guard*.15},p.position,p.yaw),transformPoint({x:-.38+p.guard*.2,y:.865+p.guard*.54,z:-.4-p.guard*.15},p.position,p.yaw))<.44&&p.stamina>=18){p.stamina-=18;this.regenDelay=.8;
       if(p.blockTime<.19){e.interrupted=this.enemyPose(e);e.phase='stagger';e.time=0;this.events.push({kind:'parry',text:'パリィ'});}else this.events.push({kind:'parry',text:'ガード'});
-     }else{p.hp=Math.max(0,p.hp-(e.attack==='overhead'?38:28));p.stamina=Math.max(0,p.stamina-8);this.events.push({kind:'hurt'});}break;
+     }else{if(p.phase==='heal'){p.phase='idle';p.time=0;this.events.push({kind:'interact',text:'回復を中断された'});}p.hp=Math.max(0,p.hp-(e.attack==='overhead'?38:28));p.stamina=Math.max(0,p.stamina-8);this.events.push({kind:'hurt'});}break;
     }if(wall){e.hit=true;e.hitstop=.08;this.events.push({kind:'parry',text:'番兵の刃が壁に当たった'});break;}
    }
    if(e.phase==='strike'&&e.time>=def.strike*slow){e.phase='recover';e.time-=def.strike*slow;}
