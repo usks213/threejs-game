@@ -9,7 +9,7 @@ button svg{display:block;width:23px;height:23px;margin:0 auto 2px;pointer-events
 
 .food-slots,.food-hud{display:flex;gap:6px}.food-slots>div{flex:1;min-height:64px;background:#3b3325;border:1px solid #b1965d;padding:8px;display:grid;gap:4px}.food-slots svg{width:24px;height:24px}.food-hud span{background:#1c2729aa;border-bottom:2px solid #ccae67;padding:3px 6px;font-size:10px}.meadow-map{position:relative;height:250px;background:radial-gradient(ellipse at 28% 50%,#3b7775 0 5%,transparent 8%),radial-gradient(ellipse at 60% 50%,#677647,#3c503b);border:3px solid #a98d57;margin:12px 0}.meadow-map span,.meadow-map b{position:absolute;color:#ffe4a6}.item-slot button{min-height:48px;font-size:11px}.food-slots{margin:10px 0}#adventure-content h3{color:#e2c783}
 
-.movement-modes{position:absolute;left:calc(20px + env(safe-area-inset-left));bottom:calc(225px + var(--bottom));display:flex;gap:6px;z-index:3}.movement-modes button{width:50px;height:48px;font-size:11px}.movement-modes button[aria-pressed=true]{background:#ae9659;color:#18281c}@media(max-height:500px){.movement-modes{bottom:calc(130px + var(--bottom))}}
+.movement-modes button[aria-pressed=true]{background:#ae9659;color:#18281c}
 
 .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.slot-grid>button{height:56px;min-width:48px;position:relative;background:#16261f}.slot-grid>button.selected{border-color:#e6c47c;background:#8d74383d}.slot-grid small{position:absolute;bottom:3px;right:5px}.selected-item h3 svg{width:24px;height:24px;vertical-align:middle}.quantity-label{display:flex;align-items:center;gap:12px;margin:12px 0}#adventure-content input{min-height:48px;max-width:100%;border:1px solid #b6a578;background:#14271f;color:#f0e3c4;padding:8px;border-radius:4px;font-size:16px}#item-quantity{width:100px}.exploration-map{width:100%;max-height:360px;border:1px solid #ac9964;border-radius:6px}.map-controls{display:flex;align-items:center;gap:8px;margin:10px 0}.map-pin-list>div{display:flex;align-items:center;justify-content:space-between}.map-pin-list button{min-width:60px}@media(min-width:600px){.slot-grid{grid-template-columns:repeat(8,1fr)}}
 
@@ -33,15 +33,17 @@ header,.world-info,.hint,#combat-more,#combat-extra,#session-menu,#session-statu
 .reticle{left:50%;top:50%;pointer-events:none}
 .controls{left:calc(12px + var(--safe-left));bottom:calc(12px + var(--safe-bottom));width:112px;height:112px}
 #stick,#app[data-rotated=true] #stick{width:112px;height:112px}
-.movement-modes{left:calc(12px + var(--safe-left));bottom:calc(132px + var(--safe-bottom));display:flex;gap:8px}
-.movement-modes button{width:48px;height:48px;min-width:48px;padding:4px}
-#combat-controls{position:absolute;inset:auto calc(12px + var(--safe-right)) calc(12px + var(--safe-bottom)) auto;display:grid;grid-template-columns:56px 64px;grid-template-rows:56px 56px 64px;gap:8px;width:128px;height:192px;z-index:4;pointer-events:none}
+/* Keep movement toggles and combat in one right-thumb block across gameplay modes. */
+#right-controls{--action-size:56px;--control-gap:8px;position:absolute;right:calc(12px + var(--safe-right));bottom:calc(12px + var(--safe-bottom));display:grid;gap:var(--control-gap);width:max-content;z-index:4;pointer-events:none}
+.movement-modes{display:grid;grid-template-columns:var(--action-size) 64px;gap:var(--control-gap)}
+.movement-modes button{width:100%;height:48px;min-width:48px;padding:4px;font-size:11px;white-space:nowrap;pointer-events:auto}
+#combat-controls{position:static;inset:auto;display:grid;grid-template-columns:var(--action-size) 64px;grid-template-rows:var(--action-size) var(--action-size) 64px;gap:var(--control-gap);width:auto;height:auto;pointer-events:none}
 #combat-controls>button{position:static;inset:auto;min-width:48px;min-height:48px;margin:0;padding:4px;align-self:center;justify-self:center;pointer-events:auto;border-radius:50%}
-#combat-controls #guard{display:block;grid-area:1 / 1;width:56px;height:56px}
-#combat-controls #heavy{display:block;grid-area:1 / 2;width:56px;height:56px}
-#combat-controls #water-cast{grid-area:2 / 1;width:56px;height:56px}
-#combat-controls #jump{grid-area:2 / 2;width:56px;height:56px}
-#combat-controls #dodge{grid-area:3 / 1;width:56px;height:56px}
+#combat-controls #guard{display:block;grid-area:1 / 1;width:var(--action-size);height:var(--action-size)}
+#combat-controls #heavy{display:block;grid-area:1 / 2;width:var(--action-size);height:var(--action-size)}
+#combat-controls #water-cast{grid-area:2 / 1;width:var(--action-size);height:var(--action-size)}
+#combat-controls #jump{grid-area:2 / 2;width:var(--action-size);height:var(--action-size)}
+#combat-controls #dodge{grid-area:3 / 1;width:var(--action-size);height:var(--action-size)}
 #combat-controls #attack,#combat-controls #use-tool{grid-area:3 / 2;width:64px;height:64px;min-width:48px;min-height:48px}
 #combat-controls #use-tool{display:none;font-size:11px}
 #combat-controls button>svg{width:25px;height:25px}
@@ -75,10 +77,10 @@ header,.world-info,.hint,#combat-more,#combat-extra,#session-menu,#session-statu
 .recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .panel-actions{gap:8px}.panel-actions button{min-height:48px;flex:1 1 110px}
 .quantity-label{flex-wrap:wrap}.quantity-label input{min-width:0}
-#app:has([role=dialog]:not([hidden])) #combat-controls,#app:has([role=dialog]:not([hidden])) .controls,#app:has([role=dialog]:not([hidden])) .movement-modes,#app:has([role=dialog]:not([hidden])) #hotbar,#app:has([role=dialog]:not([hidden])) #interact,#app:has([role=dialog]:not([hidden])) #dismantle,#app:has([role=dialog]:not([hidden])) #build-controls,#app:has([role=dialog]:not([hidden])) .hud-button{visibility:hidden}
+#app:has([role=dialog]:not([hidden])) #right-controls,#app:has([role=dialog]:not([hidden])) .controls,#app:has([role=dialog]:not([hidden])) #hotbar,#app:has([role=dialog]:not([hidden])) #interact,#app:has([role=dialog]:not([hidden])) #dismantle,#app:has([role=dialog]:not([hidden])) #build-controls,#app:has([role=dialog]:not([hidden])) .hud-button{visibility:hidden}
 @container game (max-width:760px){#hotbar{grid-template-columns:repeat(4,48px)}#interact,#dismantle{bottom:calc(126px + var(--safe-bottom))}#build-controls{grid-template-columns:repeat(3,52px);top:calc(72px + var(--safe-top))}#compass{display:none}#notice{max-width:38%}#enemy-focus{max-width:36%}.slot-grid{grid-template-columns:repeat(8,minmax(48px,1fr))}}
 @container game (max-width:580px){#adventure-hud{width:150px}.vitals{max-width:150px}.food-hud{display:none}.recipe-grid{grid-template-columns:1fr}}
-@container game (max-height:350px){#build-controls{top:calc(64px + var(--safe-top))}#build-hint{display:none}#notice{top:calc(64px + var(--safe-top))}#enemy-focus{top:calc(36px + var(--safe-top))}.food-hud{display:none}}
+@container game (max-height:350px){#right-controls{--action-size:48px;--control-gap:4px}#build-controls{top:calc(64px + var(--safe-top))}#build-hint{display:none}#notice{top:calc(64px + var(--safe-top))}#enemy-focus{top:calc(36px + var(--safe-top))}.food-hud{display:none}}
 @media(pointer:fine){.controls,.movement-modes,#combat-controls>button{display:none!important}#app[data-building=true] #use-tool,#app[data-sandbox=true] #use-tool{display:block!important}#interact{pointer-events:none}#dismantle{display:none}#hotbar{grid-template-columns:repeat(8,48px)}}
 [hidden]{display:none!important}
 #app[data-building=true] #notice,#app[data-sandbox=true] #notice{top:calc(8px + var(--safe-top));max-width:35%}#app[data-building=true] #compass,#app[data-sandbox=true] #compass{display:none}

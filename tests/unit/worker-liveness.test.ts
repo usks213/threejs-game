@@ -11,7 +11,7 @@ it('keeps simulation and input live while rendering credits are exhausted, and a
  class Mesher {onmessage:((e:{data:unknown})=>void)|null=null;onerror=null;runtime=new TerrainRuntime();dead=false;postMessage(m:TerrainRequest){pending.push(()=>{if(this.dead)return;const r=this.runtime.handle(m);if(r)this.onmessage?.({data:r});});}terminate(){this.dead=true;}}
  vi.stubGlobal('self',scope);vi.stubGlobal('Worker',Mesher);await import('../../src/simulation/worker');
  const send=(m:SimulationClientMessage)=>scope.onmessage!({data:m});
- const sim=new GameSimulation();sim.fluid.restore([]);sim.adventure.state.enemies=[];sim.adventure.state.resources=[];sim.bodies.length=0;
+ const sim=new GameSimulation();sim.adventure.state.inventory.club=1;sim.adventure.state.equipment='club';sim.fluid.restore([]);sim.adventure.state.enemies=[];sim.adventure.state.resources=[];sim.bodies.length=0;
  send({type:'init',save:sim.save()});
  // No mesh ACK at startup: authoritative SDF collision and input still progress.
  while(pending.length)pending.shift()!();send({type:'input',input:{x:1,z:0,jump:false}});vi.advanceTimersByTime(1000);
@@ -28,4 +28,6 @@ it('keeps simulation and input live while rendering credits are exhausted, and a
  send({type:'pause',paused:true});output.length=0;vi.advanceTimersByTime(500);expect(snaps()).toHaveLength(0);
  send({type:'pause',paused:false});vi.advanceTimersByTime(500);expect(snaps().length).toBeGreaterThan(0);
  output.length=0;send({type:'init',save:sim.save()});expect(pump()).toBe(true);vi.advanceTimersByTime(100);expect(snaps().every(m=>m.epoch===2)).toBe(true);
+ output.length=0;for(let i=0;i<10;i++)send({type:'game-action',action:'guard',id:'on',aim:{x:0,y:0,z:-1}});send({type:'game-action',action:'guard',id:'off',aim:{x:0,y:0,z:-1}});expect(output.some(m=>m.type==='save')).toBe(false);
+ send({type:'game-action',action:'attack',aim:{x:0,y:-.8,z:-.6}});expect(output.some(m=>m.type==='save')).toBe(false);vi.advanceTimersByTime(600);expect(output.some(m=>m.type==='save')).toBe(false);vi.advanceTimersByTime(600);const saves=output.filter(m=>m.type==='save');expect(saves).toHaveLength(1);expect(saves[0].save.edits.length).toBeGreaterThan(0);
 },20000);

@@ -1,8 +1,10 @@
+import type { AttackMotion } from '../../game/combat/attack';
+import { meleePose } from './attack-pose';
 import { voxelizePrimitive } from '../voxel/primitive';
 import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 
-export interface AvatarPose { equipment?: string; attack?: number; guarding?: boolean; dodging?: boolean; shield?: boolean; grounded?: boolean; gear?:Record<string,string>; tower?:boolean }
+export interface AvatarPose { equipment?: string; attack?: number; attackMotion?: AttackMotion; guarding?: boolean; dodging?: boolean; shield?: boolean; grounded?: boolean; gear?:Record<string,string>; tower?:boolean }
 export function createAvatarAssets() {
   const box = new THREE.BoxGeometry(1, 1, 1), head = voxelizePrimitive(new THREE.IcosahedronGeometry(0.21, 1));
   const blade = voxelizePrimitive(new THREE.ConeGeometry(0.09, 0.75, 4)), arc = voxelizePrimitive(new THREE.TorusGeometry(0.33, 0.035, 4, 12, Math.PI));
@@ -76,9 +78,11 @@ export function createAvatarAssets() {
           const walk = Math.sin(phase) * 0.55 * moving;
           legs[0].rotation.x = pose.grounded === false ? -0.35 : walk; legs[1].rotation.x = pose.grounded === false ? 0.4 : -walk;
           arms[0].rotation.x = pose.guarding ? -1.05 : -walk * 0.65;
-          arms[1].rotation.x = pose.guarding ? -0.7 : pose.equipment==='fishingRod'?-.65:(pose.attack ?? 0) > 0 ? -1.25 + Math.sin((pose.attack ?? 0) * 16) * 0.8 : walk * 0.65;
-          torso.rotation.x = pose.dodging ? 0.55 : 0;
-          torso.position.y = Math.abs(Math.cos(phase)) * 0.025 * moving;
+          const strike = pose.attackMotion ? meleePose(pose.attackMotion) : undefined;
+          arms[1].rotation.set(pose.guarding ? -.7 : strike ? strike.armX : pose.equipment==='fishingRod'?-.65:(pose.attack??0)>0?-1.05:walk*.65, strike?.armY??0, strike?.armZ??0);
+          hand.rotation.x = strike?.handX??0; hand.position.z = .04+(strike?.handZ??0);
+          torso.rotation.set(pose.dodging ? .55 : strike?.torsoX??0, strike?.torsoY??0, 0);
+          torso.position.y = Math.abs(Math.cos(phase)) * .025 * moving;
         },
       };
     },

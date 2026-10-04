@@ -15,7 +15,10 @@ if (base && /^[a-f0-9]{40}$/.test(base)) {
 const changed = pattern => paths.some(path => pattern.test(path));
 const manual = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
 const config = changed(/^(package(-lock)?\.json|tsconfig.*\.json|vite\.config\.ts)$/);
-const game = config || changed(/^(src\/|public\/|index\.html$|wrangler\.jsonc$|scripts\/deploy-preview\.mjs$)/);
+// A regression-test fix can unblock source changes on the previous unshipped head.
+// Build/release the exact tested SHA instead of silently leaving that preview stale.
+const gameTests = changed(/^tests\/(unit|e2e)\//);
+const game = config || gameTests || changed(/^(src\/|public\/|index\.html$|wrangler\.jsonc$|scripts\/deploy-preview\.mjs$)/);
 const signaling = manual || config || changed(/^apps\/signaling\//);
 const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/(dedicated|signaling)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
 const host = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/signaling\/|tests\/e2e\/network\.spec\.ts$)/);
@@ -27,6 +30,7 @@ if (changed(/^src\/(world\/|fluid\/|save\/|simulation\/(game-simulation|worker)\
 if (changed(/^src\/(game\/|content\/|ui\/)/)) patterns.add('survival adventure');
 if (changed(/^src\/rendering\//)) patterns.add('renders equipped');
 if(changed(/^src\/(world\/field-data|rendering\/voxel\/field-|platform\/live-diagnostics)/))patterns.add('direct field terrain');
+if(changed(/^tests\/unit\/water-meshing\.test\.ts$/))patterns.add('direct field terrain');
 const outputs = { game: manual || game, checks, signaling, network, host, browser: patterns.size > 0, browser_grep: [...patterns].join('|') };
 for (const [key, value] of Object.entries(outputs)) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
 console.log(JSON.stringify({ changedFiles: paths.length, ...outputs }));

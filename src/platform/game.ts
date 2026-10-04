@@ -25,9 +25,11 @@ import * as THREE from 'three';
 import type { Axis } from '../core/player';
 import { keyboardInput } from '../input/keyboard/keyboard';
 import { touchInput } from '../input/touch/stick';
-import { cameraInput, DEFAULT_CAMERA_PITCH } from '../input/touch/look';
+import { cameraInput, DEFAULT_CAMERA_PITCH, DEFAULT_CAMERA_DISTANCE } from '../input/touch/look';
 import { actionInput } from '../input/touch/action';
-import { orbitPose } from '../rendering/camera/follow';
+import { createCameraBoom, orbitPose } from '../rendering/camera/follow';
+import { aimFromReticle, reticleObjectDistance, RETICLE_DISTANCE } from '../rendering/camera/aim';
+import { ATTACK_ORIGIN_HEIGHT } from '../game/combat/direction';
 import { createWorld } from '../rendering/scene/world';
 import { createTerrain } from '../rendering/voxel/terrain';
 import { persistenceUI } from '../ui/persistence';
@@ -58,7 +60,7 @@ export function startGame() {
   renderer.info.autoReset=false;
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
-  const direct=new URLSearchParams(location.search).get('terrain')==='direct';
+  const direct=new URLSearchParams(location.search).get('terrain')!=='mesh';
   const world = createWorld(renderer,direct),field=direct?createFieldTerrain(world.scene):null;
   const terrain=field?{...field,update:(data:MeshData,r:THREE.WebGLRenderer)=>{if(data.field)field.update(data.field,r);}}:createTerrain(world.scene);
   app.dataset.terrainMode=direct?'direct-field':'surface-mesh';if(direct)renderer.shadowMap.enabled=false;
@@ -68,7 +70,8 @@ export function startGame() {
   let waterProbeStarted=false;const probeWater=direct&&new URLSearchParams(location.search).has('waterProbe');
   const input: Axis = { x: 0, z: 0 };
   const raycaster = new THREE.Raycaster(), center = new THREE.Vector2(0, 0), normal = new THREE.Vector3(), markerAxis = new THREE.Vector3(0, 0, 1);
-  const cameraPosition = new THREE.Vector3(), focus = new THREE.Vector3(), orbit = new THREE.Vector3();
+  const cameraPosition = new THREE.Vector3(), focus = new THREE.Vector3(), orbit = new THREE.Vector3(), lookTarget = new THREE.Vector3(), projectedHead = new THREE.Vector3();
+  const reticlePoint = new THREE.Vector3(), aimOrigin = new THREE.Vector3(); let reticleAim: Vec3 = { x: 0, y: 0, z: -1 }, cameraDistance = DEFAULT_CAMERA_DISTANCE;
   const obstruction = new THREE.Raycaster();
   let buildHeight=0,freePlacement=false;let building = '', buildRotation=0, placement:Vec3|null=null, spell = 'ember';
   const buildControls=document.querySelector<HTMLElement>('#build-controls')!;
@@ -80,18 +83,38 @@ export function startGame() {
   document.querySelector<HTMLInputElement>('#shadows-enabled')!.addEventListener('change',e=>{renderer.shadowMap.enabled=(e.target as HTMLInputElement).checked;renderer.shadowMap.needsUpdate=true;},{signal});
   let first=true,dirtyWorld=false;
   let contextual:InteractionTarget|null=null;
+  let guardHeld = false, lastGuardAim = 0, lastRayYaw = NaN, lastRayPitch = NaN;
   const interactButton=document.querySelector<HTMLButtonElement>('#interact')!;
   let state: Snapshot | null = null, tool: Tool = 'dig', jump = false, target: Vec3 | null = null, lastInput = 0, lastRay = 0, lastUI = 0;
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
-  const post = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input); if(message.type==='init'||message.type==='replica-init'){loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
+  const post = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input); if(message.type==='init'||message.type==='replica-init'){loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
   const network = networkUI(signal, post, notice);
   const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
   const persistence = persistenceUI(send, signal, notice);
+  const resolveCamera = createCameraBoom((origin, direction, limit) => {
+    obstruction.set(origin, direction); obstruction.far = limit;
+    const distance = terrain.raycast(obstruction)?.distance ?? limit;
+    return state ? objectOcclusion(state.adventure, origin, direction, distance) : distance;
+  });
+  const sampleReticle = () => {
+    raycaster.setFromCamera(center, camera); raycaster.far = RETICLE_DISTANCE;
+    const hit = terrain.raycast(raycaster);
+    let interaction = state ? interactionTarget(state.adventure, state.player, raycaster.ray.origin, raycaster.ray.direction, hit?.distance) : null;
+    let distance = Math.min(hit?.distance ?? RETICLE_DISTANCE, interaction?.distance ?? RETICLE_DISTANCE);
+    if (state) distance = reticleObjectDistance(state.adventure, raycaster.ray.origin, raycaster.ray.direction, distance, state.bodies);
+    if (interaction && distance < interaction.distance - .06) interaction = null;
+    raycaster.ray.at(distance, reticlePoint);
+    const player = state?.player ?? world.player.position;
+    aimOrigin.set(player.x, player.y + ATTACK_ORIGIN_HEIGHT, player.z);
+    reticleAim = aimFromReticle(player, raycaster.ray.origin, raycaster.ray.direction, distance);
+    return { hit, interaction, distance };
+  };
   const gameAction = (action: GameAction, id?: string) => {
+    if (action === 'guard') { guardHeld = id !== 'off'; lastGuardAim = performance.now(); }
     if(action==='equip'){building='';app.dataset.building='false';app.dataset.sandbox='false';buildControls.hidden=true;}if(action==='spell'&&id)spell=id;
-    const direction=camera.getWorldDirection(normal);let aim={x:direction.x,y:direction.y,z:direction.z};
+    sampleReticle(); let aim = { ...reticleAim };
     if(action==='build')aim={x:Math.sin(buildRotation),y:0,z:Math.cos(buildRotation)};
     if(action==='dodge'&&(input.x||input.z)){const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw),length=Math.hypot(input.x,input.z);aim={x:(input.x*cos+input.z*sin)/length,y:0,z:(input.z*cos-input.x*sin)/length};}
     send({type:'game-action',action,id,target:action==='build'?placement??undefined:(action==='repairBuilding'||action==='remove')&&contextual?.id==='b:'+id?contextual.point:target??undefined,aim});
@@ -113,7 +136,7 @@ export function startGame() {
   holdAction(use, act, () => !building && tool === 'water', signal);
   actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { jump = true; }, signal);
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
-  const interact=()=>{if(!contextual){if(state?.adventure.equipment==='fishingRod'||state?.adventure.meadows?.riding)gameAction('interact');return;}const t=contextual;if(t.id==='fishing'){gameAction('fish');return;}if(t.id==='dismount'){gameAction('interact');return;}if(state?.adventure.equipment==='hammer'&&t.id.startsWith('b:')&&!t.panel){gameAction('repairBuilding',t.id.slice(2));return;}if(t.panel){adventure.openContext(t.panel,t.id);mouse.unlock();}send({type:'game-action',action:'interact',id:t.id,target:t.point,aim:{...raycaster.ray.direction}});};
+  const interact=()=>{contextual=sampleReticle().interaction;if(!contextual){if(state?.adventure.meadows?.fishing||state?.adventure.equipment==='fishingRod')gameAction('fish');else if(state?.adventure.meadows?.riding)gameAction('interact');return;}const t=contextual;if(t.id==='fishing'){gameAction('fish');return;}if(t.id==='dismount'){gameAction('interact');return;}if(state?.adventure.equipment==='hammer'&&t.id.startsWith('b:')&&!t.panel){gameAction('repairBuilding',t.id.slice(2));return;}if(t.panel){adventure.openContext(t.panel,t.id);mouse.unlock();}send({type:'game-action',action:'interact',id:t.id,target:t.point,aim:{...reticleAim}});};
   actionInput(interactButton,interact,signal);actionInput(document.querySelector<HTMLButtonElement>('#dismantle')!,()=>{if(contextual?.id.startsWith('b:'))gameAction('remove',contextual.id.slice(2));},signal);
   const quick=(index:number)=>{if(!state?.adventure.meadows)return;const slot=reconcileSlots(state.adventure.meadows,state.adventure.inventory)[index];if(slot)gameAction(FOODS[slot.id]?'eat':'equip',slot.id);};
   document.querySelector('#hotbar')!.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLElement>('[data-quick]');if(b)quick(Number(b.dataset.quick));},{signal});
@@ -191,18 +214,16 @@ export function startGame() {
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
       world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
-      obstruction.set(focus, orbit); obstruction.far = view.distance;
-      const cameraRayStart=performance.now();const blocker = terrain.raycast(obstruction);
-      const clearDistance=state?objectOcclusion(state.adventure,focus,orbit,blocker?.distance??view.distance):blocker?.distance??view.distance;
-      const distance=clearDistance<view.distance?Math.max(.15,clearDistance-.2):view.distance;
+      const cameraRayStart = performance.now();
+      cameraDistance = resolveCamera(world.player.position, focus, orbit, camera.up, view.distance, dt, cameraPosition);
       frameTimings.record('cameraRay',performance.now()-cameraRayStart);
-      cameraPosition.copy(focus).addScaledVector(orbit, distance);
-      camera.position.copy(cameraPosition); camera.lookAt(focus); camera.updateMatrixWorld();
+      camera.position.copy(cameraPosition); camera.lookAt(lookTarget.copy(cameraPosition).sub(orbit)); camera.updateMatrixWorld();
       world.player.visible = camera.position.distanceTo(world.player.position) > 1.6;
-      if (state && now - lastRay > 80) {
-        const interactionStart=performance.now();raycaster.setFromCamera(center, camera);raycaster.far=view.distance+7.5; let hit = terrain.raycast(raycaster);
-        contextual=interactionTarget(state.adventure,state.player,raycaster.ray.origin,raycaster.ray.direction,hit?.distance);if(!contextual&&(state.adventure.meadows?.fishing||state.adventure.equipment==='fishingRod'))contextual={id:'fishing',label:state.adventure.meadows?.fishing?.phase==='bite'?'合わせる':state.adventure.meadows?.fishing?.phase==='fight'?'巻く / 緩める':'釣り糸を投げる',point:{...state.player},distance:0};if(!contextual&&state.adventure.meadows?.riding)contextual={id:'dismount',label:'いかだから降りる',point:{...state.player},distance:0};interactButton.hidden=!contextual||!!building;document.querySelector('#interaction-label')!.textContent=contextual?.label??'';app.dataset.interaction=contextual?.id??'';document.querySelector<HTMLButtonElement>('#dismantle')!.hidden=!!building||state.adventure.equipment!=='hammer'||!contextual?.id.startsWith('b:');
+      if (state && (now - lastRay > 80 || view.yaw !== lastRayYaw || view.pitch !== lastRayPitch)) {
+        const interactionStart=performance.now();const sampled = sampleReticle();let hit = sampled.hit;
+        contextual=sampled.interaction;if(!contextual&&(state.adventure.meadows?.fishing||state.adventure.equipment==='fishingRod'))contextual={id:'fishing',label:state.adventure.meadows?.fishing?.phase==='bite'?'合わせる':state.adventure.meadows?.fishing?.phase==='fight'?'巻く / 緩める':'釣り糸を投げる',point:{...state.player},distance:0};if(!contextual&&state.adventure.meadows?.riding)contextual={id:'dismount',label:'いかだから降りる',point:{...state.player},distance:0};interactButton.hidden=!contextual||!!building;document.querySelector('#interaction-label')!.textContent=contextual?.label??'';app.dataset.interaction=contextual?.id??'';document.querySelector<HTMLButtonElement>('#dismantle')!.hidden=!!building||state.adventure.equipment!=='hammer'||!contextual?.id.startsWith('b:');
         let anchorId:number|undefined;if (building) { const piece = world.raycastBuildings(raycaster); if (piece && (!hit || piece.distance < hit.distance)) {hit = piece;let o:THREE.Object3D|null=piece.object;while(o){if(o.userData.buildingId){anchorId=o.userData.buildingId;break;}o=o.parent;}} }
+        if (hit && hit.distance > sampled.distance + .06) hit = undefined;
         if (hit && hit.point.distanceTo(focus.set(state.player.x, state.player.y + 0.7, state.player.z)) <= 7) {
           target = { x: hit.point.x, y: hit.point.y, z: hit.point.z };
           normal.copy(hit.face?.normal ?? markerAxis);if(hit.face)normal.transformDirection(hit.object.matrixWorld); world.marker.position.copy(hit.point).addScaledVector(normal, 0.04); world.marker.quaternion.setFromUnitVectors(markerAxis, normal); world.marker.visible = true;
@@ -215,7 +236,10 @@ export function startGame() {
         const rawDef=BUILDINGS.find(b=>b.id===building),def=rawDef&&state.adventure.meadows?meadowBuilding(rawDef):rawDef,issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory,buildRotation):'地面に照準を合わせる';
         world.preview(building,placement,buildRotation,!issue);
         document.querySelector('#build-hint')!.textContent=building?(issue||`${def?.name}を設置`):'';
-        use.disabled = building?(!placement||!!issue):!target && (tool !== 'water' || !!building); document.querySelector('#target-hint')!.textContent = tool === 'water' && !building ? '長押しで放水' : target ? '' : '地面に照準を合わせる'; frameTimings.record('interactionRay',performance.now()-interactionStart);lastRay = now;
+        use.disabled = building?(!placement||!!issue):!target && (tool !== 'water' || !!building); document.querySelector('#target-hint')!.textContent = tool === 'water' && !building ? '長押しで放水' : target ? '' : '地面に照準を合わせる'; frameTimings.record('interactionRay',performance.now()-interactionStart);lastRay = now; lastRayYaw = view.yaw; lastRayPitch = view.pitch;
+      }
+      if (guardHeld && !network.guest && !menuOpen && state && now - lastGuardAim > 100) {
+        send({ type: 'game-action', action: 'guard', id: 'on', aim: { ...reticleAim } }); lastGuardAim = now;
       }
       const grassStart=performance.now();terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);frameTimings.record('grassUpdate',performance.now()-grassStart);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
@@ -228,8 +252,11 @@ export function startGame() {
         const p = state.player, m = state.metrics; if(state.adventure.meadows){document.querySelector('#cast')!.innerHTML=itemIcon(state.adventure.meadows.fishing?'fishingRod':'hammer')+'<span>'+ (state.adventure.meadows.fishing?.phase==='bite'?'合わせる':state.adventure.meadows.fishing?.phase==='fight'?(state.adventure.meadows.fishing.reeling?'緩める':'巻く'):'使う')+'</span>';} adventure.update(state.adventure, p,view.yaw);
         if(state.adventure.meadows){const slots=reconcileSlots(state.adventure.meadows,state.adventure.inventory);const markup=slots.slice(0,8).map((slot,i)=>`<button type=button data-quick=${i} aria-label="${slot?slot.id:'空き'}" class="${slot?.id===state!.adventure.equipment?'selected':''}"><kbd>${i+1}</kbd>${slot?itemIcon(slot.id)+'<small>'+slot.count+'</small>':'·'}</button>`).join('');const hotbar=document.querySelector('#hotbar')!;if(hotbar.innerHTML!==markup)hotbar.innerHTML=markup;}
         app.dataset.performance=JSON.stringify({terrainQueue:terrainQueue.stats,terrainGPU:terrain.stats,terrainWorkers:1,meshThread:'dedicated-worker',water:world.waterStats,timings:frameTimings.snapshot()});
-        app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']});
+        app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:direct?['pbr','physical-sky','ibl','sh','direct-field']:['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']});
         app.dataset.cameraPitch = String(view.pitch); app.dataset.cameraYaw = String(view.yaw);
+        projectedHead.copy(world.player.position); projectedHead.y += 1.65; projectedHead.project(camera);
+        app.dataset.cameraProbe = JSON.stringify({ head: { x: projectedHead.x, y: projectedHead.y }, attackOrigin: aimOrigin, aim: reticleAim, reticleTarget: reticlePoint, cameraDistance });
+        app.dataset.combat = JSON.stringify({ attackMotion: state.adventure.attackMotion, health: state.adventure.health, stamina: state.adventure.stamina });
         position.textContent = `X ${p.x.toFixed(1)} · Y ${p.y.toFixed(1)} · Z ${p.z.toFixed(1)}`; position.dataset.x = String(p.x); position.dataset.y = String(p.y); position.dataset.z = String(p.z); position.dataset.grounded = String(p.grounded); app.dataset.tick = String(state.tick);
         const edits = document.querySelector<HTMLElement>('#edit-count')!; edits.textContent = `地形編集 ${state.edits}`; edits.dataset.count = String(state.edits);
         document.querySelector('#metrics')!.textContent = `${fps} FPS · 描画 ${renderer.info.render.calls}回 · ${renderer.info.render.triangles.toLocaleString()}面 / Tick ${m.tickMs.toFixed(2)}ms · Mesh ${m.meshMs.toFixed(1)}ms · 編集 ${m.editMs.toFixed(0)}ms / 水 ${state.fluids.length}セル (${m.fluidMs.toFixed(2)}ms) / 水面 ${world.waterStats.meshMs.toFixed(1)}ms(背景) 適用 ${world.waterStats.applyMs.toFixed(2)}ms · 物理 ${state.bodies.length}個 (${m.physicsMs.toFixed(2)}ms) · ジャンプ ${m.jumpHeight.toFixed(2)}m / Brick ${m.bricks} · 待機 ${m.pending} / Upload ${terrainQueue.stats.milliseconds.toFixed(2)}ms · 待機 ${terrainQueue.size} · Geometry ${renderer.info.memory.geometries}個`;

@@ -1,3 +1,4 @@
+import {Buffer} from 'node:buffer';
 import { describe, expect, it } from 'vitest';
 import { MAX_FLUID_CELLS, type FluidCell } from '../../src/fluid/fluid';
 import { waterSurface, WATER_VERTEX_CAPACITY } from '../../src/fluid/surface';
@@ -14,9 +15,12 @@ function equalSurface(cells: FluidCell[]): WaterMeshResult {
   const originalCells = structuredClone(cells);
   const count = waterSurface(cells, positions, normals, colors), result = build(cells);
   expect(result.count).toBe(count);
-  expect(result.positions).toEqual(positions.slice(0, count * 3));
-  expect(result.normals).toEqual(normals.slice(0, count * 3));
-  expect(result.colors).toEqual(colors.slice(0, count * 3));
+  // Byte-exact typed-array comparison avoids Vitest recursively walking hundreds
+  // of thousands of float properties; coverage and float precision are unchanged.
+  for(const [actual,expected] of [[result.positions,positions],[result.normals,normals],[result.colors,colors]]){
+    expect(actual.byteLength).toBe(count*3*4);
+    expect(Buffer.from(actual.buffer,actual.byteOffset,actual.byteLength).equals(Buffer.from(expected.buffer,expected.byteOffset,count*3*4))).toBe(true);
+  }
   expect(result.positions.buffer.byteLength).toBe(count * 3 * 4);
   expect(result.normals.buffer.byteLength).toBe(count * 3 * 4);
   expect(result.colors.buffer.byteLength).toBe(count * 3 * 4);

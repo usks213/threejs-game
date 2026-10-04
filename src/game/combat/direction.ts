@@ -1,5 +1,7 @@
 import type { Vec3 } from '../../world/types';
 
+export const ATTACK_ORIGIN_HEIGHT = .85;
+
 /** Movement and facing use the horizontal aim, independent of camera pitch. */
 export function horizontalAim(aim: Vec3, heading: number): Vec3 {
  const length = Math.hypot(aim.x, aim.z);

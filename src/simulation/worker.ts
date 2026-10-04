@@ -21,7 +21,8 @@ let input: PlayerInput = { x: 0, z: 0, jump: false };
 const terrain = new TerrainScheduler();let uploads = new TerrainUploadWindow(4);
 const triangles = new Map<string, number>(), editedMeshes = new Map<string, MeshData>();
 let mesher: Worker | null = null, sentEditCount = 0;
-let direct=false,inputSequence=0,lastAction='',lastError:string|null=null;
+let direct=false,inputSequence=0,lastAction='',lastError:string|null=null,combatSaveAt=0;
+const transientActions=new Set(['guard','dodge','sprint','sneak']);
 let center = '', initialized = false, paused = false;
 let previous = performance.now(), accumulator = 0, meshMs = 0, editMs = 0, editStart = 0;
 function sendTerrain(message: TerrainRequest): void { mesher?.postMessage(message); }
@@ -108,7 +109,7 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
   const message = event.data;
   try {
     if (message.type === 'init' || message.type === 'replica-init') {
-      direct=!!message.direct;uploads=new TerrainUploadWindow(direct?12:4);authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
+      combatSaveAt=0;direct=!!message.direct;uploads=new TerrainUploadWindow(direct?12:4);authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
     } else if (message.type === 'peer-join' && authority && !replica) { authority.join(message.peer); peerEdits.set(message.peer, sim!.world.edits.length); emit({ type: 'peer-welcome', peer: message.peer, save: sim!.save(), state: sessionFrame(authority, message.peer) }); }
     else if (message.type === 'peer-leave' && authority) { authority.leave(message.peer); peerEdits.delete(message.peer); }
     else if (message.type === 'peer-input' && authority && !replica) authority.input(message.peer, message.input, message.sequence);
@@ -135,7 +136,8 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
       lastAction=message.type==='action'?message.tool:message.action;const result = message.type === 'action' ? sim.act(message.tool, message.target) : sim.adventure.action(message.action, message.id, message.target, message.aim);
       invalidateTerrain(result.dirty); scheduleMesh();
       emit({ type: 'notice', message: result.message });
-      if (message.type !== 'action' || message.tool !== 'water') emit({ type: 'save', save: authority!.save() });
+      if(message.type==='game-action'&&(message.action==='attack'||message.action==='heavy'))combatSaveAt=performance.now()+1000;
+      else if(message.type==='action'?message.tool!=='water':!transientActions.has(message.action))emit({type:'save',save:authority!.save()});
     }
   } catch (error) { emit({ type: message.type === 'init' || message.type === 'replica-init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
 };
@@ -148,6 +150,8 @@ setInterval(() => {
     while (accumulator >= 1 / TICK_RATE) { authority!.step(input); input.jump = false; accumulator -= 1 / TICK_RATE; }
     if (sim.pendingEdits.size) { invalidateTerrain(sim.pendingEdits); sim.pendingEdits.clear(); scheduleMesh(); }
     stream();
+    // Persist resolved combat after a quiet moment, not before contact or on every guard update.
+    if(combatSaveAt&&now>=combatSaveAt&&sim.adventure.attack<=0){combatSaveAt=0;emit({type:'save',save:authority!.save()});}
     // UI persistence owns the five-second autosave cadence; avoid a second full copy here.
     if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') {
       const base = peerEdits.get(peer) ?? 0;

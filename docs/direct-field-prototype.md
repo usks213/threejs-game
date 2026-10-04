@@ -1,8 +1,8 @@
-# Direct density-brick preview
+# Lightweight density-brick renderer
 
-Use `?terrain=direct` on the PR preview. Remove the query parameter to return to the normal renderer. Both paths use the same IndexedDB save, generator, authoritative collision, terrain edits, buildings, inventory and drops; no reset or migration occurs.
+The accepted lightweight density renderer is now the default on the PR preview; `?terrain=direct` remains a compatible explicit link. Use `?terrain=mesh` to compare the retained mesh/HDR renderer. Both paths use the same IndexedDB save, generator, authoritative collision, terrain edits, buildings, inventory and drops; no reset or migration occurs.
 
-This is a small, reversible rendering experiment, not an Enshrouded engine reproduction:
+This is a reversible lightweight rendering path, not an Enshrouded engine reproduction:
 
 - A dedicated terrain worker samples 17³ density values per 8 m brick at the existing 0.5 m resolution. It emits no terrain surface vertices or indices.
 - WebGL2 samples R16F 3D textures and finds sign-changing surface intersections within bounded ray intervals. The existing density is an implicit field, not a Euclidean SDF; no unsafe sphere-tracing distance assumption is made.
