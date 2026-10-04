@@ -42,7 +42,7 @@ export function createWorld(renderer:THREE.WebGLRenderer) {
     raycastBuildings: entities.raycast,
     update(state: Snapshot) {
       waterTime.value = state.adventure.seconds; feedback.update(state);
-      localAvatar.setPose({ ...state.adventure, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?.gear, grounded: state.player.grounded });
+      localAvatar.setPose({ ...state.adventure, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:state.adventure.meadows?state.adventure.meadows.gear.offhand==='towerShield':!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?Object.fromEntries(Object.entries(state.adventure.meadows.gear).filter(([,id])=>state.adventure.inventory[id]>0)):undefined, grounded: state.player.grounded });
       for (const [id, view] of remotePlayers) if (!state.peers?.some(peer => peer.id === id)) { scene.remove(view.model.group); remotePlayers.delete(id); }
       for (const peer of state.peers ?? []) {
         let view = remotePlayers.get(peer.id);

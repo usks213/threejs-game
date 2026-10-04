@@ -1,3 +1,4 @@
+import { campDetails } from './camp-details';
 import { bossTells } from './boss-tells';
 import { creatureKit } from './creatures';
 import { pbrMaterial } from '../materials/pbr';
@@ -8,7 +9,7 @@ import * as THREE from 'three';
 import { BIOMES, BOSSES, BUILDINGS, ENEMIES } from '../../content/catalog';
 import type { AdventureSnapshot } from '../../game/types';
 export function createEntities(scene: THREE.Scene) {
- const tells=bossTells(scene), resources = createResources(scene), buildings = buildingKit(), creatures=creatureKit();
+ const details=campDetails(scene),tells=bossTells(scene), resources = createResources(scene), buildings = buildingKit(), creatures=creatureKit();
  const objects = new Map<string, THREE.Group>(), geometry = new Map<string, THREE.BufferGeometry>(), materials = new Map<string, THREE.MeshStandardMaterial>();
  const geo = (id: string, make: () => THREE.BufferGeometry) => { let g = geometry.get(id); if (!g) { g = make(); geometry.set(id, g); } return g; };
  const mat = (color: string) => { let m = materials.get(color); if (!m) { m = pbrMaterial(color, color==='#8b8c84'?'stone':['#e2baff','#b6eafa','#ffc077'].includes(color)?'crystal':'skin'); materials.set(color, m); } return m; };
@@ -17,15 +18,15 @@ export function createEntities(scene: THREE.Scene) {
  function object(key: string, make: (g: THREE.Group) => void): THREE.Group { let group = objects.get(key); if (!group) { group = new THREE.Group(); make(group); objects.set(key, group); scene.add(group); } return group; }
  let latest: AdventureSnapshot | null = null;
  return {
-  update(state: AdventureSnapshot,player?:{x:number;z:number}) {
-   tells.update(state);latest = state; for (const group of objects.values()) group.visible = false;
+  update(state: AdventureSnapshot,player?:{x:number;y:number;z:number}) {
+   details.update(state,player);tells.update(state);latest = state; for (const group of objects.values()) group.visible = false;
    resources.update(state);
    for (const e of state.enemies) {
     if (e.health <= 0) continue;
     const def = e.boss ? BOSSES.find(d => d.id === e.definition)! : ENEMIES.find(d => d.id === e.definition)!;
     const far=!!player&&Math.hypot(e.x-player.x,e.z-player.z)>18;
     const group = object('enemy' + e.id+(far?'far':''), g => {
-     if(['deer','boar','neck','greyling','greydwarf','draugr','gull','stormstag'].includes(e.definition))g.add(far?creatures.far(e.definition):creatures.make(e.definition));
+     if(['deer','boar','neck','greyling','greydwarf','draugr','draugrArcher','draugrElite','gull','stormstag'].includes(e.definition))g.add(far?creatures.far(e.definition):creatures.make(e.definition));
      else {
      const shape = e.boss ? ({root:'walker',tusk:'boar',mirelord:'slime',frostwing:'flyer',riftheart:'walker'} as const)[e.definition as 'root'] : ENEMIES.find(d => d.id === e.definition)!.shape;
      part(g, sphere, def.color, 0, 0.7, 0, shape === 'slime' ? 1.5 : 1.1, shape === 'slime' ? 0.8 : 1.5, shape === 'boar' ? 1.8 : 1.1);
@@ -61,12 +62,13 @@ export function createEntities(scene: THREE.Scene) {
     group.position.set(biome.center.x, (state.generator===2?landscapeHeight:terrainHeight)(biome.center.x, biome.center.z - 14), biome.center.z - 14); group.visible = state.biome === biome.id;
    }
    for(const [i,grave] of [state.death,...(state.meadows?.graves??[])].entries())if(grave){const g=object('grave'+i,g=>{part(g,box,'#8b8c84',0,.6,0,.65,1.2,.25);part(g,sphere,'#e2baff',0,1.8,0,.14,.3,.14);});g.position.set(grave.x,grave.y,grave.z);g.visible=true;}
-   for (const shot of state.projectiles) { const group = object('shot' + shot.id, g => part(g, sphere, shot.element === 'frost' ? '#b6eafa' : '#ffc077', 0, 0, 0, shot.radius, shot.radius, shot.radius)); group.position.set(shot.x, shot.y, shot.z); group.visible = true; }
+   for (const shot of state.projectiles) { const group = object('shot' + shot.id, g => {if(shot.kind){part(g,box,'#8a6c4d',0,0,0,.025,.025,shot.kind==='spear'?1.5:.65);part(g,cone,'#8b8c84',0,0,.4,.04,.08,.04);}else part(g, sphere, shot.element === 'frost' ? '#b6eafa' : '#ffc077', 0, 0, 0, shot.radius, shot.radius, shot.radius);}); group.position.set(shot.x, shot.y, shot.z);if(shot.kind)group.lookAt(shot.x+shot.vx,shot.y+shot.vy,shot.z+shot.vz); group.visible = true; }
+
    // Retire departed entities; shared geometries/materials remain owned by this renderer.
    for (const [key, group] of objects) if (!group.visible) { scene.remove(group); group.traverse(o => { if (o instanceof THREE.Mesh) { if (o.name === 'health') o.geometry.dispose(); if (o.name === 'health') (o.material as THREE.Material).dispose(); } }); objects.delete(key); }
   },
   faceCamera(camera:THREE.Camera){for(const [key,g] of objects)if(key.startsWith('enemy'))g.getObjectByName('health')?.lookAt(camera.position);},
-  dispose(){tells.dispose();resources.dispose();buildings.dispose();creatures.dispose();for(const g of geometry.values())g.dispose();for(const m of materials.values())m.dispose();},
+  dispose(){details.dispose();tells.dispose();resources.dispose();buildings.dispose();creatures.dispose();for(const g of geometry.values())g.dispose();for(const m of materials.values())m.dispose();},
   raycast(ray: THREE.Raycaster) { return ray.intersectObjects([...objects.entries()].filter(([key]) => key.startsWith('building')).map(([, group]) => group), true)[0]; },
   collision(player: THREE.Vector3) {
    if (!latest) return;

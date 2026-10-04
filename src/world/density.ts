@@ -81,10 +81,14 @@ export class SdfWorld {
     if(this.generator===2) d=Math.min(Math.max(d,-generatedCave(p,this.bounds.seed)),naturalArch(p,this.bounds.seed),riftIsland(p));
     const entries = this.index.get(brickId(Math.floor(p.x / BRICK_SIZE), Math.floor(p.y / BRICK_SIZE), Math.floor(p.z / BRICK_SIZE)));
     if (entries) for (const e of entries) {
-      const sphere = Math.hypot(p.x - e.position.x, p.y - e.position.y, p.z - e.position.z) - e.radius;
+      const sphere = e.shape==='cylinder'?Math.max(Math.hypot(p.x-e.position.x,p.z-e.position.z)-e.radius,Math.abs(p.y-e.position.y)-e.radius):Math.hypot(p.x - e.position.x, p.y - e.position.y, p.z - e.position.z) - e.radius;
       d = e.kind === 'dig' ? Math.max(d, -sphere) : Math.min(d, sphere);
     }
     return d;
+  }
+  soilAt(p:Vec3):boolean {
+    const entries=this.index.get(brickId(Math.floor(p.x/BRICK_SIZE),Math.floor(p.y/BRICK_SIZE),Math.floor(p.z/BRICK_SIZE)));
+    return !!entries?.some(e=>e.surface==='soil'&&Math.hypot(p.x-e.position.x,p.z-e.position.z)<e.radius&&Math.abs(p.y-(e.position.y+(e.kind==='add'?e.radius:-e.radius)))<.3);
   }
   affectedBricks(e: EditOperation): string[] {
     const ids: string[] = [];
@@ -96,7 +100,7 @@ export class SdfWorld {
     return ids;
   }
   apply(e: EditOperation): string[] {
-    if (this.edits.length >= MAX_EDITS || !Number.isSafeInteger(e.id) || e.id !== this.edits.length + 1 || !Number.isSafeInteger(e.tick) || e.tick < 0 || e.tick > 1000000000000 || (e.kind !== 'dig' && e.kind !== 'add') || e.material !== 'stone' || !Number.isFinite(e.radius) || e.radius < 0.75 || e.radius > 2.5 || !insideBounds(e.position, this.bounds, e.radius)) throw new Error('地形編集の範囲または上限が不正です');
+    if (this.edits.length >= MAX_EDITS || !Number.isSafeInteger(e.id) || e.id !== this.edits.length + 1 || !Number.isSafeInteger(e.tick) || e.tick < 0 || e.tick > 1000000000000 || (e.kind !== 'dig' && e.kind !== 'add') || e.material !== 'stone' || (e.shape!==undefined&&e.shape!=='cylinder') || (e.surface!==undefined&&e.surface!=='soil') || !Number.isFinite(e.radius) || e.radius < 0.75 || e.radius > 2.5 || !insideBounds(e.position, this.bounds, e.radius)) throw new Error('地形編集の範囲または上限が不正です');
     const operation: EditOperation = { ...e, position: { ...e.position } };
     this.edits.push(operation);
     const affected = this.affectedBricks(operation);

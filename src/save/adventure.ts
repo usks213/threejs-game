@@ -18,16 +18,18 @@ export function validateAdventure(raw: AdventureSave): AdventureSave {
  if(s.waterSeeds && (!Array.isArray(s.waterSeeds) || s.waterSeeds.length>5 || s.waterSeeds.some(id=>!BIOMES.some(b=>b.id===id))))throw new Error('自然水域データが不正です');
  if(s.meadows){
  const m=s.meadows;
+ if(m.fishing){const f=m.fishing;if(!Number.isSafeInteger(f.fish)||!['waiting','bite','fight'].includes(f.phase)||![f.time,f.progress,f.strain].every(n=>finite(n,10000)))throw new Error('釣りの状態が不正です');}
  if(m.slots&&(!Array.isArray(m.slots)||m.slots.length!==32||m.slots.some(s=>s&&(!ITEM_NAMES[s.id]||!Number.isInteger(s.count)||s.count<1||s.count>999))))throw new Error('持ち物の並びが不正です');
  if(m.pins&&(!Array.isArray(m.pins)||m.pins.length>100||m.pins.some(p=>!Number.isSafeInteger(p.id)||!insideBounds({x:p.x,y:0,z:p.z},WORLD)||typeof p.label!=='string'||p.label.length>24)))throw new Error('地図の目印が不正です');
  if(m.version!==1||!Array.isArray(m.foods)||m.foods.length>3||new Set(m.foods.map(f=>f.id)).size!==m.foods.length||m.foods.some(f=>!FOODS[f.id]||!finite(f.remaining,10000)))throw new Error('食事データが不正です');
  for(const record of [m.durability,m.quality,m.skills])if(!record||Object.values(record).some(n=>!finite(n,100000)))throw new Error('装備・熟練度が不正です');
  for(const n of [m.power,m.powerCooldown,m.wet,m.comfort,m.weight,m.raid,m.raidAt,m.tutorial])if(!finite(n,1e10))throw new Error('草原の状態が不正です');
- if(!Array.isArray(m.discovered)||m.discovered.some(id=>!ITEM_NAMES[id])||!m.gear||Object.values(m.gear).some(id=>!ARMOR[id]))throw new Error('草原の装備記録が不正です');
+ if(!Array.isArray(m.discovered)||m.discovered.some(id=>!ITEM_NAMES[id])||!m.gear||Object.values(m.gear).some(id=>!ARMOR[id]&&!['shield','towerShield'].includes(id)))throw new Error('草原の装備記録が不正です');
  }
  for(const e of s.enemies){if(e.attackReady&&Object.values(e.attackReady).some(v=>!finite(v,1e10)))throw new Error('敵の攻撃時間が不正です');if(e.attackYaw!==undefined&&!Number.isFinite(e.attackYaw))throw new Error('敵の向きが不正です');}
- for(const e of s.enemies)for(const value of [e.stars,e.tame,e.fed,e.baby,e.breeding])if(value!==undefined&&!finite(value,100000))throw new Error('生物の状態が不正です');
+ for(const e of s.enemies)for(const value of [e.stars,e.tame,e.fed,e.baby,e.breeding,e.burn,e.alerted,e.attackFlash])if(value!==undefined&&!finite(value,100000))throw new Error('生物の状態が不正です');
  for(const b of s.buildings){for(const value of [b.health,b.fuel,b.progress])if(value!==undefined&&!finite(value,1e10))throw new Error('設備の状態が不正です');if(b.cooking&&(!Array.isArray(b.cooking)||b.cooking.length>2||b.cooking.some(c=>!COOKING[c.id]||!finite(c.time,1e10))))throw new Error('調理状態が不正です');}
+ if(s.meadows){const m=s.meadows;for(const value of [m.noSkillDrain,m.corpseRun,m.contentVersion,m.kills,m.riding])if(value!==undefined&&!finite(value,1e10))throw new Error('草原の進行値が不正です');for(const cells of [m.mapCells,m.worldTiles])if(cells&&(!Array.isArray(cells)||cells.length>100000||cells.some(c=>typeof c!=='string'||!/^[-0-9]+,[-0-9]+$/.test(c))))throw new Error('地図の記録が不正です');}
  for(const g of s.meadows?.graves??[])if(!insideBounds(g,WORLD,1)||!items(g.items))throw new Error('墓の状態が不正です');
  const copy = structuredClone(s);
  // Earlier versions saved the last windup tick just below zero.

@@ -48,6 +48,7 @@ export function createAvatarAssets() {
       const pick=weapon('pick');part(pick,box,'#795738',0,.25,0,.07,.8,.07);part(pick,arc,'#bdab77',0,.65,0,.9,.6,1).rotation.z=Math.PI;
       const knife=weapon('knife');part(knife,blade,'#a9b4aa',0,.2,0,.7,.5,.7);part(knife,box,'#795738',0,-.03,0,.06,.15,.06);
       const torch=weapon('torch');part(torch,box,'#795738',0,.2,0,.08,.65,.08);const fire=part(torch,blade,'#ffc077',0,.6,0,1,.4,1);(fire.material as THREE.MeshStandardMaterial).emissive.set('#ff8b24');(fire.material as THREE.MeshStandardMaterial).emissiveIntensity=3;
+      const rod=weapon('fishingRod');part(rod,box,'#795738',0,.8,0,.035,2,.035).rotation.z=-.12;
       const book = weapon('book'); part(book, box, '#8d71a3', 0, 0.07, 0.05, 0.28, 0.36, 0.1);
       const shield = part(arms[0], box, '#8c6c47', -0.08, -0.27, 0.12, 0.08, 0.5, 0.4); shield.visible = false;
       let previousX = 0, previousZ = 0, moving = 0, phase = 0, initialized = false, equipped = '';
@@ -74,7 +75,7 @@ export function createAvatarAssets() {
           const walk = Math.sin(phase) * 0.55 * moving;
           legs[0].rotation.x = pose.grounded === false ? -0.35 : walk; legs[1].rotation.x = pose.grounded === false ? 0.4 : -walk;
           arms[0].rotation.x = pose.guarding ? -1.05 : -walk * 0.65;
-          arms[1].rotation.x = pose.guarding ? -0.7 : (pose.attack ?? 0) > 0 ? -1.25 + Math.sin((pose.attack ?? 0) * 16) * 0.8 : walk * 0.65;
+          arms[1].rotation.x = pose.guarding ? -0.7 : pose.equipment==='fishingRod'?-.65:(pose.attack ?? 0) > 0 ? -1.25 + Math.sin((pose.attack ?? 0) * 16) * 0.8 : walk * 0.65;
           torso.rotation.x = pose.dodging ? 0.55 : 0;
           torso.position.y = Math.abs(Math.cos(phase)) * 0.025 * moving;
         },

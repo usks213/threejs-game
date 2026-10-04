@@ -28,5 +28,5 @@ export function seedMeadows(sim:GameSimulation,s:AdventureSave):void{
   node('lootChest',x,z);node('beeNest',x+2,z);node('runestone',x-3,z+2);
 
  }
- node('buriedChest',-35,30);node('runestone',-32,30);seedStructures(sim,s);for(let i=0;i<4;i++)s.enemies.push(meadowEnemy(sim,'draugr',70+i*2,-60));
+ node('buriedChest',-35,30);node('runestone',-32,30);seedStructures(sim,s);for(let i=0;i<4;i++)s.enemies.push(meadowEnemy(sim,i===0?'draugrElite':i===1?'draugrArcher':'draugr',70+i*2,-60));node('bodyPile',70,-60);node('lootChest',77,-60);
 }

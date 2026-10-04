@@ -36,10 +36,11 @@ export function meshBrick(world: SdfWorld, brick: Brick): MeshData {
     const id = positions.length / 3;
     positions.push(p.x, p.y, p.z); normals.push(gradient.x, gradient.y, gradient.z);
     const smooth = (value: number) => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
-    const grass = smooth((gradient.y - 0.4) / 0.4), stone = smooth((p.y + 0.5) / 2);
+    const soil=world.soilAt(p);const grass = soil?0:smooth((gradient.y - 0.4) / 0.4), stone = smooth((p.y + 0.5) / 2);
     for (let channel = 0; channel < 3; channel++) {
-      const base = meadow.soil[channel] + (meadow.stone[channel] - meadow.soil[channel]) * stone;
-      colors.push(base + (meadow.grass[channel] - base) * grass);
+      const base = soil?meadow.soil[channel]:meadow.soil[channel] + (meadow.stone[channel] - meadow.soil[channel]) * stone;
+      const grassy=world.generator===3?[.23,.36,.105][channel]:meadow.grass[channel];
+      const patch=world.generator===3?.9+.1*Math.sin(p.x*.13)*Math.cos(p.z*.16):1;colors.push((base + (grassy - base) * grass)*patch);
     }
     const biome = biomeAt(p.x, p.z), tint = biome.grass.match(/[a-f0-9]{2}/gi)!.map(c => parseInt(c, 16) / 255);
     if (world.generator!==3&&biome.tier > 1) for (let axis = 0; axis < 3; axis++) colors[id * 3 + axis] = colors[id * 3 + axis] * 0.55 + tint[axis] * 0.45;

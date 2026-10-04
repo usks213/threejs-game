@@ -1,5 +1,5 @@
 import type { Adventure } from '../adventure';
-import type { BuildingState, ResourceNode } from '../types';
+import type { BuildingState } from '../types';
 import type { Vec3 } from '../../world/types';
 import { environmentAt } from '../../environment/time';
 import { roofed,learn } from './state';
@@ -42,10 +42,5 @@ export function stepFacilities(game:Adventure,dt:number):void{
  if(game.sim.tick%300===0&&s.defeated.includes('stormstag')&&env.daylight<.1&&s.enemies.filter(e=>e.definition==='greydwarf'&&e.health>0).length<3){const p=game.sim.player;s.enemies.push(meadowEnemy(game.sim,'greydwarf',p.x+20,p.z-18));}
  for(const fish of s.resources)if(['perch','pike'].includes(fish.kind)&&fish.ready<=s.seconds){const top=waterHeight(game,fish.x,fish.z);if(top!==null)fish.y=top-.2;}
  if(m.sneaking&&Math.hypot(game.sim.player.x,game.sim.player.z)>1)learn(s,'sneak',dt*.002);
-}
-export function fishCatch(game:Adventure):ResourceNode{
- const s=game.state,p=game.sim.player;if(!s.inventory.fishingRod)throw new Error('旅商人から釣り竿を購入してください');if(!s.inventory.bait)throw new Error('釣り餌が必要です');
- const fish=s.resources.filter(n=>['perch','pike'].includes(n.kind)&&n.ready<=s.seconds&&distance(n,p)<8).sort((a,b)=>distance(a,p)-distance(b,p))[0];if(!fish)throw new Error('魚が見える岸へ近づいてください');if(s.stamina<20)throw new Error('魚を引き寄せるスタミナが足りません');
- s.inventory.bait--;s.stamina-=20;fish.ready=s.seconds+300;learn(s,'fishing',1);return fish;
 }
 export function nearestFacility(game:Adventure,ids:string[]):BuildingState|undefined{return game.state.buildings.filter(b=>ids.includes(b.definition)&&distance(b,game.sim.player)<3).sort((a,b)=>distance(a,game.sim.player)-distance(b,game.sim.player))[0];}

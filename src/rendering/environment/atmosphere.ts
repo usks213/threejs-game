@@ -6,7 +6,7 @@ import type { AdventureSnapshot } from '../../game/types';
 /** Preetham Rayleigh/Mie sky, filtered HDR environment and 3-band spherical-harmonic diffuse light. */
 export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRenderer) {
  const sky=new Sky();sky.scale.setScalar(450000);sky.renderOrder=-2;sky.frustumCulled=false;
- const u=sky.material.uniforms;u.sunPosition.value.set(300000,300000,-100000);u.rayleigh.value=2;u.mieCoefficient.value=.004;u.mieDirectionalG.value=.8;
+ const u=sky.material.uniforms;u.sunPosition.value.set(300000,300000,-100000);u.rayleigh.value=3.2;u.mieCoefficient.value=.004;u.mieDirectionalG.value=.8;
  u.nightAmount={value:0};u.cloudCover={value:0};u.skyTime={value:0};
  sky.material.fragmentShader='uniform float nightAmount,cloudCover,skyTime;\n'+sky.material.fragmentShader;
  sky.material.fragmentShader=sky.material.fragmentShader.replace('gl_FragColor = vec4( retColor, 1.0 );',`
@@ -34,7 +34,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
   volume,stats,
   update(state:AdventureSnapshot,player:THREE.Vector3){
    ready=true;const env=state.environment;hour=env.hour;weather=env.weather;seconds=env.seconds;stats.hour=hour;
-   const angle=(hour-6)/24*Math.PI*2,altitude=Math.sin(angle),night=1-THREE.MathUtils.smoothstep(altitude,-.12,.08),cloudy=['rain','storm','fog'].includes(weather);
+   const boss=state.enemies.some(e=>e.boss&&e.health>0);const angle=(hour-6)/24*Math.PI*2,altitude=boss?.05:Math.sin(angle),night=1-THREE.MathUtils.smoothstep(altitude,-.12,.08),cloudy=['rain','storm','fog'].includes(weather);
    direction.set(Math.cos(angle),altitude,-.3).normalize();u.sunPosition.value.copy(direction).multiplyScalar(450000);u.nightAmount.value=night;u.cloudCover.value=cloudy?.85:.3;u.turbidity.value=cloudy?8:2.5;u.skyTime.value=seconds;
    ground.material.color.set('#343e2b').multiplyScalar(1-night*.99);
    sky.position.copy(player);sun.position.copy(player).addScaledVector(direction,night>.5?-45:45);sun.target.position.copy(player);

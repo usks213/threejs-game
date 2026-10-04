@@ -1,3 +1,4 @@
+import { migrateMeadows } from '../game/meadows/migration';
 import { updateWaterObstacles } from '../game/meadows/water-obstacles';
 import { driveRaft } from '../game/meadows/facilities';
 import { movementSpeed, payJump } from '../game/meadows/movement';
@@ -40,7 +41,7 @@ export class GameSimulation {
       this.tick = Math.max(0, ...valid.edits.map(e => e.tick));
     }
     for (const entity of [...(save?.adventure?.resources ?? []), ...(save?.adventure?.enemies ?? []), ...(save?.adventure?.buildings ?? [])]) this.nextEntity = Math.max(this.nextEntity, entity.id + 1);
-    this.adventure = new Adventure(this, save?.adventure);
+    this.adventure = new Adventure(this, save?.adventure);migrateMeadows(this,this.adventure.state);
     if(save&&this.adventure.state.meadows)updateWaterObstacles(this);
     if(!save){this.player.y=this.groundAt(0,8);for(let x=-49;x<=-16;x++)for(let z=-55;z<=24;z++){const h=this.groundAt(x+.5,z+.5);for(let y=Math.max(-4,Math.ceil(h));y<0;y++)this.fluid.add({x,y,z},.95);}}
   }

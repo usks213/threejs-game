@@ -22,7 +22,7 @@ export class SessionAuthority {
   if (this.actors.size >= (this.dedicated ? 9 : 8)) throw new Error('セッションは8人までです');
   const saved = this.sim.save().adventure!;
   const stored = this.dormant.get(id);
-  const personal: AdventureSave = stored?.adventure ?? { ...saved, inventory: { berry: 3 }, equipment: 'hands', ...(saved.meadows?{meadows:newMeadows()}:{}), health: saved.meadows?25:100, stamina: saved.meadows?50:100, mana: 70, food: 0, rested: 0, spawn: null, death: null };
+  const personal: AdventureSave = stored?.adventure ?? { ...saved, inventory: saved.meadows?{ragTunic:1}:{berry:3}, equipment: 'hands', ...(saved.meadows?{meadows:newMeadows()}:{}), health: saved.meadows?25:100, stamina: saved.meadows?50:100, mana: 70, food: 0, rested: 0, spawn: null, death: null };
   const p = this.sim.player;
   const actor = { id, player: stored?.player ?? { ...p, x: p.x + this.actors.size * 0.8, grounded: false }, adventure: new Adventure(this.sim, personal), input: { ...idle }, motor: new CharacterMotor(this.sim.world), sequence: 0, lastAction: -100 };
   actor.adventure.owner = id; actor.adventure.projectiles = this.sim.adventure.projectiles;

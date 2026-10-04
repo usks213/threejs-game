@@ -6,7 +6,7 @@ import { journeyGoal } from '../game/journey';
 import { itemIcon } from './icons/item';
 export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:string)=>void,selectBuilding:(id:string)=>void){
  const hud=document.querySelector<HTMLElement>('#adventure-hud')!,panel=document.querySelector<HTMLElement>('#adventure-panel')!,content=document.querySelector<HTMLElement>('#adventure-content')!,goal=document.querySelector<HTMLButtonElement>('#journey')!;
- let selectedSlot=0,moveFrom:number|null=null,mapRange=80;
+ let selectedSlot=0,moveFrom:number|null=null,mapRange=80,lastMarkup='';
  let latest:AdventureSnapshot|null=null,tab='bag',signature='',player={x:0,y:0,z:0},goalTab='craft';
  const open=(next=tab)=>{tab=next;panel.hidden=false;signature='';render();};
  const btn=(name:string,kind:string,id='',disabled=false)=>`<button type="button" data-game-action="${kind}" data-id="${id}" ${disabled?'disabled':''}>${name}</button>`;
@@ -15,9 +15,9 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
  const station=()=>latest?.buildings.some(b=>b.definition==='bench'&&Math.hypot(b.x-player.x,b.z-player.z)<5);
  function render(){
   const s=latest;if(!s||panel.hidden)return;if(document.activeElement instanceof HTMLInputElement&&content.contains(document.activeElement))return;
-  const next=tab+selectedSlot+':'+moveFrom+':'+mapRange+JSON.stringify([s.inventory,s.equipment,s.unlocked,s.defeated,station(),s.meadows?Math.floor(s.seconds):0]);if(next===signature)return;signature=next;
+  const next=tab+selectedSlot+':'+moveFrom+':'+mapRange+JSON.stringify([s.inventory,s.equipment,s.unlocked,s.defeated,station(),s.meadows?[Math.floor(s.seconds),s.meadows.slots,s.meadows.gear,s.meadows.quality]:0]);if(next===signature)return;signature=next;
   for(const b of panel.querySelectorAll<HTMLButtonElement>('[data-tab]'))b.setAttribute('aria-selected',String(b.dataset.tab===tab));
-  if(s.meadows){content.innerHTML=meadowPanel(s,player,tab,selectedSlot,moveFrom!==null,mapRange);return;}
+  if(s.meadows){const markup=meadowPanel(s,player,tab,selectedSlot,moveFrom!==null,mapRange);if(markup!==lastMarkup){content.innerHTML=markup;lastMarkup=markup;}return;}
   if(tab==='bag')content.innerHTML=`<div class="panel-intro"><span>装備：${ITEM_NAMES[s.equipment]??'素手'}</span><span>${s.inventory.armor?'革鎧を装備':'防具なし'}</span></div><div class="inventory-grid">${Object.entries(s.inventory).filter(([,n])=>n>0).map(([id,n])=>`<div class="item-slot ${s.equipment===id?'equipped':''}">${itemIcon(id)}<strong>${ITEM_NAMES[id]}</strong> <span>×${n}</span>${WEAPONS[id]?btn(s.equipment===id?'装備中':'装備する','equip',id,s.equipment===id):''}</div>`).join('')}</div><div class="panel-actions">${btn('食べる','eat','',!(s.inventory.berry||s.inventory.stew))}${btn('箱へ預ける／取り出す','chest')}</div><p class="muted">食事で体力が回復し、しばらく自然回復が続きます。倒れた時は墓標から素材を回収できます。</p>`;
   if(tab==='craft')content.innerHTML=`<div class="panel-intro">${station()?'作業台の範囲内':'手作業で制作 · 高度な装備には作業台が必要'}</div><div class="recipe-grid">${RECIPES.filter(r=>r.tier<=s.unlocked).map(r=>{const w=WEAPONS[r.id],can=enough(r.cost)&&(!r.station||station());return `<article class="recipe-card"><div class="card-title">${itemIcon(r.id)}<div><strong>${r.name}</strong><small>${w?`攻撃 ${w.damage} · 間合い ${w.reach}m`:r.id==='armor'?'受けるダメージを軽減':'回復と探索の備え'}</small></div></div><div class="costs">${costs(r.cost)}</div>${btn(r.station&&!station()?'作業台が必要':enough(r.cost)?'制作':'素材不足','craft',r.id,!can)}</article>`;}).join('')}</div>`;
   if(tab==='build')content.innerHTML=`<p class="muted">部品を選ぶ → 緑のプレビューを狙う → 設置。回転ボタンで向きを変更。赤は素材・場所を確認。</p><div class="recipe-grid">${BUILDINGS.map(b=>`<article class="recipe-card"><div class="card-title">${itemIcon(b.id)}<div><strong>${b.name}</strong><small>${b.size[0]} × ${b.size[2]}m · ${b.station?'高度な制作を解放':'支持のある地面・部品に接続'}</small></div></div><div class="costs">${costs(b.cost)}</div>${btn('配置する','place',b.id)}</article>`).join('')}</div><div class="panel-actions">${btn('近くの建物を解体','remove')}${btn('寝床と焚き火で休む','rest')}${btn('転移門を使う','portal')}</div>`;

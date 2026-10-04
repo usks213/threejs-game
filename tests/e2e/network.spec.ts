@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 test('host and three guests share movement, edits and disconnect safely', async ({ browser }) => {
  test.setTimeout(240000);
- const contexts = await Promise.all(Array.from({length:4}, () => browser.newContext({viewport:{width:1280,height:800}})));
+ const contexts = await Promise.all(Array.from({length:4}, () => browser.newContext({viewport:{width:640,height:360}})));
  const pages = await Promise.all(contexts.map(context => context.newPage()));
  const errors: string[] = [];
  try {
@@ -17,5 +17,6 @@ test('host and three guests share movement, edits and disconnect safely', async 
   await host.locator('#session-menu').click(); await host.locator('#session-leave').click();
   for (const peer of pages.slice(1)) await expect(peer.locator('#session-status')).toHaveText('Single Player',{timeout:20000});
   expect(errors).toEqual([]);
- } finally { if(errors.length) console.error('Browser errors:',errors); await Promise.all(contexts.map(c=>c.close())); }
+ } finally { if(errors.length) console.error('Browser errors:',errors); await Promise.all(contexts.map(c=>c.close().catch(error=>console.error('Context cleanup:',String(error))))); }
 });
+

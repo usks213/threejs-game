@@ -1,3 +1,4 @@
+import { meadowBuilding } from '../content/meadows/recipes';
 import { createPipeline } from '../rendering/postprocessing/pipeline';
 import { disposeSurfaceMaps } from '../rendering/materials/pbr';
 import { BUILDINGS, WEAPONS } from '../content/catalog';
@@ -27,7 +28,7 @@ export function startGame() {
   const canvas = document.querySelector<HTMLCanvasElement>('#game')!, app = document.querySelector<HTMLElement>('#app')!;
   const status = document.querySelector<HTMLElement>('#status')!, error = document.querySelector<HTMLElement>('#error')!;
   gameShell(signal);
-  const sound = gameSound(signal);
+  const sound = gameSound(signal);document.querySelector<HTMLInputElement>('#sound-volume')!.addEventListener('input',e=>sound.setVolume(Number((e.target as HTMLInputElement).value)),{signal});
   document.querySelector('#sound-toggle')!.addEventListener('click', () => { document.querySelector('#sound-toggle')!.textContent = sound.toggle() ? '音 OFF' : '音 ON'; }, { signal });
   let noticeTimer: ReturnType<typeof setTimeout> | undefined, lastNotice = 0;
   const notice = (message: string) => { const el = document.querySelector<HTMLElement>('#notice')!; if (el.textContent === message && performance.now()-lastNotice<900) return; lastNotice=performance.now(); el.textContent=message; el.classList.add('visible'); clearTimeout(noticeTimer); noticeTimer=setTimeout(()=>el.classList.remove('visible'),2200); sound.effect(message); };
@@ -58,7 +59,7 @@ export function startGame() {
   document.querySelector('#build-cancel')!.addEventListener('click',()=>{building='';buildControls.hidden=true;use.textContent=names[tool];},{signal});
   for(const [id,property] of [['camera-distance','distance'],['camera-sensitivity','sensitivity']] as const)document.querySelector<HTMLInputElement>('#'+id)!.addEventListener('input',e=>{view[property]=Number((e.target as HTMLInputElement).value);},{signal});
   document.querySelector<HTMLInputElement>('#shadows-enabled')!.addEventListener('change',e=>{renderer.shadowMap.enabled=(e.target as HTMLInputElement).checked;renderer.shadowMap.needsUpdate=true;},{signal});
-  let first=true;
+  let first=true,dirtyWorld=false;
   let state: Snapshot | null = null, tool: Tool = 'dig', jump = false, target: Vec3 | null = null, lastInput = 0, lastRay = 0, lastUI = 0;
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
@@ -112,7 +113,7 @@ export function startGame() {
       if (message.type === 'mesh') terrain.update(message.mesh);
       else if (message.type === 'mesh-batch') for (const mesh of message.meshes) terrain.update(mesh);
       else if (message.type === 'remove') terrain.remove(message.ids);
-      else if (message.type === 'snapshot') { state = message.state; world.update(state);sound.update(state); if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
+      else if (message.type === 'snapshot') { state = message.state;dirtyWorld=true; if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
       else if (message.type === 'ready') { status.textContent = 'プレイ中'; app.dataset.state = 'running'; send({ type: 'save' }); }
       else if (message.type === 'save' && !network.guest) persistence.receive(message.save);
       else if (message.type === 'notice') notice(message.message);
@@ -130,6 +131,7 @@ export function startGame() {
       readKeyboard(input); if (touch.x || touch.z) { input.x = touch.x; input.z = touch.z; }
       if(document.querySelector('[role=dialog]:not([hidden])')){input.x=0;input.z=0;jump=false;}
       if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
+      if(state&&dirtyWorld){world.update(state);sound.update(state);dirtyWorld=false;}
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
       world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
@@ -150,7 +152,7 @@ export function startGame() {
         } else { target = null; world.marker.visible = false; }
         placement=building&&target?(freePlacement?{...target}:placementPoint(target)):null;if(placement)placement.y+=buildHeight;
         if(building==='cook'&&placement){const fire=state.adventure.buildings.find(b=>b.definition==='fire'&&Math.hypot(b.x-placement!.x,b.z-placement!.z)<1);if(fire){placement.x=fire.x;placement.z=fire.z;placement.y=fire.y+.65;}}
-        const def=BUILDINGS.find(b=>b.id===building),issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory):'地面に照準を合わせる';
+        const rawDef=BUILDINGS.find(b=>b.id===building),def=rawDef&&state.adventure.meadows?meadowBuilding(rawDef):rawDef,issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory):'地面に照準を合わせる';
         world.preview(building,placement,buildRotation,!issue);
         document.querySelector('#build-hint')!.textContent=building?(issue||`${def?.name}を設置`):'';
         use.disabled = building?(!placement||!!issue):!target && (tool !== 'water' || !!building); document.querySelector('#target-hint')!.textContent = tool === 'water' && !building ? '長押しで放水' : target ? '' : '地面に照準を合わせる'; lastRay = now;

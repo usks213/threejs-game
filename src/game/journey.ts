@@ -7,7 +7,7 @@ export function journeyGoal(s: AdventureSnapshot, p: Vec3): JourneyGoal {
  if(s.meadows){
   const nearest=(kind:string)=>s.resources.filter(n=>n.kind===kind&&n.ready<=s.seconds).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
   if(s.death&&Object.values(s.grave??{}).some(n=>n>0))return {title:'墓標へ戻ろう',detail:'落とした荷物は「採集」で回収',tab:'bag',target:s.death,progress:0};
-  if(!s.inventory.axe)return {title:'落ち枝と石を拾おう',detail:'木材3・石2 → 石斧。近づいて採集',tab:'craft',target:nearest((s.inventory.wood??0)<3?'branch':'stone'),progress:.05};
+  if(!s.inventory.axe)return {title:'落ち枝と石を拾おう',detail:'木材5・石4 → 石斧。近づいて採集',tab:'craft',target:nearest((s.inventory.wood??0)<5?'branch':'stone'),progress:.05};
   if(!s.inventory.hammer)return {title:'ハンマーを作ろう',detail:'木材3・石2。道具で拠点を築く',tab:'craft',progress:.12};
   if(!s.buildings.some(b=>b.definition==='bench'))return {title:'作業台と屋根を作ろう',detail:'屋根の下の作業台で弓・防具・修理を解放',tab:'build',progress:.2};
   if(!s.buildings.some(b=>b.definition==='cook'))return {title:'火を起こして料理しよう',detail:'焚き火の上に料理台。猪と鹿を狩って肉を焼く',tab:'build',progress:.3};
