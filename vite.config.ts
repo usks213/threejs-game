@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  server: { proxy: { "/coop": { target: "http://127.0.0.1:2568", ws: true } } },
+  preview: { proxy: { "/coop": { target: "http://127.0.0.1:2568", ws: true } } },
   plugins: [{
     name: 'deployment-version',
     apply: 'build',

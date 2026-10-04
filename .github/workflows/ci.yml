@@ -117,7 +117,7 @@ jobs:
           name: game-dist
           path: dist/
       - name: Publish the verified build directly to Cloudflare Preview
-        run: node scripts/deploy-preview.mjs
+        run: node scripts/deploy-coop-preview.mjs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: c3ca485329f03044432fbd5164083278
@@ -192,7 +192,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --project=desktop-chromium --grep 'host and three'
+      - name: Start real local authority
+        run: npm run coop:local > /tmp/coop-local.log 2>&1 &
+      - run: npm run e2e -- --project=desktop-chromium --grep 'two real browsers'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -227,3 +229,31 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  public-coop:
+    if: github.event_name == 'pull_request'
+    needs: deploy-preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: preview-release
+      - run: npx playwright install --with-deps chromium
+      - name: Test two independent browsers against the public authority
+        run: E2E_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync('preview-release.json')).url") npm run e2e -- --project=desktop-chromium --grep 'two real browsers' --retries=0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-coop-evidence
+          path: |
+            playwright-report/
+            test-results/

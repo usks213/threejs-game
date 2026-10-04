@@ -19,7 +19,7 @@ const config = changed(/^(package(-lock)?\.json|tsconfig.*\.json|vite\.config\.t
 // Build/release the exact tested SHA instead of silently leaving that preview stale.
 const gameTests = changed(/^tests\/(unit|e2e)\//);
 const game = config || gameTests || changed(/^(src\/|public\/|index\.html$|wrangler\.jsonc$|scripts\/deploy-preview\.mjs$)/);
-const signaling = manual || config || changed(/^apps\/signaling\//);
+const signaling = false; // This isolated adventure never redeploys PR3's signaling service.
 const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/(dedicated|signaling)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
 const host = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/signaling\/|tests\/e2e\/network\.spec\.ts$)/);
 const checks = manual || game || signaling || network || changed(/^tests\/unit\//);

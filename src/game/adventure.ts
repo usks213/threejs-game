@@ -293,7 +293,7 @@ export class Adventure {
  stepPersonal(dt: number): void {
   const recoveryBefore=Math.max(this.staminaRecovery,this.attack,this.dodge),dodgeDt=Math.min(dt,this.dodge);
   this.staminaRecovery=Math.max(0,this.staminaRecovery-dt);
-  const s = this.state, p = this.sim.player; stepDrops(this,dt); s.seconds += dt;this.parryTime=Math.max(0,this.parryTime-dt);
+  const s = this.state, p = this.sim.player; s.seconds += dt;this.parryTime=Math.max(0,this.parryTime-dt);
   if(this.swing){
    const swing=this.swing,before=swing.motion.elapsed;
    swing.motion.elapsed=Math.min(swing.motion.duration,before+dt);
@@ -325,6 +325,7 @@ export class Adventure {
  step(dt: number): void {
   if (this.sim.targets.length) for (const target of this.sim.targets) this.populate(target.player); else this.populate();
   advanceMeadowWater(this.sim,this.state);
+  stepDrops(this, dt);
   this.stepPersonal(dt);
   const s = this.state;
   if (s.health <= 0 && !this.sim.targets.some(t => t.adventure.state.health > 0)) return;
