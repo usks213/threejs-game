@@ -1,3 +1,4 @@
+import {ensureCampaignAnchor} from './core/campaign-repairs';
 import type {VoxelField,VoxelState} from './core/voxel';
 import {validCompanionSnapshot} from './core/companion';
 import {CoreSimulation} from './core/simulation';
@@ -9,7 +10,7 @@ import {CampaignSystem} from './core/campaign';
 import {HomesteadSystem} from './core/homestead';
 import {REGIONAL_ENEMIES} from './core/regions';
 import {record,number,integer,vector,text} from '../save/validation';
-export interface CampaignSettings {volume:number;sensitivity:number;graphics:'balanced'|'high';bindings:Record<string,string>;pins:{id:string;x:number;z:number}[]}
+export interface CampaignSettings {volume:number;sensitivity:number;graphics:'balanced'|'performance'|'high';bindings:Record<string,string>;pins:{id:string;x:number;z:number}[]}
 export const defaultSettings=():CampaignSettings=>({volume:.8,sensitivity:1,graphics:'balanced',bindings:{},pins:[]});
 interface EntityCacheEntry {body:EntityElements;revision:number;json:string}
 interface TerrainCacheEntry {field:VoxelField;revision:number;json:string;validated:boolean;entities?:EntityCacheEntry[]}
@@ -27,7 +28,7 @@ const REGULAR_ENEMIES=4,RESERVE_SUMMONS=3,SUMMON_START=REGULAR_ENEMIES+REGIONAL_
 const SUMMONERS=new Set(REGIONAL_ENEMIES.flatMap((enemy,index)=>enemy.tactic==='summoner'?[REGULAR_ENEMIES+index]:[]));
 // Includes a generous glide/fall margin around authored terrain; rejects unbounded coordinates.
 const worldPosition=(v:unknown)=>vector(v)&&number(v.x,-80,80)&&number(v.y,-30,100)&&number(v.z,-100,100);
-const bindableActions=new Set(['interact','jump','dodge','heavy','heal','sword','chisel','element-next','cast','recipe-next','build','special','dismantle']);
+const bindableActions=new Set(['attack','interact','jump','dodge','heavy','heal','sword','chisel','element-next','cast','recipe-next','build','special','dismantle']);
 const knownKeys=(v:Record<string,unknown>,keys:readonly string[])=>Object.keys(v).every(key=>keys.includes(key));
 function validEnemy(value:unknown,index:number){
  if(!record(value)||!knownKeys(value,['id','summonOwner','position','yaw','hp'])||value.id!==index||!worldPosition(value.position)||!number(value.yaw))return false;
@@ -45,7 +46,7 @@ export function isCampaignSave(v:unknown):v is CampaignSave{
  const objectIds=new Set<string>();for(const object of v.objects){if(!record(object)||!knownKeys(object,['id','open','hp'])||!text(object.id)||objectIds.has(object.id)||typeof object.open!=='boolean'||!number(object.hp,0,100000))return false;objectIds.add(object.id);}
  if(!record(v.water)||!Array.isArray(v.water.volume)||v.water.volume.length!==48*12*48||!number(v.water.injected,0,1e9)||!integer(v.water.phase,0,1e9)||typeof v.water.on!=='boolean')return false;
  for(const amount of v.water.volume)if(!number(amount,0,1.00001))return false;
- if(!record(v.settings)||!number(v.settings.volume,0,1)||!number(v.settings.sensitivity,.5,2)||!['balanced','high'].includes(String(v.settings.graphics))||!record(v.settings.bindings)||!Array.isArray(v.settings.pins)||v.settings.pins.length>12)return false;
+ if(!record(v.settings)||!number(v.settings.volume,0,1)||!number(v.settings.sensitivity,.5,2)||!['balanced','performance','high'].includes(String(v.settings.graphics))||!record(v.settings.bindings)||!Array.isArray(v.settings.pins)||v.settings.pins.length>12)return false;
  const keys=new Set<string>();for(const [action,key] of Object.entries(v.settings.bindings)){if(!bindableActions.has(action)||typeof key!=='string'||!/^((Key[A-Z])|(Digit[0-9])|Space|ControlLeft|AltLeft|Delete)$/.test(key)||['KeyW','KeyA','KeyS','KeyD','KeyI','KeyJ','KeyM'].includes(key)||keys.has(key))return false;keys.add(key);}
  const pinIds=new Set<string>();for(const pin of v.settings.pins){if(!record(pin)||!text(pin.id,100)||pinIds.has(pin.id)||!number(pin.x,-80,80)||!number(pin.z,-100,30))return false;pinIds.add(pin.id);}return true;
 }
@@ -89,9 +90,10 @@ export function restoreCampaignInto(sim:CoreSimulation,data:unknown,options:Camp
  Object.assign(sim.player,{position:{...data.player.position},yaw:data.player.yaw,pitch:data.player.pitch,hp:data.player.hp,stamina:data.player.stamina,flasks:data.player.flasks,tool:data.player.tool,vy:0,vx:0,vz:0,phase:'idle',time:0,queued:'',guard:0,hit:false,hitstop:0,impact:0,blockTime:0});
  for(let i=0;i<sim.enemies.length;i++)Object.assign(sim.enemies[i],{hp:data.enemies[i].hp,yaw:data.enemies[i].yaw,summonOwner:i<SUMMON_START?undefined:data.enemies[i].summonOwner,position:{...data.enemies[i].position},phase:data.enemies[i].hp>0?'idle':'dead',time:0,vy:0,hit:false,hitstop:0,interrupted:undefined});
  sim.defeated=sim.enemies.filter(e=>e.hp<=0).length;sim.water.volume.set(data.water.volume);sim.water.injected=data.water.injected;sim.water.phase=data.water.phase;sim.waterOn=data.water.on;if(!reuseTerrain)sim.water.refreshSolids();sim.water.revision++;
+ const repairedAnchor=ensureCampaignAnchor(sim.arena.field);
  if(options.includeCompanion!==false){sim.restoreCompanion(data.partyCompanion??null);sim.companionCanEdit=false;if(sim.companion){sim.companion.vx=0;sim.companion.vz=0;}sim.setCompanionConnected(false);}
  if(sim.player.hp>0&&sim.arena.field.overlaps(sim.player.position))sim.player.position=sim.safePosition(sim.campaign.spawn);
- if(options.reuseTerrain)terrainCache.set(sim,{field,revision:field.revision,json:terrainJson,validated:true,entities:entityProofs});
- return {sim,settings:{volume:data.settings.volume,sensitivity:data.settings.sensitivity,graphics:data.settings.graphics,bindings:{...data.settings.bindings},pins:data.settings.pins.map(pin=>({id:pin.id,x:pin.x,z:pin.z}))}};
+ if(options.reuseTerrain)terrainCache.set(sim,{field,revision:field.revision,json:repairedAnchor?JSON.stringify(field.exportState()):terrainJson,validated:true,entities:entityProofs});
+ return {sim,settings:{volume:data.settings.volume,sensitivity:data.settings.sensitivity,graphics:data.settings.graphics,bindings:Object.fromEntries(Object.entries(data.settings.bindings).filter(([,key])=>key!=='KeyZ')),pins:data.settings.pins.map(pin=>({id:pin.id,x:pin.x,z:pin.z}))}};
 }
 export function createCampaignStore(){return new CheckpointStore<CampaignSave>({getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)},'ash-campaign-v1',isCampaignSave);}

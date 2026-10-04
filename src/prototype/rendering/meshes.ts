@@ -3,6 +3,7 @@ import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import { chunkKey,VoxelField,type Cell,type Vec3 } from '../core/voxel';
 import { extractSurface } from '../core/surface';
 import type { VoxelWater } from '../core/water';
+import {ProviderResidency,isProviderResidentField} from './provider-residency';
 const palette=['#000000','#3b3630','#455044','#64605a','#37281f','#806346','#9ca4aa','#26392e','#475461','#ffb25c','#33343a','#8e8475','#574633','#635448'].map(c=>new THREE.Color(c));
 export function voxelGeometry(field:VoxelField,cells:Iterable<Cell>=field.cells.values(),owner?:string){
  const data=extractSurface(field,cells,owner),colors:number[]=[];
@@ -11,9 +12,10 @@ export function voxelGeometry(field:VoxelField,cells:Iterable<Cell>=field.cells.
 }
 export class WorldMeshes {
  readonly material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.87,metalness:.04});readonly chunks=new Map<string,THREE.Mesh>();remeshes=0;lastRemeshMs=0;
+ readonly residency:ProviderResidency|null;
  readonly loadRadius=24;readonly evictionRadius=32;bucketScans=0;lastBuiltChunks=0;
  private cachedRevision=-1;private buckets=new Map<string,Cell[]>();private emptyChunks=new Set<string>();
- constructor(readonly field:VoxelField,readonly scene:THREE.Scene){this.material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+ constructor(readonly field:VoxelField,readonly scene:THREE.Scene){this.residency=isProviderResidentField(field)?new ProviderResidency(field):null;this.material.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
 #ifdef USE_COLOR
  totalEmissiveRadiance += vColor.rgb * step(.8,vColor.r) * step(vColor.b,.2) * 1.8;
 #endif`);};}
@@ -23,7 +25,9 @@ export class WorldMeshes {
   * full-world meshing, so streamed neighbours retain exact surface ownership/seams. */
  private refreshBuckets(){
   if(this.cachedRevision===this.field.revision)return;
-  this.buckets.clear();this.emptyChunks.clear();this.bucketScans++;
+  this.buckets.clear();this.emptyChunks.clear();
+  if(this.residency){this.cachedRevision=this.field.revision;return;}
+  this.bucketScans++;
   for(const c of this.field.cells.values()){if(c.distance>=0)continue;
    const owners=new Set([chunkKey(c.x,c.z),chunkKey(c.x-1,c.z),chunkKey(c.x,c.z-1),chunkKey(c.x-1,c.z-1)]);
    for(const id of owners){let list=this.buckets.get(id);if(!list)this.buckets.set(id,list=[]);list.push(c);}
@@ -42,7 +46,7 @@ export class WorldMeshes {
   if(!limit){this.lastRemeshMs=performance.now()-start;return;}
   this.refreshBuckets();
   // Dirty chunks without solid samples still need their old geometry removed.
-  const ids=new Set([...this.buckets.keys(),...this.field.dirty]);
+  const ids=new Set([...(this.residency?.chunkKeys()??this.buckets.keys()),...this.field.dirty]);
   const pending:[string,number,number][]=[];
   for(const id of ids){const distance=this.distance(id,center);if(distance>this.loadRadius)continue;
    const dirty=this.field.dirty.has(id),existing=this.chunks.has(id);
@@ -52,7 +56,7 @@ export class WorldMeshes {
   }
   pending.sort((a,b)=>a[2]-b[2]||a[1]-b[1]||a[0].localeCompare(b[0]));
   for(const [id] of pending.slice(0,limit)){
-   const list=this.buckets.get(id);let geometry:THREE.BufferGeometry|undefined;
+   const list=this.residency?this.residency.samples(id):this.buckets.get(id);let geometry:THREE.BufferGeometry|undefined;
    if(list)geometry=voxelGeometry(this.field,list,id);
    this.remove(id);
    if(geometry&&geometry.getAttribute('position').count){const mesh=new THREE.Mesh(geometry,this.material);mesh.castShadow=true;mesh.receiveShadow=true;this.chunks.set(id,mesh);this.scene.add(mesh);this.emptyChunks.delete(id);this.remeshes++;}
@@ -61,7 +65,8 @@ export class WorldMeshes {
   }
   this.lastRemeshMs=performance.now()-start;
  }
- dispose(){for(const id of this.chunks.keys())this.remove(id);this.buckets.clear();this.emptyChunks.clear();this.cachedRevision=-1;this.material.dispose();}
+ get stats(){let geometryBytes=0,triangles=0;for(const mesh of this.chunks.values()){const g=mesh.geometry;for(const a of Object.values(g.attributes))geometryBytes+=a.array.byteLength;geometryBytes+=g.index?.array.byteLength??0;triangles+=(g.index?.count??g.getAttribute('position').count)/3;}return{residentChunks:this.chunks.size,geometryBytes,triangles,bucketScans:this.bucketScans,lastBuiltChunks:this.lastBuiltChunks,provider:this.residency?.stats??null};}
+ dispose(){this.residency?.dispose();for(const id of this.chunks.keys())this.remove(id);this.buckets.clear();this.emptyChunks.clear();this.cachedRevision=-1;this.material.dispose();}
 }
 /** Reconstruct the fluid free-surface distance band from conserved 0.125m volume cells. */
 export function waterGeometry(w:VoxelWater){

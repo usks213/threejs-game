@@ -82,7 +82,7 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --project="${{ matrix.project }}" --grep="${{ matrix.cases }}"
+      - run: npm run e2e -- --project="${{ matrix.project }}" --grep="${{ matrix.cases }}" --grep-invert="campaign first chapter|cooperation integration"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -118,6 +118,37 @@ jobs:
         with:
           name: preview-release
           path: preview-release.json
+          retention-days: 7
+  first-chapter-browser:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, android-chromium]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- --project="${{ matrix.project }}" --grep="campaign first chapter"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: first-chapter-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
           retention-days: 7
   cooperative-browser:
     needs: [verify, deploy-preview]

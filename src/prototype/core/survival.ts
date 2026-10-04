@@ -106,7 +106,7 @@ export class SurvivalSystem {
  private alive(b:{id:string;anchor:Vec3}){return this.field.distance(b.anchor)<0&&this.field.materialAt(b.anchor)?.object===b.id;}
  hasWorkbench(position:Vec3){return this.buildings.some(b=>b.recipe==='workbench'&&this.alive(b)&&distance(b.position,position)<=3&&this.clearLine({...position,y:position.y+1.15},{...b.position,y:b.position.y+1.15}));}
  rotate(step=1){if(Number.isInteger(step))this.rotation=((this.rotation+step)%4+4)%4;return this.rotation;}
- private signature(id:string){return checksum(JSON.stringify([...this.field.cells.values()].filter(c=>c.object===id).sort((a,b)=>a.x-b.x||a.y-b.y||a.z-b.z).map(c=>[c.x,c.y,c.z,c.distance,c.material])));}
+ private signature(id:string){return checksum(JSON.stringify([...this.field.objectSamples(id)].sort((a,b)=>a.x-b.x||a.y-b.y||a.z-b.z).map(c=>[c.x,c.y,c.z,c.distance,c.material])));}
  private bodyIntersects(shape:BuildingShape,bodies:readonly Vec3[]){for(const body of bodies)for(let y=.12;y<1.75;y+=.18)for(const [x,z] of [[0,0],[.3,0],[-.3,0],[0,.3],[0,-.3]])if(shape.sdf({x:body.x+x,y:body.y+y,z:body.z+z})<.06)return true;return false;}
  preview(target:Vec3,playerPosition:Vec3,enemies:readonly Vec3[]=[]):PlacementPreview{
   const shape=buildingShape(this.selected,target,this.rotation),recipe=this.recipe,base={bounds:{min:shape.min,max:shape.max},recipe:recipe.id,rotation:this.rotation,target:{...target}};

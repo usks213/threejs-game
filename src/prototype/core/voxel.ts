@@ -95,6 +95,8 @@ export class VoxelField {
   for(const layer of this.layers.values())for(const [id,c] of layer){const old=this.cells.get(id);if(!old||c.distance<old.distance)this.cells.set(id,c);}
   for(const c of this.cells.values())changedChunks.add(chunkKey(c.x,c.z));for(const id of changedChunks){const [x,z]=id.split(',').map(Number);for(const dx of [-1,0,1])for(const dz of [-1,0,1])this.dirty.add(`${x+dx},${z+dz}`);}this.revision++;return true;
  }
+ /** Composed samples, including the positive SDF band, for deterministic object signatures. */
+ *objectSamples(object:string):Generator<Cell,void>{for(const cell of this.cells.values())if(cell.object===object)yield cell;}
  sample(x:number,y:number,z:number){return this.cells.get(key(x,y,z))?.distance??this.size*2;}
  get(x:number,y:number,z:number){const c=this.cells.get(key(x,y,z));return c&&c.distance<0?c:undefined;}
  private readonly base=new Map<string,Cell>();private readonly layers=new Map<string,Map<string,Cell>>();

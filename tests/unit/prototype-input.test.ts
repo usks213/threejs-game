@@ -23,3 +23,8 @@ describe('keyboard look accessibility',()=>{
  it('cancels opposing look keys and clears held look on pause or blur',()=>{const {input,onLook,document}=setup();send(document,'keydown',{code:'Home'});send(document,'keydown',{code:'End'});input.tick(.1);expect(onLook).not.toHaveBeenCalled();send(document,'keyup',{code:'End'});input.setEnabled(false);input.tick(.1);input.setEnabled(true);input.tick(.1);expect(onLook).not.toHaveBeenCalled();send(document,'keydown',{code:'PageDown'});window.dispatchEvent(new Event('blur'));input.tick(.1);expect(onLook).not.toHaveBeenCalled();input.dispose();});
  it('ignores invalid delta and releases keys with keyup',()=>{const {input,onLook,document}=setup();send(document,'keydown',{code:'Home'});for(const dt of [0,-1,NaN,Infinity])input.tick(dt);send(document,'keyup',{code:'Home'});input.tick(.1);expect(onLook).not.toHaveBeenCalled();input.dispose();});
 });
+
+describe('keyboard combat accessibility',()=>{
+ it('attacks with T once per press without repeat autoattacks',()=>{const {input,action,document}=setup();send(document,'keydown',{code:'KeyT'});send(document,'keydown',{code:'KeyT',repeat:true});expect(action.mock.calls).toEqual([['attack']]);send(document,'keyup',{code:'KeyT'});send(document,'keydown',{code:'KeyT'});expect(action).toHaveBeenCalledTimes(2);input.dispose();});
+ it('holds shield with Z and clears it on keyup and pause',()=>{const {input,document}=setup();send(document,'keydown',{code:'KeyZ'});expect(input.controls().block).toBe(true);send(document,'keyup',{code:'KeyZ'});expect(input.controls().block).toBe(false);send(document,'keydown',{code:'KeyZ'});input.setEnabled(false);expect(input.controls().block).toBe(false);expect(input.bind('attack','KeyZ')).toBe(false);input.dispose();});
+});

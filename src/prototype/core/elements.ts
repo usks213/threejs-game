@@ -68,7 +68,7 @@ export class ElementSystem {
  cast(element:Element,hit:Hit,direction:Vec3):DamageResult{
   const length=Math.hypot(direction.x,direction.y,direction.z)||1,d={x:direction.x/length,y:direction.y/length,z:direction.z/length};
   this.effect(element,hit.point,d);
-  const cells=this.nearby(hit.point,.8);if(!cells.some(c=>c===hit.cell)&&this.field.get(hit.cell.x,hit.cell.y,hit.cell.z))cells.push(hit.cell);
+  const cells=this.nearby(hit.point,.8);if(!cells.some(c=>c.x===hit.cell.x&&c.y===hit.cell.y&&c.z===hit.cell.z)&&this.field.get(hit.cell.x,hit.cell.y,hit.cell.z))cells.push(hit.cell);
   if(element==='water'){
    for(const c of cells){const state=this.state(c);if(state){state.fire=0;state.wet=5;state.charge=0;}}
    const p={x:hit.point.x+hit.normal.x*.2,y:hit.point.y+hit.normal.y*.2,z:hit.point.z+hit.normal.z*.2};
