@@ -17,6 +17,7 @@ const paths:Record<string,string>={
  bag:'M7 8V6a5 5 0 0 1 10 0v2M4 8h16v14H4V8Zm4 6h8',
 };
 export function itemIcon(id:string):string {
- const key=id.endsWith('Sword')||id==='greatsword'?'sword':id==='stew'?'berry':id==='foundation'?'stone':id==='floor'||id==='pillar'?'wall':id==='bed'?'roof':id==='chest'?'bag':id==='book'?'staff':id==='resin'?'water':id;
+ const aliases:Record<string,string>={branch:'wood',beech:'wood',birch:'wood',oak:'wood',flint:'stone',crudeBow:'bow',flintAxe:'axe',flintSpear:'sword',flintKnife:'sword',antlerPickaxe:'axe',club:'wood',honey:'berry',mushroom:'berry',boarMeat:'berry',deerMeat:'berry',cookedDeer:'berry',cookedBoar:'berry',towerShield:'shield',ragTunic:'bag',leatherTunic:'bag',leatherHelmet:'shield',leatherPants:'bag',deerTrophy:'map'};
+ const key=aliases[id]??(id.endsWith('Sword')||id==='greatsword'?'sword':id==='stew'?'berry':id==='foundation'?'stone':id==='floor'||id==='pillar'?'wall':id==='bed'?'roof':id==='chest'?'bag':id==='book'?'staff':id==='resin'?'water':id);
  return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="${paths[key]??'m12 2 9 10-9 10-9-10L12 2Zm0 0v20M3 12h18'}"/></svg>`;
 }

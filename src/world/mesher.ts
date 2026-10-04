@@ -42,7 +42,7 @@ export function meshBrick(world: SdfWorld, brick: Brick): MeshData {
       colors.push(base + (meadow.grass[channel] - base) * grass);
     }
     const biome = biomeAt(p.x, p.z), tint = biome.grass.match(/[a-f0-9]{2}/gi)!.map(c => parseInt(c, 16) / 255);
-    if (biome.tier > 1) for (let axis = 0; axis < 3; axis++) colors[id * 3 + axis] = colors[id * 3 + axis] * 0.55 + tint[axis] * 0.45;
+    if (world.generator!==3&&biome.tier > 1) for (let axis = 0; axis < 3; axis++) colors[id * 3 + axis] = colors[id * 3 + axis] * 0.55 + tint[axis] * 0.45;
     edges.set(key, id); return id;
   }
   function triangle(a: number, b: number, c: number) {
@@ -70,3 +70,4 @@ export function meshBrick(world: SdfWorld, brick: Brick): MeshData {
   const mesh: MeshData = { id: brick.id, positions: new Float32Array(positions), normals: new Float32Array(normals), colors: new Float32Array(colors), indices: new Uint32Array(indices), milliseconds: performance.now() - started };
   mesh.coarse = simplifyBrick(mesh, brick); mesh.milliseconds = performance.now() - started; return mesh;
 }
+

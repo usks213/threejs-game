@@ -1,7 +1,7 @@
 import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 
-export interface AvatarPose { equipment?: string; attack?: number; guarding?: boolean; dodging?: boolean; shield?: boolean; grounded?: boolean }
+export interface AvatarPose { equipment?: string; attack?: number; guarding?: boolean; dodging?: boolean; shield?: boolean; grounded?: boolean; gear?:Record<string,string>; tower?:boolean }
 export function createAvatarAssets() {
   const box = new THREE.BoxGeometry(1, 1, 1), head = new THREE.IcosahedronGeometry(0.21, 1);
   const blade = new THREE.ConeGeometry(0.09, 0.75, 4), arc = new THREE.TorusGeometry(0.33, 0.035, 4, 12, Math.PI);
@@ -17,10 +17,10 @@ export function createAvatarAssets() {
   return {
     create() {
       const group = new THREE.Group(), torso = new THREE.Group(); group.add(torso);
-      part(torso, box, '#c89b47', 0, 0.87, 0, 0.45, 0.55, 0.29);
+      const chest=part(torso, box, '#c89b47', 0, 0.87, 0, 0.45, 0.55, 0.29);
       part(torso, box, '#65513c', 0, 0.66, 0, 0.47, 0.08, 0.31);
       part(torso, head, '#eed0a3', 0, 1.27, 0.015);
-      part(torso, head, '#463c31',0,1.39,-.025,1.03,.62,1.02);
+      const hair=part(torso, head, '#463c31',0,1.39,-.025,1.03,.62,1.02);const helmet=part(torso,head,'#65513c',0,1.43,-.01,1.15,.7,1.15);helmet.visible=false;
       part(torso, box, '#252b28',-.075,1.29,.2,.035,.025,.025);part(torso, box, '#252b28',.075,1.29,.2,.035,.025,.025);
       const cloak=part(torso,box,'#466c6c',0,.83,-.21,.51,.67,.055);cloak.rotation.x=-.15;
       part(torso,box,'#d8be81',.16,.96,.165,.055,.48,.035);
@@ -42,6 +42,12 @@ export function createAvatarAssets() {
       const staff = weapon('staff'); part(staff, box, '#765744', 0, 0.23, 0, 0.08, 1.1, 0.08); const crystal = part(staff, head, '#9bd7dc', 0, 0.83, 0, 0.65, 1, 0.65); (crystal.material as THREE.MeshStandardMaterial).emissive.set('#5296c4');(crystal.material as THREE.MeshStandardMaterial).emissiveIntensity=2;
       const spear = weapon('spear'); part(spear, box, '#795738', 0, 0.28, 0, 0.065, 1.35, 0.065); part(spear, blade, '#c8d1c9', 0, 1.03, 0, 0.7, 0.5, 0.7);
       const bow = weapon('bow'); part(bow, arc, '#98744c', 0, 0.2, 0).rotation.z = -Math.PI / 2;
+      const club=weapon('club');part(club,box,'#795738',0,.25,0,.11,.75,.11);part(club,head,'#765744',0,.57,0,.7,1,.7);
+      const hammer=weapon('hammer');part(hammer,box,'#795738',0,.2,0,.07,.6,.07);part(hammer,box,'#98744c',0,.45,0,.4,.18,.15);
+      const hoe=weapon('hoe');part(hoe,box,'#795738',0,.3,0,.07,1,.07);part(hoe,box,'#a9b4aa',0,.75,.13,.32,.05,.3);
+      const pick=weapon('pick');part(pick,box,'#795738',0,.25,0,.07,.8,.07);part(pick,arc,'#bdab77',0,.65,0,.9,.6,1).rotation.z=Math.PI;
+      const knife=weapon('knife');part(knife,blade,'#a9b4aa',0,.2,0,.7,.5,.7);part(knife,box,'#795738',0,-.03,0,.06,.15,.06);
+      const torch=weapon('torch');part(torch,box,'#795738',0,.2,0,.08,.65,.08);const fire=part(torch,blade,'#ffc077',0,.6,0,1,.4,1);(fire.material as THREE.MeshStandardMaterial).emissive.set('#ff8b24');(fire.material as THREE.MeshStandardMaterial).emissiveIntensity=3;
       const book = weapon('book'); part(book, box, '#8d71a3', 0, 0.07, 0.05, 0.28, 0.36, 0.1);
       const shield = part(arms[0], box, '#8c6c47', -0.08, -0.27, 0.12, 0.08, 0.5, 0.4); shield.visible = false;
       let previousX = 0, previousZ = 0, moving = 0, phase = 0, initialized = false, equipped = '';
@@ -52,11 +58,13 @@ export function createAvatarAssets() {
           pose = next; const id = next.equipment ?? 'hands';
           if (id !== equipped) {
             equipped = id;
-            const kind = id.endsWith('Sword') || id === 'greatsword' ? 'sword' : id;
+            const alias:Record<string,string>={crudeBow:'bow',flintAxe:'axe',flintKnife:'knife',flintSpear:'spear',antlerPickaxe:'pick'};
+            const kind = alias[id]??(id.endsWith('Sword') || id === 'greatsword' ? 'sword' : id);
             for (const [name, mesh] of weapons) mesh.visible = name === kind;
             sword.scale.setScalar(id === 'greatsword' ? 1.35 : 1);
           }
-          shield.visible = next.shield ?? false;
+          shield.visible = next.shield ?? false;shield.scale.y=next.tower?.85:.5;
+          if(next.gear){chest.material=material(next.gear.chest==='leatherTunic'?'#65513c':'#b2a182');cloak.visible=next.gear.cape==='deerCape';helmet.visible=next.gear.head==='leatherHelmet';hair.visible=!helmet.visible;}
         },
         animate(dt: number): void {
           const p = group.position, distance = initialized ? Math.hypot(p.x - previousX, p.z - previousZ) : 0;

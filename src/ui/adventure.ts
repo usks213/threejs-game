@@ -44,6 +44,7 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
   const enemy=s.enemies.filter(e=>e.health>0&&Math.hypot(e.x-p.x,e.z-p.z)<12).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0],enemyHud=document.querySelector<HTMLElement>('#enemy-focus')!;
   enemyHud.hidden=!enemy;if(enemy){const def=enemy.boss?BOSSES.find(b=>b.id===enemy.definition):undefined;enemyHud.textContent=enemy.windup>0?'⚠ 攻撃が来る — 回避':`${def?.name??ENEMIES.find(d=>d.id===enemy.definition)?.name??'敵'} · ${Math.ceil(enemy.health)} HP`;enemyHud.classList.toggle('danger',enemy.windup>0);}
   document.querySelector<HTMLButtonElement>('#quick-eat')!.disabled=!Object.keys(FOODS).some(id=>s.inventory[id]>0);
+  document.querySelector('#sprint')!.setAttribute('aria-pressed',String(!!s.meadows?.sprinting));document.querySelector('#sneak')!.setAttribute('aria-pressed',String(!!s.meadows?.sneaking));
   document.querySelector('#guard')!.setAttribute('aria-pressed',String(s.guarding));
   if(lastHealth!==undefined&&s.health<lastHealth){document.querySelector('#app')!.classList.add('hurt');clearTimeout(hurtTimer);hurtTimer=setTimeout(()=>document.querySelector('#app')!.classList.remove('hurt'),350);}lastHealth=s.health;
   render();

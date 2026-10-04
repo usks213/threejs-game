@@ -1,6 +1,6 @@
 import { GameSimulation } from '../../src/simulation/game-simulation';
 import { test, expect } from '@playwright/test';
-test('starts, moves with keyboard and stick, jumps, and rotates safely', async ({ page }, info) => {
+test('starts, moves with keyboard and stick, jumps, and rotates safely', async ({ page }) => {
  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
  await page.goto('/'); await expect(page.locator('#app')).toHaveAttribute('data-state','running');
  await expect(page.locator('canvas')).toBeVisible(); await expect(page.getByRole('heading', { name: /TERRA/ })).toBeVisible();
@@ -20,7 +20,7 @@ test('starts, moves with keyboard and stick, jumps, and rotates safely', async (
  const before = await page.locator('#position').getAttribute('data-x');
  await page.mouse.move(420,150); await page.mouse.down(); await page.mouse.move(480,160); await page.mouse.up();
  await expect(page.locator('#position')).toHaveAttribute('data-x',before!);
- await page.screenshot({scale:'css',path:info.outputPath('terra-landscape.png')}); expect(errors).toEqual([]);
+ expect(errors).toEqual([]);
 });
 async function systemAction(page: import('@playwright/test').Page, id: string) {
  await page.locator('#system-menu').click(); await page.locator('#' + id).click(); await page.locator('#system-close').click();
@@ -105,6 +105,7 @@ test('survival adventure opens Meadows recipes and persists gathered materials',
  const sim=new GameSimulation();const n=sim.adventure.state.resources.find(n=>n.kind==='branch')!;Object.assign(sim.player,{x:n.x,y:n.y,z:n.z});
  await page.goto('/');await expect(page.locator('#app')).toHaveAttribute('data-state','running');
  await page.locator('#import-file').setInputFiles({name:'gather.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});
+ await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeCloseTo(sim.player.x);
  await expect(page.locator('#adventure-hud')).toContainText('草原');await expect(page.locator('#journey')).toContainText('落ち枝と石');
  await page.locator('#gather').click();await expect(page.locator('#notice')).toContainText('木材');
  await page.locator('#adventure-menu').click();await expect(page.locator('#adventure-content')).toContainText('木材');

@@ -1,3 +1,4 @@
+import { driveRaft } from '../game/meadows/facilities';
 import { movementSpeed, payJump } from '../game/meadows/movement';
 import { newMeadows } from '../game/meadows/state';
 import { GameSimulation, TICK_RATE } from './game-simulation';
@@ -56,7 +57,7 @@ export class SessionAuthority {
    const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, 1.45), speed = movementSpeed(actor.adventure,!!(input.x||input.z),water,dt);
    const flow = this.sim.fluid.current(p);
    const beforeY = p.y, dx = input.x / length * speed * dt + flow.x * Math.min(1, water * 3) * dt, dz = input.z / length * speed * dt + flow.z * Math.min(1, water * 3) * dt;
-   actor.motor.step(p, dx, dz, payJump(actor.adventure,input.jump,p.grounded), dt, water); input.jump = false;
+   if(!driveRaft(actor.adventure,input.x,input.z,dt))actor.motor.step(p, dx, dz, payJump(actor.adventure,input.jump,p.grounded), dt, water); input.jump = false;
    if (dx || dz) p.heading = Math.atan2(dx, dz);
    collidePlayerRocks(p, this.sim.bodies, dx, dz, dt);
    const ice = this.sim.fluid.iceHeight(p); if (ice !== null && p.vy <= 0 && beforeY >= ice - 0.1 && p.y <= ice) { p.y = ice; p.vy = 0; p.grounded = true; }

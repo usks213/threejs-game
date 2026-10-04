@@ -1,12 +1,15 @@
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 import { BUILDINGS } from '../../content/catalog';
 /** Original timber/stone kit. All pieces share a geometry and a small material palette. */
 export function buildingKit() {
  const box=new THREE.BoxGeometry(1,1,1),stone=new THREE.IcosahedronGeometry(1,0),cone=new THREE.ConeGeometry(1,1,7);
+ const templates=new Map<string,THREE.Group>(),mergedGeometries:THREE.BufferGeometry[]=[];
  const mats=new Map<string,THREE.MeshStandardMaterial>();
  const mat=(color:string)=>{let m=mats.get(color);if(!m){m=pbrMaterial(color, ['#585d57','#ddbc78'].includes(color)?'metal':['#737970','#8a8e80','#797e74'].includes(color)?'stone':['#849563','#d2c8a7'].includes(color)?'cloth':color==='#a896c7'?'crystal':'wood');mats.set(color,m);}return m;};
  function make(id:string){
+  const template=templates.get(id);if(template)return template.clone();
   const g=new THREE.Group(),def=BUILDINGS.find(b=>b.id===id)!;
   const part=(color:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,shape:THREE.BufferGeometry=box)=>{const m=new THREE.Mesh(shape,mat(color));m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;};
   const beam='#644731',plank='#ad8457',metal='#585d57';
@@ -64,7 +67,10 @@ export function buildingKit() {
   }else if(id==='foundation'){
    for(let row=0;row<2;row++)for(let col=0;col<3;col++)part(col%2?'#8a8e80':'#797e74',-.66+col*.66,.175,-.5+row,.64,.35,.98);
   }else part(def.color,0,def.size[1]/2,0,...def.size);
-  return g;
+  const batches=new Map<THREE.Material,THREE.Mesh[]>();
+  for(const child of [...g.children])if(child instanceof THREE.Mesh&&child.name!=='flame'){const m=child.material as THREE.Material;const list=batches.get(m)??[];list.push(child);batches.set(m,list);}
+  for(const [material,meshes]of batches)if(meshes.length>1){const parts=meshes.map(mesh=>{mesh.updateMatrix();const transformed=mesh.geometry.clone().applyMatrix4(mesh.matrix);if(!transformed.index)return transformed;const converted=transformed.toNonIndexed();transformed.dispose();return converted;});const geometry=mergeGeometries(parts)!;parts.forEach(part=>part.dispose());for(const mesh of meshes)g.remove(mesh);const merged=new THREE.Mesh(geometry,material);merged.castShadow=true;merged.receiveShadow=true;g.add(merged);mergedGeometries.push(geometry);}
+  templates.set(id,g);return g.clone();
  }
- return {make,dispose(){box.dispose();stone.dispose();cone.dispose();for(const m of mats.values())m.dispose();}};
+ return {make,dispose(){for(const g of mergedGeometries)g.dispose();templates.clear();box.dispose();stone.dispose();cone.dispose();for(const m of mats.values())m.dispose();}};
 }

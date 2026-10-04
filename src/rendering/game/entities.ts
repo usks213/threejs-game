@@ -16,14 +16,15 @@ export function createEntities(scene: THREE.Scene) {
  function object(key: string, make: (g: THREE.Group) => void): THREE.Group { let group = objects.get(key); if (!group) { group = new THREE.Group(); make(group); objects.set(key, group); scene.add(group); } return group; }
  let latest: AdventureSnapshot | null = null;
  return {
-  update(state: AdventureSnapshot) {
+  update(state: AdventureSnapshot,player?:{x:number;z:number}) {
    latest = state; for (const group of objects.values()) group.visible = false;
    resources.update(state);
    for (const e of state.enemies) {
     if (e.health <= 0) continue;
     const def = e.boss ? BOSSES.find(d => d.id === e.definition)! : ENEMIES.find(d => d.id === e.definition)!;
-    const group = object('enemy' + e.id, g => {
-     if(['deer','boar','neck','greyling','greydwarf','draugr','gull','stormstag'].includes(e.definition))g.add(creatures.make(e.definition));
+    const far=!!player&&Math.hypot(e.x-player.x,e.z-player.z)>18;
+    const group = object('enemy' + e.id+(far?'far':''), g => {
+     if(['deer','boar','neck','greyling','greydwarf','draugr','gull','stormstag'].includes(e.definition))g.add(far?creatures.far(e.definition):creatures.make(e.definition));
      else {
      const shape = e.boss ? ({root:'walker',tusk:'boar',mirelord:'slime',frostwing:'flyer',riftheart:'walker'} as const)[e.definition as 'root'] : ENEMIES.find(d => d.id === e.definition)!.shape;
      part(g, sphere, def.color, 0, 0.7, 0, shape === 'slime' ? 1.5 : 1.1, shape === 'slime' ? 0.8 : 1.5, shape === 'boar' ? 1.8 : 1.1);
@@ -40,6 +41,14 @@ export function createEntities(scene: THREE.Scene) {
     group.getObjectByName('warning')!.visible = e.windup > 0;
     group.getObjectByName('health')!.scale.x = Math.max(0.01, e.health / (def.health * (e.boss ? 1 : 1 + (e.tier - 1) * 0.4)));
    }
+   for(const n of state.resources)if(n.kind==='merchant'){
+    const group=object('merchant'+n.id,g=>{
+     part(g,box,'#8a6c4d',0,.7,0,.55,1.25,.4);part(g,sphere,'#d1ac81',0,1.6,0,.55,.55,.55);part(g,cone,'#7d5147',0,1.98,0,.37,.22,.37);
+     for(const side of [-1,1]){part(g,box,'#8a6c4d',side*.36,.85,0,.16,.6,.17);part(g,box,'#574632',side*.16,.18,0,.2,.35,.26);}
+     part(g,box,'#a58a5d',0,.65,1.2,2,.15,.8);part(g,box,'#76553d',-1.6,.5,-.6,.8,1,.7);part(g,box,'#c7b483',1.8,.6,-.8,1.2,1.2,1.3);
+     for(const x of [-2,2])part(g,box,'#8a6c4d',x,1.4,0,.1,2.8,.1);part(g,box,'#b99e69',0,2.75,0,4.3,.15,3);
+    });group.position.set(n.x,n.y,n.z);group.visible=true;
+   }
    for (const b of state.buildings) {
     const def = BUILDINGS.find(d => d.id === b.definition)!;
     const group = object('building' + b.id, g => g.add(buildings.make(b.definition))); group.position.set(b.x,b.y,b.z);group.rotation.y=b.rotation+((b.definition==='door'||b.definition==='gate')&&b.open?Math.PI/2:0);group.visible=true;
@@ -49,6 +58,7 @@ export function createEntities(scene: THREE.Scene) {
     const group = object('altar' + biome.id, g => { part(g, box, '#8b8c84', 0, 0.3, 0, 2.5, 0.6, 2.5); part(g, sphere, biome.grass, 0, 1.1, 0, 0.65, 1, 0.65); });
     group.position.set(biome.center.x, (state.generator===2?landscapeHeight:terrainHeight)(biome.center.x, biome.center.z - 14), biome.center.z - 14); group.visible = state.biome === biome.id;
    }
+   for(const [i,grave] of [state.death,...(state.meadows?.graves??[])].entries())if(grave){const g=object('grave'+i,g=>{part(g,box,'#8b8c84',0,.6,0,.65,1.2,.25);part(g,sphere,'#e2baff',0,1.8,0,.14,.3,.14);});g.position.set(grave.x,grave.y,grave.z);g.visible=true;}
    for (const shot of state.projectiles) { const group = object('shot' + shot.id, g => part(g, sphere, shot.element === 'frost' ? '#b6eafa' : '#ffc077', 0, 0, 0, shot.radius, shot.radius, shot.radius)); group.position.set(shot.x, shot.y, shot.z); group.visible = true; }
    // Retire departed entities; shared geometries/materials remain owned by this renderer.
    for (const [key, group] of objects) if (!group.visible) { scene.remove(group); group.traverse(o => { if (o instanceof THREE.Mesh) { if (o.name === 'health') o.geometry.dispose(); if (o.name === 'health') (o.material as THREE.Material).dispose(); } }); objects.delete(key); }

@@ -1,3 +1,4 @@
+import { leafMaterial } from '../materials/leaves';
 import { TREE_KINDS } from '../../content/meadows/data';
 import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
@@ -5,26 +6,27 @@ import type { AdventureSnapshot } from '../../game/types';
 import { Instances } from './instances';
 
 export function createResources(scene: THREE.Scene) {
-  const geometry = [new THREE.CylinderGeometry(0.15, 0.26, 2.8, 6), new THREE.ConeGeometry(1.1, 2.6, 6), new THREE.IcosahedronGeometry(0.5, 1)];
+  const geometry = [new THREE.CylinderGeometry(0.15, 0.26, 2.8, 6), new THREE.ConeGeometry(1.1, 2.6, 6), new THREE.IcosahedronGeometry(0.5, 1),new THREE.PlaneGeometry(1,1)];
+  const leaves=leafMaterial();
   const definitions: [string, number, string][] = [
-    ['trunk', 0, '#775d43'], ['crown', 1, '#5c814f'], ['canopy',2,'#617d45'],['canopyLight',2,'#7f9856'],['bush', 2, '#56714d'], ['berry', 2, '#cc896e'],
+    ['leaves',3,'#8b9d66'],['trunk', 0, '#775d43'], ['crown', 1, '#5c814f'], ['canopy',2,'#617d45'],['canopyLight',2,'#7f9856'],['bush', 2, '#56714d'], ['berry', 2, '#cc896e'],
     ['birchTrunk',0,'#d4d3bb'],['flint',2,'#bec4bf'],['mushroom',2,'#b3472e'],['dandelion',2,'#e8c84c'],['relic',2,'#737e77'],['beeNest',2,'#b69c66'],['loot',2,'#b68b45'],['branch',0,'#785a38'],['stone', 2, '#a8a796'], ['copper', 2, '#b99466'], ['iron', 2, '#809199'], ['crystal', 2, '#b0dce1'], ['aether', 2, '#b08ad0'],
   ];
   const materials: THREE.Material[] = [];
   const batches = new Map(definitions.map(([id, shape, color]) => {
-    const material = pbrMaterial(color, id==='trunk'?'wood':id==='copper'||id==='iron'?'metal':id==='crystal'||id==='aether'?'crystal':id==='stone'?'stone':'foliage');
+    const material = id==='leaves'?leaves.material:pbrMaterial(color, id==='trunk'?'wood':id==='copper'||id==='iron'?'metal':id==='crystal'||id==='aether'?'crystal':id==='stone'?'stone':'foliage');
     materials.push(material);
     return [id, new Instances(scene, geometry[shape], material)];
   }));
   const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), scale = new THREE.Vector3(), rotation = new THREE.Quaternion();
-  const axis = new THREE.Vector3(0, 1, 0);
+  const axis = new THREE.Vector3(0, 1, 0),leafRotation=new THREE.Euler();
   function part(id: string, x: number, y: number, z: number, sx: number, sy: number, sz: number): void {
     matrix.compose(position.set(x, y, z), rotation, scale.set(sx, sy, sz));
     batches.get(id)?.add(matrix);
   }
   return {
     update(state: AdventureSnapshot): void {
-      for (const batch of batches.values()) batch.begin();
+      leaves.time.value=state.seconds;for (const batch of batches.values()) batch.begin();
       for (const n of state.resources) {
         if (n.ready > state.seconds) continue;
         rotation.setFromAxisAngle(axis, n.id * 2.399);
@@ -34,11 +36,17 @@ export function createResources(scene: THREE.Scene) {
           if((n.kind==='wood'&&n.id%3===0)||state.biome==='frost'){
             for(let j=0;j<4;j++)part('crown',n.x,n.y+(2.1+j*.75)*height,n.z,1.3-j*.22,height*.75,1.3-j*.22);
           }else{
-            for(let j=0;j<5;j++){const a=j*2.4+n.id;part(j%2?'canopy':'canopyLight',n.x+Math.sin(a)*.8,n.y+(2.35+(j%3)*.5)*height,n.z+Math.cos(a)*.8,2.8,height*1.9,2.8);}
+            for(let j=0;j<18;j++){const a=j*2.4+n.id;rotation.setFromEuler(leafRotation.set(Math.sin(a)*.5,a,Math.cos(a)*.25));part('leaves',n.x+Math.sin(a)*1.1,n.y+(2+(j%4)*.4)*height,n.z+Math.cos(a)*1.1,2.5,height*1.65,1);}rotation.setFromAxisAngle(axis,n.id*2.399);
           }
         } else if (n.kind === 'berry') {
           part('bush', n.x, n.y + 0.45, n.z, 1.4, 1.1, 1.4);
           for(let j=0;j<5;j++)part('berry', n.x+Math.sin(j*2.4)*.4,n.y+.65+(j%2)*.15,n.z+Math.cos(j*2.4)*.4,.22,.22,.22);
+        } else if(['dolmen','stoneCircle','graveyard'].includes(n.kind)){
+          const dolmen=n.kind==='dolmen',grave=n.kind==='graveyard';for(let j=0;j<(dolmen?3:9);j++){const a=j*Math.PI*2/(dolmen?3:9);part('relic',n.x+Math.sin(a)*(grave?1.5:2.5),n.y+.8,n.z+Math.cos(a)*(grave?4:2.5),.8,1.6,.65);}if(dolmen)part('relic',n.x,n.y+1.5,n.z,5,.65,5);
+        } else if(['perch','pike'].includes(n.kind)){
+          part('stone',n.x,n.y,n.z,n.kind==='pike'?.8:.4,.15,.15);
+        } else if(n.kind==='merchant'){
+          continue;
         } else if(n.kind==='branch'){
           part('branch',n.x,n.y+.1,n.z,.25,.08,2);
         } else if(n.kind==='mushroom'){
@@ -62,7 +70,7 @@ export function createResources(scene: THREE.Scene) {
     },
     dispose(): void {
       for (const batch of batches.values()) batch.dispose();
-      geometry.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
+      leaves.dispose();geometry.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
     },
   };
 }

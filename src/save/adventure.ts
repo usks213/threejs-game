@@ -1,4 +1,4 @@
-import { FOODS, ARMOR } from '../content/meadows/data';
+import { FOODS, ARMOR, COOKING } from '../content/meadows/data';
 import type { AdventureSave } from '../game/types';
 import { BIOMES, BOSSES, BUILDINGS, ENEMIES, ITEM_NAMES } from '../content/catalog';
 import { finiteVec, insideBounds, WORLD } from '../world/types';
@@ -22,6 +22,9 @@ export function validateAdventure(raw: AdventureSave): AdventureSave {
  for(const n of [m.power,m.powerCooldown,m.wet,m.comfort,m.weight,m.raid,m.raidAt,m.tutorial])if(!finite(n,1e10))throw new Error('草原の状態が不正です');
  if(!Array.isArray(m.discovered)||m.discovered.some(id=>!ITEM_NAMES[id])||!m.gear||Object.values(m.gear).some(id=>!ARMOR[id]))throw new Error('草原の装備記録が不正です');
  }
+ for(const e of s.enemies)for(const value of [e.stars,e.tame,e.fed,e.baby,e.breeding])if(value!==undefined&&!finite(value,100000))throw new Error('生物の状態が不正です');
+ for(const b of s.buildings){for(const value of [b.health,b.fuel,b.progress])if(value!==undefined&&!finite(value,1e10))throw new Error('設備の状態が不正です');if(b.cooking&&(!Array.isArray(b.cooking)||b.cooking.length>2||b.cooking.some(c=>!COOKING[c.id]||!finite(c.time,1e10))))throw new Error('調理状態が不正です');}
+ for(const g of s.meadows?.graves??[])if(!insideBounds(g,WORLD,1)||!items(g.items))throw new Error('墓の状態が不正です');
  const copy = structuredClone(s);
  // Earlier versions saved the last windup tick just below zero.
  for (const enemy of copy.enemies) enemy.windup = Math.max(0, enemy.windup);

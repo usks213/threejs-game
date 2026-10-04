@@ -1,3 +1,4 @@
+import { driveRaft } from '../game/meadows/facilities';
 import { movementSpeed, payJump } from '../game/meadows/movement';
 import { detachedVoxels } from '../world/support';
 import { Adventure } from '../game/adventure';
@@ -37,7 +38,7 @@ export class GameSimulation {
       this.nextBody = Math.max(0, ...this.bodies.map(b => b.id)) + 1;
       this.tick = Math.max(0, ...valid.edits.map(e => e.tick));
     }
-    for (const entity of [...(save?.adventure?.enemies ?? []), ...(save?.adventure?.buildings ?? [])]) this.nextEntity = Math.max(this.nextEntity, entity.id + 1);
+    for (const entity of [...(save?.adventure?.resources ?? []), ...(save?.adventure?.enemies ?? []), ...(save?.adventure?.buildings ?? [])]) this.nextEntity = Math.max(this.nextEntity, entity.id + 1);
     this.adventure = new Adventure(this, save?.adventure);
     if(!save){this.player.y=this.groundAt(0,8);for(let x=-49;x<=-16;x++)for(let z=-55;z<=24;z++){const h=this.groundAt(x+.5,z+.5);for(let y=Math.max(-4,Math.ceil(h));y<0;y++)this.fluid.add({x,y,z},.95);}}
   }
@@ -54,7 +55,7 @@ export class GameSimulation {
     const p = this.player;
     if (dx || dz) p.heading = Math.atan2(dx, dz);
     const beforeJump = p.y;
-    if (this.character.step(p, dx, dz, payJump(this.adventure,input.jump,p.grounded), dt, immersion)) { this.jumpOrigin = beforeJump; this.metrics.jumpHeight = 0; }
+    if (!driveRaft(this.adventure,ix,iz,dt)&&this.character.step(p, dx, dz, payJump(this.adventure,input.jump,p.grounded), dt, immersion)) { this.jumpOrigin = beforeJump; this.metrics.jumpHeight = 0; }
     p.x = Math.max(this.world.bounds.minX + 1, Math.min(this.world.bounds.maxX - 1, p.x));
     p.z = Math.max(this.world.bounds.minZ + 1, Math.min(this.world.bounds.maxZ - 1, p.z));
     if (this.jumpOrigin !== null) { this.metrics.jumpHeight = Math.max(this.metrics.jumpHeight, p.y - this.jumpOrigin); if (p.grounded) this.jumpOrigin = null; }

@@ -42,7 +42,7 @@ export function createWorld(renderer:THREE.WebGLRenderer) {
     raycastBuildings: entities.raycast,
     update(state: Snapshot) {
       waterTime.value = state.adventure.seconds; feedback.update(state);
-      localAvatar.setPose({ ...state.adventure, shield: !!state.adventure.inventory.shield, grounded: state.player.grounded });
+      localAvatar.setPose({ ...state.adventure, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?.gear, grounded: state.player.grounded });
       for (const [id, view] of remotePlayers) if (!state.peers?.some(peer => peer.id === id)) { scene.remove(view.model.group); remotePlayers.delete(id); }
       for (const peer of state.peers ?? []) {
         let view = remotePlayers.get(peer.id);
@@ -59,7 +59,7 @@ export function createWorld(renderer:THREE.WebGLRenderer) {
         const count = waterSurface(state.fluids, waterPositions, waterNormals, waterColors); waterGeometry.setDrawRange(0, count);
         for (const name of ['position', 'normal', 'color']) { const attribute = waterGeometry.getAttribute(name) as THREE.BufferAttribute; attribute.clearUpdateRanges(); if (count) attribute.addUpdateRange(0, count * 3); attribute.needsUpdate = true; }
       }
-      entities.update(state.adventure); atmosphere.update(state.adventure, player.position);
+      entities.update(state.adventure,state.player); atmosphere.update(state.adventure, player.position);
       bodies.update(state); shadows.update(state);
     },
     interpolate(dt: number) {

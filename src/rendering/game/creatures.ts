@@ -1,8 +1,10 @@
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as THREE from 'three';
 import { pbrMaterial } from '../materials/pbr';
 /** Original articulated low-poly wildlife, built from a shared mesh palette. */
 export function creatureKit(){
  const sphere=new THREE.IcosahedronGeometry(1,1),box=new THREE.BoxGeometry(1,1,1),cylinder=new THREE.CylinderGeometry(.05,.09,1,5);
+ const lods=new Map<string,THREE.BufferGeometry>();
  const mats=new Map<string,THREE.MeshStandardMaterial>();
  const material=(color:string,wood=false)=>{const key=color+wood;let m=mats.get(key);if(!m){m=pbrMaterial(color,wood?'wood':'skin');mats.set(key,m);}return m;};
  function make(kind:string){
@@ -31,5 +33,6 @@ export function creatureKit(){
   }
   return g;
  }
- return {make,animate(g:THREE.Group,time:number,moving:boolean,attack:number){g.traverse(o=>{if(o.name.startsWith('leg'))o.rotation.x=moving?Math.sin(time*9+(o.name==='leg-1-1'||o.name==='leg11'?0:Math.PI))*.6:0;if(o.name.startsWith('wing'))o.rotation.z=Math.sin(time*7)*.4*(o.name==='wing-1'?-1:1);});g.rotation.x=attack>0?-.1:0;},dispose(){sphere.dispose();box.dispose();cylinder.dispose();for(const m of mats.values())m.dispose();}};
+ function far(kind:string){let geometry=lods.get(kind);if(!geometry){const source=make(kind),parts:THREE.BufferGeometry[]=[];source.updateMatrixWorld(true);source.traverse(o=>{if(o instanceof THREE.Mesh){const g=o.geometry.clone().applyMatrix4(o.matrixWorld).toNonIndexed(),color=(o.material as THREE.MeshStandardMaterial).color,values=new Float32Array(g.getAttribute('position').count*3);for(let i=0;i<values.length;i+=3){values[i]=color.r;values[i+1]=color.g;values[i+2]=color.b;}g.setAttribute('color',new THREE.BufferAttribute(values,3));g.deleteAttribute('uv');parts.push(g);}});geometry=mergeGeometries(parts)!;parts.forEach(g=>g.dispose());lods.set(kind,geometry);}let m=mats.get('lod');if(!m){m=pbrMaterial('#ffffff','skin',{vertexColors:true});mats.set('lod',m);}const mesh=new THREE.Mesh(geometry,m);mesh.receiveShadow=true;const group=new THREE.Group();group.add(mesh);return group;}
+ return {make,far,animate(g:THREE.Group,time:number,moving:boolean,attack:number){g.traverse(o=>{if(o.name.startsWith('leg'))o.rotation.x=moving?Math.sin(time*9+(o.name==='leg-1-1'||o.name==='leg11'?0:Math.PI))*.6:0;if(o.name.startsWith('wing'))o.rotation.z=Math.sin(time*7)*.4*(o.name==='wing-1'?-1:1);});g.rotation.x=attack>0?-.1:0;},dispose(){for(const g of lods.values())g.dispose();sphere.dispose();box.dispose();cylinder.dispose();for(const m of mats.values())m.dispose();}};
 }

@@ -3,7 +3,7 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#243d35"><title>TERRA / はじまりの草原</title></head>
 <body><main id="app" data-state="loading">
 <canvas id="game" aria-label="3Dゲーム画面。ドラッグで視点を回す"></canvas>
-<header><h1>TERRA</h1><span>FIVE REALMS</span></header>
+<header><h1>TERRA</h1><span>THE FIRST MEADOW</span></header>
 <div id="status" role="status">地形を生成中…</div>
 <button id="view-reset" class="hud-button" type="button" aria-label="視点を戻す">⟳</button><button id="system-menu" class="hud-button" type="button" aria-label="ゲームメニュー" aria-expanded="false">☰</button>
 <button id="session-menu" class="hud-button" type="button" aria-label="協力プレイ">仲間</button><div id="session-status">Single Player</div>
@@ -15,12 +15,12 @@
 <aside class="world-info"><span>WORLD 7319</span><span>2 km × 2 km</span><span id="edit-count" data-count="0">地形編集 0</span></aside>
 <div class="reticle" aria-hidden="true">＋</div><div id="target-hint">地面に照準を合わせる</div>
 <div id="notice" role="log">左で移動・画面で視点・放水は長押し</div>
-<div class="controls"><div id="stick" role="group" aria-label="移動スティック"><span id="knob"></span></div><span class="hint">移動<br>PC: WASD / 矢印</span></div>
-<nav class="tools" aria-label="地形ツール"><button type="button" data-tool="dig" aria-pressed="true">掘る</button><button type="button" data-tool="add" aria-pressed="false">盛る</button><button type="button" data-tool="water" aria-pressed="false">水</button><button type="button" data-tool="rock" aria-pressed="false">岩</button><button id="sprint" type="button" aria-label="走る切替">走る</button><button id="sneak" type="button" aria-label="忍び足切替">忍ぶ</button><button id="quick-eat" type="button" aria-label="食事で回復">食事</button></nav>
+<div class="movement-modes"><button id="sprint" type="button" aria-label="走る切替">走る</button><button id="sneak" type="button" aria-label="忍び足切替">忍ぶ</button></div><div class="controls"><div id="stick" role="group" aria-label="移動スティック"><span id="knob"></span></div><span class="hint">移動<br>PC: WASD / 矢印</span></div>
+<nav class="tools" aria-label="地形ツール"><button type="button" data-tool="dig" aria-pressed="true">掘る</button><button type="button" data-tool="add" aria-pressed="false">盛る</button><button type="button" data-tool="water" aria-pressed="false">水</button><button type="button" data-tool="rock" aria-pressed="false">岩</button><button id="quick-eat" type="button" aria-label="食事で回復">食事</button></nav>
 <div id="build-controls" hidden><button id="build-rotate" type="button">↻ 回転</button><button id="build-cancel" type="button">終了</button><span id="build-hint"></span></div><div class="actions"><button id="jump" type="button" aria-label="ジャンプ">↑</button><button id="use-tool" type="button">掘る</button></div>
 <section id="system-panel" role="dialog" aria-label="ゲームメニュー" hidden><div class="panel-header"><h2>旅の記録</h2><button id="system-close" type="button">閉じる</button></div><p>冒険は自動で保存されます。</p><div class="game-settings"><label>カメラ距離<input id="camera-distance" type="range" min="4" max="11" step=".5" value="7"></label><label>視点の感度<input id="camera-sensitivity" type="range" min=".4" max="1.6" step=".1" value="1"></label><label><input id="shadows-enabled" type="checkbox" checked>太陽の影</label></div><div class="utility"><button id="save" type="button">保存</button><button id="export" type="button">書出</button><button id="import" type="button">読込</button><button id="reset" type="button">出発点へ</button></div>
 <input id="import-file" type="file" accept="application/json,.json" hidden>
 <div id="save-status">この端末に自動保存</div><div id="position" aria-label="プレイヤー位置"></div>
-<details id="performance"><summary>性能・試作の範囲</summary><button id="sound-toggle" type="button">音 ON</button><p id="metrics">計測中…</p><p>採集・クラフト・建築・戦闘・魔法・5地域の攻略。通信・実機性能の検証は開発中です。</p></details></section>
+<details id="performance"><summary>性能・試作の範囲</summary><button id="sound-toggle" type="button">音 ON</button><p id="metrics">計測中…</p><p>草原の探索・狩猟・料理・建築・雷鹿の試練。Voxel掘削と放水を使って自分の拠点を作れます。</p></details></section>
 </main><script type="module" src="/src/main.ts"></script></body></html>
 

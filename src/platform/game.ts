@@ -56,9 +56,12 @@ export function startGame() {
   document.querySelector('#build-cancel')!.addEventListener('click',()=>{building='';buildControls.hidden=true;use.textContent=names[tool];},{signal});
   for(const [id,property] of [['camera-distance','distance'],['camera-sensitivity','sensitivity']] as const)document.querySelector<HTMLInputElement>('#'+id)!.addEventListener('input',e=>{view[property]=Number((e.target as HTMLInputElement).value);},{signal});
   document.querySelector<HTMLInputElement>('#shadows-enabled')!.addEventListener('change',e=>{renderer.shadowMap.enabled=(e.target as HTMLInputElement).checked;renderer.shadowMap.needsUpdate=true;},{signal});
+  let first=true;
   let state: Snapshot | null = null, tool: Tool = 'dig', jump = false, target: Vec3 | null = null, lastInput = 0, lastRay = 0, lastUI = 0;
+  // A removed surface remains a valid fill location while the player aims at the hole.
+  const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
-  const post = (message: ClientMessage) => { if (!stopped) worker?.postMessage(message); };
+  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){app.dataset.state='loading';status.textContent='ワールドを準備中…';state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message); };
   const network = networkUI(signal, post, notice);
   const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
   const persistence = persistenceUI(send, signal, notice);
@@ -87,7 +90,7 @@ export function startGame() {
   for(const [id,icon,label] of [['attack','sword','攻撃'],['water-cast','water','放水'],['guard','shield','盾'],['heavy','axe','強撃'],['cast','staff','魔法'],['adventure-menu','bag','持物'],['build-rotate','hammer','回転'],['quick-eat','berry','食事']] ){const button=document.querySelector<HTMLButtonElement>('#'+id)!;button.innerHTML=itemIcon(icon)+'<span>'+label+'</span>';if(id==='attack')button.setAttribute('aria-label','攻撃');}
   const pour = () => { const p = state?.player ?? world.player.position; send({ type: 'action', tool: 'water', target: target ?? { x:p.x-Math.sin(view.yaw)*2, y:p.y+0.5, z:p.z-Math.cos(view.yaw)*2 } }); };
   holdAction(document.querySelector<HTMLButtonElement>('#water-cast')!, pour, () => true, signal);
-  const act = () => { if (!building && tool === 'water') pour(); else if (target && building) gameAction('build', building); else if (target) send({ type: 'action', tool, target }); else notice('近くの地面に照準を合わせてください'); };
+  const act = () => { if (!building && tool === 'water') pour(); else if (target && building) gameAction('build', building); else if (target) { if(tool==='dig'||tool==='add'){editedPoint.set(target.x,target.y,target.z);hasEditedPoint=true;} send({ type: 'action', tool, target }); } else notice('近くの地面に照準を合わせてください'); };
   holdAction(use, act, () => !building && tool === 'water', signal);
   actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { jump = true; }, signal);
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
@@ -98,7 +101,6 @@ export function startGame() {
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); fail('WebGLの接続が失われました。保存したワールドは再読込できます。ページを再読み込みしてください。'); }, { signal });
   canvas.addEventListener('webglcontextrestored', () => { error.textContent = '描画接続が戻りました。ページを再読み込みしてください。'; }, { signal });
   world.player.position.set(0, terrainHeight(0, 8), 8);
-  let first = true;
   try {
     worker = new Worker(new URL('../simulation/worker.ts', import.meta.url), { type: 'module' });
     worker.onerror = () => fail('地形処理を開始できませんでした。ページを再読み込みしてください。');
@@ -141,6 +143,8 @@ export function startGame() {
         if (hit && hit.point.distanceTo(focus.set(state.player.x, state.player.y + 0.7, state.player.z)) <= 7) {
           target = { x: hit.point.x, y: hit.point.y, z: hit.point.z };
           normal.copy(hit.face?.normal ?? markerAxis); world.marker.position.copy(hit.point).addScaledVector(normal, 0.04); world.marker.quaternion.setFromUnitVectors(markerAxis, normal); world.marker.visible = true;
+        } else if (!building && tool==='add' && hasEditedPoint && editedPoint.distanceTo(focus)<7 && raycaster.ray.distanceToPoint(editedPoint)<1.6 && editedPoint.clone().sub(raycaster.ray.origin).dot(raycaster.ray.direction)>0) {
+          target={x:editedPoint.x,y:editedPoint.y,z:editedPoint.z};world.marker.position.copy(editedPoint);world.marker.quaternion.setFromUnitVectors(markerAxis,normal.set(0,1,0));world.marker.visible=true;
         } else { target = null; world.marker.visible = false; }
         placement=building&&target?placementPoint(target):null;
         const def=BUILDINGS.find(b=>b.id===building),issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory):'地面に照準を合わせる';
@@ -167,4 +171,3 @@ export function startGame() {
   frame = requestAnimationFrame(animate);
   return () => { stopped = true; cancelAnimationFrame(frame); controller.abort(); worker?.terminate(); pipeline.dispose(); terrain.dispose(); world.dispose(); disposeSurfaceMaps(); renderer.dispose(); };
 }
-

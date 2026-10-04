@@ -9,7 +9,7 @@ export const BIOMES: BiomeDefinition[] = [
 export function biomeAt(x: number, z: number): BiomeDefinition { return BIOMES.reduce((nearest, b) => Math.hypot(x - b.center.x, z - b.center.z) < Math.hypot(x - nearest.center.x, z - nearest.center.z) ? b : nearest); }
 export interface EnemyDefinition { id: string; name: string; health: number; damage: number; speed: number; reach: number; color: string; shape: 'boar' | 'slime' | 'walker' | 'flyer'; element: string; resistance: string }
 export const ENEMIES: EnemyDefinition[] = [
- { id: 'boar', name: '牙獣', health: 30, damage: 8, speed: 1.8, reach: 1.3, color: '#9a7157', shape: 'boar', element: 'physical', resistance: 'none' },
+ { id: 'boar', name: '猪', health: 10, damage: 10, speed: 1.8, reach: 1.3, color: '#9a7157', shape: 'boar', element: 'physical', resistance: 'none' },
  { id: 'slime', name: '苔スライム', health: 24, damage: 6, speed: 1.1, reach: 1.2, color: '#73a866', shape: 'slime', element: 'poison', resistance: 'poison' },
  { id: 'walker', name: '石の番人', health: 48, damage: 12, speed: 1.3, reach: 1.6, color: '#8b9896', shape: 'walker', element: 'physical', resistance: 'physical' },
  { id: 'flyer', name: '裂け目の羽獣', health: 32, damage: 9, speed: 2.2, reach: 1.4, color: '#a690bb', shape: 'flyer', element: 'frost', resistance: 'frost' },

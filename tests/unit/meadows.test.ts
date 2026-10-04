@@ -14,3 +14,21 @@ describe('Meadows survival',()=>{
  it('summons, defeats, offers and unlocks the antler pickaxe',()=>{const sim=new GameSimulation(),g=sim.adventure;at(sim,'altar');expect(()=>g.action('summon')).toThrow('トロフィー');g.state.inventory.deerTrophy=2;g.action('summon');const e=g.state.enemies.find(e=>e.boss)!;expect(e.health).toBe(500);e.health=1;e.x=sim.player.x;e.z=sim.player.z-1;e.y=sim.player.y;g.action('attack');expect(g.state.inventory.hardAntler).toBe(3);expect(g.state.defeated).toContain('stormstag');at(sim,'sacrifice');g.action('gather');g.action('power');expect(g.state.meadows!.power).toBe(300);workshop(sim);g.state.inventory.wood=10;g.action('craft','antlerPickaxe');expect(g.state.inventory.antlerPickaxe).toBe(1);expect(new GameSimulation(validateSave(sim.save())).adventure.state.meadows!.offered).toBe(true);});
  it('persists deaths, consumes fuel once with guests and rejects corrupt food',()=>{const authority=new SessionAuthority(),g=authority.sim.adventure;g.state.inventory.wood=10;g.hurtPlayer(1000,'physical');expect(g.state.grave!.wood).toBe(10);expect(g.state.inventory.wood).toBe(0);const save=authority.sim.save();save.adventure!.meadows=newMeadows();save.adventure!.meadows.foods=[{id:'berry',remaining:NaN}];expect(()=>validateSave(save)).toThrow('食事');});
 });
+
+it('retains older graves across repeated deaths',()=>{
+ const sim=new GameSimulation(),g=sim.adventure,m=g.state.meadows!;g.state.inventory.wood=7;g.hurtPlayer(1000,'physical');g.stepPersonal(4);g.state.inventory.stone=5;g.hurtPlayer(1000,'physical');expect(m.graves).toHaveLength(1);expect(m.graves![0].items.wood).toBe(7);
+});
+it('rejects bad cooking data and places overflow loot on the ground',()=>{
+ const sim=new GameSimulation(),g=sim.adventure;g.state.inventory={wood:150};const before=g.state.resources.length;g.meadowRules.grant('stone',5);expect(g.state.resources.length).toBe(before+1);expect(g.state.inventory.stone).toBeUndefined();
+ const save=sim.save();save.adventure!.buildings[0].cooking=[{id:'unknown',time:2}];expect(()=>validateSave(save)).toThrow('調理');
+});
+
+it('breeds fed tame boars, keeps babies from breeding and pauses taming when frightened',()=>{
+ const sim=new GameSimulation(),g=sim.adventure,a=g.state.enemies.find(e=>e.definition==='boar')!,b={...a,id:sim.allocateEntityId(),x:a.x+.5};g.state.enemies=[a,b];Object.assign(a,{tame:1,fed:400,breeding:299});Object.assign(b,{tame:1,fed:400});g.meadowRules.step(2);expect(g.state.enemies.some(e=>(e.baby??0)>0)).toBe(true);Object.assign(a,{x:sim.player.x,z:sim.player.z,tame:0,fed:100});g.meadowRules.step(1);expect(a.tame).toBe(0);
+});
+it('keeps fuel and cooking progression independent of the number of players',()=>{
+ const session=new SessionAuthority(),sim=session.sim,p=sim.player;sim.adventure.state.buildings=[{id:sim.allocateEntityId(),definition:'fire',x:p.x+4,y:p.y,z:p.z,rotation:0,support:4,contents:{},fuel:100}];session.join('a');session.join('b');session.step();expect(sim.adventure.state.buildings[0].fuel).toBeCloseTo(100-1/30);expect(session.actors.get('a')!.adventure.state.meadows).not.toBe(sim.adventure.state.meadows);
+});
+it('allocates new dropped items after the highest saved resource identity',()=>{
+ const sim=new GameSimulation(),g=sim.adventure;g.state.inventory.wood=20;g.action('drop','wood');const last=Math.max(...g.state.resources.map(n=>n.id));const restored=new GameSimulation(validateSave(sim.save()));restored.adventure.action('drop','wood');expect(Math.max(...restored.adventure.state.resources.map(n=>n.id))).toBeGreaterThan(last);expect(()=>validateSave(restored.save())).not.toThrow();
+});
