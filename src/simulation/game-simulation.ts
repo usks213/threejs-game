@@ -140,7 +140,9 @@ export class GameSimulation {
   resetPlayer(): void { this.character.reset(); this.player.x = 0; this.player.z = 8; this.player.y = this.groundAt(0, 8) + 1; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
   save(): WorldSave {
     if(this.adventure.state.meadows)updateWaterObstacles(this);
-    return { version: 2, adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot().map(c => ({ x: c.x, y: c.y, z: c.z, size:c.size, volume: c.volume, vx: c.vx ?? 0, vz: c.vz ?? 0 })), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
+    // Persistence needs every cell, but not the derived terrain floors used by rendering.
+    // Keep the existing velocity precision without sampling the whole explored ocean.
+    const fluids = Array.from(this.fluid.cells.values(), c => ({ x: c.x, y: c.y, z: c.z, size: c.size, volume: c.volume, vx: Math.round((c.vx ?? 0) * 1000) / 1000 || 0, vz: Math.round((c.vz ?? 0) * 1000) / 1000 || 0 }));
+    return { version: 2, adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids, bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }
 }
-

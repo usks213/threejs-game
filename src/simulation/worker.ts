@@ -129,7 +129,7 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
     else if (message.type === 'mesh-ack') { uploads.acknowledge(message.epoch, message.count); scheduleMesh(); }
     else if (sim && message.type === 'reset-player') sim.resetPlayer();
     else if (sim && message.type === 'save' && !replica) emit({ type: 'save', save: authority!.save() });
-    else if (sim && initialized && (message.type === 'action' || message.type === 'game-action')) {
+    else if (sim && (message.type === 'action' || message.type === 'game-action')) {
       const result = message.type === 'action' ? sim.act(message.tool, message.target) : sim.adventure.action(message.action, message.id, message.target, message.aim);
       invalidateTerrain(result.dirty); scheduleMesh();
       emit({ type: 'notice', message: result.message });
@@ -137,14 +137,16 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
     }
   } catch (error) { emit({ type: message.type === 'init' || message.type === 'replica-init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
 };
+// Collision samples the authoritative SdfWorld directly; visual mesh/GPU credits
+// must never pause simulation or input, including the first near-ready handshake.
 setInterval(() => {
-  if (!sim || replica || paused || !initialized) { previous = performance.now(); return; }
+  if (!sim || replica || paused) { previous = performance.now(); return; }
   try {
     const now = performance.now(); accumulator += Math.min(0.1, (now - previous) / 1000); previous = now;
     while (accumulator >= 1 / TICK_RATE) { authority!.step(input); input.jump = false; accumulator -= 1 / TICK_RATE; }
     if (sim.pendingEdits.size) { invalidateTerrain(sim.pendingEdits); sim.pendingEdits.clear(); scheduleMesh(); }
     stream();
-    if (sim.tick % 150 === 0) emit({type:'save',save:authority!.save()});
+    // UI persistence owns the five-second autosave cadence; avoid a second full copy here.
     if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') {
       const base = peerEdits.get(peer) ?? 0;
       emit({ type: 'peer-frame', peer, state: sessionFrame(authority!, peer), editBase: base, edits: sim.world.edits.slice(base) });

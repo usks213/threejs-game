@@ -1,9 +1,10 @@
 import { GameSimulation } from '../../src/simulation/game-simulation';
 import { test,expect,type Page } from '@playwright/test';
 test.use({deviceScaleFactor:.5});
-async function ready(page:Page){await page.goto('/');await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect(page.locator('#error')).toBeHidden();}
+async function streamReport(page:Page){console.log('STREAMING',await page.locator('#app').getAttribute('data-streaming'));}
+async function ready(page:Page){await page.goto('/');try{await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect(page.locator('#error')).toBeHidden();}finally{await streamReport(page);}}
 async function ticks(page:Page,n=10){const tick=Number(await page.locator('#app').getAttribute('data-tick'));await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(tick+n);}
-async function fixture(page:Page,sim:GameSimulation){const epoch=await page.locator('#app').getAttribute('data-world-epoch');await page.locator('#import-file').setInputFiles({name:'core-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});await expect.poll(()=>page.locator('#app').getAttribute('data-world-epoch')).not.toBe(epoch);await expect(page.locator('#app')).toHaveAttribute('data-state','running');await ticks(page,4);}
+async function fixture(page:Page,sim:GameSimulation){const epoch=await page.locator('#app').getAttribute('data-world-epoch');await page.locator('#import-file').setInputFiles({name:'core-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});await expect.poll(()=>page.locator('#app').getAttribute('data-world-epoch')).not.toBe(epoch);try{await expect(page.locator('#app')).toHaveAttribute('data-state','running');await ticks(page,4);}finally{await streamReport(page);}}
 function sparse(){const sim=new GameSimulation();sim.adventure.state.resources=[];sim.adventure.state.enemies=[];sim.adventure.state.buildings=[];sim.fluid.cells.clear();return sim;}
 
 test('core landscape starts, moves with keyboard, keeps the landscape canvas across rotation',async({page},info)=>{
@@ -44,5 +45,5 @@ test('desktop mouse keeps movement responsive across a terrain boundary',async({
  const frameRun=page.evaluate(()=>new Promise<{samples:number;maxGap:number;p95Gap:number}>(resolve=>{const gaps:number[]=[];let last=performance.now();const start=last;const step=(now:number)=>{gaps.push(now-last);last=now;if(now-start<4000)requestAnimationFrame(step);else{gaps.sort((a,b)=>a-b);resolve({samples:gaps.length,maxGap:gaps.at(-1)??0,p95Gap:gaps[Math.floor((gaps.length-1)*.95)]??0});}};requestAnimationFrame(step);}));
  await page.keyboard.down('KeyD');try{await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(18);}finally{await page.keyboard.up('KeyD');}
  const frames=await frameRun,phases=JSON.parse((await page.locator('#app').getAttribute('data-performance'))??'{}');await info.attach('movement-profile.json',{body:JSON.stringify({frames,phases,note:'CI software GPU; seconds-long-stall regression, not phone FPS'},null,2),contentType:'application/json'});
- expect(frames.samples).toBeGreaterThan(5);expect(frames.maxGap,'No multi-second main-frame freeze while crossing x=16').toBeLessThan(2000);await expect(page.locator('#error')).toBeHidden();
+ console.log('MOVEMENT_PROFILE',JSON.stringify({frames,phases}));expect(frames.samples).toBeGreaterThan(5);expect(frames.maxGap,'No multi-second main-frame freeze while crossing x=16').toBeLessThan(2000);await expect(page.locator('#error')).toBeHidden();
 });

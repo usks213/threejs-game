@@ -7,7 +7,7 @@ import { strikeBarrier,shamanMagic } from './meadows/defense';
 import { meadowBuilding } from '../content/meadows/recipes';
 import { archerAttack } from './meadows/village';
 import { senseActor,wander } from './meadows/senses';
-import { populateMeadowTiles } from './meadows/exploration';
+import { populateMeadowTiles, advanceMeadowWater } from './meadows/exploration';
 import { stepStag } from './meadows/boss';
 import { reconcileCreature, sees, touchesBuildingVoxels } from './meadows/obstacles';
 import { MeadowRules } from './meadows/rules';
@@ -292,6 +292,7 @@ export class Adventure {
  }
  step(dt: number): void {
   if (this.sim.targets.length) for (const target of this.sim.targets) this.populate(target.player); else this.populate();
+  advanceMeadowWater(this.sim,this.state);
   this.stepPersonal(dt);
   const s = this.state;
   if (s.health <= 0 && !this.sim.targets.some(t => t.adventure.state.health > 0)) return;

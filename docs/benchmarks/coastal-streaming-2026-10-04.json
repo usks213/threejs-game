@@ -1,0 +1,27 @@
+{
+  "note": "Same seed, same two coastal regions, complete water content identical; Node CPU generation only, no concurrent fluid flow or GPU. Water appears incrementally at max64 columns / soft2ms per tick.",
+  "results": [
+    {
+      "x": -96,
+      "baselineMs": 772.2437810000001,
+      "discoveryMs": 0.5761580000000777,
+      "slices": 346,
+      "maxSliceMs": 12.343983999999864,
+      "p95SliceMs": 2.625052000000096,
+      "cells": 86101,
+      "sha256": "4681ecfb23b755ab081d312cb069efe8eb731942b7bfb04492dc2c542b2e6a3d",
+      "identical": true
+    },
+    {
+      "x": -128,
+      "baselineMs": 2335.304254,
+      "discoveryMs": 0.2701569999999265,
+      "slices": 1059,
+      "maxSliceMs": 14.843482000000222,
+      "p95SliceMs": 2.2579420000001846,
+      "cells": 159829,
+      "sha256": "024c67abf0be9ae2d8a35cb98da18938d737a5a0f7d906b2378eff7b486c2e5b",
+      "identical": true
+    }
+  ]
+}

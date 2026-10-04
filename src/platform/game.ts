@@ -44,6 +44,7 @@ export function startGame() {
   signal.addEventListener('abort',()=>clearTimeout(noticeTimer),{once:true});
   let stopped = false, frame = 0, worker: Worker | undefined;
   const terrainQueue=new TerrainQueue();let terrainEpoch=-1,awaitTerrainReset=true,readyPending=false;let readyFence:ReadonlySet<string>=new Set();
+  let loadingStarted=performance.now(),streamLog=0,receivedMeshes=0,submittedMeshes=0,uploadMs=0,nearReadyMs=-1,draws=0;
   const acknowledgeMeshes=(count:number)=>{if(count>0&&terrainEpoch>=0)worker?.postMessage({type:'mesh-ack',epoch:terrainEpoch,count} satisfies SimulationClientMessage);};
   const fail = (message: string) => { stopped = true; cancelAnimationFrame(frame); worker?.terminate(); error.hidden = false; error.textContent = message; status.textContent = '起動エラー'; app.dataset.state = 'error'; };
   let renderer: THREE.WebGLRenderer;
@@ -77,7 +78,7 @@ export function startGame() {
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
-  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message); };
+  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;} if (!stopped) worker?.postMessage(message); };
   const network = networkUI(signal, post, notice);
   const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
   const persistence = persistenceUI(send, signal, notice);
@@ -145,11 +146,11 @@ export function startGame() {
       else if(message.type==='mesh'||message.type==='mesh-batch'){
         if(awaitTerrainReset||message.epoch!==terrainEpoch)return;
         const meshes=message.type==='mesh'?[message.mesh]:message.meshes;let discarded=0;
-        for(const mesh of meshes)discarded+=terrainQueue.enqueue(mesh);acknowledgeMeshes(discarded);
+        receivedMeshes+=meshes.length;for(const mesh of meshes)discarded+=terrainQueue.enqueue(mesh);acknowledgeMeshes(discarded);
       }
       else if(message.type==='remove'){if(awaitTerrainReset||message.epoch!==terrainEpoch)return;acknowledgeMeshes(terrainQueue.remove(message.ids,id=>terrain.has(id)));}
       else if (message.type === 'snapshot') { if(awaitTerrainReset||message.epoch!==terrainEpoch)return;state = message.state;dirtyWorld=true; if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
-      else if(message.type==='ready'){if(!awaitTerrainReset&&message.epoch===terrainEpoch){readyPending=true;readyFence=terrainQueue.fence();}}
+      else if(message.type==='ready'){if(!awaitTerrainReset&&message.epoch===terrainEpoch){nearReadyMs=performance.now()-loadingStarted;readyPending=true;readyFence=terrainQueue.fence();}}
       else if (message.type === 'save' && !network.guest) persistence.receive(message.save);
       else if (message.type === 'notice') notice(message.message);
       else if (message.type === 'error') fail(message.message);
@@ -166,15 +167,19 @@ export function startGame() {
     const dt = Math.min((now - previous) / 1000, 0.05); previous = now;
     if (!document.hidden) {
       const sessionOpen=!document.querySelector<HTMLElement>('#session-panel')!.hidden,menuOpen=!!document.querySelector('[role=dialog]:not([hidden])');
-      const renderDue=!sessionOpen&&(!menuOpen||now-lastDraw>250);
+      const loading=app.dataset.state!=='running';
+      const renderDue=loading||(!sessionOpen&&(!menuOpen||now-lastDraw>250));
       let uploaded=0;terrain.beginUploadFrame();
       try{if(renderDue)uploaded=terrainQueue.flush(data=>terrain.update(data,renderer),id=>terrain.remove([id]));}catch(uploadError){console.error(uploadError);fail('地形のGPU転送に失敗しました。再読み込みしてください。');return;}
-      const terrainTouched=renderDue&&terrainQueue.stats.applied>0;
+      // terrain.update already submits both LOD buffers through the 1px upload pass.
+      // Never redraw the full shadowed world merely to release streaming credits.
+      submittedMeshes+=uploaded;uploadMs+=terrain.stats.uploadSubmissionMs;acknowledgeMeshes(uploaded);
+      if(now-streamLog>200){app.dataset.streaming=JSON.stringify({epoch:terrainEpoch,elapsedMs:now-loadingStarted,receivedMeshes,submittedMeshes,uploadMs,nearReadyMs,readyPending,fencePending:terrainQueue.hasPending(readyFence),queue:terrainQueue.size,draws});streamLog=now;}
       if(readyPending&&state&&!terrainQueue.hasPending(readyFence)){readyPending=false;status.textContent='プレイ中';app.dataset.state='running';send({type:'save'});}
       readKeyboard(input); if (touch.x || touch.z) { input.x = touch.x; input.z = touch.z; }
       if(menuOpen){input.x=0;input.z=0;jump=false;}
       if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
-      if(state&&dirtyWorld&&!sessionOpen){const t=performance.now();world.update(state);sound.update(state);dirtyWorld=false;frameTimings.record('worldUpdate',performance.now()-t);}
+      if(state&&dirtyWorld&&!sessionOpen&&!loading){const t=performance.now();world.update(state);sound.update(state);dirtyWorld=false;frameTimings.record('worldUpdate',performance.now()-t);}
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
       world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
@@ -205,10 +210,9 @@ export function startGame() {
       }
       const grassStart=performance.now();terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);frameTimings.record('grassUpdate',performance.now()-grassStart);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
-      try { if(renderDue&&(state||terrainTouched)){const renderStart=performance.now();
-        if(state){world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);}
-        else {renderer.setRenderTarget(null);renderer.render(world.scene,camera);}
-        lastDraw=now;acknowledgeMeshes(uploaded);frameTimings.record('renderWall',performance.now()-renderStart);
+      try { if(renderDue&&state&&!loading){const renderStart=performance.now();
+        world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);
+        draws++;lastDraw=now;frameTimings.record('renderWall',performance.now()-renderStart);
       } } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
