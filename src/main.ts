@@ -1,5 +1,2 @@
-import './ui/style.css';
-import { startGame } from './platform/game';
-const dispose = startGame();
-window.addEventListener('pagehide', event => { if (!event.persisted) dispose(); });
-if (import.meta.hot) import.meta.hot.dispose(dispose);
+import { startPrototype } from './prototype/app';
+try { startPrototype(); } catch(error) {const alert=document.querySelector<HTMLElement>('#error');if(alert){alert.hidden=false;alert.textContent='ゲームを起動できません。WebGL対応ブラウザで開いてください。';}console.error(error);}

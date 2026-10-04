@@ -1,55 +1,36 @@
-# FIELD — スマホ向け3Dゲーム
+# ASH — 一人称Voxelコア検証プロトタイプ
 
-左下の仮想スティックで、床の上をキャラクターが移動する小さな3D世界です。PCではWASD・矢印キーで操作できます。「中央へ戻る」で位置をリセットできます。
+最新のユーザー指示（2026-10-04）に基づく、横画面専用の独立した試作。
+既存の草原版は `feature/phase0-voxel-world` / PR #3 に保持し、今回の試作は `feature/first-person-voxel-core` で開発する。mainへの反映は本人のプレイOK後。
 
-## 技術構成
-Three.js / TypeScript / Vite / Vitest / Playwright / GitHub Actions / Cloudflare Pages。まずWeb版を優先し、Capacitor・Electron・Tauriは将来検討します。
+## 今回触れる部分
 
-## 開発者向けコマンド
-Node.js 22以上を使用します。通常、ユーザーが以下を実行する必要はありません。
+- 横画面のみ。縦持ちでは停止・回転案内。対応ブラウザでは開始操作からFullscreenとlandscape lockを試みる。iPhone Safari等では横持ち案内が代替となる。
+- 一人称のWASD＋Pointer Lockマウス視点、スマホの移動スティック＋右空間の視点ドラッグ。複数指で移動・視点・戦闘を同時に扱う。
+- 剣の予備動作/有効時間/硬直、強撃、スタミナ、盾ガード、向きとタイミングを使うパリィ、方向回避の限定無敵時間、ジャンプ、回復、死亡と再挑戦。2体の番兵。
+- 2.75m以内の照準レイ。最初の固体Voxelによる遮蔽、扉の開閉と当たり判定、補給箱、放水レバー、再戦の碑。インタラクト一覧UIはない。
+- 地面/建物/木/扉/箱/敵/武器は実際のVoxel占有データ。地形と建物は0.25m、敵は0.125m、武器は0.0625m。表面だけをメッシュ化。鑿で一セル、強撃で3×3×3セルを削る。
+- 水は既存の1mに対し**一辺0.125m（1/8、セル体積1/512）**。6×6×1.5mの検証池、27,648セル。重力、横方向の移送、固体排除、量保存。レバーで放水する。
+- PBR、物理スカイ、昼夜切替、SH/IBL、露出、ブルーム、動的影、体積光、SSRを旧版から引き継ぐ。
 
-```sh
-npm install
-npm run dev
-npm run typecheck
-npm run test
-npm run build
-npx playwright install chromium
-npm run e2e
-```
+## 操作
 
-`dev`は開発用、`build`は公開用ファイルをdistへ出力します。`e2e`はビルド結果をブラウザで検証します。Linuxではブラウザのシステム依存が必要な場合に `npx playwright install --with-deps chromium` を使います。
+| 操作 | PC | スマホ |
+|---|---|---|
+| 移動/視点 | WASD / マウス | 左スティック / 右空間ドラッグ |
+| 斬撃/強撃 | 左クリック / R | 斬撃 / 強撃 |
+| ガード | 右クリック長押し | 盾長押し |
+| 回避/ジャンプ/走る | CtrlまたはC / Space / Shift | 回避 / 跳躍 / 走る長押し |
+| 照準の対象を操作 | E | 対象に合わせると出るボタン |
+| 剣/鑿 | 1 / 2 | 装備ボタン |
+| 回復/停止 | Q / Esc | 回復 / 右上Ⅱ |
 
-## 構成
-ゲームルールは `src/core/`、描画は `src/rendering/`、操作は `src/input/`、起動と連携は `src/platform/` と `src/main.ts`、画面スタイルは `src/ui/` に分離しています。将来用のgame/player/enemy/combat/audio/saveディレクトリとpublicアセットディレクトリを用意しています。詳細な変更規約はAGENTS.mdに記載しています。
+## 検証と範囲
 
-## 自動検証
-Pull Requestとmainへのpushで、npm ci→型チェック→Vitest→ビルド→Playwrightを実行します。E2Eでは起動、UI、canvas、移動、リセット、リサイズ、JavaScript例外、WebGLエラー表示を確認します。スクリーンショットと失敗時トレースをActionsのアーティファクトへ保存します。Android相当のブラウザ設定は実機のGPU・Safariの保証ではないため、公開URLで実機レビューも行います。
+`npm ci`, `npm run typecheck`, `npm run test`, `npm run build`, `npm run e2e`。
+Node.js 22以上。Playwrightの前に `npx playwright install --with-deps chromium`。E2Eはビルド済みdistを使う。
+CIは型/単体/ビルドの後、ブラウザ検証とPreview公開を独立実行する。PreviewにはソースSHAを記録して照合する。
+`?test=1` は読み取り専用の試験プローブ、F3は描画/水量の診断。
 
-## Cloudflare Pages
-Git連携で `usks213/threejs-game` を指定します。
-
-| 設定 | 値 |
-| --- | --- |
-| Production branch | main |
-| Framework preset | Vite |
-| Build command | npm run build |
-| Build output directory | dist |
-| Root directory | 空欄（リポジトリ直下） |
-| NODE_VERSION | 22 |
-| Preview branches | すべての開発ブランチ |
-
-mainは本番、featureブランチとPRはレビュー用Previewです。GitHubとCloudflareの外部認証だけはアカウント所有者が公式UIで承認します。APIキー・トークンをチャットやリポジトリに貼る必要はありません。
-
-## 自然言語で開発
-「敵を追加して」などの指示をCodexへ送ると、AIがAGENTS.mdを読み、featureブランチで実装・検証・GitHub反映を行い、Cloudflareの実際のPreview URLを提示します。スマホで遊んで、次の修正を自然言語で送ってください。新しいCodex Cloudタスクではこのリポジトリの環境を選択してください。継続作業にはGitHubへの書き込み権限とCloudflare Git連携が必要です。
-
-## モバイルと性能
-Safe Areaと縦横画面に対応し、描画解像度を抑え、木の繰り返し描画にはInstancedMeshを使っています。重い影・post processing・外部アセットは使用しません。WebGL起動失敗や接続喪失は画面に表示します。
-
-## 既存のCloudflare Workers公開先
-ユーザーから共有されたURLは https://threejs-game.usks213.workers.dev です。公開成功・Git連携は自動チェックの結果で確認します。これはWorkersのURLで、Pagesの公開先とは別です。
-
-既存Workerでも同じゲームを配信できるよう、`wrangler.jsonc` に `dist` の静的配信を設定しています。WorkersのGit連携では対象リポジトリを `usks213/threejs-game`、本番ブランチを `main`、Build commandを `npm run build`、Deploy commandを `npx wrangler deploy` にします。Pagesの設定は上記のまま利用可能です。
-
-ビルドは `deployment.json` にソースコミットを記録します。mainのCI成功後、GitHub Actionsの `verify-production` が既存URLに対象コミットが配信されたことを確認し、公開ゲームへPlaywrightテストを実行します。更新待ちは最大約10分です。デプロイ未完了・バージョン違い・HTTPエラー・E2E失敗を成功として扱いません。Preview URLはCloudflareの実際のデプロイ結果から取得し、公開確認のために本番へ未検証コードを反映しないでください。
+これは24×30mのコア検証場。セーブ、旧セーブ移行、協力通信、大規模ストリーミング、制作ツリー、自由建築、木の汎用剛体倒壊は対象外。旧版のセーブには触れない。
+水は局所の近似的な有限体積方式で、閉じた検証領域。圧力/粘性の完全な流体解析、領域外の流出や泳ぎ/浮力は実装しない。端末性能、アクションの手触り、iPhone Safariの実機評価は別途必要。
