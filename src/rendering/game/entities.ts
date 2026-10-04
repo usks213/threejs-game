@@ -1,5 +1,5 @@
 import { voxelizePrimitive } from '../voxel/primitive';
-import { buildingVoxels } from '../../game/voxel/model';
+import { buildingPose,buildingVoxels } from '../../game/voxel/model';
 import { voxelGroup,disposeVoxelGroup } from '../voxel/object-mesh';
 import { campDetails } from './camp-details';
 import { bossTells } from './boss-tells';
@@ -57,7 +57,7 @@ export function createEntities(scene: THREE.Scene) {
    }
    for (const b of state.buildings) {
     const def = BUILDINGS.find(d => d.id === b.definition)!;
-    const key='building'+b.id,signature=(b.removed??[]).join(';');const previous=objects.get(key);if(previous&&previous.userData.voxels!==signature){disposeVoxelGroup(previous);scene.remove(previous);objects.delete(key);}const group=object(key,g=>{g.add(voxelGroup(buildingVoxels(b.definition),b.removed));g.userData.voxels=signature;g.userData.buildingId=b.id;}); group.position.set(b.x,b.y,b.z);const hinged=b.definition==='door'||b.definition==='gate',angle=hinged&&b.open?Math.PI/2:0;group.rotation.y=b.rotation+angle;if(hinged&&angle){const half=b.definition==='gate'?1:.5;group.position.x+=half*(Math.cos(b.rotation+angle)-Math.cos(b.rotation));group.position.z-=half*(Math.sin(b.rotation+angle)-Math.sin(b.rotation));}group.visible=true;
+    const key='building'+b.id,signature=(b.removed??[]).join(';');const previous=objects.get(key);if(previous&&previous.userData.voxels!==signature){disposeVoxelGroup(previous);scene.remove(previous);objects.delete(key);}const group=object(key,g=>{g.add(voxelGroup(buildingVoxels(b.definition),b.removed));g.userData.voxels=signature;g.userData.buildingId=b.id;}); const pose=buildingPose(b);group.position.set(pose.x,pose.y,pose.z);group.rotation.y=pose.rotation;group.visible=true;
     const flame=group.getObjectByName('flame');if(flame){flame.scale.y=.6+Math.sin(state.seconds*8)*.09;flame.visible=!state.meadows||!!b.fuel&&!b.open;}
    }
    for (const biome of state.meadows?[]:BIOMES) {

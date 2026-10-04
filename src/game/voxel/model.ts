@@ -1,6 +1,7 @@
 import { BUILDINGS } from '../../content/catalog';
 import { roofHeight } from '../meadows/building-shapes';
 import type { Vec3 } from '../../world/types';
+import type { BuildingState } from '../types';
 export type VoxelMaterial='wood'|'stone'|'leaves'|'cloth'|'metal';
 export interface ObjectVoxel extends Vec3 { material:VoxelMaterial; key:string }
 export interface VoxelModel { size:number; cells:Map<string,ObjectVoxel> }
@@ -36,6 +37,16 @@ export function treeVoxels(kind:string,id:number):VoxelModel{
 }
 export function localPoint(point:Vec3,origin:Vec3,rotation=0):Vec3 {const x=point.x-origin.x,z=point.z-origin.z,c=Math.cos(rotation),s=Math.sin(rotation);return{x:x*c-z*s,y:point.y-origin.y,z:x*s+z*c};}
 export function worldPoint(point:Vec3,origin:Vec3,rotation=0):Vec3 {const c=Math.cos(rotation),s=Math.sin(rotation);return{x:origin.x+point.x*c+point.z*s,y:origin.y+point.y,z:origin.z-point.x*s+point.z*c};}
+/** The occupied model follows a hinged door around its left edge when opened. */
+export function buildingPose(b:BuildingState):Vec3 & {rotation:number}{
+ const pose={x:b.x,y:b.y,z:b.z,rotation:b.rotation};
+ if(!b.open||(b.definition!=='door'&&b.definition!=='gate'))return pose;
+ const half=(BUILDINGS.find(d=>d.id===b.definition)?.size[0]??1)/2;
+ pose.rotation+=Math.PI/2;
+ pose.x+=half*(Math.cos(pose.rotation)-Math.cos(b.rotation));
+ pose.z-=half*(Math.sin(pose.rotation)-Math.sin(b.rotation));
+ return pose;
+}
 export function occupied(model:VoxelModel,point:Vec3,removed:ReadonlySet<string>):boolean {return model.cells.has(voxelKey(Math.floor(point.x/model.size),Math.floor(point.y/model.size),Math.floor(point.z/model.size)))&&!removed.has(voxelKey(Math.floor(point.x/model.size),Math.floor(point.y/model.size),Math.floor(point.z/model.size)));}
 export function carveVoxels(model:VoxelModel,point:Vec3,radius:number,removed:string[]):ObjectVoxel[]{const gone=new Set(removed),hits:ObjectVoxel[]=[];for(const c of model.cells.values()){if(gone.has(c.key)||Math.hypot((c.x+.5)*model.size-point.x,(c.y+.5)*model.size-point.y,(c.z+.5)*model.size-point.z)>radius)continue;hits.push(c);removed.push(c.key);}return hits;}
 /** Finds a real occupied surface, including holes and rotated pieces. */

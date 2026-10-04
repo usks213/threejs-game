@@ -1,3 +1,4 @@
+import { objectOcclusion } from '../game/voxel/occlusion';
 import { configureLandscape,landscapeSize } from './viewport/landscape';
 import { mouseActions } from '../input/mouse/actions';
 import { interactionTarget,type InteractionTarget } from '../game/interaction/target';
@@ -80,7 +81,7 @@ export function startGame() {
     const direction=camera.getWorldDirection(normal);let aim={x:direction.x,y:direction.y,z:direction.z};
     if(action==='build')aim={x:Math.sin(buildRotation),y:0,z:Math.cos(buildRotation)};
     if(action==='dodge'&&(input.x||input.z)){const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw),length=Math.hypot(input.x,input.z);aim={x:(input.x*cos+input.z*sin)/length,y:0,z:(input.z*cos-input.x*sin)/length};}
-    send({type:'game-action',action,id,target:action==='build'?placement??undefined:target??undefined,aim});
+    send({type:'game-action',action,id,target:action==='build'?placement??undefined:(action==='repairBuilding'||action==='remove')&&contextual?.id==='b:'+id?contextual.point:target??undefined,aim});
   };
   const adventure = adventureUI(signal, gameAction, id => { building=id;app.dataset.sandbox='false';app.dataset.building='true';buildHeight=0;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
   for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='guard'){button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);gameAction('guard','on');},{signal});for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>gameAction('guard','off'),{signal});}else if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
@@ -104,7 +105,9 @@ export function startGame() {
   const quick=(index:number)=>{if(!state?.adventure.meadows)return;const slot=reconcileSlots(state.adventure.meadows,state.adventure.inventory)[index];if(slot)gameAction(FOODS[slot.id]?'eat':'equip',slot.id);};
   document.querySelector('#hotbar')!.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLElement>('[data-quick]');if(b)quick(Number(b.dataset.quick));},{signal});
   const mouse=mouseActions(canvas,signal,()=>building||app.dataset.sandbox==='true'?act():gameAction('attack'),held=>{if(building||app.dataset.sandbox==='true'){if(held)document.querySelector<HTMLButtonElement>('#build-cancel')!.click();}else gameAction('guard',held?'on':'off');});
-  const sprint=(held:boolean)=>{if(state?.adventure.meadows)gameAction('sprint',held?'on':'off');};window.addEventListener('blur',()=>sprint(false),{signal});
+  const sprint=(held:boolean)=>{if(state?.adventure.meadows)gameAction('sprint',held?'on':'off');};
+  const releaseActions=()=>{jump=false;gameAction('guard','off');sprint(false);};
+  window.addEventListener('blur',releaseActions,{signal});window.addEventListener('resize',releaseActions,{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseActions();},{signal});
   window.addEventListener('keydown',e=>{
     if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
     if(e.code==='Escape'){mouse.unlock();gameAction('guard','off');sprint(false);if(building||app.dataset.sandbox==='true')document.querySelector<HTMLButtonElement>('#build-cancel')!.click();document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
@@ -118,7 +121,7 @@ export function startGame() {
     if(/^Digit[1-8]$/.test(e.code))quick(Number(e.code.slice(-1))-1);
   },{signal});
   window.addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight')sprint(false);},{signal});
-  document.querySelectorAll('[role=dialog]').forEach(p=>{const observer=new MutationObserver(()=>{if(!(p as HTMLElement).hidden)mouse.unlock();});observer.observe(p,{attributes:true,attributeFilter:['hidden']});signal.addEventListener('abort',()=>observer.disconnect(),{once:true});});
+  document.querySelectorAll('[role=dialog]').forEach(p=>{const observer=new MutationObserver(()=>{if(!(p as HTMLElement).hidden){mouse.unlock();releaseActions();}});observer.observe(p,{attributes:true,attributeFilter:['hidden']});signal.addEventListener('abort',()=>observer.disconnect(),{once:true});});
   document.querySelector('#reset')!.addEventListener('click', () => send({ type: 'reset-player' }), { signal });
   const resize = () => { target = null; const v=landscapeSize(innerWidth,innerHeight);camera.aspect = v.width / Math.max(1,v.height); camera.updateProjectionMatrix(); pipeline.resize(v.width,v.height); };
   window.addEventListener('resize', resize, { signal }); resize();
@@ -158,7 +161,8 @@ export function startGame() {
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
       obstruction.set(focus, orbit); obstruction.far = view.distance;
       const blocker = terrain.raycast(obstruction);
-      const distance = blocker ? Math.max(0.15, blocker.distance - 0.2) : view.distance;
+      const clearDistance=state?objectOcclusion(state.adventure,focus,orbit,blocker?.distance??view.distance):blocker?.distance??view.distance;
+      const distance=clearDistance<view.distance?Math.max(.15,clearDistance-.2):view.distance;
       cameraPosition.copy(focus).addScaledVector(orbit, distance);
       camera.position.copy(cameraPosition); camera.lookAt(focus); camera.updateMatrixWorld();
       world.player.visible = camera.position.distanceTo(world.player.position) > 1.6;
@@ -174,7 +178,7 @@ export function startGame() {
         } else { target = null; world.marker.visible = false; }
         placement=building&&target?(freePlacement?{...target}:snapBuilding(building,target,normal,buildRotation,state.adventure.buildings.find(b=>b.id===anchorId))):null;if(placement)placement.y+=buildHeight;
         if(building==='cook'&&placement){const fire=state.adventure.buildings.find(b=>b.definition==='fire'&&Math.hypot(b.x-placement!.x,b.z-placement!.z)<1);if(fire){placement.x=fire.x;placement.z=fire.z;placement.y=fire.y+.65;}}
-        const rawDef=BUILDINGS.find(b=>b.id===building),def=rawDef&&state.adventure.meadows?meadowBuilding(rawDef):rawDef,issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory):'地面に照準を合わせる';
+        const rawDef=BUILDINGS.find(b=>b.id===building),def=rawDef&&state.adventure.meadows?meadowBuilding(rawDef):rawDef,issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory,buildRotation):'地面に照準を合わせる';
         world.preview(building,placement,buildRotation,!issue);
         document.querySelector('#build-hint')!.textContent=building?(issue||`${def?.name}を設置`):'';
         use.disabled = building?(!placement||!!issue):!target && (tool !== 'water' || !!building); document.querySelector('#target-hint')!.textContent = tool === 'water' && !building ? '長押しで放水' : target ? '' : '地面に照準を合わせる'; lastRay = now;

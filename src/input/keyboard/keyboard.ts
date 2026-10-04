@@ -6,6 +6,7 @@ export function keyboardInput(signal: AbortSignal) {
   window.addEventListener('focusin',()=>keys.clear(),{signal});
   window.addEventListener('keyup', e => keys.delete(e.code), { signal });
   window.addEventListener('blur', () => keys.clear(), { signal });
+  window.addEventListener('resize', () => keys.clear(), { signal });
   document.addEventListener('visibilitychange', () => keys.clear(), { signal });
   return (out: Axis) => { out.x = Number(keys.has('KeyD') || keys.has('ArrowRight')) - Number(keys.has('KeyA') || keys.has('ArrowLeft')); out.z = Number(keys.has('KeyS') || keys.has('ArrowDown')) - Number(keys.has('KeyW') || keys.has('ArrowUp')); };
 }

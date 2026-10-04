@@ -11,7 +11,7 @@ it('supports the initial gathering, camp, food, gear, boss and offering progress
  const place=(id:string,x:number,z:number,height=0)=>g.action('build',id,{x,y:sim.groundAt(x,z)+height,z});
  place('bench',3,8);place('roof',3,8,2);place('fire',0,11);place('cook',0,11,.65);
  const hunt=(kind:string)=>{g.action('equip','axe');if((s.meadows!.durability.axe??0)<10){Object.assign(sim.player,{x:0,y:sim.groundAt(0,8),z:8});g.action('repair');}let e=s.enemies.find(e=>e.definition===kind&&e.health>0);if(!e){g.stepPersonal(121);g.step(0);e=s.enemies.find(e=>e.definition===kind&&e.health>0);}if(!e)throw Error('No renewable '+kind);
-  let swings=0;while(e.health>0){if(++swings>200)throw Error('Combat did not resolve');Object.assign(sim.player,{x:e.x,y:e.y,z:e.z+1});g.action('attack');g.stepPersonal(1);}
+  let swings=0;while(e.health>0){if(++swings>200)throw Error('Combat did not resolve');for(let recoveryTicks=0;s.stamina<12&&recoveryTicks<300;recoveryTicks++)g.stepPersonal(1/30);if(s.stamina<12)throw Error('Combat stamina did not recover');Object.assign(sim.player,{x:e.x,y:e.y,z:e.z+1});g.action('attack');g.stepPersonal(1);}
   for(const n of [...s.resources])if(n.drop&&Math.hypot(n.x-sim.player.x,n.z-sim.player.z)<3.5)pickupItem(g,n.id);
  };
  while((s.inventory.leatherScraps??0)<12)hunt('boar');
