@@ -6,8 +6,9 @@ const sharedGeometry=new Map<string,{geometry:THREE.BufferGeometry;users:number}
 const up=new THREE.Vector3(0,1,0),vec=(p:Vec3)=>new THREE.Vector3(p.x,p.y,p.z);
 /** Every rigid skin part is an extracted SDF voxel asset. Joints articulate the resulting meshes. */
 export function createRig(firstPerson=false){
+ const editable:{mesh:THREE.Mesh;size:number;author:(f:VoxelField)=>void;field?:VoxelField}[]=[];let appliedScars=0;
  const root=new THREE.Group(),resources:string[]=[],materials=[new THREE.MeshStandardMaterial({vertexColors:true,roughness:.78,metalness:.12}),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.36,metalness:.72})];
- function asset(size:number,author:(f:VoxelField)=>void,metal=false){const id=size+author.toString();let shared=sharedGeometry.get(id);if(!shared){const f=new VoxelField(size);author(f);shared={geometry:voxelGeometry(f),users:0};sharedGeometry.set(id,shared);}shared.users++;resources.push(id);const mesh=new THREE.Mesh(shared.geometry,materials[metal?1:0]);mesh.castShadow=!firstPerson;mesh.receiveShadow=true;root.add(mesh);return mesh;}
+ function asset(size:number,author:(f:VoxelField)=>void,metal=false){const id=size+author.toString();let shared=sharedGeometry.get(id);if(!shared){const f=new VoxelField(size);author(f);shared={geometry:voxelGeometry(f),users:0};sharedGeometry.set(id,shared);}shared.users++;resources.push(id);const mesh=new THREE.Mesh(shared.geometry,materials[metal?1:0]);mesh.castShadow=!firstPerson;mesh.receiveShadow=true;root.add(mesh);editable.push({mesh,size,author});return mesh;}
  const orb=(f:VoxelField,c:Vec3,r:Vec3,m:number)=>f.shape({x:c.x-r.x,y:c.y-r.y,z:c.z-r.z},{x:c.x+r.x,y:c.y+r.y,z:c.z+r.z},ellipsoid(c,r),m);
  const limb=(f:VoxelField,a:Vec3,b:Vec3,r:number,m:number)=>f.shape({x:Math.min(a.x,b.x)-r,y:Math.min(a.y,b.y)-r,z:Math.min(a.z,b.z)-r},{x:Math.max(a.x,b.x)+r,y:Math.max(a.y,b.y)+r,z:Math.max(a.z,b.z)+r},capsule(a,b,r),m);
  const torso=asset(.0625,f=>{orb(f,{x:0,y:0,z:0},{x:.29,y:.33,z:.18},10);orb(f,{x:0,y:.08,z:-.05},{x:.26,y:.26,z:.16},6);f.box({x:-.27,y:-.23,z:-.21},{x:.27,y:-.16,z:.16},12,undefined,.025);},true);
@@ -41,6 +42,9 @@ export function createRig(firstPerson=false){
  }
  return {
   root,
+  syncDamage(scars:readonly Vec3[],fire:number,wet:number,shock:number){for(const m of materials){m.emissive.set(shock>0?'#796acc':fire>0?'#6e2108':'#000000');m.emissiveIntensity=shock>0?.9:fire>0?.5:0;m.roughness=wet>0?.24:.7;}
+   const end=Math.min(scars.length,appliedScars+16);for(const item of editable){if([sword,chisel,shield,flask].some(mesh=>mesh===item.mesh))continue;item.mesh.updateMatrix();let changed=false;for(let i=appliedScars;i<end;i++){const local=vec(scars[i]).applyMatrix4(item.mesh.matrix.clone().invert());if(!item.mesh.geometry.boundingBox)item.mesh.geometry.computeBoundingBox();const bounds=item.mesh.geometry.boundingBox;if(!bounds||bounds.distanceToPoint(local)>.12)continue;if(!item.field){item.field=new VoxelField(item.size);item.author(item.field);}item.field.carve({x:local.x,y:local.y,z:local.z},.085);changed=true;}if(changed&&item.field){if(item.mesh.userData.privateGeometry)item.mesh.geometry.dispose();item.mesh.geometry=voxelGeometry(item.field);item.mesh.userData.privateGeometry=true;}}appliedScars=end;
+  },
   update(pose:WeaponPose,stride:number,speed:number,guard:number,tool=false,stagger=0,dead=0){
    const gait=Math.sin(stride)*Math.min(1,speed/1.4),bob=Math.abs(Math.sin(stride))*.018*Math.min(1,speed),lean=pose.lean+stagger*.16;
    torso.position.set(0,1.16+bob,lean*.4);torso.rotation.set(lean,pose.twist,stagger*.14);pelvis.position.set(0,.82+bob,0);pelvis.rotation.y=pose.twist*.45;head.position.set(0,1.66+bob,lean*.65);head.rotation.set(-lean*.4,pose.twist*.3,stagger*.12);
@@ -51,6 +55,6 @@ export function createRig(firstPerson=false){
    for(let i=0;i<2;i++){const side=i?1:-1,phase=gait*side,hip=new THREE.Vector3(side*.16,.85+bob,0),knee=new THREE.Vector3(side*.17,.45+Math.max(0,phase)*.08,-phase*.12),foot=new THREE.Vector3(side*.18,Math.max(0,phase)*.07,-phase*.23+pose.step*(i?1:-.35));link(thighs[i],knee,hip);link(calves[i],foot,knee);boots[i].position.copy(foot);boots[i].rotation.x=-Math.max(0,phase)*.2;}
    root.rotation.z=dead*.9;root.position.y=-dead*.65;
   },
-  dispose(){for(const id of resources){const item=sharedGeometry.get(id)!;if(--item.users===0){item.geometry.dispose();sharedGeometry.delete(id);}}for(const m of materials)m.dispose();},
+  dispose(){for(const item of editable)if(item.mesh.userData.privateGeometry)item.mesh.geometry.dispose();for(const id of resources){const item=sharedGeometry.get(id)!;if(--item.users===0){item.geometry.dispose();sharedGeometry.delete(id);}}for(const m of materials)m.dispose();},
  };
 }

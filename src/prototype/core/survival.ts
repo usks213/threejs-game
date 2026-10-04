@@ -1,10 +1,13 @@
+import type {VoxelWater} from './water';
+import type {Element} from './elements';
+import {materialDefinition} from './materials';
 import { VoxelField, roundedBox, type Vec3 } from './voxel';
 export type RecipeId='workbench'|'wall'|'floor';
 export const SURVIVAL_RECIPES:Record<RecipeId,{id:RecipeId;label:string;cost:number}>={
  workbench:{id:'workbench',label:'作業台',cost:8},wall:{id:'wall',label:'木の壁',cost:8},floor:{id:'floor',label:'木の床',cost:4},
 };
 export interface DropInput {material:number;position:Vec3;count:number;id?:string|number}
-export interface MaterialDrop {id:number;material:number;position:Vec3;count:number}
+export interface MaterialDrop {id:number;material:number;position:Vec3;count:number;velocity?:Vec3;fire?:number;wet?:number;charge?:number}
 export interface PlacementResult {ok:boolean;message:string}
 const finite=(p:Vec3)=>Number.isFinite(p.x)&&Number.isFinite(p.y)&&Number.isFinite(p.z);
 const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
@@ -18,7 +21,7 @@ export class SurvivalSystem {
  private dropKey(d:DropInput){return `${d.material}:${d.position.x},${d.position.y},${d.position.z}`;}
  private pendingCursor=0;private sequence=0;private buildings:{id:string;recipe:RecipeId;position:Vec3;anchor:Vec3}[]=[];
  private readonly accepted=new WeakSet<DropInput>();private readonly sourceIds=new Set<string|number>();
- constructor(readonly field:VoxelField){}
+ constructor(readonly field:VoxelField,readonly water?:VoxelWater){}
  get recipe(){return SURVIVAL_RECIPES[this.selected];}
  cycleRecipe(){const ids:RecipeId[]=['workbench','wall','floor'];this.selected=ids[(ids.indexOf(this.selected)+1)%ids.length];return this.selected;}
  private clearLine(a:Vec3,b:Vec3,tolerance=.05){const d=distance(a,b);return d<.001||!this.field.ray(a,{x:b.x-a.x,y:b.y-a.y,z:b.z-a.z},Math.max(0,d-tolerance));}
@@ -48,18 +51,26 @@ export class SurvivalSystem {
    const id=this.dropKey(displaced),existing=this.pendingIndex.get(id);if(existing)existing.count+=displaced.count;else{this.pendingDrops.push(displaced);this.pendingIndex.set(id,displaced);}
   }
   for(let i=this.drops.length-1;i>=0;i--){const d=this.drops[i];
-   const fall=Math.min(dt,.1)*2.5;
-   if(this.field.distance(d.position)>.01){const hit=this.field.ray(d.position,{x:0,y:-1,z:0},fall+.06);d.position.y-=hit?Math.max(0,hit.distance-.055):fall;}
+   const step=Math.min(dt,.05),v=d.velocity??(d.velocity={x:0,y:0,z:0}),surface=this.water?.surface(d.position.x,d.position.z)??-Infinity,submerged=surface>d.position.y;
+   d.wet=Math.max(0,(d.wet??0)-dt);d.charge=Math.max(0,(d.charge??0)-dt);if(submerged){d.wet=3;d.fire=0;}
+   if((d.fire??0)>0){d.fire=Math.max(0,d.fire!-dt);if(d.fire===0){d.count--;if(d.count<=0){this.drops.splice(i,1);continue;}}}
+   v.y=Math.max(-8,Math.min(5,v.y+(-9.8+(submerged&&[4,7,10].includes(d.material)?18:0))*step));const drag=Math.exp(-step*(submerged?7:1.2));v.x*=drag;v.z*=drag;if(submerged)v.y*=Math.exp(-step*4);
+   for(const axis of ['x','y','z'] as const){const delta=v[axis]*step;if(Math.abs(delta)<.00001)continue;const dir={x:0,y:0,z:0};dir[axis]=Math.sign(delta);const hit=this.field.ray(d.position,dir,Math.abs(delta)+.055);if(hit){d.position[axis]+=dir[axis]*Math.max(0,hit.distance-.055);v[axis]*=-.12;if(axis==='y'){v.x*=.7;v.z*=.7;}}else d.position[axis]+=delta;}
    if(distance(hand,d.position)>1.65||this.field.distance(d.position)<-.015||!this.clearLine(hand,d.position))continue;
    this.inventory[d.material]+=d.count;picked+=d.count;this.drops.splice(i,1);
   }
   while(this.drops.length<this.maxDrops&&this.pendingDrops.length){const drop=this.pendingDrops.pop()!;this.pendingIndex.delete(this.dropKey(drop));this.drops.push(drop);}
   return picked;
  }
- /** Wind moves loose active chunks along unobstructed SDF segments only. */
- pushDrops(point:Vec3,direction:Vec3){if(!finite(point)||!finite(direction))return;const l=Math.hypot(direction.x,direction.y,direction.z);if(l<.0001)return;
-  for(const drop of this.drops){if(distance(drop.position,point)>2.5||!this.clearLine(point,drop.position))continue;const dir={x:direction.x/l,y:direction.y/l,z:direction.z/l},hit=this.field.ray(drop.position,dir,.75),step=hit?Math.max(0,hit.distance-.06):.75;drop.position={x:drop.position.x+dir.x*step,y:drop.position.y+dir.y*step,z:drop.position.z+dir.z*step};}
- }
+ /** Material-aware loose bodies keep momentum; all movement is swept against SDF. */
+ react(element:Element,point:Vec3,direction:Vec3){for(const drop of this.drops){if(distance(drop.position,point)>1.4||!this.clearLine({...point,y:point.y+.05},drop.position,.15))continue;
+  if(element==='water'){drop.wet=5;drop.fire=0;drop.charge=0;}
+  if(element==='fire'&&materialDefinition(drop.material).combustible&&!(drop.wet!>0))drop.fire=3;
+  if(element==='lightning'&&(drop.material===6||drop.wet!>0))drop.charge=.6;
+  if(element==='earth')drop.fire=0;
+ }if(element==='wind'||element==='earth')this.pushDrops(point,direction);}
+ pushDrops(point:Vec3,direction:Vec3){if(!finite(point)||!finite(direction))return;const length=Math.hypot(direction.x,direction.y,direction.z)||1;
+  for(const drop of this.drops){if(distance(drop.position,point)>2.5||!this.clearLine({...point,y:point.y+.05},drop.position,.15))continue;const v=drop.velocity??(drop.velocity={x:0,y:0,z:0}),mass=drop.material===6?3:drop.material===3?2:1;for(const axis of ['x','y','z'] as const)v[axis]=Math.max(-6,Math.min(6,v[axis]+direction[axis]/length*4/mass));v.y=Math.max(v.y,1/mass);}}
  private alive(b:{id:string;anchor:Vec3}){return this.field.distance(b.anchor)<0&&this.field.materialAt(b.anchor)?.object===b.id;}
  hasWorkbench(position:Vec3){return this.buildings.some(b=>b.recipe==='workbench'&&this.alive(b)&&distance(b.position,position)<=3&&this.clearLine({...position,y:position.y+1.15},{...b.position,y:b.position.y+1.15}));}
  place(target:Vec3,playerPosition:Vec3,enemies:readonly Vec3[]=[]):PlacementResult{

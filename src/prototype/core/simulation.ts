@@ -3,31 +3,34 @@ import { direction, type Vec3, type Hit } from './voxel';
 import { VoxelWater } from './water';
 import { ElementSystem,type Element } from './elements';
 import { materialDefinition } from './materials';
-import { SurvivalSystem } from './survival';
+import { SurvivalSystem,type MaterialDrop } from './survival';
+import { EntityElements } from './entity-elements';
 import { attacks,attackPose,bladeWorld,bodyCapsules,segmentDistance,facing,transformPoint,type AttackKind,type WeaponPose } from './motion';
 export interface Controls {x:number;z:number;sprint:boolean;block:boolean;water:boolean}
 export type Action='attack'|'heavy'|'dodge'|'jump'|'interact'|'heal'|'tool'|'sword'|'chisel'|'element-next'|'cast'|'recipe-next'|'build';
 export interface Event {kind:'swing'|'hit'|'hurt'|'parry'|'step'|'interact'|'water'|'break';text?:string}
 export interface Enemy {id:number;position:Vec3;yaw:number;hp:number;vy:number;phase:'idle'|'windup'|'strike'|'recover'|'stagger'|'dead';time:number;hit:boolean;attack:AttackKind;hitstop:number;stride:number;interrupted?:WeaponPose}
-export interface Target {hit:Hit;enemy?:Enemy;label:string;action:string}
+export interface Target {hit:Hit;enemy?:Enemy;drop?:MaterialDrop;label:string;action:string}
 const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
 export class CoreSimulation {
- readonly arena=createArena();readonly water=new VoxelWater(this.arena.field);readonly enemyShape=creatureVoxels();
- readonly elements=new ElementSystem(this.arena.field,this.water);readonly survival=new SurvivalSystem(this.arena.field);
+ readonly arena=createArena();readonly water=new VoxelWater(this.arena.field);
+ readonly elements=new ElementSystem(this.arena.field,this.water);readonly survival=new SurvivalSystem(this.arena.field,this.water);
  selectedElement:Element='fire';private solidRevision=this.arena.field.revision;private castCooldown=0;
  get selectedRecipe(){return this.survival.selected;}
  readonly player={position:{x:0,y:.25,z:6},yaw:0,pitch:0,hp:100,stamina:100,vy:0,grounded:true,flasks:1,tool:false,phase:'idle' as 'idle'|'windup'|'strike'|'recover'|'dodge'|'heal'|'cast',time:0,heavy:false,hit:false,blockTime:0,dodgeX:0,dodgeZ:0,attack:'slash' as AttackKind,combo:0,queued:'' as ''|'attack'|'heavy',hitstop:0,vx:0,vz:0,stride:0,guard:0,impact:0};
  readonly enemies:Enemy[]=[{id:0,position:{x:0,y:.25,z:-6},yaw:0,hp:100,vy:0,phase:'idle',time:0,hit:false,attack:'slash',hitstop:0,stride:0},{id:1,position:{x:2,y:.25,z:-9},yaw:0,hp:100,vy:0,phase:'idle',time:0,hit:false,attack:'overhead',hitstop:0,stride:0}];
+ readonly enemyElements=[new EntityElements(),new EntityElements()];private chainTime=0;
  readonly events:Event[]=[];seconds=0;waterOn=false;defeated=0;private fluidTime=0;private footTime=0;private regenDelay=0;
  look(dx:number,dy:number){const weight=this.player.phase==='strike'?.28:this.player.phase==='windup'?.65:1;this.player.yaw-=dx*weight;this.player.pitch=clamp(this.player.pitch-dy*weight,-Math.PI/2+.03,Math.PI/2-.03);}
  eye():Vec3{return {...this.player.position,y:this.player.position.y+1.52};}
  target(range=2.75):Target|null {
-  const p=this.player,eye=this.eye(),d=direction(p.yaw,p.pitch);let hit=this.arena.field.ray(eye,d,range),enemy:Enemy|undefined;
+  const p=this.player,eye=this.eye(),d=direction(p.yaw,p.pitch);let hit=this.arena.field.ray(eye,d,range),enemy:Enemy|undefined,drop:MaterialDrop|undefined;
   for(const e of this.enemies){if(e.hp<=0)continue;const c=Math.cos(e.yaw),s=Math.sin(e.yaw),rel={x:eye.x-e.position.x,y:eye.y-e.position.y,z:eye.z-e.position.z};
-   const local={x:c*rel.x-s*rel.z,y:rel.y,z:s*rel.x+c*rel.z},dir={x:c*d.x-s*d.z,y:d.y,z:s*d.x+c*d.z};const h=this.enemyShape.ray(local,dir,range);
+   const local={x:c*rel.x-s*rel.z,y:rel.y,z:s*rel.x+c*rel.z},dir={x:c*d.x-s*d.z,y:d.y,z:s*d.x+c*d.z};const h=this.enemyElements[e.id].field.ray(local,dir,range);
    if(h&&(!hit||h.distance<hit.distance)){hit={...h,point:{x:eye.x+d.x*h.distance,y:eye.y+d.y*h.distance,z:eye.z+d.z*h.distance}};enemy=e;}
   }
-  if(!hit)return null;if(enemy)return {hit,enemy,label:'灰の番兵',action:''};
+  for(const item of this.survival.drops){const q={x:item.position.x-eye.x,y:item.position.y-eye.y,z:item.position.z-eye.z},t=q.x*d.x+q.y*d.y+q.z*d.z;if(t<0||t>range||Math.hypot(q.x-d.x*t,q.y-d.y*t,q.z-d.z*t)>.16||hit&&t>=hit.distance)continue;hit={point:{...item.position},normal:{x:-d.x,y:-d.y,z:-d.z},distance:t,cell:{x:0,y:0,z:0,material:item.material,distance:-.1,object:'drop:'+item.id}};drop=item;enemy=undefined;}
+  if(!hit)return null;if(drop)return {hit,drop,label:materialDefinition(drop.material).name+'の素材 ×'+drop.count,action:'近づいて回収 / 属性で動かす'};if(enemy)return {hit,enemy,label:'灰の番兵',action:''};
   const object=hit.cell.object?this.arena.objects.get(hit.cell.object):null;
   if(!object)return {hit,label:materialDefinition(hit.cell.material).name,action:p.tool?'鑿で採取':'斬撃で採取'};
   const damaged=this.elements.damagedObjects.has(object.id);
@@ -38,12 +41,12 @@ export class CoreSimulation {
   const p=this.player;if(p.hp<=0)return;
   if(action==='element-next'){if(p.phase==='idle'){const order:Element[]=['fire','water','earth','wind','lightning'];this.selectedElement=order[(order.indexOf(this.selectedElement)+1)%order.length];}return;}
   if(action==='recipe-next'){if(p.phase==='idle')this.survival.cycleRecipe();return;}
-  if(action==='build'){if(p.phase==='idle'){const target=this.target(3.2);if(!target||target.enemy){this.events.push({kind:'interact',text:'近くの地面に照準を合わせる'});return;}const result=this.survival.place(target.hit.point,p.position,this.enemies.filter(e=>e.hp>0).map(e=>e.position));this.events.push({kind:result.ok?'break':'interact',text:result.message});this.syncMaterials();}return;}
+  if(action==='build'){if(p.phase==='idle'){const target=this.target(3.2);if(!target||target.enemy||target.drop){this.events.push({kind:'interact',text:'近くの地面に照準を合わせる'});return;}const result=this.survival.place(target.hit.point,p.position,this.enemies.filter(e=>e.hp>0).map(e=>e.position));this.events.push({kind:result.ok?'break':'interact',text:result.message});this.syncMaterials();}return;}
   if(action==='cast'){
    if(p.phase!=='idle'||input.block||this.castCooldown>0)return;
    if(p.stamina<18){this.events.push({kind:'interact',text:'属性術にはスタミナ18が必要'});return;}
-   const target=this.target(7);if(!target||target.enemy){this.events.push({kind:'interact',text:'7m以内のVoxelに照準を合わせる'});return;}
-   this.elements.cast(this.selectedElement,target.hit,direction(p.yaw,p.pitch));if(this.selectedElement==='wind')this.survival.pushDrops(target.hit.point,direction(p.yaw,p.pitch));p.stamina-=18;this.regenDelay=1;this.castCooldown=.7;p.phase='cast';p.time=0;p.queued='';this.events.push({kind:this.selectedElement==='water'?'water':'interact',text:{fire:'火 · 木と草へ延焼',water:'水 · 消火と濡れ',earth:'土 · 衝撃と鎮火',wind:'風 · 風下へ火を運ぶ',lightning:'雷 · 接触した金属へ通電'}[this.selectedElement]});this.syncMaterials();return;
+   const target=this.target(7);if(!target){this.events.push({kind:'interact',text:'7m以内のVoxelに照準を合わせる'});return;}
+   if(target.enemy)this.castEnemy(target.enemy,this.selectedElement,target.hit);else if(!target.drop)this.elements.cast(this.selectedElement,target.hit,direction(p.yaw,p.pitch));this.survival.react(this.selectedElement,target.hit.point,direction(p.yaw,p.pitch));p.stamina-=18;this.regenDelay=1;this.castCooldown=.7;p.phase='cast';p.time=0;p.queued='';this.events.push({kind:this.selectedElement==='water'?'water':'interact',text:{fire:'火 · 木と草へ延焼',water:'水 · 消火と濡れ',earth:'土 · 衝撃と鎮火',wind:'風 · 風下へ火を運ぶ',lightning:'雷 · 接触した金属へ通電'}[this.selectedElement]});this.syncMaterials();return;
   }
   if(action==='tool'||action==='sword'||action==='chisel'){if(p.phase==='idle')p.tool=action==='tool'?!p.tool:action==='chisel';return;}
   if(action==='heal'){if(p.phase==='idle'&&p.flasks&&p.hp<100){p.flasks--;p.phase='heal';p.time=0;this.regenDelay=1.6;this.events.push({kind:'interact',text:'回復薬を飲む'});}return;}
@@ -88,11 +91,12 @@ export class CoreSimulation {
  /** Continuous blade sweep: contact follows the rendered edge, including head/body and walls. */
  private melee(before:WeaponPose,after:WeaponPose){
   const p=this.player;if(p.hit)return;
-  if(p.tool){const target=this.target(2.5);if(target&&!target.enemy){const result=this.elements.damage(target.hit,p.heavy?100:55,p.heavy?.5:.27);p.hit=true;p.hitstop=.07;this.events.push({kind:result.destroyed?'break':'hit',text:result.destroyed?materialDefinition(target.hit.cell.material).name+'のVoxelが砕けた':'材質の耐久値を削った'});}return;}
+  if(p.tool){const target=this.target(2.5);if(target?.drop){this.survival.pushDrops(target.hit.point,direction(p.yaw,p.pitch));p.hit=true;return;}if(target&&!target.enemy){const result=this.elements.damage(target.hit,p.heavy?100:55,p.heavy?.5:.27);p.hit=true;p.hitstop=.07;this.events.push({kind:result.destroyed?'break':'hit',text:result.destroyed?materialDefinition(target.hit.cell.material).name+'のVoxelが砕けた':'材質の耐久値を削った'});}return;}
   const a=bladeWorld(before,p.position,p.yaw,p.pitch),b=bladeWorld(after,p.position,p.yaw,p.pitch),steps=Math.max(1,Math.ceil(Math.hypot(b.tip.x-a.tip.x,b.tip.y-a.tip.y,b.tip.z-a.tip.z)/.035));
   for(let i=0;i<=steps;i++){const t=i/steps,lerp=(u:Vec3,v:Vec3)=>({x:u.x+(v.x-u.x)*t,y:u.y+(v.y-u.y)*t,z:u.z+(v.z-u.z)*t}),grip=lerp(a.grip,b.grip),tip=lerp(a.tip,b.tip),edge={x:tip.x-grip.x,y:tip.y-grip.y,z:tip.z-grip.z},length=Math.hypot(edge.x,edge.y,edge.z),wall=this.arena.field.ray(grip,edge,length);
-   const end=wall?wall.point:tip;
+   const end=wall?wall.point:tip;for(const drop of this.survival.drops)if(segmentDistance(grip,end,drop.position,drop.position)<.16){this.survival.pushDrops(drop.position,direction(p.yaw,p.pitch));p.hit=true;this.events.push({kind:'hit',text:'素材を弾いた'});return;}
    for(const e of this.enemies){if(e.hp<=0)continue;for(const body of bodyCapsules(e.position,e.yaw,this.enemyPose(e))){if(segmentDistance(grip,end,body.a,body.b)>body.r+.035)continue;
+    const bodyState=this.enemyElements[e.id],local=bodyState.local(body.a,e.position,e.yaw),cell=bodyState.field.materialAt(local);if(cell)bodyState.reactions.damage({cell,point:local,normal:{x:0,y:1,z:0},distance:0},p.heavy?65:30,.12);bodyState.impulse(direction(p.yaw,0),p.heavy?2.4:.8);
     const damage=Math.round(attacks[p.attack].damage*(body.zone==='head'?1.35:1));e.hp=Math.max(0,e.hp-damage);p.hit=true;p.hitstop=.065;p.impact=1;
     if(!e.hp){e.interrupted=this.enemyPose(e);e.phase='dead';e.time=0;this.defeated++;}else if(p.heavy){e.interrupted=this.enemyPose(e);e.phase='stagger';e.time=0;}
     this.events.push({kind:'hit',text:e.hp?(body.zone==='head'?'頭部に命中':'命中'):'番兵を倒した'});return;
@@ -127,13 +131,24 @@ export class CoreSimulation {
   if(p.phase==='cast'&&p.time>=.7){p.phase='idle';p.time=0;}
   if(p.phase==='heal'&&p.time>=1.6){p.hp=Math.min(100,p.hp+55);p.phase='idle';p.time=0;this.events.push({kind:'interact',text:'回復した'});}if(p.phase==='idle'&&p.time>1.2)p.combo=0;
   if(p.phase==='dodge'){this.move(p.position,p.dodgeX*4.1*dt,p.dodgeZ*4.1*dt);if(p.time>=.36){p.phase='idle';p.time=0;}}
-  for(const e of this.enemies){this.enemyTick(e,dt,blocking);if(e.hp<=0)continue;const vertical=this.settle(e.position,e.vy-14*dt,dt,1.7);e.vy=vertical.vy;if(e.position.y<-4){e.hp=0;e.phase='dead';this.defeated++;}}
-  this.elements.tick(dt);this.syncMaterials();const picked=this.survival.tick(dt,p.position);if(picked)this.events.push({kind:'interact',text:'Voxel素材を回収 ×'+picked});
+  for(const e of this.enemies){this.enemyMaterialTick(e,dt);this.enemyTick(e,dt,blocking);if(e.hp<=0){this.survival.addDrops(this.enemyElements[e.id].deathDrops(e.position));continue;}const vertical=this.settle(e.position,e.vy-14*dt,dt,1.7);e.vy=vertical.vy;if(e.position.y<-4){e.hp=0;e.phase='dead';this.defeated++;}}
+  this.elements.tick(dt);this.chainTime+=dt;if(this.chainTime>=.25){this.chainTime=0;this.contactElements();}this.syncMaterials();const picked=this.survival.tick(dt,p.position);if(picked)this.events.push({kind:'interact',text:'Voxel素材を回収 ×'+picked});
   this.fluidTime+=dt;if(this.fluidTime>=.1){this.fluidTime=0;if(this.waterOn||input.water)for(let z=20;z<26;z++)this.water.add(2,10,z,.8);this.water.step();}
  }
+ private castEnemy(e:Enemy,element:Element,hit:Hit){const body=this.enemyElements[e.id],point=body.local(hit.point,e.position,e.yaw),worldDirection=direction(this.player.yaw,this.player.pitch),d=body.local({x:e.position.x+worldDirection.x,y:e.position.y+worldDirection.y,z:e.position.z+worldDirection.z},e.position,e.yaw);e.hp=Math.max(0,e.hp-body.cast(element,{...hit,point},d));if(element==='wind'||element==='earth')body.impulse(worldDirection,element==='wind'?4:2);if(body.shock>0){e.interrupted=this.enemyPose(e);e.phase='stagger';e.time=0;}this.finishElementDeath(e);}
+ private finishElementDeath(e:Enemy){if(e.hp<=0&&e.phase!=='dead'){e.interrupted=this.enemyPose(e);e.phase='dead';e.time=0;this.defeated++;this.events.push({kind:'break',text:'属性で番兵を倒した'});}}
+ private enemyMaterialTick(e:Enemy,dt:number){const b=this.enemyElements[e.id];if(e.hp>0){e.hp=Math.max(0,e.hp-b.tick(dt));this.finishElementDeath(e);const old={...e.position};this.move(e.position,b.velocity.x*dt,b.velocity.z*dt,1.7);if(Math.abs(e.position.x-old.x)<.0001)b.velocity.x=0;if(Math.abs(e.position.z-old.z)<.0001)b.velocity.z=0;const drag=Math.exp(-dt*(this.water.surface(e.position.x,e.position.z)>e.position.y?9:4));b.velocity.x*=drag;b.velocity.z*=drag;}
+  this.survival.addDrops(b.drain(e.position,e.yaw));}
+ private contactElements(){for(const e of this.enemies){if(e.hp<=0)continue;const b=this.enemyElements[e.id],center={...e.position,y:e.position.y+.9};let incomingFire=false,incomingCharge=false;
+  for(const state of this.elements.states.values()){if(Math.hypot(state.position.x-center.x,state.position.y-center.y,state.position.z-center.z)>1.05)continue;const delta={x:center.x-state.position.x,y:center.y-state.position.y,z:center.z-state.position.z},length=Math.hypot(delta.x,delta.y,delta.z);if(this.arena.field.ray(center,{x:-delta.x,y:-delta.y,z:-delta.z},Math.max(0,length-.3)))continue;incomingFire ||=state.fire>0;incomingCharge ||=state.charge>0;}
+  const local={x:0,y:1.1,z:-.16},cell=b.field.materialAt(local);if(!cell)continue;const hit={point:local,cell,normal:{x:0,y:0,z:1},distance:0};if(this.water.surface(e.position.x,e.position.z)>e.position.y+.2)b.cast('water',hit,{x:0,y:1,z:0});
+  if(incomingFire&&b.wet<=0)b.cast('fire',hit,{x:0,y:1,z:0});if(incomingCharge)e.hp=Math.max(0,e.hp-b.cast('lightning',hit,{x:0,y:1,z:0}));
+  if(b.burning){for(const dir of [{x:1,y:0,z:0},{x:-1,y:0,z:0},{x:0,y:0,z:1},{x:0,y:0,z:-1},{x:0,y:-1,z:0}]){const h=this.arena.field.ray(center,dir,.85);if(h)this.elements.cast('fire',h,dir);}for(const other of this.enemies){if(other===e||other.hp<=0||Math.hypot(other.position.x-e.position.x,other.position.z-e.position.z)>1.1)continue;const delta={x:other.position.x-center.x,y:0,z:other.position.z-center.z};if(this.arena.field.ray(center,delta,Math.hypot(delta.x,delta.z)))continue;const ob=this.enemyElements[other.id],oc=ob.field.materialAt(local);if(oc&&ob.wet<=0)ob.cast('fire',{...hit,cell:oc},{x:0,y:1,z:0});}}
+  this.finishElementDeath(e);
+ }}
  private syncMaterials(){this.survival.addDrops(this.elements.drainDrops());if(this.solidRevision!==this.arena.field.revision){this.solidRevision=this.arena.field.revision;this.water.refreshSolids();}}
  private enemyTick(e:Enemy,dt:number,blocking:boolean){
-  if(e.hp<=0){e.time+=dt;return;}const p=this.player,dx=p.position.x-e.position.x,dz=p.position.z-e.position.z,distance=Math.hypot(dx,dz),def=attacks[e.attack],slow=1.35,before=this.enemyPose(e);
+  if(e.hp<=0){e.time+=dt;return;}if(this.enemyElements[e.id].shock>0)return;const p=this.player,dx=p.position.x-e.position.x,dz=p.position.z-e.position.z,distance=Math.hypot(dx,dz),def=attacks[e.attack],slow=1.35,before=this.enemyPose(e);
   if(e.hitstop>0)e.hitstop=Math.max(0,e.hitstop-dt);else e.time+=dt;
   if(e.phase==='idle'){
    if(distance>10)return;e.yaw=Math.atan2(-dx,-dz);

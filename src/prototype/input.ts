@@ -22,7 +22,7 @@ export function createInput(canvas:HTMLCanvasElement,onAction:(action:Action)=>v
  for(const name of ['pointerup','pointercancel','lostpointercapture'] as const)look.addEventListener(name,e=>{if(e.pointerId===lookPointer)lookPointer=null;},{signal});
  for(const b of document.querySelectorAll<HTMLButtonElement>('[data-action]')){const action=b.dataset.action!;
   b.addEventListener('pointerdown',e=>{if(!enabled||b.disabled)return;e.preventDefault();b.setPointerCapture(e.pointerId);b.classList.add('pressed');if(['block','sprint','water'].includes(action))held.add(action);else onAction(action as Action);},{signal});
-  b.addEventListener('click',e=>{if(enabled&&!b.disabled&&e.detail===0&&!['block','sprint','water'].includes(action))onAction(action as Action);},{signal});
+  b.addEventListener('keydown',e=>{if(e.code!=='Enter'&&e.code!=='Space')return;e.preventDefault();e.stopPropagation();if(enabled&&!b.disabled&&!e.repeat&&!['block','sprint','water'].includes(action))onAction(action as Action);},{signal});
   for(const name of ['pointerup','pointercancel','lostpointercapture'] as const)b.addEventListener(name,()=>{held.delete(action);b.classList.remove('pressed');},{signal});
  }
  window.addEventListener('blur',()=>{reset();if(enabled)onPause();},{signal});
