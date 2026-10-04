@@ -199,7 +199,7 @@ export function startGame() {
     if (!document.hidden) {
       const sessionOpen=!document.querySelector<HTMLElement>('#session-panel')!.hidden,menuOpen=!!document.querySelector('[role=dialog]:not([hidden])');
       const loading=app.dataset.state!=='running';
-      const renderDue=loading||!menuOpen;
+      const renderDue=!menuOpen;
       let uploaded=0;terrain.beginUploadFrame();
       try{if(renderDue)uploaded=terrainQueue.flush(data=>terrain.update(data,renderer),id=>terrain.remove([id]));}catch(uploadError){console.error(uploadError);fail('地形のGPU転送に失敗しました。再読み込みしてください。');return;}
       // terrain.update already submits both LOD buffers through the 1px upload pass.
@@ -212,14 +212,14 @@ export function startGame() {
       if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
       if(state&&dirtyWorld&&!menuOpen&&!loading){const t=performance.now();world.update(state);sound.update(state);dirtyWorld=false;frameTimings.record('worldUpdate',performance.now()-t);}
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
-      world.interpolate(dt);
+      if(!menuOpen)world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
       const cameraRayStart = performance.now();
-      cameraDistance = resolveCamera(world.player.position, focus, orbit, camera.up, view.distance, dt, cameraPosition);
+      if(!menuOpen)cameraDistance = resolveCamera(world.player.position, focus, orbit, camera.up, view.distance, dt, cameraPosition);
       frameTimings.record('cameraRay',performance.now()-cameraRayStart);
       camera.position.copy(cameraPosition); camera.lookAt(lookTarget.copy(cameraPosition).sub(orbit)); camera.updateMatrixWorld();
       world.player.visible = camera.position.distanceTo(world.player.position) > 1.6;
-      if (state && (now - lastRay > 80 || view.yaw !== lastRayYaw || view.pitch !== lastRayPitch)) {
+      if (!menuOpen && state && (now - lastRay > 80 || view.yaw !== lastRayYaw || view.pitch !== lastRayPitch)) {
         const interactionStart=performance.now();const sampled = sampleReticle();let hit = sampled.hit;
         contextual=sampled.interaction;if(!contextual&&(state.adventure.meadows?.fishing||state.adventure.equipment==='fishingRod'))contextual={id:'fishing',label:state.adventure.meadows?.fishing?.phase==='bite'?'合わせる':state.adventure.meadows?.fishing?.phase==='fight'?'巻く / 緩める':'釣り糸を投げる',point:{...state.player},distance:0};if(!contextual&&state.adventure.meadows?.riding)contextual={id:'dismount',label:'いかだから降りる',point:{...state.player},distance:0};interactButton.hidden=!contextual||!!building;document.querySelector('#interaction-label')!.textContent=contextual?.label??'';app.dataset.interaction=contextual?.id??'';document.querySelector<HTMLButtonElement>('#dismantle')!.hidden=!!building||state.adventure.equipment!=='hammer'||!contextual?.id.startsWith('b:');
         let anchorId:number|undefined;if (building) { const piece = world.raycastBuildings(raycaster); if (piece && (!hit || piece.distance < hit.distance)) {hit = piece;let o:THREE.Object3D|null=piece.object;while(o){if(o.userData.buildingId){anchorId=o.userData.buildingId;break;}o=o.parent;}} }
@@ -241,7 +241,7 @@ export function startGame() {
       if (guardHeld && !network.guest && !menuOpen && state && now - lastGuardAim > 100) {
         send({ type: 'game-action', action: 'guard', id: 'on', aim: { ...reticleAim } }); lastGuardAim = now;
       }
-      const grassStart=performance.now();terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);frameTimings.record('grassUpdate',performance.now()-grassStart);
+      const grassStart=performance.now();if(!menuOpen){terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);}frameTimings.record('grassUpdate',performance.now()-grassStart);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
       try { if(renderDue&&state&&!loading){const renderStart=performance.now();
         world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}if(direct){world.atmosphere.prepareDirect();renderer.setRenderTarget(null);renderer.render(world.scene,camera);if(probeWater&&!waterProbeStarted&&world.atmosphere.stats.shUpdates>0&&world.waterSurface.geometry.drawRange.count>0){waterProbeStarted=true;void probeWaterLighting(renderer,world.scene,world.waterSurface).then(result=>app.dataset.waterProbe=JSON.stringify(result)).catch(error=>app.dataset.waterProbe=JSON.stringify({error:String(error)}));}}else pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);
