@@ -11,43 +11,54 @@ const read=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__coreProbe') as C
 const angle=(n:number)=>Math.atan2(Math.sin(n),Math.cos(n));
 
 class PlayerControls {
- private mouse={x:401,y:200};
  private touch:CDPSession|null=null;
+ private liveTouch=false;
  constructor(private page:Page,private mobile:boolean){}
  async initialize(){
   if(this.mobile)this.touch=await this.page.context().newCDPSession(this.page);
-  else {await expect.poll(()=>this.page.evaluate(()=>!!document.pointerLockElement)).toBe(true);await this.page.mouse.move(400,200);await this.page.mouse.move(401,200);}
+  else await expect.poll(()=>this.page.evaluate(()=>!!document.pointerLockElement)).toBe(true);
  }
- async dispose(){if(!this.mobile)await this.page.keyboard.up('KeyW');if(this.touch){await this.touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await this.touch.detach();this.touch=null;}}
+ async endTouch(){if(!this.touch||!this.liveTouch)return;this.liveTouch=false;await this.touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+ async dispose(){if(!this.mobile)await this.page.keyboard.up('KeyW').catch(()=>{});if(this.touch){await this.endTouch().catch(()=>{});await this.touch.detach().catch(()=>{});this.touch=null;}}
  async action(selector:string,key:string){if(this.mobile)await this.page.locator(selector).tap();else await this.page.keyboard.press(key);}
  async aim(point:Point){
   await expect.poll(async()=>(await read(this.page)).phase).toBe('idle');
+  if(!this.mobile){await this.keyboardAim(point);return;}
   for(let attempt=0;attempt<8;attempt++){
    const p=await read(this.page),dx=point.x-p.position.x,dz=point.z-p.position.z,dy=point.y-p.position.y-1.52;
    const yaw=Math.atan2(-dx,-dz),pitch=Math.atan2(dy,Math.hypot(dx,dz)),yawError=angle(yaw-p.yaw),pitchError=pitch-p.pitch;
    if(Math.abs(yawError)<.015&&Math.abs(pitchError)<.015)return;
    if(this.mobile){
     const mx=-yawError/.004,my=-pitchError/.004,steps=Math.max(1,Math.ceil(Math.max(Math.abs(mx)/140,Math.abs(my)/65)));
-    for(let i=0;i<steps;i++){const finger={x:550,y:170,id:7};await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...finger,x:finger.x+mx/steps,y:finger.y+my/steps}]});await this.touch!.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
-   }else {
-    // Real browser input under pointer lock, including large rotations. Feedback
-    // confirms the transport delivered the intended motion before any action.
-    const mx=-yawError/.0022,my=-pitchError/.0022,steps=Math.max(1,Math.ceil(Math.max(Math.abs(mx),Math.abs(my))/120));
-    for(let i=0;i<steps;i++){this.mouse.x+=mx/steps;this.mouse.y+=my/steps;await this.page.mouse.move(this.mouse.x,this.mouse.y);}
+    for(let i=0;i<steps;i++){const finger={x:550,y:170,id:7};await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});this.liveTouch=true;await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...finger,x:finger.x+mx/steps,y:finger.y+my/steps}]});await this.endTouch();}
    }
   }
   const p=await read(this.page),yaw=Math.atan2(-(point.x-p.position.x),-(point.z-p.position.z)),pitch=Math.atan2(point.y-p.position.y-1.52,Math.hypot(point.x-p.position.x,point.z-p.position.z));
   expect(Math.abs(angle(yaw-p.yaw)),'Real pointer input must reach requested yaw').toBeLessThan(.035);
   expect(Math.abs(pitch-p.pitch),'Real pointer input must reach requested pitch').toBeLessThan(.035);
  }
+ async keyboardAim(point:Point){
+  // Genuine production accessibility keys. CDP absolute mouseMove does not
+  // synthesize Pointer Lock's raw relative motion, so this is labeled separately.
+  const error=async(axis:'yaw'|'pitch')=>{const p=await read(this.page),dx=point.x-p.position.x,dz=point.z-p.position.z;return axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch;};
+  for(const axis of ['yaw','pitch'] as const){
+   for(let attempt=0;attempt<6;attempt++){
+    const remaining=await error(axis);if(Math.abs(remaining)<.015)break;
+    const sign=Math.sign(remaining),fine=Math.abs(remaining)<.3,key=axis==='yaw'?(sign>0?'Home':'End'):(sign>0?'PageUp':'PageDown');
+    try{if(fine)await this.page.keyboard.down('ShiftLeft');await this.page.keyboard.down(key);await expect.poll(async()=>sign*await error(axis),{timeout:90000,intervals:[50,100]}).toBeLessThan(fine?.006:.18);}
+    finally{await this.page.keyboard.up(key);if(fine)await this.page.keyboard.up('ShiftLeft');}
+   }
+   expect(Math.abs(await error(axis)),`Actual keyboard look must reach requested ${axis}`).toBeLessThan(.035);
+  }
+ }
  async walkTo(x:number,z:number){
   const start=await read(this.page),dx=x-start.position.x,dz=z-start.position.z,length=Math.hypot(dx,dz);if(length<.18)return;
   await this.aim({x,y:start.position.y+1.52,z});
-  try{
-   if(this.mobile){const box=await this.page.locator('#move-pad').boundingBox();expect(box).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:box!.x+box!.width/2,y:box!.y+10}]});}
+  let movementFailed=false;try{
+   if(this.mobile){const box=await this.page.locator('#move-pad').boundingBox();expect(box).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:box!.x+box!.width/2,y:box!.y+10}]});this.liveTouch=true;}
    else await this.page.keyboard.down('KeyW');
    await expect.poll(async()=>{const p=await read(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(.18);
-  }finally{if(this.mobile)await this.touch!.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else await this.page.keyboard.up('KeyW');}
+  }catch(error){movementFailed=true;throw error;}finally{try{if(this.mobile)await this.endTouch();else await this.page.keyboard.up('KeyW');}catch(error){if(!movementFailed)throw error;}}
   const seconds=(await read(this.page)).seconds;await expect.poll(async()=>(await read(this.page)).seconds,{intervals:[50,100]}).toBeGreaterThan(seconds+.15);
  }
  async gather(material:number,minimum:number,points:Point[],object:string){
@@ -64,8 +75,9 @@ class PlayerControls {
  }
 }
 
-test('campaign playthrough: gather, light the hearth, save, reload and continue',async({page,isMobile},testInfo)=>{
- test.setTimeout(480000);
+test('campaign playthrough with desktop keyboard-look or Android touch: gather, light, save and continue',async({page,isMobile},testInfo)=>{
+ test.setTimeout(900000);
+ testInfo.annotations.push({type:'input-mode',description:isMobile?'Actual Android touch gestures':'Actual desktop keyboard-look accessibility controls; not a raw-relative-mouse test'});
  const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));
  await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});
  await expect(page.locator('#error')).toBeHidden();

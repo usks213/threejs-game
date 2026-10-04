@@ -61,7 +61,12 @@ for (let attempt = 0; attempt < 12; attempt++) {
   if (attempt < 11) await new Promise(resolve => setTimeout(resolve, 5000));
 }
 if (!confirmed) throw new Error('The Preview URL did not serve the requested commit');
-const record = { url: url.origin, commit: expected, pullRequest: Number(pr) };
+if (campaignRelay) {
+  const healthResponse = await fetch(`${url.origin}/campaign-room/health`, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+  const health = await healthResponse.json();
+  if (!healthResponse.ok || health.service !== 'pr4-campaign-room' || health.protocol !== 1 || health.enabled !== true) throw new Error('Campaign relay health check failed');
+}
+const record = { campaignCoop: campaignRelay, url: url.origin, commit: expected, pullRequest: Number(pr) };
 writeFileSync('preview-release.json', JSON.stringify(record));
 console.log(`Preview URL: ${url.origin}`);
 console.log(`Published commit: ${expected}`);

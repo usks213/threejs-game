@@ -158,12 +158,12 @@ Source audit: 2026-10-04 21:47 UTC. This pass inspected code and test definition
 | S04 | バックアップ | 簡易実装・受入試験待ち | src/save/checkpoint.ts + tests/unit/save.test.ts | Normal-play/browser verification and remaining breadth |
 | S05 | 保存容量 | 簡易実装・受入試験待ち | src/save/checkpoint.ts + tests/unit/save.test.ts | Normal-play/browser verification and remaining breadth |
 | S06 | 世界リセット | 簡易実装・受入試験待ち | src/save/checkpoint.ts + tests/unit/save.test.ts | Normal-play/browser verification and remaining breadth |
-| M01 | ネットワーク範囲 | 部分実装 | prototype/network/protocol.ts; relay-room.ts; coop-client.ts; tests/unit/campaign-network.test.ts; campaign-network-sockets.test.ts | 実ソケットの契約/ホスト権威/初期権限/再送拒否あり。公開接続・実ゲーム同期統合・後参加受入は未完 |
-| M02 | 接続 | 部分実装 | prototype/network/protocol.ts; relay-room.ts; coop-client.ts; tests/unit/campaign-network.test.ts; campaign-network-sockets.test.ts | 実ソケットの契約/ホスト権威/初期権限/再送拒否あり。公開接続・実ゲーム同期統合・後参加受入は未完 |
-| M03 | 同期 | 部分実装 | prototype/network/protocol.ts; relay-room.ts; coop-client.ts; tests/unit/campaign-network.test.ts; campaign-network-sockets.test.ts | 実ソケットの契約/ホスト権威/初期権限/再送拒否あり。公開接続・実ゲーム同期統合・後参加受入は未完 |
-| M04 | 個人/世界進行 | 部分実装 | prototype/network/protocol.ts; relay-room.ts; coop-client.ts; tests/unit/campaign-network.test.ts; campaign-network-sockets.test.ts | 実ソケットの契約/ホスト権威/初期権限/再送拒否あり。公開接続・実ゲーム同期統合・後参加受入は未完 |
-| M05 | 権限 | 部分実装 | prototype/network/protocol.ts; relay-room.ts; coop-client.ts; tests/unit/campaign-network.test.ts; campaign-network-sockets.test.ts | 実ソケットの契約/ホスト権威/初期権限/再送拒否あり。公開接続・実ゲーム同期統合・後参加受入は未完 |
-| M06 | 会話/安全 | 部分実装 | prototype/network/coop-client.ts; tests/unit/campaign-network.test.ts | mute/チャット契約あり。実UIと全参加者の検査未完。音声権限なし |
+| M01 | ネットワーク範囲 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
+| M02 | 接続 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
+| M03 | 同期 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
+| M04 | 個人/世界進行 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
+| M05 | 権限 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
+| M06 | 会話/安全 | 部分実装 | prototype/network/coop-client.ts; tests/unit/campaign-network.test.ts | 文字チャット/ミュートのUIを接続。公開2ブラウザ検査待ち。音声なし |
 | M07 | 共有 | Not implemented / unverified | — | Audit and implement |
 | Q01 | 新規プレイ | Not implemented / unverified | — | Audit and implement |
 | Q02 | 進行網 | 部分検証 | tests/unit/campaign.test.ts; regions.test.ts | 依存非循環/先取り討伐/全7地域ルール試験あり。実際の移動と戦闘を経る全導線は未完 |

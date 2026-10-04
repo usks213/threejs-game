@@ -11,7 +11,7 @@ Prepared 2026-10-04. No remote deployment, namespace, credential, permission, or
 ## Proposed integration
 
 1. Keep Worker name `threejs-game` and Preview name `pr-4`. Do not create a differently named Worker or change the existing play URL.
-2. Only PR4 selects `apps/campaign-room/wrangler.preview.jsonc`. The eventual deployment script change is to append `--config apps/campaign-room/wrangler.preview.jsonc` when `PR_NUMBER === '4'`; other PRs retain their current root configuration. This proposal has not edited that script.
+2. Only PR4 selects `apps/campaign-room/wrangler.preview.jsonc`. The eventual deployment script change is to append `--config apps/campaign-room/wrangler.preview.jsonc` when `PR_NUMBER === '4'`; other PRs retain their current root configuration. The script now selects this config only when PR_NUMBER is 4, PR4_CAMPAIGN_RELAY_ENABLED is true, and the verified artifact manifest declares campaignCoop true; its default path remains unchanged.
 3. `src/preview-worker.ts` exports the `CampaignRoom` class, routes `/campaign-room/*` to the relay, and delegates ordinary requests to the same built static assets. Static asset routing keeps the game/deployment manifest at their existing paths.
 4. Use the same-Worker `CAMPAIGN_ROOMS` class binding, without `script_name` or a service binding. A `new_sqlite_classes` migration provisions the Preview-scoped class. Never bind PR4 to PR5 or to a production room namespace.
 5. The proposal ships with `previews.vars.CAMPAIGN_RELAY_ENABLED = "false"`. Enable it only after the existing account's allowed free-tier/no-new-spend status is verified and the integration tests pass. A disabled relay responds 503 without creating a room. The current account plan and token permissions have not been inspected here.
@@ -36,8 +36,8 @@ This first adapter uses standard accepted WebSockets, not Durable Object WebSock
 ## Local verification and remaining release gates
 
 Already executed:
-- 13 focused protocol/client/relay tests, including two actual localhost WebSocket clients on separate TCP connections.
-- Actual socket test covers initial chunked state, guest-edit denial, permission grant, command dedupe/ack, host disconnect pause, and host reconnect with a fresh snapshot.
+- 14 focused protocol/client/relay tests, including two actual localhost WebSocket clients on separate TCP connections.
+- Actual socket test covers initial chunked state, ephemeral input/frame delivery, guest-edit denial, permission grant, command dedupe/ack, host disconnect pause, and host reconnect with a fresh snapshot.
 - Main TypeScript check and separate `apps/campaign-room/tsconfig.json` check.
 
 Not yet executed:

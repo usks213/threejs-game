@@ -1,5 +1,5 @@
 {
-  // PROPOSAL: use only `wrangler preview --name pr-4 --config ...`.
+  // PR4 only: use only `wrangler preview --name pr-4 --config ...`.
   // Do not use `wrangler deploy`; that would target the production Worker.
   "name": "threejs-game",
   "main": "./src/preview-worker.ts",
@@ -16,7 +16,7 @@
     {"tag": "pr4-campaign-room-v1", "new_sqlite_classes": ["CampaignRoom"]}
   ],
   "previews": {
-    "vars": {"CAMPAIGN_RELAY_ENABLED": "false"},
+    "vars": {"CAMPAIGN_RELAY_ENABLED": "true"},
     "durable_objects": {
       "bindings": [{"name": "CAMPAIGN_ROOMS", "class_name": "CampaignRoom"}]
     }

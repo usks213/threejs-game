@@ -13,7 +13,7 @@ export default defineConfig({
       this.emitFile({
         type: 'asset',
         fileName: 'deployment.json',
-        source: JSON.stringify({ application: 'threejs-game', commit }),
+        source: JSON.stringify({ application: 'threejs-game', commit, campaignCoop: process.env.PR4_CAMPAIGN_RELAY_ENABLED === 'true' }),
       });
     },
   }],

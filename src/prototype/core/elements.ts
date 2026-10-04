@@ -23,13 +23,13 @@ export class ElementSystem {
  constructor(readonly field:VoxelField,readonly water:VoxelWater){}
  exportState():ElementSaveState {return {version:1,states:[...this.states].map(([id,s])=>[id,{...s,position:{...s.position}}]),damagedObjects:[...this.damagedObjects],health:[...this.health].map(([id,h])=>[id,{...h}]),drops:this.drops.map(d=>({...d,position:{...d.position}})),accumulator:this.accumulator};}
  restoreState(value:unknown):boolean {
-  if(!record(value)||value.version!==1||!Array.isArray(value.states)||value.states.length>this.maxStates||!Array.isArray(value.health)||value.health.length>1000000||!Array.isArray(value.drops)||value.drops.length>100000||!Array.isArray(value.damagedObjects)||value.damagedObjects.length>1024||!number(value.accumulator,0,1))return false;
+  if(!record(value)||value.version!==1||!Array.isArray(value.states)||value.states.length>this.maxStates||!Array.isArray(value.health)||value.health.length>1000000||!Array.isArray(value.drops)||value.drops.length>100000||!Array.isArray(value.damagedObjects)||value.damagedObjects.length>1024||!number(value.accumulator,-1e-9,1))return false;
   const states=new Map<string,ElementState>(),health=new Map<string,{material:number;object?:string;remaining:number}>(),objects=new Set<string>(),drops:MaterialDrop[]=[];
   for(const entry of value.states){if(!Array.isArray(entry)||entry.length!==2)return false;const [id,s]=entry;if(!text(id)||states.has(id)||!record(s)||!vector(s.position)||!number(s.fire,0,1e6)||!number(s.wet,0,1e6)||!number(s.charge,0,1e6))return false;states.set(id,{position:{...s.position},fire:s.fire,wet:s.wet,charge:s.charge});}
   for(const entry of value.health){if(!Array.isArray(entry)||entry.length!==2)return false;const [id,h]=entry;if(!text(id,240)||health.has(id)||!record(h)||!integer(h.material,1,10)||!number(h.remaining,0,materialDefinition(h.material).durability)||h.object!==undefined&&!text(h.object))return false;health.set(id,{material:h.material,remaining:h.remaining,...(h.object?{object:h.object as string}:{})});}
   for(const id of value.damagedObjects){if(!text(id)||objects.has(id))return false;objects.add(id);}
   for(const d of value.drops){if(!record(d)||!integer(d.material,1,10)||!integer(d.count,1,1e6)||!vector(d.position))return false;drops.push({material:d.material,count:d.count,position:{...d.position}});}
-  this.states.clear();for(const [id,s] of states)this.states.set(id,s);this.health.clear();for(const [id,h] of health)this.health.set(id,h);this.damagedObjects.clear();for(const id of objects)this.damagedObjects.add(id);this.drops=drops;this.accumulator=value.accumulator;this.effects.length=0;this.shards.length=0;return true;
+  this.states.clear();for(const [id,s] of states)this.states.set(id,s);this.health.clear();for(const [id,h] of health)this.health.set(id,h);this.damagedObjects.clear();for(const id of objects)this.damagedObjects.add(id);this.drops=drops;this.accumulator=Math.max(0,value.accumulator);this.effects.length=0;this.shards.length=0;return true;
  }
  private position(c:Vec3):Vec3{return {x:(c.x+.5)*this.field.size,y:(c.y+.5)*this.field.size,z:(c.z+.5)*this.field.size};}
  private healthKey(cell:Cell){return `${key(cell.x,cell.y,cell.z)}:${cell.material}:${cell.object??'base'}`;}
@@ -97,7 +97,7 @@ export class ElementSystem {
  }
  tick(dt:number){
   if(!Number.isFinite(dt)||dt<=0)return;this.accumulator+=Math.min(dt,.5);
-  while(this.accumulator>=.1-1e-9){this.accumulator-=.1;this.step();}
+  while(this.accumulator>=.1-1e-9){this.accumulator=Math.max(0,this.accumulator-.1);this.step();}
  }
  private step(){
   for(let i=this.shards.length-1;i>=0;i--){this.shards[i].life-=.1;if(this.shards[i].life<=0)this.shards.splice(i,1);}

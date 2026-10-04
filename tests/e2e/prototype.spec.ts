@@ -1,11 +1,25 @@
 import {test,expect,type Page} from '@playwright/test';
 interface Probe {position:{x:number;y:number;z:number};phase:string;phaseTime:number;attack:string;timeScale:number;hp:number;stamina:number;enemies:{position:{x:number;y:number;z:number};phase:string;time:number;hp:number}[];weapon:{tip:{x:number;y:number;z:number}};seconds:number;yaw:number;pitch:number;door:boolean;tool:boolean;stats:{shUpdates:number;exposure:number;remeshes:number;triangles:number;reflectionSources:number}}
 const probe=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__coreProbe') as Probe);
-// CDP sends stored absolute coordinates even for button events under Pointer Lock.
-// Preserve a stationary OS mouse through the production relative-input binding.
+// CDP button events reuse its last absolute mouse position under Pointer Lock.
+// Normalize that transport coordinate while out of melee, then assert that button
+// presses preserve aim. This only exercises input events, never simulation state.
+const preparedPointers=new WeakSet<Page>();
+async function prepareLockedPointer(page:Page){
+ if(preparedPointers.has(page)||!await page.evaluate(()=>!!document.pointerLockElement))return;
+ const {yaw,pitch}=await probe(page);
+ // Consume the lock's intentionally ignored first movement before calibration.
+ await page.evaluate(()=>document.dispatchEvent(new MouseEvent('mousemove',{movementX:0,movementY:0,bubbles:true})));
+ await page.mouse.move(0,0);
+ await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
+ await restoreAim(page,yaw,pitch);preparedPointers.add(page);
+}
+async function restoreAim(page:Page,yaw:number,pitch:number){
+ await page.evaluate(({yaw,pitch})=>{const p=Reflect.get(window,'__coreProbe') as Probe,weight=p.phase==='strike'?.28:p.phase==='windup'?.65:1;document.dispatchEvent(new MouseEvent('mousemove',{movementX:Math.round((p.yaw-yaw)/(.0022*weight)),movementY:Math.round((p.pitch-pitch)/(.0022*weight)),bubbles:true}));},{yaw,pitch});
+ const p=await probe(page);expect(Math.abs(p.yaw-yaw),'Button transport must not turn the camera').toBeLessThan(.004);expect(Math.abs(p.pitch-pitch),'Button transport must not tilt the camera').toBeLessThan(.004);
+}
 async function lockedButton(page:Page,state:'down'|'up',button:'left'|'right'='left'){
- const {yaw,pitch}=await probe(page);await page.mouse[state]({button});
- await page.evaluate(({yaw,pitch})=>{const p=Reflect.get(window,'__coreProbe') as Probe,weight=p.phase==='strike'?.28:p.phase==='windup'?.65:1;document.dispatchEvent(new MouseEvent('mousemove',{movementX:(p.yaw-yaw)/(.0022*weight),movementY:(p.pitch-pitch)/(.0022*weight),bubbles:true}));},{yaw,pitch});
+ await prepareLockedPointer(page);const {yaw,pitch}=await probe(page);await page.mouse[state]({button});await restoreAim(page,yaw,pitch);
 }
 test('landscape first-person input, aimed door, attack and HDR render',async({page,isMobile})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
@@ -47,7 +61,7 @@ test('motion review: windup, moving blade, follow-through and recovery',async({p
 
 test('desktop duel: read enemy windup, raise shield, then punish recovery',async({page,isMobile})=>{
  test.setTimeout(300000);
- test.skip(isMobile,'Shared motion rendering is covered on mobile; keyboard duel is desktop-specific.');const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await page.locator('#start').click();await expect.poll(()=>page.evaluate(()=>!!document.pointerLockElement)).toBe(true);await expect.poll(async()=>(await probe(page)).seconds).toBeGreaterThan(.25);await page.keyboard.down('KeyW');await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.6);await page.keyboard.up('KeyW');await page.keyboard.press('KeyE');await expect.poll(async()=>(await probe(page)).door).toBe(true);
+ test.skip(isMobile,'Shared motion rendering is covered on mobile; keyboard duel is desktop-specific.');const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await page.locator('#start').click();await expect.poll(()=>page.evaluate(()=>!!document.pointerLockElement)).toBe(true);await expect.poll(async()=>(await probe(page)).seconds).toBeGreaterThan(.25);await prepareLockedPointer(page);await page.keyboard.down('KeyW');await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.6);await page.keyboard.up('KeyW');await page.keyboard.press('KeyE');await expect.poll(async()=>(await probe(page)).door).toBe(true);
  // Slow the approach before entering melee range. A delayed CDP key-up on
  // SwiftShader must not carry the player past their own shield's coverage.
  await page.keyboard.press('F4');await expect.poll(async()=>(await probe(page)).timeScale).toBe(.25);
@@ -55,7 +69,10 @@ test('desktop duel: read enemy windup, raise shield, then punish recovery',async
  // Let the enemy close the remaining distance while the player is stationary.
  expect((await probe(page)).hp).toBe(100);
  await lockedButton(page,'down','right');await page.keyboard.press('F4');await expect.poll(async()=>(await probe(page)).enemies[0].phase,{timeout:90000}).toBe('windup');await page.screenshot({path:'test-results/desktop-duel-1-anticipation.png'});
- await expect.poll(async()=>['recover','stagger'].includes((await probe(page)).enemies[0].phase),{timeout:60000}).toBe(true);await page.screenshot({path:'test-results/desktop-duel-2-guard.png'});expect((await probe(page)).hp).toBe(100);expect((await probe(page)).stamina).toBeLessThan(100);await lockedButton(page,'up','right');await lockedButton(page,'down');await lockedButton(page,'up');
+ await expect.poll(async()=>['recover','stagger'].includes((await probe(page)).enemies[0].phase),{timeout:60000}).toBe(true);
+ // Screenshots can cost most of the recovery window on SwiftShader. Counter
+ // first; preserve the shield HP/stamina assertions without a render stall.
+ expect((await probe(page)).hp).toBe(100);expect((await probe(page)).stamina).toBeLessThan(100);await lockedButton(page,'up','right');await lockedButton(page,'down');await lockedButton(page,'up');
  await expect.poll(async()=>(await probe(page)).enemies[0].hp,{timeout:60000}).toBeLessThan(100);await page.screenshot({path:'test-results/desktop-duel-3-counter.png'});expect(errors).toEqual([]);
 });
 test('desktop SDF carve changes the visible mesh and the aimed obstruction together',async({page,isMobile})=>{
