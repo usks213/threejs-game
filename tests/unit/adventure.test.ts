@@ -23,7 +23,7 @@ describe('survival gameplay', () => {
    const boss = BOSSES.find(b => b.id === biome.boss)!; Object.assign(game.state.inventory, boss.summon); game.action('summon');
    const enemy = game.state.enemies.find(e => e.definition === boss.id && e.boss)!;
    enemy.health = 1; enemy.x = sim.player.x; enemy.z = sim.player.z - 1; enemy.y = sim.player.y;
-   game.state.equipment = 'aetherSword'; game.state.stamina = 100; game.step(1); game.action('attack');
+   game.state.equipment = 'aetherSword'; game.state.stamina = 100; game.step(1); game.action('attack');game.stepPersonal(.2);
    expect(game.state.defeated).toContain(boss.id);
   }
   const saved = validateSave(JSON.parse(JSON.stringify(sim.save()))), restored = new GameSimulation(saved);
@@ -74,7 +74,7 @@ it('uses data-driven weapon reach and keeps poison finite',()=>{
  const sim=legacySimulation(),game=sim.adventure;
  game.state.inventory.spear=1; game.action('equip','spear');
  const enemy=game.state.enemies[0]; enemy.x=sim.player.x; enemy.z=sim.player.z-3.8; enemy.y=sim.player.y;
- const health=enemy.health; game.action('attack'); expect(enemy.health).toBeLessThan(health);
+ const health=enemy.health; game.action('attack');game.stepPersonal(.2); expect(enemy.health).toBeLessThan(health);
  game.hurtPlayer(2,'poison'); for(let i=0;i<300;i++)game.stepPersonal(1/30);
  expect(game.state.poison).toBe(0); expect(game.state.health).toBeGreaterThan(60);
 });

@@ -1,9 +1,10 @@
+import { voxelizePrimitive } from '../voxel/primitive';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as THREE from 'three';
 import { pbrMaterial } from '../materials/pbr';
 /** Original articulated low-poly wildlife, built from a shared mesh palette. */
 export function creatureKit(){
- const sphere=new THREE.IcosahedronGeometry(1,1),box=new THREE.BoxGeometry(1,1,1),cylinder=new THREE.CylinderGeometry(.05,.09,1,5);
+ const sphere=voxelizePrimitive(new THREE.IcosahedronGeometry(1,1)),box=new THREE.BoxGeometry(1,1,1),cylinder=voxelizePrimitive(new THREE.CylinderGeometry(.05,.09,1,5));
  const templates=new Map<string,THREE.Group>(),bodyGeometries:THREE.BufferGeometry[]=[];
  const lods=new Map<string,THREE.BufferGeometry>();
  const mats=new Map<string,THREE.MeshStandardMaterial>();

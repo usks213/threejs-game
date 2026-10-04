@@ -13,7 +13,7 @@ export function validateSave(raw: unknown): WorldSave {
   for (const edit of s.edits) { if (!edit?.position) throw new Error('編集データが不正です'); world.apply(edit); }
   const cells = new Set<string>();
   for (const c of s.fluids) {
-    if (!c || !insideBounds(c, WORLD, 1) || ![c.x, c.y, c.z].every(Number.isInteger) || !Number.isFinite(c.volume) || c.volume <= 0 || c.volume > 1 || [c.vx ?? 0, c.vz ?? 0].some(v => !Number.isFinite(v) || Math.abs(v) > 6)) throw new Error('水データが不正です');
+    if (!c || !insideBounds(c, WORLD, 1) || (![1,.5].includes(c.size??1)||![c.x,c.y,c.z].every(v=>Number.isInteger(v/(c.size??1)))) || !Number.isFinite(c.volume) || c.volume <= 0 || c.volume > (c.size??1)**3 || [c.vx ?? 0, c.vz ?? 0].some(v => !Number.isFinite(v) || Math.abs(v) > 6)) throw new Error('水データが不正です');
     const id = `${c.x},${c.y},${c.z}`; if (cells.has(id)) throw new Error('水データが重複しています'); cells.add(id);
   }
   const ids = new Set<number>();
@@ -24,6 +24,6 @@ export function validateSave(raw: unknown): WorldSave {
   if (s.members && (!Array.isArray(s.members) || s.members.length > 10000 || s.members.some(member => !/^[a-zA-Z0-9_-]{1,64}$/.test(member.id) || !insideBounds(member.player, WORLD, 1)))) throw new Error('参加者セーブが不正です');
   const members = s.members?.map(member => ({ id: member.id, player: { ...member.player }, adventure: validateAdventure(member.adventure) }));
   // Drop unrecognized fields and detach references from imported objects.
-  return { ...(members ? { members } : {}), version: s.version, ...(s.version === 2 ? { adventure: validateAdventure(s.adventure!) } : {}), generator: s.generator, seed: s.seed, player: { x: s.player.x, y: s.player.y, z: s.player.z }, edits: world.edits, fluids: s.fluids.map(c => ({ x: c.x, y: c.y, z: c.z, volume: c.volume, vx: c.vx ?? 0, vz: c.vz ?? 0 })), bodies: s.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
+  return { ...(members ? { members } : {}), version: s.version, ...(s.version === 2 ? { adventure: validateAdventure(s.adventure!) } : {}), generator: s.generator, seed: s.seed, player: { x: s.player.x, y: s.player.y, z: s.player.z }, edits: world.edits, fluids: s.fluids.map(c => ({ x: c.x, y: c.y, z: c.z, size:c.size, volume: c.volume, vx: c.vx ?? 0, vz: c.vz ?? 0 })), bodies: s.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
 }
 

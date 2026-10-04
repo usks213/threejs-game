@@ -1,3 +1,6 @@
+import { buildingVoxels,treeVoxels,localPoint as voxelLocal,bodyTouchesVoxels } from './voxel/model';
+import { strikeVoxels } from './voxel/destruction';
+import { dropItem,stepDrops } from './interaction/drops';
 import { strikeBarrier,shamanMagic } from './meadows/defense';
 import { meadowBuilding } from '../content/meadows/recipes';
 import { archerAttack } from './meadows/village';
@@ -22,6 +25,8 @@ export class Adventure {
  readonly state: AdventureSave;
  readonly meadowRules = new MeadowRules(this);
  owner = 'host';
+ private swing:{time:number;damage:number;reach:number;heavy:boolean;aim:Vec3}|null=null;
+ private buffered:{action:GameAction;aim:Vec3}|null=null;
  private fallPeak:number|null=null;
  private readonly charges = new Map<number,{x:number;z:number;seconds:number}>();
  projectiles: Projectile[] = [];
@@ -73,13 +78,23 @@ export class Adventure {
   enemy.slow = Math.max(enemy.slow, element === 'frost' ? 3 : 0.25);
   if (enemy.health <= 0) {
    if (!enemy.boss) enemy.respawnAt = this.state.seconds + 120;
-   if(this.state.meadows){if(enemy.boss){this.meadowRules.grant('hardAntler',3);this.meadowRules.grant('stormTrophy',1);if(!this.state.defeated.includes(enemy.definition))this.state.defeated.push(enemy.definition);}else this.meadowRules.loot(enemy.definition,enemy.stars??0);return;}
+   if(this.state.meadows){if(enemy.boss){dropItem(this,'hardAntler',3,enemy);dropItem(this,'stormTrophy',1,enemy);if(!this.state.defeated.includes(enemy.definition))this.state.defeated.push(enemy.definition);}else this.meadowRules.loot(enemy.definition,enemy.stars??0,enemy);return;}
    this.grant('fang', enemy.boss ? 8 : 1); this.grant('resin', enemy.boss ? 5 : 1);
    if (enemy.boss && !this.state.defeated.includes(enemy.definition)) { this.state.defeated.push(enemy.definition); this.state.unlocked = Math.min(5, Math.max(this.state.unlocked, enemy.tier + 1)); this.sim.adventure.state.unlocked = this.state.unlocked; this.grant(BOSSES.find(b => b.id === enemy.definition)!.reward, 4); }
   }
  }
+ private resolveSwing(damage:number,reach:number,heavy:boolean,aim:Vec3):void {
+  const p=this.sim.player,s=this.state;let hits=0;
+   for (const e of s.enemies) if (e.health > 0 && distance(p, e) < reach && Math.abs(e.y - p.y) < 3) {
+    const d = distance(p, e); if (d < 1 || ((e.x - p.x) * aim.x + (e.z - p.z) * aim.z) / d > (heavy?.35:.65)) {
+     if(!sees(this.sim,p,e))continue;this.hit(e,damage*(s.meadows&&!e.alerted?(s.equipment==='flintKnife'?10:3):1),'physical');e.alerted=10;hits++;
+     if (heavy || damage >= 25) { e.windup = 0; e.cooldown = Math.max(e.cooldown, 0.7); const push = e.boss ? 0.15 : 0.7; e.x += (e.x - p.x) / Math.max(d, 0.01) * push; e.z += (e.z - p.z) / Math.max(d, 0.01) * push; }
+    }
+   }
+  for(const id of strikeVoxels(this,aim,reach,heavy))this.sim.pendingEdits.add(id);
+ }
  hurtPlayer(amount: number, element: string, player = this.sim.player, source?:Vec3): void {
-  if (this.hurt > 0 || this.dodge > 0 || this.state.health <= 0) return;
+  if (this.hurt > 0 || (this.dodge>.1&&this.dodge<.34) || this.state.health <= 0) return;
   const held=this.state.meadows?.gear.offhand;const shield=held?(this.state.inventory[held]?held:''):this.state.inventory.towerShield?'towerShield':this.state.inventory.shield?'shield':'';
   const facing=!source||((source.x-player.x)*Math.sin(player.heading)+(source.z-player.z)*Math.cos(player.heading))>=0;
   if(this.guarding&&shield&&source&&facing&&(!this.state.meadows||this.state.meadows.durability[shield]!==0)){
@@ -99,6 +114,13 @@ export class Adventure {
  action(action: GameAction, id = '', target?: Vec3, aim: Vec3 = { x: 0, y: 0, z: -1 }): { dirty: string[]; message: string } {
   const p = this.sim.player, s = this.state, ground = target ?? { x: p.x + aim.x * 2.5, y: p.y, z: p.z + aim.z * 2.5 };
   if (s.health <= 0) throw new Error('復活を待ってください');
+  if(action==='interact'&&(id.startsWith('r:')||id.startsWith('b:')||id==='grave')){
+   const resource=id.startsWith('r:')?s.resources.find(n=>n.id===Number(id.slice(2))&&n.ready<=s.seconds):undefined;
+   const building=id.startsWith('b:')?s.buildings.find(b=>b.id===Number(id.slice(2))):undefined;
+   const entity=resource??building??(id==='grave'?s.death:null);if(!entity||Math.hypot(entity.x-p.x,entity.z-p.z)>4.5||!target||Math.hypot(target.x-p.x,target.y-p.y-.7,target.z-p.z)>3.6)throw new Error('照準の対象へ近づいてください');
+   for(let t=.15;t<.95;t+=.1){const q={x:p.x+(target.x-p.x)*t,y:p.y+.8+(target.y-p.y-.8)*t,z:p.z+(target.z-p.z)*t};if(this.sim.world.density(q)<-.08)throw new Error('対象が地面に遮られています');}
+   if(resource){action='gather';id=String(resource.id);}else if(id==='grave')action='gather';else id=String(building!.id);
+  }
   if(s.meadows){const result=this.meadowRules.action(action,id,ground);if(result)return result;}
   if (action === 'gather') {
    if (s.death && distance(p, s.death) < 2.5) { for (const [id, amount] of Object.entries(s.grave ?? {})) this.grant(id, amount); s.grave = {}; s.death = null; s.health = Math.min(foodStats(s).health, s.health + 30); s.stamina = foodStats(s).stamina; return { dirty: [], message: '墓標へ戻りました。体力とスタミナが回復します' }; }
@@ -114,14 +136,15 @@ export class Adventure {
    this.spend(recipe.cost); this.grant(recipe.output, recipe.amount); if (WEAPONS[id]) s.equipment = id;
    return { dirty: [], message: `${recipe.name}を作りました` };
   }
+  if(action==='equip'&&id==='fishingRod'&&s.inventory.fishingRod){s.equipment=id;return {dirty:[],message:'釣り竿を装備しました'};}
   if (action === 'equip') { if (!(s.inventory[id] > 0) || !WEAPONS[id]) throw new Error('その装備は持っていません'); s.equipment = id; return { dirty: [], message: `${ITEM_NAMES[id]}を装備` }; }
   if (action === 'eat') { const food = s.inventory.stew ? 'stew' : 'berry'; this.spend({ [food]: 1 }); s.food = food === 'stew' ? 300 : 90; s.health = Math.min(100, s.health + (food === 'stew' ? 35 : 12)); return { dirty: [], message: '食事で回復。しばらく体力が自然回復します' }; }
-  if (action === 'guard') { p.heading=Math.atan2(aim.x,aim.z); this.guarding = !this.guarding; this.attack = 0.25; return { dirty: [], message: this.guarding ? 'ガード中：もう一度押して解除' : 'ガード解除' }; }
-  if (action === 'dodge') { if (this.dodge > 0) throw new Error('回避中です'); this.stamina(22*(s.meadows?.gear.offhand==='towerShield'?1.1:1)); this.dodge = 0.4; this.dodgeX = aim.x; this.dodgeZ = aim.z; this.guarding = false; return { dirty: [], message: '回避' }; }
+  if (action === 'guard') { p.heading=Math.atan2(aim.x,aim.z); this.guarding = id==='on'?true:id==='off'?false:!this.guarding; this.attack = 0.25; return { dirty: [], message: this.guarding ? 'ガード中：もう一度押して解除' : 'ガード解除' }; }
+  if (action === 'dodge') { if (this.dodge > 0) throw new Error('回避中です'); this.stamina(22*(s.meadows?.gear.offhand==='towerShield'?1.1:1)); this.dodge = 0.48;this.swing=null;this.buffered=null; this.dodgeX = aim.x; this.dodgeZ = aim.z; this.guarding = false; return { dirty: [], message: '回避' }; }
   if (action === 'attack' || action === 'heavy') {
    p.heading = Math.atan2(aim.x, aim.z);
    if(s.meadows&&s.equipment!=='hands'&&!s.inventory[s.equipment])s.equipment='hands';
-   if (this.attack > 0) throw new Error('攻撃の回復を待ってください'); const weapon = WEAPONS[s.equipment] ?? WEAPONS.hands, heavy = action === 'heavy';
+   if(this.dodge>0)throw new Error('回避の回復を待ってください');if(this.attack>0){if(this.attack<.2){this.buffered={action,aim:{...aim}};return {dirty:[],message:''};}throw new Error('攻撃の回復を待ってください');} const weapon = WEAPONS[s.equipment] ?? WEAPONS.hands, heavy = action === 'heavy';
    if(s.meadows&&['hammer','hoe','fishingRod'].includes(s.equipment))throw new Error('持ち物から斧・棍棒・槍・弓を装備して攻撃してください');
    if(s.meadows&&s.meadows.durability[s.equipment]===0)throw new Error('装備が壊れています。作業台で修理してください');
    if(s.stamina<weapon.stamina*(heavy?1.8:1))throw new Error('スタミナが足りません');
@@ -131,13 +154,8 @@ export class Adventure {
    const damage = weapon.damage * (heavy ? 1.7 : 1)*(1+((s.meadows?.quality[s.equipment]??1)-1)*.2); let hits=0;
    if(s.meadows&&s.equipment==='flintSpear'&&heavy){this.spend({flintSpear:1});s.equipment='hands';this.projectile(aim,damage,'physical',.2);this.projectiles[this.projectiles.length-1].recover='flintSpear';this.projectiles[this.projectiles.length-1].kind='spear';this.projectiles[this.projectiles.length-1].gravity=5;return {dirty:[],message:'槍を投げました。着地点で拾えます'};}
    if (weapon.ranged) { this.projectile(aim, damage+(s.meadows?(arrow==='flintArrow'?27:arrow==='fireArrow'?11:22):0), 'physical', 0.15);const shot=this.projectiles[this.projectiles.length-1];shot.kind='arrow';shot.gravity=s.meadows?5:0;if(arrow==='fireArrow')shot.burn=5; return { dirty: [], message: '矢を放ちました' }; }
-   for (const e of s.enemies) if (e.health > 0 && distance(p, e) < weapon.reach + (heavy ? 0.4 : 0) && Math.abs(e.y - p.y) < 3) {
-    const d = distance(p, e); if (d < 1 || ((e.x - p.x) * aim.x + (e.z - p.z) * aim.z) / d > 0.1) {
-     this.hit(e,damage*(s.meadows&&!e.alerted?(s.equipment==='flintKnife'?10:3):1),'physical');e.alerted=10;hits++;
-     if (heavy || damage >= 25) { e.windup = 0; e.cooldown = Math.max(e.cooldown, 0.7); const push = e.boss ? 0.15 : 0.7; e.x += (e.x - p.x) / Math.max(d, 0.01) * push; e.z += (e.z - p.z) / Math.max(d, 0.01) * push; }
-    }
-   }
-   return { dirty: [], message: hits?`命中 · ${Math.round(damage)}${hits>1?' ×'+hits:''}`:action === 'heavy' ? '強攻撃' : '攻撃' };
+   this.guarding=false;this.swing={time:heavy?.32:.16,damage,reach:weapon.reach+(heavy?.4:0),heavy,aim:{...aim}};
+   return {dirty:[],message:heavy?'強攻撃':'攻撃'};
   }
   if (action === 'spell') {
    p.heading = Math.atan2(aim.x, aim.z);
@@ -160,8 +178,8 @@ export class Adventure {
    this.support(); return { dirty: [], message: `${def.name}を設置。支持がないものは崩れます` };
   }
   if (action === 'remove') {
-   const b = s.buildings.filter(b => distance(p, b) < 4).sort((a, b) => distance(p, a) - distance(p, b))[0]; if (!b) throw new Error('建築物に近づいてください');
-   s.buildings = s.buildings.filter(v => v.id !== b.id); for (const [material, amount] of Object.entries((s.meadows?meadowBuilding(BUILDINGS.find(v=>v.id===b.definition)!):BUILDINGS.find(v=>v.id===b.definition)!).cost)) this.grant(material, amount); this.support(); return { dirty: [], message: '解体して素材を回収しました' };
+   const b = id?s.buildings.find(b=>b.id===Number(id)&&distance(p,b)<4):s.buildings.filter(b => distance(p, b) < 4).sort((a, b) => distance(p, a) - distance(p, b))[0]; if (!b) throw new Error('建築物に近づいてください');
+   s.buildings = s.buildings.filter(v => v.id !== b.id); for (const [material, amount] of Object.entries(b.salvage??(s.meadows?meadowBuilding(BUILDINGS.find(v=>v.id===b.definition)!):BUILDINGS.find(v=>v.id===b.definition)!).cost)) if(amount>0)dropItem(this,material,amount,b);for(const [key,n]of Object.entries(b.contents))if(n>0)dropItem(this,key,n,b);this.support(); return {dirty:[],message:'解体して素材を地面へ戻しました'};
   }
   if (action === 'summon') {
    const biome = biomeAt(p.x, p.z), boss = BOSSES.find(b => b.id === biome.boss)!;
@@ -193,7 +211,7 @@ export class Adventure {
   const buildings = this.state.buildings;
   for (const b of buildings) b.support = b.definition==='raft'?4: this.sim.world.density({ x: b.x, y: b.y - 0.15, z: b.z }) < 0.2 ? BUILDINGS.find(d => d.id === b.definition)!.support : 0;
   for (let pass = 0; pass < 8; pass++) for (const b of buildings) for (const other of buildings) if (b !== other && Math.abs(b.x - other.x) <= 2.2 && Math.abs(b.z - other.z) <= 2.2 && Math.abs(b.y - other.y) <= 2.2) b.support = Math.max(b.support, other.support - 1);
-  for (const b of buildings.filter(b => b.support <= 0)) { this.sim.dropDebris({x:b.x,y:b.y+0.5,z:b.z},'debris',2); for (const [id, amount] of Object.entries((this.state.meadows?meadowBuilding(BUILDINGS.find(d=>d.id===b.definition)!):BUILDINGS.find(d=>d.id===b.definition)!).cost)) this.grant(id, amount); }
+  for (const b of buildings.filter(b => b.support <= 0)) { this.sim.dropDebris({x:b.x,y:b.y+0.5,z:b.z},'debris',2); for (const [id, amount] of Object.entries(b.salvage??(this.state.meadows?meadowBuilding(BUILDINGS.find(d=>d.id===b.definition)!):BUILDINGS.find(d=>d.id===b.definition)!).cost)) if(amount>0)dropItem(this,id,amount,b);for(const [id,amount]of Object.entries(b.contents))if(amount>0)dropItem(this,id,amount,b); }
   this.state.buildings = buildings.filter(b => b.support > 0);
  }
  collidePlayer(previousY: number): void {
@@ -202,17 +220,19 @@ export class Adventure {
    const def = BUILDINGS.find(d => d.id === b.definition)!;
    if (b.definition === 'portal' || b.definition === 'fire' || b.definition === 'cook' || ((b.definition==='door'||b.definition==='gate')&&b.open)) continue;
    const cos = Math.cos(b.rotation), sin = Math.sin(b.rotation), dx = p.x - b.x, dz = p.z - b.z, x = dx * cos - dz * sin, z = dx * sin + dz * cos;
+   if(b.removed?.length&&!bodyTouchesVoxels(buildingVoxels(b.definition),voxelLocal(p,b,b.rotation),b.removed))continue;
    const rx = def.size[0] / 2 + 0.3, rz = def.size[2] / 2 + 0.3, surface=surfaceHeight(b,Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,z))),top = surface??b.y + def.size[1],bottom=surface!==null&&!['stairs','ladder'].includes(b.definition)?surface-.22:b.y;
    if (Math.abs(x) >= rx || Math.abs(z) >= rz || p.y > top + 0.18 || p.y + 1.45 < bottom) continue;
    if (p.vy <= 0 && previousY >= top - (['stairs','ladder'].includes(b.definition)?.45:.15)) { p.y = top; p.vy = 0; p.grounded = true; }
    else { let nx = x, nz = z; if (rx - Math.abs(x) < rz - Math.abs(z)) nx = Math.sign(x || 1) * rx; else nz = Math.sign(z || 1) * rz; p.x = b.x + nx * cos + nz * sin; p.z = b.z - nx * sin + nz * cos; }
   }
   for (const n of this.state.resources) if (((!this.state.meadows&&n.kind === 'wood')||TREE_KINDS.has(n.kind)) && n.ready <= this.state.seconds && Math.abs(p.y - n.y) < 3) {
-   const d = distance(p, n); if (d < 0.47) { const dx = p.x - n.x, dz = p.z - n.z; p.x = n.x + (d ? dx / d : 1) * 0.47; p.z = n.z + (d ? dz / d : 0) * 0.47; }
+   if(n.removed?.length&&!bodyTouchesVoxels(treeVoxels(n.kind,n.id),voxelLocal(p,n),n.removed))continue;const d = distance(p, n); if (d < 0.47) { const dx = p.x - n.x, dz = p.z - n.z; p.x = n.x + (d ? dx / d : 1) * 0.47; p.z = n.z + (d ? dz / d : 0) * 0.47; }
   }
  }
  stepPersonal(dt: number): void {
-  const s = this.state, p = this.sim.player; s.seconds += dt; this.attack = Math.max(0, this.attack - dt); this.cast = Math.max(0, this.cast - dt); this.hurt = Math.max(0, this.hurt - dt); this.dodge = Math.max(0, this.dodge - dt);
+  const s = this.state, p = this.sim.player; stepDrops(this,dt); s.seconds += dt;if(this.swing){this.swing.time-=dt;if(this.swing.time<=0){const swing=this.swing;this.swing=null;if(s.health>0)this.resolveSwing(swing.damage,swing.reach,swing.heavy,swing.aim);}} this.attack = Math.max(0, this.attack - dt); this.cast = Math.max(0, this.cast - dt); this.hurt = Math.max(0, this.hurt - dt); this.dodge = Math.max(0, this.dodge - dt);
+  if(this.attack<=0&&this.buffered){const buffered=this.buffered;this.buffered=null;if(s.health>0){try{this.action(buffered.action,'',undefined,buffered.aim);}catch{}}}
   this.portalCooldown = Math.max(0, this.portalCooldown - dt);
   s.poison = Math.max(0, (s.poison ?? 0) - dt); s.chill = Math.max(0, (s.chill ?? 0) - dt);
   if (s.poison > 0 && s.health > 0) { this.poisonTick += dt; if (this.poisonTick >= 1) { this.poisonTick = 0; this.hurtPlayer(2, 'physical'); } } else this.poisonTick = 0;

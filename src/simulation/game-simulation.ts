@@ -1,3 +1,4 @@
+import { dropItem } from '../game/interaction/drops';
 import { migrateMeadows } from '../game/meadows/migration';
 import { updateWaterObstacles } from '../game/meadows/water-obstacles';
 import { driveRaft } from '../game/meadows/facilities';
@@ -24,12 +25,13 @@ export class GameSimulation {
   readonly player: PlayerState = { x: 0, y: terrainHeight(0, 8), z: 8, heading: 0, vy: 0, grounded: true };
   readonly metrics = { tickMs: 0, fluidMs: 0, physicsMs: 0, jumpHeight: 0 };
   tick = 0;
+  readonly pendingEdits=new Set<string>();
   private readonly lastActions = new Map<string, number>();
   private nextEntity = 3000001;
   private nextBody = 1;
   private jumpOrigin: number | null = null;
   constructor(save?: WorldSave | null) {
-    this.world = new SdfWorld(undefined,save?.generator ?? 3); this.character = new CharacterMotor(this.world); this.fluid = new FluidGrid(this.world);
+    this.world = new SdfWorld(undefined,save?.generator ?? 3); this.character = new CharacterMotor(this.world); this.fluid = new FluidGrid(this.world,this.world.generator===3?.5:1);
     if (save) {
       const valid = validateSave(save);
       for (const e of valid.edits) this.world.apply(e);
@@ -43,7 +45,7 @@ export class GameSimulation {
     for (const entity of [...(save?.adventure?.resources ?? []), ...(save?.adventure?.enemies ?? []), ...(save?.adventure?.buildings ?? [])]) this.nextEntity = Math.max(this.nextEntity, entity.id + 1);
     this.adventure = new Adventure(this, save?.adventure);migrateMeadows(this,this.adventure.state);
     if(save&&this.adventure.state.meadows)updateWaterObstacles(this);
-    if(!save){this.player.y=this.groundAt(0,8);for(let x=-49;x<=-16;x++)for(let z=-55;z<=24;z++){const h=this.groundAt(x+.5,z+.5);for(let y=Math.max(-4,Math.ceil(h));y<0;y++)this.fluid.add({x,y,z},.95);}}
+    if(!save){this.player.y=this.groundAt(0,8);for(let x=-49;x<=-16;x+=.5)for(let z=-55;z<=24;z+=.5){const h=this.groundAt(x+.25,z+.25);for(let y=Math.max(-4,Math.ceil(h*2)/2);y<0;y+=.5)this.fluid.add({x,y,z},.95);}}
   }
   allocateEntityId(): number { return this.nextEntity++; }
   forgetActor(id: string): void { this.lastActions.delete(id); }
@@ -56,7 +58,7 @@ export class GameSimulation {
     const flow = this.fluid.current(this.player);
     const dx = ix / length * speed * dt + flow.x * Math.min(1, immersion * 3) * dt, dz = iz / length * speed * dt + flow.z * Math.min(1, immersion * 3) * dt;
     const p = this.player;
-    if (dx || dz) p.heading = Math.atan2(dx, dz);
+    if ((dx || dz)&&!this.adventure.guarding&&!this.adventure.attack&&!this.adventure.dodge) p.heading = Math.atan2(dx, dz);
     const beforeJump = p.y;
     if (!driveRaft(this.adventure,ix,iz,dt)&&this.character.step(p, dx, dz, payJump(this.adventure,input.jump,p.grounded), dt, immersion)) { this.jumpOrigin = beforeJump; this.metrics.jumpHeight = 0; }
     p.x = Math.max(this.world.bounds.minX + 1, Math.min(this.world.bounds.maxX - 1, p.x));
@@ -124,6 +126,7 @@ export class GameSimulation {
     for(let i=0;i<count;i++)this.bodies.push({id:this.nextBody++,position:{x:position.x+(i-count/2)*0.5,y:Math.min(this.world.bounds.maxY-1,position.y+i*0.3),z:position.z},velocity:{x:0,y:0,z:0},radius:0.55,sleeping:false,kind});
   }
   private changeTerrain(kind:EditKind,position:Vec3,radius:number):string[]{
+    if(kind==='dig'&&this.world.density(position)<radius*.5)dropItem(this.adventure,'stone',Math.max(1,Math.round(radius**3)),{x:position.x,y:position.y+.3,z:position.z});
     const dirty=new Set(this.world.apply({id:this.world.edits.length+1,kind,position,radius,material:'stone',tick:this.tick}));
     for(const component of detachedVoxels(this.world,position)){
       for(const p of component){
@@ -137,7 +140,7 @@ export class GameSimulation {
   resetPlayer(): void { this.character.reset(); this.player.x = 0; this.player.z = 8; this.player.y = this.groundAt(0, 8) + 1; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
   save(): WorldSave {
     if(this.adventure.state.meadows)updateWaterObstacles(this);
-    return { version: 2, adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot().map(c => ({ x: c.x, y: c.y, z: c.z, volume: c.volume, vx: c.vx ?? 0, vz: c.vz ?? 0 })), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
+    return { version: 2, adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids: this.fluid.snapshot().map(c => ({ x: c.x, y: c.y, z: c.z, size:c.size, volume: c.volume, vx: c.vx ?? 0, vz: c.vz ?? 0 })), bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }
 }
 

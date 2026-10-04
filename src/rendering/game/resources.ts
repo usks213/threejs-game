@@ -1,3 +1,6 @@
+import { voxelizePrimitive } from '../voxel/primitive';
+import { treeVoxels } from '../../game/voxel/model';
+import { voxelGroup,disposeVoxelGroup } from '../voxel/object-mesh';
 import { leafMaterial } from '../materials/leaves';
 import { TREE_KINDS } from '../../content/meadows/data';
 import { pbrMaterial } from '../materials/pbr';
@@ -6,7 +9,8 @@ import type { AdventureSnapshot } from '../../game/types';
 import { Instances } from './instances';
 
 export function createResources(scene: THREE.Scene) {
-  const geometry = [new THREE.CylinderGeometry(0.15, 0.26, 2.8, 6), new THREE.ConeGeometry(1.1, 2.6, 6), new THREE.IcosahedronGeometry(0.5, 1),new THREE.PlaneGeometry(1,1)];
+  const trees=new Map<number,THREE.Group>(),treeBatches=new Map<string,{template:THREE.Group;batches:Instances[]}>();
+  const geometry = [voxelizePrimitive(new THREE.CylinderGeometry(0.15, 0.26, 2.8, 6)), voxelizePrimitive(new THREE.ConeGeometry(1.1, 2.6, 6)), voxelizePrimitive(new THREE.IcosahedronGeometry(0.5, 1)),new THREE.PlaneGeometry(1,1)];
   const leaves=leafMaterial();
   const definitions: [string, number, string][] = [
     ['leaves',3,'#8b9d66'],['trunk', 0, '#775d43'], ['crown', 1, '#5c814f'], ['canopy',2,'#617d45'],['canopyLight',2,'#7f9856'],['bush', 2, '#56714d'], ['berry', 2, '#cc896e'],
@@ -26,9 +30,10 @@ export function createResources(scene: THREE.Scene) {
   }
   return {
     update(state: AdventureSnapshot): void {
-      leaves.time.value=state.seconds;for (const batch of batches.values()) batch.begin();
+      leaves.time.value=state.seconds;for (const batch of batches.values()) batch.begin();for(const t of treeBatches.values())for(const b of t.batches)b.begin();
       for (const n of state.resources) {
         if (n.ready > state.seconds) continue;
+        if(TREE_KINDS.has(n.kind)){if(!n.removed?.length){const key=n.kind+':'+n.id%5;let t=treeBatches.get(key);if(!t){const template=voxelGroup(treeVoxels(n.kind,n.id));t={template,batches:template.children.map(o=>{const m=o as THREE.Mesh;return new Instances(scene,m.geometry,m.material as THREE.Material);})};treeBatches.set(key,t);}matrix.makeTranslation(n.x,n.y,n.z);for(const b of t.batches)b.add(matrix);continue;}const signature=n.kind+':'+(n.removed??[]).join(';');let group=trees.get(n.id);if(group&&group.userData.signature!==signature){scene.remove(group);disposeVoxelGroup(group);trees.delete(n.id);group=undefined;}if(!group){group=voxelGroup(treeVoxels(n.kind,n.id),n.removed);group.userData.signature=signature;trees.set(n.id,group);scene.add(group);}group.position.set(n.x,n.y,n.z);continue;}
         rotation.setFromAxisAngle(axis, n.id * 2.399);
         if ((!state.meadows&&n.kind === 'wood')||TREE_KINDS.has(n.kind)) {
           const height = (n.kind==='oak'?2:1.35) + (n.id % 7) * 0.1;
@@ -72,9 +77,10 @@ export function createResources(scene: THREE.Scene) {
           part(batches.has(n.kind)?n.kind:'loot', n.x, n.y + (crystal ? 0.8 : 0.4), n.z, crystal ? 0.9 : 1.5, crystal ? 2.1 : 1.5, crystal ? 0.9 : 1.5);
         }
       }
-      for (const batch of batches.values()) batch.end();
+      for(const [id,g]of trees)if(!state.resources.some(n=>n.id===id&&TREE_KINDS.has(n.kind)&&!!n.removed?.length&&n.ready<=state.seconds)){scene.remove(g);disposeVoxelGroup(g);trees.delete(id);}
+      for (const batch of batches.values()) batch.end();for(const t of treeBatches.values())for(const b of t.batches)b.end();
     },
-    dispose(): void {
+    dispose(): void {for(const g of trees.values()){scene.remove(g);disposeVoxelGroup(g);}trees.clear();for(const t of treeBatches.values()){for(const b of t.batches)b.dispose();disposeVoxelGroup(t.template);}treeBatches.clear();
       for (const batch of batches.values()) batch.dispose();
       leaves.dispose();geometry.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
     },

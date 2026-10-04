@@ -1,8 +1,13 @@
+import { configureLandscape,landscapeSize } from './viewport/landscape';
+import { mouseActions } from '../input/mouse/actions';
+import { interactionTarget,type InteractionTarget } from '../game/interaction/target';
+import { reconcileSlots } from '../game/meadows/inventory-layout';
+import { FOODS } from '../content/meadows/data';
 import { meadowBuilding } from '../content/meadows/recipes';
 import { createPipeline } from '../rendering/postprocessing/pipeline';
 import { disposeSurfaceMaps } from '../rendering/materials/pbr';
-import { BUILDINGS, WEAPONS } from '../content/catalog';
-import { placementPoint, placementIssue } from '../game/placement';
+import { BUILDINGS } from '../content/catalog';
+import { placementIssue, snapBuilding } from '../game/placement';
 import { itemIcon } from '../ui/icons/item';
 import { gameShell } from '../ui/shell';
 import { holdAction } from '../input/touch/hold';
@@ -27,7 +32,7 @@ export function startGame() {
   const controller = new AbortController(), { signal } = controller;
   const canvas = document.querySelector<HTMLCanvasElement>('#game')!, app = document.querySelector<HTMLElement>('#app')!;
   const status = document.querySelector<HTMLElement>('#status')!, error = document.querySelector<HTMLElement>('#error')!;
-  gameShell(signal);
+  configureLandscape(app,signal);gameShell(signal);
   const sound = gameSound(signal);document.querySelector<HTMLInputElement>('#sound-volume')!.addEventListener('input',e=>sound.setVolume(Number((e.target as HTMLInputElement).value)),{signal});
   document.querySelector('#sound-toggle')!.addEventListener('click', () => { document.querySelector('#sound-toggle')!.textContent = sound.toggle() ? '音 OFF' : '音 ON'; }, { signal });
   let noticeTimer: ReturnType<typeof setTimeout> | undefined, lastNotice = 0;
@@ -56,10 +61,12 @@ export function startGame() {
   document.querySelector('#build-rotate')!.addEventListener('click',()=>{buildRotation+=Math.PI/2;},{signal});
   for(const [id,delta]of [['build-up',.5],['build-down',-.5]] as const)document.querySelector('#'+id)!.addEventListener('click',()=>{buildHeight=Math.max(-2,Math.min(6,buildHeight+delta));},{signal});
   document.querySelector('#build-snap')!.addEventListener('click',e=>{freePlacement=!freePlacement;(e.currentTarget as HTMLButtonElement).textContent=freePlacement?'自由配置':'接続配置';},{signal});
-  document.querySelector('#build-cancel')!.addEventListener('click',()=>{building='';buildControls.hidden=true;use.textContent=names[tool];},{signal});
+  document.querySelector('#build-cancel')!.addEventListener('click',()=>{building='';app.dataset.building='false';buildControls.hidden=true;use.textContent=names[tool];},{signal});
   for(const [id,property] of [['camera-distance','distance'],['camera-sensitivity','sensitivity']] as const)document.querySelector<HTMLInputElement>('#'+id)!.addEventListener('input',e=>{view[property]=Number((e.target as HTMLInputElement).value);},{signal});
   document.querySelector<HTMLInputElement>('#shadows-enabled')!.addEventListener('change',e=>{renderer.shadowMap.enabled=(e.target as HTMLInputElement).checked;renderer.shadowMap.needsUpdate=true;},{signal});
   let first=true,dirtyWorld=false;
+  let contextual:InteractionTarget|null=null;
+  const interactButton=document.querySelector<HTMLButtonElement>('#interact')!;
   let state: Snapshot | null = null, tool: Tool = 'dig', jump = false, target: Vec3 | null = null, lastInput = 0, lastRay = 0, lastUI = 0;
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
@@ -70,24 +77,19 @@ export function startGame() {
   const persistence = persistenceUI(send, signal, notice);
   const gameAction = (action: GameAction, id?: string) => {
     if(action==='spell'&&id)spell=id;
-    let aim={x:-Math.sin(view.yaw),y:-Math.sin(view.pitch)*.5,z:-Math.cos(view.yaw)};
+    const direction=camera.getWorldDirection(normal);let aim={x:direction.x,y:direction.y,z:direction.z};
     if(action==='build')aim={x:Math.sin(buildRotation),y:0,z:Math.cos(buildRotation)};
-    if(state&&(action==='attack'||action==='heavy')){
-      const p=state.player,reach=(WEAPONS[state.adventure.equipment]??WEAPONS.hands).reach;
-      const enemy=state.adventure.enemies.filter(e=>{const d=Math.hypot(e.x-p.x,e.z-p.z);return e.health>0&&d<reach+.4&&Math.abs(e.y-p.y)<2&&(d<1||((e.x-p.x)*aim.x+(e.z-p.z)*aim.z)/d>.3);}).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
-      if(enemy){const d=Math.hypot(enemy.x-p.x,enemy.z-p.z)||1;aim={x:(enemy.x-p.x)/d,y:0,z:(enemy.z-p.z)/d};}
-    }
     if(action==='dodge'&&(input.x||input.z)){const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw),length=Math.hypot(input.x,input.z);aim={x:(input.x*cos+input.z*sin)/length,y:0,z:(input.z*cos-input.x*sin)/length};}
     send({type:'game-action',action,id,target:action==='build'?placement??undefined:target??undefined,aim});
   };
-  const adventure = adventureUI(signal, gameAction, id => { building=id;buildHeight=0;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
-  for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
+  const adventure = adventureUI(signal, gameAction, id => { building=id;app.dataset.building='true';buildHeight=0;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
+  for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='guard'){button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);gameAction('guard','on');},{signal});for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>gameAction('guard','off'),{signal});}else if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
   for(const id of ['sprint','sneak'] as const)actionInput(document.querySelector<HTMLButtonElement>('#'+id)!,()=>gameAction(id),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#quick-eat')!,()=>gameAction('eat'),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#cast')!, () => gameAction(state?.adventure.meadows?'interact':'spell', spell), signal);
   const use = document.querySelector<HTMLButtonElement>('#use-tool')!;
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]')) button.addEventListener('click', () => {
-    building = '';buildControls.hidden=true; tool = button.dataset.tool as Tool; use.textContent = names[tool]; app.dataset.tool=tool; use.disabled = tool !== 'water' && !target;
+    building = '';app.dataset.building='false';buildControls.hidden=true; tool = button.dataset.tool as Tool; use.textContent = names[tool]; app.dataset.tool=tool; use.disabled = tool !== 'water' && !target;
     for (const b of document.querySelectorAll('[data-tool]')) b.setAttribute('aria-pressed', String(b === button));
   }, { signal });
   for(const [id,icon,label] of [['attack','sword','攻撃'],['water-cast','water','放水'],['guard','shield','盾'],['heavy','axe','強撃'],['cast','staff','魔法'],['adventure-menu','bag','持物'],['build-rotate','hammer','回転'],['quick-eat','berry','食事']] ){const button=document.querySelector<HTMLButtonElement>('#'+id)!;button.innerHTML=itemIcon(icon)+'<span>'+label+'</span>';if(id==='attack')button.setAttribute('aria-label','攻撃');}
@@ -97,9 +99,28 @@ export function startGame() {
   holdAction(use, act, () => !building && tool === 'water', signal);
   actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { jump = true; }, signal);
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
-  window.addEventListener('keydown', e => { if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return; if (e.code === 'Space' && !e.repeat) { e.preventDefault(); jump = true; } if (e.code === 'KeyF' && !e.repeat) act(); if (e.code === 'KeyE' && !e.repeat) gameAction('gather'); if (e.code === 'KeyQ' && !e.repeat) gameAction('attack'); if (e.code === 'ShiftLeft' && !e.repeat) gameAction('dodge'); if (e.code === 'KeyR' && !e.repeat) gameAction('heavy'); }, { signal });
+  const interact=()=>{if(!contextual){if(state?.adventure.equipment==='fishingRod'||state?.adventure.meadows?.riding)gameAction('interact');return;}const t=contextual;if(state?.adventure.equipment==='hammer'&&t.id.startsWith('b:')&&!t.panel){gameAction('repairBuilding',t.id.slice(2));return;}if(t.panel){adventure.openContext(t.panel,t.id);mouse.unlock();}send({type:'game-action',action:'interact',id:t.id,target:t.point,aim:{...raycaster.ray.direction}});};
+  actionInput(interactButton,interact,signal);actionInput(document.querySelector<HTMLButtonElement>('#dismantle')!,()=>{if(contextual?.id.startsWith('b:'))gameAction('remove',contextual.id.slice(2));},signal);
+  const quick=(index:number)=>{if(!state?.adventure.meadows)return;const slot=reconcileSlots(state.adventure.meadows,state.adventure.inventory)[index];if(slot)gameAction(FOODS[slot.id]?'eat':'equip',slot.id);};
+  document.querySelector('#hotbar')!.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLElement>('[data-quick]');if(b)quick(Number(b.dataset.quick));},{signal});
+  const mouse=mouseActions(canvas,signal,()=>building?act():gameAction('attack'),held=>{if(building){if(held)document.querySelector<HTMLButtonElement>('#build-cancel')!.click();}else gameAction('guard',held?'on':'off');});
+  const sprint=(held:boolean)=>{if(state?.adventure.meadows)gameAction('sprint',held?'on':'off');};window.addEventListener('blur',()=>sprint(false),{signal});
+  window.addEventListener('keydown',e=>{
+    if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
+    if(e.code==='Escape'){mouse.unlock();document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
+    if(e.code==='Tab'){e.preventDefault();if(!e.repeat){adventure.open('bag');mouse.unlock();}return;}
+    if(e.repeat||document.querySelector('[role=dialog]:not([hidden])'))return;
+    if(e.code==='Space'){e.preventDefault();jump=true;}
+    if(e.code==='KeyE')interact();if(e.code==='KeyB'){adventure.open('build');mouse.unlock();}
+    if(e.code==='KeyX'&&state?.adventure.equipment==='hammer'&&contextual?.id.startsWith('b:'))gameAction('remove',contextual.id.slice(2));if(e.code==='KeyF')pour();if(e.code==='KeyR'){if(building)buildRotation+=Math.PI/2;else gameAction('heavy');}
+    if(e.code==='ControlLeft'||e.code==='KeyC')gameAction('dodge');
+    if(e.code==='ShiftLeft'||e.code==='ShiftRight')sprint(true);
+    if(/^Digit[1-8]$/.test(e.code))quick(Number(e.code.slice(-1))-1);
+  },{signal});
+  window.addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight')sprint(false);},{signal});
+  document.querySelectorAll('[role=dialog]').forEach(p=>{const observer=new MutationObserver(()=>{if(!(p as HTMLElement).hidden)mouse.unlock();});observer.observe(p,{attributes:true,attributeFilter:['hidden']});signal.addEventListener('abort',()=>observer.disconnect(),{once:true});});
   document.querySelector('#reset')!.addEventListener('click', () => send({ type: 'reset-player' }), { signal });
-  const resize = () => { target = null; camera.aspect = window.innerWidth / Math.max(1, window.innerHeight); camera.updateProjectionMatrix(); pipeline.resize(window.innerWidth,window.innerHeight); };
+  const resize = () => { target = null; const v=landscapeSize(innerWidth,innerHeight);camera.aspect = v.width / Math.max(1,v.height); camera.updateProjectionMatrix(); pipeline.resize(v.width,v.height); };
   window.addEventListener('resize', resize, { signal }); resize();
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); fail('WebGLの接続が失われました。保存したワールドは再読込できます。ページを再読み込みしてください。'); }, { signal });
   canvas.addEventListener('webglcontextrestored', () => { error.textContent = '描画接続が戻りました。ページを再読み込みしてください。'; }, { signal });
@@ -143,14 +164,15 @@ export function startGame() {
       world.player.visible = camera.position.distanceTo(world.player.position) > 1.6;
       if (state && now - lastRay > 80) {
         raycaster.setFromCamera(center, camera); let hit = terrain.raycast(raycaster);
-        if (building) { const piece = world.raycastBuildings(raycaster); if (piece && (!hit || piece.distance < hit.distance)) hit = piece; }
+        contextual=interactionTarget(state.adventure,state.player,raycaster.ray.origin,raycaster.ray.direction,hit?.distance);interactButton.hidden=!contextual||!!building;document.querySelector('#interaction-label')!.textContent=contextual?.label??'';app.dataset.interaction=contextual?.id??'';document.querySelector<HTMLButtonElement>('#dismantle')!.hidden=!!building||state.adventure.equipment!=='hammer'||!contextual?.id.startsWith('b:');
+        let anchorId:number|undefined;if (building) { const piece = world.raycastBuildings(raycaster); if (piece && (!hit || piece.distance < hit.distance)) {hit = piece;let o:THREE.Object3D|null=piece.object;while(o){if(o.userData.buildingId){anchorId=o.userData.buildingId;break;}o=o.parent;}} }
         if (hit && hit.point.distanceTo(focus.set(state.player.x, state.player.y + 0.7, state.player.z)) <= 7) {
           target = { x: hit.point.x, y: hit.point.y, z: hit.point.z };
-          normal.copy(hit.face?.normal ?? markerAxis); world.marker.position.copy(hit.point).addScaledVector(normal, 0.04); world.marker.quaternion.setFromUnitVectors(markerAxis, normal); world.marker.visible = true;
+          normal.copy(hit.face?.normal ?? markerAxis);if(hit.face)normal.transformDirection(hit.object.matrixWorld); world.marker.position.copy(hit.point).addScaledVector(normal, 0.04); world.marker.quaternion.setFromUnitVectors(markerAxis, normal); world.marker.visible = true;
         } else if (!building && tool==='add' && hasEditedPoint && editedPoint.distanceTo(focus)<7 && raycaster.ray.distanceToPoint(editedPoint)<1.6 && normal.copy(editedPoint).sub(raycaster.ray.origin).dot(raycaster.ray.direction)>0) {
           target={x:editedPoint.x,y:editedPoint.y,z:editedPoint.z};world.marker.position.copy(editedPoint);world.marker.quaternion.setFromUnitVectors(markerAxis,normal.set(0,1,0));world.marker.visible=true;
         } else { target = null; world.marker.visible = false; }
-        placement=building&&target?(freePlacement?{...target}:placementPoint(target)):null;if(placement)placement.y+=buildHeight;
+        placement=building&&target?(freePlacement?{...target}:snapBuilding(building,target,normal,buildRotation,state.adventure.buildings.find(b=>b.id===anchorId))):null;if(placement)placement.y+=buildHeight;
         if(building==='cook'&&placement){const fire=state.adventure.buildings.find(b=>b.definition==='fire'&&Math.hypot(b.x-placement!.x,b.z-placement!.z)<1);if(fire){placement.x=fire.x;placement.z=fire.z;placement.y=fire.y+.65;}}
         const rawDef=BUILDINGS.find(b=>b.id===building),def=rawDef&&state.adventure.meadows?meadowBuilding(rawDef):rawDef,issue=def&&placement?placementIssue(def,state.player,placement,state.adventure.buildings,state.adventure.inventory):'地面に照準を合わせる';
         world.preview(building,placement,buildRotation,!issue);
@@ -163,6 +185,7 @@ export function startGame() {
       frames++; if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
         const p = state.player, m = state.metrics; if(state.adventure.meadows){document.querySelector('#cast')!.innerHTML=itemIcon(state.adventure.meadows.fishing?'fishingRod':'hammer')+'<span>'+ (state.adventure.meadows.fishing?.phase==='bite'?'合わせる':state.adventure.meadows.fishing?.phase==='fight'?(state.adventure.meadows.fishing.reeling?'緩める':'巻く'):'使う')+'</span>';} adventure.update(state.adventure, p,view.yaw);
+        if(state.adventure.meadows){const slots=reconcileSlots(state.adventure.meadows,state.adventure.inventory);const markup=slots.slice(0,8).map((slot,i)=>`<button type=button data-quick=${i} aria-label="${slot?slot.id:'空き'}" class="${slot?.id===state!.adventure.equipment?'selected':''}"><kbd>${i+1}</kbd>${slot?itemIcon(slot.id)+'<small>'+slot.count+'</small>':'·'}</button>`).join('');const hotbar=document.querySelector('#hotbar')!;if(hotbar.innerHTML!==markup)hotbar.innerHTML=markup;}
         app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']});
         app.dataset.cameraPitch = String(view.pitch); app.dataset.cameraYaw = String(view.yaw);
         position.textContent = `X ${p.x.toFixed(1)} · Y ${p.y.toFixed(1)} · Z ${p.z.toFixed(1)}`; position.dataset.x = String(p.x); position.dataset.y = String(p.y); position.dataset.z = String(p.z); position.dataset.grounded = String(p.grounded); app.dataset.tick = String(state.tick);

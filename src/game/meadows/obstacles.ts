@@ -1,9 +1,10 @@
+import { buildingVoxels,localPoint as voxelLocal,bodyTouchesVoxels } from '../voxel/model';
 import { BUILDINGS } from '../../content/catalog';
 import type { BuildingState,EnemyState } from '../types';
 import type { GameSimulation } from '../../simulation/game-simulation';
 export function localPoint(b:BuildingState,x:number,z:number){const c=Math.cos(b.rotation),s=Math.sin(b.rotation),dx=x-b.x,dz=z-b.z;return {x:dx*c-dz*s,z:dx*s+dz*c};}
 export function blockedByBuilding(b:BuildingState,x:number,y:number,z:number,radius=.3):boolean{
- if(['fire','cook','bed','beehive','raft','sign'].includes(b.definition)||b.open)return false;const def=BUILDINGS.find(d=>d.id===b.definition);if(!def)return false;const p=localPoint(b,x,z);
+ if(['fire','cook','bed','beehive','raft','sign'].includes(b.definition)||b.open)return false;const def=BUILDINGS.find(d=>d.id===b.definition);if(!def)return false;const p=localPoint(b,x,z);if(b.removed?.length&&!bodyTouchesVoxels(buildingVoxels(b.definition),voxelLocal({x,y,z},b,b.rotation),b.removed))return false;
  return Math.abs(p.x)<def.size[0]/2+radius&&Math.abs(p.z)<def.size[2]/2+radius&&y<b.y+def.size[1]&&y+1.1>b.y;
 }
 export function reconcileCreature(sim:GameSimulation,e:EnemyState,from:{x:number;y:number;z:number}):void{

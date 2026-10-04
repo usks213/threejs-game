@@ -1,10 +1,11 @@
+import { voxelizePrimitive } from '../voxel/primitive';
 import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 
 export interface AvatarPose { equipment?: string; attack?: number; guarding?: boolean; dodging?: boolean; shield?: boolean; grounded?: boolean; gear?:Record<string,string>; tower?:boolean }
 export function createAvatarAssets() {
-  const box = new THREE.BoxGeometry(1, 1, 1), head = new THREE.IcosahedronGeometry(0.21, 1);
-  const blade = new THREE.ConeGeometry(0.09, 0.75, 4), arc = new THREE.TorusGeometry(0.33, 0.035, 4, 12, Math.PI);
+  const box = new THREE.BoxGeometry(1, 1, 1), head = voxelizePrimitive(new THREE.IcosahedronGeometry(0.21, 1));
+  const blade = voxelizePrimitive(new THREE.ConeGeometry(0.09, 0.75, 4)), arc = voxelizePrimitive(new THREE.TorusGeometry(0.33, 0.035, 4, 12, Math.PI));
   const materials = new Map<string, THREE.MeshStandardMaterial>();
   const material = (color: string) => {
     let value = materials.get(color);

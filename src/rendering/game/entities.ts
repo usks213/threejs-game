@@ -1,3 +1,6 @@
+import { voxelizePrimitive } from '../voxel/primitive';
+import { buildingVoxels } from '../../game/voxel/model';
+import { voxelGroup,disposeVoxelGroup } from '../voxel/object-mesh';
 import { campDetails } from './camp-details';
 import { bossTells } from './boss-tells';
 import { creatureKit } from './creatures';
@@ -14,7 +17,7 @@ export function createEntities(scene: THREE.Scene) {
  const geo = (id: string, make: () => THREE.BufferGeometry) => { let g = geometry.get(id); if (!g) { g = make(); geometry.set(id, g); } return g; };
  const mat = (color: string) => { let m = materials.get(color); if (!m) { m = pbrMaterial(color, color==='#8b8c84'?'stone':['#e2baff','#b6eafa','#ffc077'].includes(color)?'crystal':'skin'); materials.set(color, m); } return m; };
  const part = (group: THREE.Group, shape: THREE.BufferGeometry, color: string, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1) => { const mesh = new THREE.Mesh(shape, mat(color)); mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh); };
- const box = geo('box', () => new THREE.BoxGeometry(1, 1, 1)), sphere = geo('sphere', () => new THREE.IcosahedronGeometry(0.5, 0)), cone = geo('cone', () => new THREE.ConeGeometry(1, 2.4, 6));
+ const box = geo('box', () => new THREE.BoxGeometry(1, 1, 1)), sphere = geo('sphere', () => voxelizePrimitive(new THREE.IcosahedronGeometry(0.5, 0))), cone = geo('cone', () => voxelizePrimitive(new THREE.ConeGeometry(1, 2.4, 6)));
  function object(key: string, make: (g: THREE.Group) => void): THREE.Group { let group = objects.get(key); if (!group) { group = new THREE.Group(); make(group); objects.set(key, group); scene.add(group); } return group; }
  let latest: AdventureSnapshot | null = null;
  return {
@@ -54,7 +57,7 @@ export function createEntities(scene: THREE.Scene) {
    }
    for (const b of state.buildings) {
     const def = BUILDINGS.find(d => d.id === b.definition)!;
-    const group = object('building' + b.id, g => g.add(buildings.make(b.definition))); group.position.set(b.x,b.y,b.z);const hinged=b.definition==='door'||b.definition==='gate',angle=hinged&&b.open?Math.PI/2:0;group.rotation.y=b.rotation+angle;if(hinged&&angle){const half=b.definition==='gate'?1:.5;group.position.x+=half*(Math.cos(b.rotation+angle)-Math.cos(b.rotation));group.position.z-=half*(Math.sin(b.rotation+angle)-Math.sin(b.rotation));}group.visible=true;
+    const key='building'+b.id,signature=(b.removed??[]).join(';');const previous=objects.get(key);if(previous&&previous.userData.voxels!==signature){disposeVoxelGroup(previous);scene.remove(previous);objects.delete(key);}const group=object(key,g=>{g.add(voxelGroup(buildingVoxels(b.definition),b.removed));g.userData.voxels=signature;g.userData.buildingId=b.id;}); group.position.set(b.x,b.y,b.z);const hinged=b.definition==='door'||b.definition==='gate',angle=hinged&&b.open?Math.PI/2:0;group.rotation.y=b.rotation+angle;if(hinged&&angle){const half=b.definition==='gate'?1:.5;group.position.x+=half*(Math.cos(b.rotation+angle)-Math.cos(b.rotation));group.position.z-=half*(Math.sin(b.rotation+angle)-Math.sin(b.rotation));}group.visible=true;
     const flame=group.getObjectByName('flame');if(flame){flame.scale.y=.6+Math.sin(state.seconds*8)*.09;flame.visible=!state.meadows||!!b.fuel&&!b.open;}
    }
    for (const biome of state.meadows?[]:BIOMES) {
@@ -65,10 +68,10 @@ export function createEntities(scene: THREE.Scene) {
    for (const shot of state.projectiles) { const group = object('shot' + shot.id, g => {if(shot.kind){part(g,box,'#8a6c4d',0,0,0,.025,.025,shot.kind==='spear'?1.5:.65);part(g,cone,'#8b8c84',0,0,.4,.04,.08,.04);}else part(g, sphere, shot.element === 'frost' ? '#b6eafa' : '#ffc077', 0, 0, 0, shot.radius, shot.radius, shot.radius);}); group.position.set(shot.x, shot.y, shot.z);if(shot.kind)group.lookAt(shot.x+shot.vx,shot.y+shot.vy,shot.z+shot.vz); group.visible = true; }
 
    // Retire departed entities; shared geometries/materials remain owned by this renderer.
-   for (const [key, group] of objects) if (!group.visible) { scene.remove(group); group.traverse(o => { if (o instanceof THREE.Mesh) { if (o.name === 'health') o.geometry.dispose(); if (o.name === 'health') (o.material as THREE.Material).dispose(); } }); objects.delete(key); }
+   for (const [key, group] of objects) if (!group.visible) { scene.remove(group);if(key.startsWith('building'))disposeVoxelGroup(group); group.traverse(o => { if (o instanceof THREE.Mesh) { if (o.name === 'health') o.geometry.dispose(); if (o.name === 'health') (o.material as THREE.Material).dispose(); } }); objects.delete(key); }
   },
   faceCamera(camera:THREE.Camera){for(const [key,g] of objects)if(key.startsWith('enemy'))g.getObjectByName('health')?.lookAt(camera.position);},
-  dispose(){details.dispose();tells.dispose();resources.dispose();buildings.dispose();creatures.dispose();for(const g of geometry.values())g.dispose();for(const m of materials.values())m.dispose();},
+  dispose(){for(const [key,g] of objects)if(key.startsWith('building'))disposeVoxelGroup(g);details.dispose();tells.dispose();resources.dispose();buildings.dispose();creatures.dispose();for(const g of geometry.values())g.dispose();for(const m of materials.values())m.dispose();},
   raycast(ray: THREE.Raycaster) { return ray.intersectObjects([...objects.entries()].filter(([key]) => key.startsWith('building')).map(([, group]) => group), true)[0]; },
   collision(player: THREE.Vector3) {
    if (!latest) return;

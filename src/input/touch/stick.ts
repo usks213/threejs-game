@@ -1,3 +1,4 @@
+import { landscapeDelta } from '../../platform/viewport/landscape';
 import type { Axis } from '../../core/player';
 export function touchInput(element: HTMLElement, knob: HTMLElement, signal: AbortSignal) {
   const axis: Axis = { x: 0, z: 0 };
@@ -6,9 +7,9 @@ export function touchInput(element: HTMLElement, knob: HTMLElement, signal: Abor
   const move = (event: PointerEvent) => {
     if (event.pointerId !== pointer) return;
     const box = element.getBoundingClientRect();
-    const radius = box.width * 0.3;
-    const x = (event.clientX - box.left - box.width / 2) / radius;
-    const z = (event.clientY - box.top - box.height / 2) / radius;
+    const radius = Math.min(box.width,box.height) * 0.3;
+    const delta=landscapeDelta(event.clientX-box.left-box.width/2,event.clientY-box.top-box.height/2,innerWidth,innerHeight);
+    const x = delta.x / radius,z=delta.y/radius;
     const scale = Math.max(1, Math.hypot(x, z));
     axis.x = x / scale; axis.z = z / scale;
     knob.style.transform = `translate(${axis.x * radius}px, ${axis.z * radius}px)`;
@@ -21,3 +22,4 @@ export function touchInput(element: HTMLElement, knob: HTMLElement, signal: Abor
   document.addEventListener('visibilitychange', clear, { signal });
   return axis;
 }
+

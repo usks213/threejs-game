@@ -4,7 +4,7 @@ export function visibleBricks(position: Vec3, bounds: WorldBounds = WORLD): Map<
   const cx = Math.floor(position.x / CHUNK_SIZE), cz = Math.floor(position.z / CHUNK_SIZE);
   for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
     // Matching sample grids prevent cracks until transition meshes are implemented.
-    const step = 1;
+    const step = .5;
     for (let bx = 0; bx < 2; bx++) for (let bz = 0; bz < 2; bz++) {
       const x = (cx + dx) * CHUNK_SIZE + bx * BRICK_SIZE, z = (cz + dz) * CHUNK_SIZE + bz * BRICK_SIZE;
       if (x < bounds.minX || x + BRICK_SIZE > bounds.maxX || z < bounds.minZ || z + BRICK_SIZE > bounds.maxZ) continue;
@@ -17,3 +17,4 @@ export function visibleBricks(position: Vec3, bounds: WorldBounds = WORLD): Map<
   }
   return result;
 }
+

@@ -8,7 +8,7 @@ it('respawns village defenders until their source is destroyed',()=>{const sim=n
 
 it('returns the actual meadow recipe on collapse and preserves level edits in saves',()=>{
  const sim=new GameSimulation(),g=sim.adventure;g.state.buildings=[];g.state.inventory={hammer:1,wood:2,hoe:1};const p=sim.player;
- g.action('build','floor',{x:p.x+3,y:p.y+5,z:p.z});expect(g.state.inventory.wood).toBe(2);expect(g.state.buildings).toHaveLength(0);
+ g.action('build','floor',{x:p.x+3,y:p.y+5,z:p.z});expect(g.state.inventory.wood).toBe(0);expect(g.state.resources.filter(n=>n.drop&&n.kind==='wood').reduce((total,n)=>total+n.amount,0)).toBe(2);expect(g.state.buildings).toHaveLength(0);
  p.y=sim.groundAt(p.x,p.z);const target={x:p.x+2,y:sim.groundAt(p.x+2,p.z),z:p.z};g.action('landscape','level',target);
  const h=sim.groundAt(target.x,target.z);expect(sim.world.density({x:target.x+.5,y:h+.1,z:target.z})).toBeGreaterThan(0);expect(sim.world.density({x:target.x+.5,y:h-.1,z:target.z})).toBeLessThan(0);
  const restored=new GameSimulation(sim.save());expect(restored.groundAt(target.x,target.z)).toBeCloseTo(h);expect(restored.world.soilAt({x:target.x,y:h,z:target.z})).toBe(true);

@@ -90,7 +90,7 @@ it('water carries the player, a sleeping rock and an enemy without movement inpu
  Object.assign(sim.player,{x:.5,y:0,z:.5});
  const enemy=sim.adventure.state.enemies[0];Object.assign(enemy,{x:2.5,y:0,z:.5,cooldown:10});
  sim.bodies.push({id:100,radius:.55,sleeping:true,position:{x:4.5,y:.6,z:.5},velocity:{x:0,y:0,z:0}});
- for(let x=0;x<6;x++)for(let y=0;y<2;y++){sim.fluid.add({x,y,z:0});sim.fluid.cells.get(`${x},${y},0`)!.vx=5;}
+ sim.fluid.cells.clear();for(let x=0;x<6;x+=.5)for(let y=0;y<2;y+=.5)for(let z=0;z<1;z+=.5){sim.fluid.add({x,y,z});sim.fluid.cells.get(`${x},${y},${z}`)!.vx=5;}
  sim.step(idle);
  expect(sim.player.x).toBeGreaterThan(.6);expect(enemy.x).toBeGreaterThan(2.5);
  expect(sim.bodies[0].position.x).toBeGreaterThan(4.5);expect(sim.bodies[0].sleeping).toBe(false);

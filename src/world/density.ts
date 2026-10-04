@@ -100,7 +100,7 @@ export class SdfWorld {
     return ids;
   }
   apply(e: EditOperation): string[] {
-    if (this.edits.length >= MAX_EDITS || !Number.isSafeInteger(e.id) || e.id !== this.edits.length + 1 || !Number.isSafeInteger(e.tick) || e.tick < 0 || e.tick > 1000000000000 || (e.kind !== 'dig' && e.kind !== 'add') || e.material !== 'stone' || (e.shape!==undefined&&e.shape!=='cylinder') || (e.surface!==undefined&&e.surface!=='soil') || !Number.isFinite(e.radius) || e.radius < 0.75 || e.radius > 2.5 || !insideBounds(e.position, this.bounds, e.radius)) throw new Error('地形編集の範囲または上限が不正です');
+    if (this.edits.length >= MAX_EDITS || !Number.isSafeInteger(e.id) || e.id !== this.edits.length + 1 || !Number.isSafeInteger(e.tick) || e.tick < 0 || e.tick > 1000000000000 || (e.kind !== 'dig' && e.kind !== 'add') || e.material !== 'stone' || (e.shape!==undefined&&e.shape!=='cylinder') || (e.surface!==undefined&&e.surface!=='soil') || !Number.isFinite(e.radius) || e.radius < 0.2 || e.radius > 2.5 || !insideBounds(e.position, this.bounds, e.radius)) throw new Error('地形編集の範囲または上限が不正です');
     const operation: EditOperation = { ...e, position: { ...e.position } };
     this.edits.push(operation);
     const affected = this.affectedBricks(operation);

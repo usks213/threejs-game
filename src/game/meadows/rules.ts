@@ -1,3 +1,4 @@
+import { dropItem, pickupItem } from '../interaction/drops';
 import { stepRaids } from './raids';
 import { landscape } from './landscaping';
 import { meadowRecipe,MAX_QUALITY,upgradeCost } from '../../content/meadows/recipes';
@@ -19,7 +20,7 @@ const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.z-b.z);
 export class MeadowRules{
  constructor(private readonly game:Adventure){}
  private get s(){return this.game.state;}private get m(){return this.s.meadows!;}private get sim(){return this.game.sim;}
- grant(id:string,n:number){if(!canCarry(this.s.inventory,id,n,this.m)){const p=this.sim.player;this.s.resources.push({id:this.sim.allocateEntityId(),kind:id,x:p.x+1,y:p.y,z:p.z,amount:n,ready:0});return;}this.s.inventory[id]=(this.s.inventory[id]??0)+n;if(!this.m.discovered.includes(id))this.m.discovered.push(id);}
+ grant(id:string,n:number){if(!canCarry(this.s.inventory,id,n,this.m)){const p=this.sim.player;dropItem(this.game,id,n,{x:p.x+1,y:p.y,z:p.z});return;}this.s.inventory[id]=(this.s.inventory[id]??0)+n;if(!this.m.discovered.includes(id))this.m.discovered.push(id);}
  private spend(cost:Record<string,number>){for(const [id,n]of Object.entries(cost))if((this.s.inventory[id]??0)<n)throw new Error(`${ITEM_NAMES[id]??id}が${n}個必要です`);for(const [id,n]of Object.entries(cost))this.s.inventory[id]-=n;}
  private station(){const level=benchLevel(this.sim.player,this.s.buildings);if(!level)throw new Error('作業台の近くで使ってください');const b=this.s.buildings.find(b=>b.definition==='bench'&&distance(b,this.sim.player)<5)!;if(!roofed(b,this.s.buildings))throw new Error('作業台を屋根で覆ってください');return level;}
  wear(id:string,n=1){if(this.m.durability[id]!==undefined)this.m.durability[id]=Math.max(0,this.m.durability[id]-n);}
@@ -30,8 +31,8 @@ export class MeadowRules{
  if(action==='pin'){m.pins??=[];if(m.pins.length>=100)throw new Error('地図の目印を削除してください');m.pins.push({id:this.sim.allocateEntityId(),x:p.x,z:p.z,label:(id||'目印').slice(0,24)});return ok('現在地を地図に記録しました');}
  if(action==='unpin'){m.pins=m.pins?.filter(pin=>pin.id!==Number(id));return ok('目印を削除しました');}
  if(action==='label'){const b=nearestFacility(this.game,['sign']);if(!b)throw new Error('看板へ近づいてください');b.label=id.slice(0,40);return ok('看板を書き換えました');}
- if(action==='store'||action==='take'){const b=nearestFacility(this.game,['chest']);if(!b)throw new Error('箱へ近づいてください');const [key,raw]=id.split(':'),source=action==='store'?s.inventory:b.contents,n=Math.min(source[key]??0,Math.max(1,Math.floor(Number(raw)||1)));if(!n)throw new Error('移動する品物がありません');if(action==='store'&&occupiedSlots({...b.contents,[key]:(b.contents[key]??0)+n})>10)throw new Error('箱の10枠がいっぱいです');if(action==='take'&&!canCarry(s.inventory,key,n,m))throw new Error('持ち物に空きがありません');source[key]-=n;if(action==='store')b.contents[key]=(b.contents[key]??0)+n;else this.grant(key,n);return ok('品物を移しました');}
- if(action==='sprint'){m.sprinting=!m.sprinting;m.sneaking=false;return ok(m.sprinting?'走る':'歩く');}
+ if(action==='store'||action==='take'){const [box,selection]=id.includes('|')?id.split('|'):['',id];id=selection;const b=box?s.buildings.find(b=>b.id===Number(box)&&b.definition==='chest'&&distance(b,p)<3.5):nearestFacility(this.game,['chest']);if(!b)throw new Error('箱へ近づいてください');const [key,raw]=id.split(':'),source=action==='store'?s.inventory:b.contents,n=Math.min(source[key]??0,Math.max(1,Math.floor(Number(raw)||1)));if(!n)throw new Error('移動する品物がありません');if(action==='store'&&occupiedSlots({...b.contents,[key]:(b.contents[key]??0)+n})>10)throw new Error('箱の10枠がいっぱいです');if(action==='take'&&!canCarry(s.inventory,key,n,m))throw new Error('持ち物に空きがありません');source[key]-=n;if(action==='store')b.contents[key]=(b.contents[key]??0)+n;else this.grant(key,n);return ok('品物を移しました');}
+ if(action==='sprint'){m.sprinting=id==='on'?true:id==='off'?false:!m.sprinting;m.sneaking=false;return ok(m.sprinting?'走る':'歩く');}
  if(action==='sneak'){m.sneaking=!m.sneaking;m.sprinting=false;return ok(m.sneaking?'忍び足':'歩く');}
  if(action==='fish')return ok(fishingAction(this.game));
  if(action==='sell'){if(!s.resources.some(n=>n.kind==='merchant'&&distance(n,p)<4))throw new Error('旅商人へ近づいてください');const price:Record<string,number>={amber:5,amberPearl:10,ruby:20,silverNecklace:30};let coins=0;for(const [key,value]of Object.entries(price)){coins+=(s.inventory[key]??0)*value;s.inventory[key]=0;}if(!coins)throw new Error('売れる琥珀や宝石がありません');this.grant('coins',coins);return ok(`遺物を売却 · ${coins}硬貨`);}
@@ -39,12 +40,13 @@ export class MeadowRules{
   if(!s.resources.some(n=>n.kind==='merchant'&&distance(n,p)<4))throw new Error('旅商人の野営地へ行ってください');
   const prices:Record<string,number>={fishingRod:350,bait:10,linenHat:100};if(!Object.hasOwn(prices,id))throw new Error('商品を選んでください');this.spend({coins:prices[id]});this.grant(id,id==='bait'?20:1);return ok(`${ITEM_NAMES[id]}を購入`);
  }
- if(action==='repairBuilding'){if(!s.inventory.hammer)throw new Error('ハンマーが必要です');const b=s.buildings.filter(b=>distance(p,b)<4).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!b)throw new Error('建物に近づいてください');b.health=100;return ok('建物を修理しました');}
+ if(action==='repairBuilding'){if(!s.inventory.hammer)throw new Error('ハンマーが必要です');const b=id?s.buildings.find(b=>b.id===Number(id)&&distance(p,b)<4):s.buildings.filter(b=>distance(p,b)<4).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!b)throw new Error('建物に近づいてください');b.health=100;b.removed=[];return ok('建物を修理しました');}
  if(action==='gather'){
-  const grave=m.graves?.find(g=>distance(g,p)<2.5);if(grave){for(const [key,n]of Object.entries(grave.items))this.grant(key,n);m.graves=m.graves!.filter(g=>g!==grave);m.corpseRun=50;return ok('前の墓標から持ち物を回収しました');}
+  const grave=!id?m.graves?.find(g=>distance(g,p)<2.5):undefined;if(grave){for(const [key,n]of Object.entries(grave.items))this.grant(key,n);m.graves=m.graves!.filter(g=>g!==grave);m.corpseRun=50;return ok('前の墓標から持ち物を回収しました');}
 
-  if(s.death&&distance(p,s.death)<2.5){for(const [key,n]of Object.entries(s.grave??{}))this.grant(key,n);s.grave={};s.death=null;m.corpseRun=50;s.stamina=foodStats(s).stamina;return ok('墓標から持ち物を回収しました');}
-  const n=s.resources.filter(n=>n.ready<=s.seconds&&distance(p,n)<3).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!n)throw new Error('拾えるものへ近づいてください');
+  if((!id||id==='grave')&&s.death&&distance(p,s.death)<2.5){for(const [key,n]of Object.entries(s.grave??{}))this.grant(key,n);s.grave={};s.death=null;m.corpseRun=50;s.stamina=foodStats(s).stamina;return ok('墓標から持ち物を回収しました');}
+  const n=id?s.resources.find(n=>n.id===Number(id)&&n.ready<=s.seconds&&distance(p,n)<3.5):s.resources.filter(n=>n.ready<=s.seconds&&distance(p,n)<3).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!n)throw new Error('拾えるものへ近づいてください');
+  if(n.drop){const count=pickupItem(this.game,n.id);return ok(`${ITEM_NAMES[n.kind]} +${count}`);}
   if(['dolmen','stoneCircle','graveyard'].includes(n.kind))return ok('古い遺跡です。周囲を探し、地面を掘ると遺物が見つかることがあります');
   if(['perch','pike'].includes(n.kind)){const top=waterHeight(this.game,n.x,n.z);if(top!==null&&top-this.sim.groundAt(n.x,n.z)>.15)throw new Error('泳ぐ魚は釣り竿で釣ってください');this.grant('rawFish',n.kind==='pike'?2:1);n.ready=s.seconds+300;return ok('岸に打ち上がった魚を拾いました');}
   if(n.kind==='merchant')return ok('旅商人：釣り竿と餌を販売しています。野営タブから取引できます');
@@ -94,25 +96,25 @@ export class MeadowRules{
   const cost=upgradeCost(id,q);if(!cost)throw new Error('この品物は強化できません');this.spend(cost);m.quality[id]=q+1;m.durability[id]=maxDurability(id,q+1);return ok(`${r.name}を品質 ${q+1}へ強化`);
  }
  if(action==='cook'){
-  const b=s.buildings.find(b=>b.definition==='cook'&&distance(p,b)<3);if(!b)throw new Error('料理台に近づいてください');
+  const [facility,recipe]=id.includes('|')?id.split('|'):['',id];id=recipe;const b=s.buildings.find(b=>b.definition==='cook'&&(!facility||b.id===Number(facility))&&distance(p,b)<3.5);if(!b)throw new Error('料理台に近づいてください');
   b.cooking??=[];const done=b.cooking.find(c=>c.time>=COOKING[c.id].seconds);
   if(done){this.grant(done.time>=COOKING[done.id].seconds*2?'coal':COOKING[done.id].output,1);b.cooking.splice(b.cooking.indexOf(done),1);return ok('料理を取り出しました');}
   if(!s.buildings.some(f=>f.definition==='fire'&&(f.fuel??0)>0&&distance(f,b)<2&&!f.open))throw new Error('料理台の下に火のついた焚き火が必要です');
   if(b.cooking.length>=2)throw new Error('料理中です。焼けるまで待ってください');const raw=id||Object.keys(COOKING).find(k=>s.inventory[k]>0);if(!raw||!COOKING[raw])throw new Error('生肉・尾・魚がありません');this.spend({[raw]:1});b.cooking.push({id:raw,time:0});return ok('肉を焼き始めました。放置すると炭になります');
  }
- if(action==='fuel'){const b=s.buildings.find(b=>['fire','standingTorch'].includes(b.definition)&&distance(p,b)<3);if(!b)throw new Error('火へ近づいてください');this.spend({[b.definition==='fire'?'wood':'resin']:1});b.fuel=Math.min(3600,(b.fuel??0)+300);return ok('燃料を追加しました');}
+ if(action==='fuel'){const b=s.buildings.find(b=>['fire','standingTorch'].includes(b.definition)&&(!id||b.id===Number(id))&&distance(p,b)<3.5);if(!b)throw new Error('火へ近づいてください');this.spend({[b.definition==='fire'?'wood':'resin']:1});b.fuel=Math.min(3600,(b.fuel??0)+300);return ok('燃料を追加しました');}
  if(action==='interact'){
-  if(m.fishing||s.equipment==='fishingRod')return ok(fishingAction(this.game));
-  if(m.riding){m.riding=undefined;p.x+=2.5;return ok('いかだから降りました');}
-  const boat=nearestFacility(this.game,['raft']);if(boat){m.riding=boat.id;return ok('いかだに乗りました。スティックで操舵、使うボタンで降ります');}
+  if(!id&&(m.fishing||s.equipment==='fishingRod'))return ok(fishingAction(this.game));
+  if(m.riding&&!id){m.riding=undefined;p.x+=2.5;return ok('いかだから降りました');}
+  const boat=id?s.buildings.find(b=>b.id===Number(id)&&b.definition==='raft'&&distance(b,p)<3.5):nearestFacility(this.game,['raft']);if(boat){m.riding=boat.id;return ok('いかだに乗りました。スティックで操舵、使うボタンで降ります');}
 
-  const b=s.buildings.filter(b=>['door','gate','beehive','cook','bed'].includes(b.definition)&&distance(p,b)<3).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!b)throw new Error('扉・設備へ近づいてください');
-  if(b.definition==='cook')return this.action('cook','',ground);if(b.definition==='bed')return this.action('rest','',ground);
+  const b=id?s.buildings.find(b=>b.id===Number(id)&&distance(p,b)<3.5):s.buildings.filter(b=>['door','gate','beehive','cook','bed'].includes(b.definition)&&distance(p,b)<3).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!b)throw new Error('扉・設備へ近づいてください');
+  if(b.definition==='chest'||b.definition==='bench')return ok('');if(['fire','standingTorch'].includes(b.definition))return this.action('fuel',String(b.id),ground);if(b.definition==='cook')return this.action('cook',String(b.id)+'|',ground);if(b.definition==='bed')return this.action('rest',String(b.id),ground);
   if(b.definition==='beehive'){const n=b.contents.honey??0;if(!n)throw new Error('蜂蜜はまだできていません。空の開けた場所で待ちます');this.grant('honey',n);b.contents.honey=0;return ok(`蜂蜜 +${n}`);}
   b.open=!b.open;return ok(b.open?'扉を開きました':'扉を閉じました');
  }
  if(action==='rest'){
-  const bed=s.buildings.find(b=>b.definition==='bed'&&distance(p,b)<3);if(!bed)throw new Error('ベッドに近づいてください');s.spawn={x:bed.x+1.5,y:bed.y+.5,z:bed.z};
+  const bed=s.buildings.find(b=>b.definition==='bed'&&(!id||b.id===Number(id))&&distance(p,b)<3.5);if(!bed)throw new Error('ベッドに近づいてください');s.spawn={x:bed.x+1.5,y:bed.y+.5,z:bed.z};
   if(!roofed(bed,s.buildings))throw new Error('復活地点を設定しました。眠るにはベッドを屋根で覆ってください');
   if(!s.buildings.some(b=>b.definition==='fire'&&(b.fuel??0)>0&&!b.open&&distance(b,bed)<6))throw new Error('眠るには近くに火が必要です');
   if(s.enemies.some(e=>e.health>0&&(e.tame??0)<1&&!['deer','gull'].includes(e.definition)&&distance(e,bed)<12))throw new Error('近くに敵がいます');
@@ -126,13 +128,13 @@ export class MeadowRules{
  if(action==='offer'){if(!s.resources.some(n=>n.kind==='sacrifice'&&distance(n,p)<4))throw new Error('出発地点の供物石へ戻ってください');if(m.offered)return ok('奉納済みです。加護を発動できます');this.spend({stormTrophy:1});m.offered=true;return ok('雷鹿の証を奉納。加護を解放しました');}
  if(action==='power'){if(!m.offered)throw new Error('ボスの証を供物石に奉納してください');if(m.powerCooldown>0)throw new Error(`加護はあと ${Math.ceil(m.powerCooldown)} 秒`);m.power=300;m.powerCooldown=1200;return ok('雷鹿の加護 · 5分間、走行と跳躍の消費を軽減');}
  if(action==='feed'){const e=s.enemies.find(e=>e.definition==='boar'&&e.health>0&&distance(e,p)<5);if(!e)throw new Error('猪に近づいてください');const food=['berry','mushroom'].find(k=>s.inventory[k]>0);if(!food)throw new Error('木の実かキノコが必要です');this.spend({[food]:1});e.fed=300;e.tame??=0;return ok('餌を置きました。離れて猪を落ち着かせてください');}
- if(action==='drop'){const [key,requested]=id.split(':');id=key;if(!s.inventory[id])throw new Error('持っていません');const count=Math.min(s.inventory[id],Math.max(1,Math.floor(Number(requested)||10)));s.inventory[id]-=count;s.resources.push({id:this.sim.allocateEntityId(),kind:id,x:p.x+1,y:p.y,z:p.z,amount:count,ready:0});return ok(`${ITEM_NAMES[id]}を地面に置きました`);}
+ if(action==='drop'){const [key,requested]=id.split(':');id=key;if(!s.inventory[id])throw new Error('持っていません');const count=Math.min(s.inventory[id],Math.max(1,Math.floor(Number(requested)||10)));s.inventory[id]-=count;if(!s.inventory[id]){if(s.equipment===id)s.equipment='hands';for(const [slot,equipped]of Object.entries(m.gear))if(equipped===id)delete m.gear[slot];}dropItem(this.game,id,count,{x:p.x+Math.sin(p.heading),y:p.y+.4,z:p.z+Math.cos(p.heading)});return ok(`${ITEM_NAMES[id]}を地面に置きました`);}
  if(action==='plant'){if(!s.inventory.cultivator)throw new Error('植樹には黒い森の金属で作る耕運具が必要です');const seed=id||'beechSeed',kind=({beechSeed:'beech',birchSeed:'birch',acorn:'oak'} as Record<string,string>)[seed];if(!kind)throw new Error('木の種を選んでください');if(s.resources.some(n=>TREE_KINDS.has(n.kind)&&distance(n,ground)<3))throw new Error('木から3m離してください');this.spend({[seed]:1});s.resources.push({id:this.sim.allocateEntityId(),kind:'sapling',growth:{kind,remaining:3000+(this.sim.tick%5001)},x:ground.x,y:this.sim.groundAt(ground.x,ground.z),z:ground.z,amount:1,ready:0});return ok('苗木を植えました');}
  if(action==='chest'){const b=s.buildings.find(b=>b.definition==='chest'&&distance(p,b)<3);if(!b)throw new Error('箱に近づいてください');if(Object.values(b.contents).some(n=>n>0)){for(const [key,n]of Object.entries(b.contents))this.grant(key,n);b.contents={};}else for(const [key,n]of Object.entries(s.inventory))if(!WEAPONS[key]&&!ARMOR[key]&&n){const size=stackSize(key),current=b.contents[key]??0,space=Math.max(0,10-occupiedSlots(b.contents))*size+(current%size?size-current%size:0),count=Math.min(n,space);if(count){b.contents[key]=current+count;s.inventory[key]-=count;}}return ok('箱の素材を出し入れしました');}
  return undefined;
  }
  damage(amount:number):number{const armor=armorValue(this.s);return armor<amount/2?amount-armor:amount*amount/(4*Math.max(1,armor));}
- loot(definition:string,stars=0){for(const [id,n]of Object.entries(LOOT[definition]??{resin:1}))this.grant(id,n*2**stars);this.m.kills=(this.m.kills??0)+1;let seed=Math.imul(this.m.kills,374761393);seed=Math.imul(seed^(seed>>>13),1274126177);const roll=((seed^(seed>>>16))>>>0)/4294967296;if(['boar','deer','neck'].includes(definition)&&roll<(definition==='deer'?.5:.15))this.grant(definition+'Trophy',1);}
+ loot(definition:string,stars=0,point:Vec3=this.sim.player){for(const [id,n]of Object.entries(LOOT[definition]??{resin:1}))dropItem(this.game,id,n*2**stars,point);this.m.kills=(this.m.kills??0)+1;let seed=Math.imul(this.m.kills,374761393);seed=Math.imul(seed^(seed>>>13),1274126177);const roll=((seed^(seed>>>16))>>>0)/4294967296;if(['boar','deer','neck'].includes(definition)&&roll<(definition==='deer'?.5:.15))dropItem(this.game,definition+'Trophy',1,point);}
  step(dt:number){
  const s=this.s,m=this.m,p=this.sim.player,env=environmentAt(s.seconds,1);
  for(const f of m.foods)f.remaining=Math.max(0,f.remaining-dt);m.foods=m.foods.filter(f=>f.remaining>0);s.food=Math.max(0,...m.foods.map(f=>f.remaining));

@@ -37,7 +37,7 @@ describe('bounded streaming and mesh extraction', () => {
  it('streams a fixed vicinity and removes distant bricks as the player crosses chunks', () => {
   const a = visibleBricks({ x: 0, y: 3, z: 8 }), b = visibleBricks({ x: 100, y: 3, z: 8 });
   expect(a.size).toBe(800); expect([...a.keys()].some(k => b.has(k))).toBe(false);
-  expect([...a.values()].every(brick => brick.step === 1)).toBe(true);
+  expect([...a.values()].every(brick => brick.step === .5)).toBe(true);
   const edge = visibleBricks({ x: 999, y: 3, z: 999 });
   for (const brick of edge.values()) { expect(brick.origin.x + 8).toBeLessThanOrEqual(1000); expect(brick.origin.z + 8).toBeLessThanOrEqual(1000); }
  });
@@ -81,3 +81,4 @@ it('reduces distant geometry without moving shared brick boundary vertices', () 
  const boundary = (data: Float32Array) => { const set = new Set<string>(); for (let i = 0; i < data.length; i += 3) if ([data[i], data[i + 1], data[i + 2]].some(v => v === 0 || v === 8)) set.add([...data.slice(i, i + 3)].join(',')); return [...set].sort(); };
  expect(boundary(mesh.coarse!.positions)).toEqual(boundary(mesh.positions));
 });
+

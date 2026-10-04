@@ -13,7 +13,7 @@ export function populateMeadowTiles(sim:GameSimulation,s:AdventureSave,p:Vec3):v
   const px=x*32+16,pz=z*32+16;if(sim.groundAt(px,pz)>.2)s.enemies.push(meadowEnemy(sim,random(60)>.5?'deer':'boar',px,pz,random(61)>.93?2:random(61)>.75?1:0));
   if(sim.groundAt(px,pz)>.2&&random(63)<.22){const node=(kind:string,dx=0,dz=0)=>s.resources.push({id:sim.allocateEntityId(),kind,x:px+dx,y:sim.groundAt(px+dx,pz+dz),z:pz+dz,amount:1,ready:0});node(random(64)>.5?'dolmen':'graveyard');node(random(64)>.5?'lootChest':'buriedChest',0,1);}
   // Newly visited coastal water belongs to the persisted fluid simulation.
-  for(let wx=x*32;wx<x*32+32;wx++)for(let wz=z*32;wz<z*32+32;wz++){const y=sim.groundAt(wx+.5,wz+.5);if(y>=-.1)continue;for(let wy=Math.max(-5,Math.ceil(y));wy<0;wy++)sim.fluid.add({x:wx,y:wy,z:wz},.95);}
+  for(let wx=x*32;wx<x*32+32;wx+=.5)for(let wz=z*32;wz<z*32+32;wz+=.5){const y=sim.groundAt(wx+.25,wz+.25);if(y>=-.1)continue;for(let wy=Math.max(-5,Math.ceil(y*2)/2);wy<0;wy+=.5)sim.fluid.add({x:wx,y:wy,z:wz},.95);}
  }
  m.worldTiles=[...known];
 }

@@ -1,3 +1,4 @@
+import { dropItem } from '../interaction/drops';
 import type { Adventure } from '../adventure';
 import type { ResourceNode } from '../types';
 import type { Vec3 } from '../../world/types';
@@ -6,7 +7,7 @@ import { TREE_KINDS } from '../../content/meadows/data';
 export interface LogState { a:SphereBody; b:SphereBody; length:number; wood:string; fall:number; heading:number; hits:number[] }
 const dist=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 export function fellTree(game:Adventure,n:ResourceNode,heading:number):void{
- const kind=n.kind,sim=game.sim;const roll=((Math.imul(n.id,374761393)>>>0)%100);if(roll<67)game.meadowRules.grant(kind==='beech'?'beechSeed':kind==='birch'?'birchSeed':'acorn',2+n.id%2);if(roll%6===0)game.meadowRules.grant('resin',1);if(roll%6===1)game.meadowRules.grant('feathers',1);n.kind='stump';n.health=80;n.amount=2;
+ const kind=n.kind,sim=game.sim;const roll=((Math.imul(n.id,374761393)>>>0)%100);if(roll<67)dropItem(game,kind==='beech'?'beechSeed':kind==='birch'?'birchSeed':'acorn',2+n.id%2,n);if(roll%6===0)dropItem(game,'resin',1,n);if(roll%6===1)dropItem(game,'feathers',1,n);n.kind='stump';n.health=80;n.amount=2;
  const body=(x:number,y:number,z:number):SphereBody=>({id:0,position:{x,y,z},velocity:{x:Math.sin(heading)*1.5,y:0,z:Math.cos(heading)*1.5},radius:.32,sleeping:false,kind:'wood'});
  const log:ResourceNode={id:sim.allocateEntityId(),kind:'fallenLog',x:n.x,y:n.y+2,z:n.z,amount:20,ready:0,health:60,log:{a:body(n.x,n.y+.4,n.z),b:body(n.x,n.y+4.4,n.z),length:4,wood:kind==='beech'?'wood':'finewood',fall:0,heading,hits:[]}};
  game.state.resources.push(log);
@@ -21,7 +22,7 @@ export function chopWood(game:Adventure,n:ResourceNode):string{
   const other=structuredClone(n);other.id=game.sim.allocateEntityId();other.log!.a.position={...mid};other.log!.length=2;other.log!.fall=2;other.health=60;other.amount=10;
   l.b.position={...mid};l.length=2;l.fall=2;n.health=60;n.amount=10;game.state.resources.push(other);return '丸太を二つに割りました。さらに斧で木材にできます';
  }
- game.meadowRules.grant(n.log?.wood??'wood',n.amount);n.ready=1e10;
+ dropItem(game,n.log?.wood??'wood',n.amount,n);n.ready=1e10;
  return `木材を回収 · ${n.amount}個`;
 }
 export function stepForestry(game:Adventure,dt:number):void{

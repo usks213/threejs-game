@@ -51,6 +51,7 @@ function scheduleMesh() {
         if (dirtyMeshes.delete(b.id)) { editedMeshes.set(b.id, mesh); publishEdit(); }
         else emit({ type: 'mesh', mesh }, [mesh.positions.buffer, mesh.normals.buffer, mesh.colors.buffer, mesh.indices.buffer]);
       }
+      if(!initialized&&sim&&![...pending.values()].some(b=>Math.hypot(b.origin.x+4-sim!.player.x,b.origin.z+4-sim!.player.z)<14&&Math.abs(b.origin.y+4-sim!.player.y)<12)){initialized=true;emit({type:'ready'});}
       meshing = false;
       if (pending.size) scheduleMesh();
       else {
@@ -103,6 +104,7 @@ setInterval(() => {
   try {
     const now = performance.now(); accumulator += Math.min(0.1, (now - previous) / 1000); previous = now;
     while (accumulator >= 1 / TICK_RATE) { authority!.step(input); input.jump = false; accumulator -= 1 / TICK_RATE; }
+    if(sim.pendingEdits.size){for(const id of sim.pendingEdits){const b=bricks.get(id);if(b){pending.set(id,b);dirtyMeshes.add(id);}}sim.pendingEdits.clear();scheduleMesh();}
     stream();
     if (sim.tick % 150 === 0) emit({type:'save',save:authority!.save()});
     if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') {

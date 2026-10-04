@@ -17,13 +17,13 @@ const manual = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
 const config = changed(/^(package(-lock)?\.json|tsconfig.*\.json|vite\.config\.ts)$/);
 const game = config || changed(/^(src\/|public\/|index\.html$|wrangler\.jsonc$|scripts\/deploy-preview\.mjs$)/);
 const signaling = manual || config || changed(/^apps\/signaling\//);
-const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|worker|protocol)\.ts$|apps\/(dedicated|signaling)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
-const host = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|worker|protocol)\.ts$|apps\/signaling\/|tests\/e2e\/network\.spec\.ts$)/);
+const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/(dedicated|signaling)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
+const host = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/signaling\/|tests\/e2e\/network\.spec\.ts$)/);
 const checks = manual || game || signaling || network || changed(/^tests\/unit\//);
 const patterns = new Set();
-if (config || changed(/^(index\.html$|src\/main\.ts$|tests\/e2e\/game\.spec\.ts$)/)) patterns.add('starts, moves');
+if (config || changed(/^(index\.html$|src\/main\.ts$|tests\/e2e\/game\.spec\.ts$)/)) patterns.add('core landscape');
 if (changed(/^src\/(input\/|platform\/game\.ts$|physics\/character\.ts$)/)) { patterns.add('starts, moves'); patterns.add('two fingers'); }
-if (changed(/^src\/(world\/|fluid\/|save\/|simulation\/game-simulation\.ts$)/)) patterns.add('edits terrain');
+if (changed(/^src\/(world\/|fluid\/|save\/|simulation\/(game-simulation|worker)\.ts$)/)) patterns.add('edits terrain');
 if (changed(/^src\/(game\/|content\/|ui\/)/)) patterns.add('survival adventure');
 if (changed(/^src\/rendering\//)) patterns.add('renders equipped');
 const outputs = { game: manual || game, checks, signaling, network, host, browser: patterns.size > 0, browser_grep: [...patterns].join('|') };

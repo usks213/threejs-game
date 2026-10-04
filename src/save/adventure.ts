@@ -30,9 +30,11 @@ export function validateAdventure(raw: AdventureSave): AdventureSave {
  }
  for(const e of s.enemies){if(e.attackReady&&Object.values(e.attackReady).some(v=>!finite(v,1e10)))throw new Error('敵の攻撃時間が不正です');if(e.attackYaw!==undefined&&!Number.isFinite(e.attackYaw))throw new Error('敵の向きが不正です');}
  for(const e of s.enemies)for(const value of [e.stars,e.tame,e.fed,e.baby,e.breeding,e.burn,e.alerted,e.attackFlash,e.stagger])if(value!==undefined&&!finite(value,100000))throw new Error('生物の状態が不正です');
- for(const b of s.buildings){for(const value of [b.health,b.fuel,b.progress])if(value!==undefined&&!finite(value,1e10))throw new Error('設備の状態が不正です');if(b.cooking&&(!Array.isArray(b.cooking)||b.cooking.length>2||b.cooking.some(c=>!COOKING[c.id]||!finite(c.time,1e10))))throw new Error('調理状態が不正です');}
+ for(const b of s.buildings){if(b.salvage&&!items(b.salvage))throw new Error('建築素材の残量が不正です');for(const value of [b.health,b.fuel,b.progress])if(value!==undefined&&!finite(value,1e10))throw new Error('設備の状態が不正です');if(b.cooking&&(!Array.isArray(b.cooking)||b.cooking.length>2||b.cooking.some(c=>!COOKING[c.id]||!finite(c.time,1e10))))throw new Error('調理状態が不正です');}
  if(s.meadows){const m=s.meadows;for(const value of [m.resting,m.raidSpawn,m.noSkillDrain,m.corpseRun,m.contentVersion,m.kills,m.riding])if(value!==undefined&&!finite(value,1e10))throw new Error('草原の進行値が不正です');for(const cells of [m.mapCells,m.worldTiles])if(cells&&(!Array.isArray(cells)||cells.length>100000||cells.some(c=>typeof c!=='string'||!/^[-0-9]+,[-0-9]+$/.test(c))))throw new Error('地図の記録が不正です');}
  for(const g of s.meadows?.graves??[])if(!insideBounds(g,WORLD,1)||!items(g.items))throw new Error('墓の状態が不正です');
+ for(const o of [...s.resources,...s.buildings])if(o.removed&&(!Array.isArray(o.removed)||o.removed.length>100000||new Set(o.removed).size!==o.removed.length||o.removed.some(key=>typeof key!=='string'||!/^[-0-9]+,[-0-9]+,[-0-9]+$/.test(key))))throw new Error('Voxelの破壊記録が不正です');
+ for(const n of s.resources)if(n.drop!==undefined&&(typeof n.drop!=='boolean'||n.velocity&&(!finiteVec(n.velocity)||Math.hypot(n.velocity.x,n.velocity.y,n.velocity.z)>30)))throw new Error('ドロップの状態が不正です');
  const copy = structuredClone(s);
  // Earlier versions saved the last windup tick just below zero.
  for (const enemy of copy.enemies) enemy.windup = Math.max(0, enemy.windup);

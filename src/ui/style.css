@@ -14,3 +14,49 @@ button svg{display:block;width:23px;height:23px;margin:0 auto 2px;pointer-events
 .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.slot-grid>button{height:56px;min-width:48px;position:relative;background:#16261f}.slot-grid>button.selected{border-color:#e6c47c;background:#8d74383d}.slot-grid small{position:absolute;bottom:3px;right:5px}.selected-item h3 svg{width:24px;height:24px;vertical-align:middle}.quantity-label{display:flex;align-items:center;gap:12px;margin:12px 0}#adventure-content input{min-height:48px;max-width:100%;border:1px solid #b6a578;background:#14271f;color:#f0e3c4;padding:8px;border-radius:4px;font-size:16px}#item-quantity{width:100px}.exploration-map{width:100%;max-height:360px;border:1px solid #ac9964;border-radius:6px}.map-controls{display:flex;align-items:center;gap:8px;margin:10px 0}.map-pin-list>div{display:flex;align-items:center;justify-content:space-between}.map-pin-list button{min-width:60px}@media(min-width:600px){.slot-grid{grid-template-columns:repeat(8,1fr)}}
 
 #build-controls{flex-wrap:wrap;max-width:330px;width:max-content}#build-controls button{min-width:52px} @media(max-height:500px){#build-controls{max-width:350px;bottom:calc(95px + var(--bottom));left:50%}}
+/* Core action layout: the game uses one landscape coordinate system on every screen. */
+#app{width:var(--game-width,100vw);height:var(--game-height,100vh);position:absolute;inset:0 auto auto 0;overflow:hidden}
+#app[data-rotated=true]{transform-origin:0 0;transform:translateX(100vw) rotate(90deg)}
+#game{width:100%;height:100%;display:block}
+header,.world-info,.hint,#combat-more,#combat-extra,#session-menu,#session-status,#quick-eat,#target-hint{display:none!important}
+#status{font-size:11px;opacity:.7;top:8px;left:50%;transform:translateX(-50%)}
+#view-reset{display:none}
+#system-menu{right:calc(env(safe-area-inset-right) + 12px);top:12px}
+#adventure-menu{right:calc(env(safe-area-inset-right) + 68px);top:12px}
+#journey{max-width:230px;top:110px;left:16px;opacity:.8}
+#compass{top:12px}
+.tools{display:none!important}
+#use-tool{display:none}
+#app[data-building=true] #use-tool{display:block}
+#app[data-building=true] #attack{display:none}
+#combat-controls{right:18px;bottom:18px;display:grid;grid-template-columns:56px 72px;gap:10px}
+#attack{width:72px;height:72px;grid-column:2;grid-row:2;border-radius:50%}
+#dodge{width:56px;height:56px;grid-column:1;grid-row:2;border-radius:50%}
+#water-cast{width:56px;height:56px;grid-column:1;grid-row:1;border-radius:50%}
+#guard{display:block!important;position:absolute;right:104px;bottom:98px;width:56px;height:56px;border-radius:50%}
+#heavy{display:block!important;position:absolute;right:18px;bottom:98px;width:56px;height:56px;border-radius:50%}
+#gather{display:none!important}
+#jump{right:90px;bottom:174px;width:48px;height:48px}
+.actions{right:18px;bottom:174px}
+#interact{position:absolute;left:50%;top:58%;transform:translateX(-50%);min-height:48px;min-width:150px;padding:8px 14px;border:1px solid #d6c99a;border-radius:8px;background:#18251de6;color:#f8efd4;display:flex;gap:14px;align-items:center;justify-content:center;z-index:7}
+#interact[hidden]{display:none}
+#hotbar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:5px}
+#hotbar button{width:48px;height:48px;min-height:48px;padding:4px;position:relative;background:#19281ed9;border:1px solid #71856c;border-radius:7px}
+#hotbar button[aria-pressed=true]{border-color:#e7ce8d;box-shadow:0 0 0 1px #e7ce8d}
+#hotbar kbd{position:absolute;top:2px;left:3px;font-size:9px;color:#d2cbb4}
+#hotbar svg{width:28px;height:28px}
+#hotbar small{position:absolute;right:3px;bottom:2px;font-size:10px;color:#eee}
+@media(pointer:fine){.controls,.movement-modes,#combat-controls,#jump,#interact kbd{display:none}#interact kbd{display:block}#interact{pointer-events:none}#hotbar{bottom:20px}}
+#app[data-building=true] #build-controls{display:flex}
+#app[data-building=true] .reticle{color:#b8d894}
+@media(max-height:450px){#journey{display:none}#adventure-hud{left:12px;top:10px;width:195px}.controls{left:16px;bottom:18px}#stick{width:112px;height:112px}.movement-modes{left:16px;bottom:146px}#hotbar{gap:3px;bottom:12px}#hotbar button{width:48px;min-width:48px;height:48px}}
+
+#hotbar button.selected{border-color:#ecd195;background:#6c6238d9}#combat-controls button>svg{width:25px;height:25px}#guard{right:82px;bottom:162px}#heavy{right:4px;bottom:162px}.actions{bottom:100px;right:26px}#adventure-hud{pointer-events:none}#status:not(:empty){z-index:2}.slot-grid>button:nth-child(-n+8){border-bottom:3px solid #d5bc7e}#app[data-state=loading] #status{top:45%;font-size:16px;padding:18px;background:#15251ded}#app[data-state=running] #status{display:none}.vitals{max-width:230px}#journey{display:none!important}#notice{top:80px;max-width:55%;font-size:12px}#adventure-panel{max-height:calc(var(--game-height) - 24px);inset:12px 12px 12px auto;width:min(700px,calc(var(--game-width) - 24px));overflow:auto}.reticle{left:50%;top:50%}#system-panel,#session-panel{max-height:calc(var(--game-height) - 24px);overflow:auto}#build-controls{bottom:80px;max-width:370px}.movement-modes{bottom:145px}#app[data-building=true] #use-tool{min-width:80px;min-height:56px}
+
+#app[data-rotated=true]{--top:env(safe-area-inset-right);--bottom:env(safe-area-inset-left)}
+
+[hidden]{display:none!important}
+
+#dismantle{position:absolute;left:calc(50% + 90px);top:58%;min-height:48px;transform:translateY(0);background:#532f22e6;padding:8px 14px;z-index:7}@media(pointer:fine){#dismantle{display:none}}
+
+@media(max-width:650px) and (orientation:landscape){#hotbar{bottom:82px;display:grid;grid-template-columns:repeat(4,48px)}}
