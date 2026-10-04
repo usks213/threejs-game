@@ -199,7 +199,7 @@ export function startGame() {
     if (!document.hidden) {
       const sessionOpen=!document.querySelector<HTMLElement>('#session-panel')!.hidden,menuOpen=!!document.querySelector('[role=dialog]:not([hidden])');
       const loading=app.dataset.state!=='running';
-      const renderDue=loading||(!sessionOpen&&(!menuOpen||now-lastDraw>250));
+      const renderDue=loading||!menuOpen;
       let uploaded=0;terrain.beginUploadFrame();
       try{if(renderDue)uploaded=terrainQueue.flush(data=>terrain.update(data,renderer),id=>terrain.remove([id]));}catch(uploadError){console.error(uploadError);fail('地形のGPU転送に失敗しました。再読み込みしてください。');return;}
       // terrain.update already submits both LOD buffers through the 1px upload pass.
@@ -210,7 +210,7 @@ export function startGame() {
       readKeyboard(input); if (touch.x || touch.z) { input.x = touch.x; input.z = touch.z; }
       if(menuOpen){input.x=0;input.z=0;jump=false;}
       if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
-      if(state&&dirtyWorld&&!sessionOpen&&!loading){const t=performance.now();world.update(state);sound.update(state);dirtyWorld=false;frameTimings.record('worldUpdate',performance.now()-t);}
+      if(state&&dirtyWorld&&!menuOpen&&!loading){const t=performance.now();world.update(state);sound.update(state);dirtyWorld=false;frameTimings.record('worldUpdate',performance.now()-t);}
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
       world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);
