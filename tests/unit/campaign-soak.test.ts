@@ -77,7 +77,9 @@ describe('Q08 bounded long-session acceptance (CPU/core evidence, not browser or
   };
   // The existing ordinary-player route includes real gathering, three fights,
   // rescue, paid crafting, grapple/glide, progression and the ridge camp.
-  playFirstChapter(d);d.menu('travel','hearth');d.walk(-3.5,5.3);
+  playFirstChapter(d,{reserveManaDoses:16,reserveManaLeaves:32});d.menu('travel','hearth');d.walk(-3.5,5.3);
+  // The chapter gathered finite leaves before unlocking forest threats.
+  for(let dose=0;dose<16;dose++)d.menu('craft','mana-draught');
   const chapterSeconds=s.seconds;saveAndResume();
   expect(s.campaign.state.deaths).toBe(0);expect(s.campaign.state.campUnlocked).toBe(true);
   const cast=(element:Element)=>{
@@ -86,7 +88,9 @@ describe('Q08 bounded long-session acceptance (CPU/core evidence, not browser or
    // Aim at an unmined end post, not above the horizontal bar harvested earlier.
    d.look({x:3.8,y:.8,z:7.1});
    expect(s.target(7)?.hit.cell.object,d.diagnostic('retained metal sample for repeat reactions')).toBe('sample-metal');
-   d.act('cast');expect(s.player.phase,d.diagnostic(element+' accepted')).toBe('cast');casts++;
+   if(s.combat.mana<20)d.menu('consume','mana-draught');const mana=s.combat.mana;
+   d.act('cast');expect(s.player.phase,d.diagnostic(element+' accepted')).toBe('cast');expect(s.combat.mana).toBe(mana-20);casts++;
+   d.until(()=>s.combat.pending===null,1,{},'ordinary spell cast finishes');
    expect([...s.elements.states.values()].some(state=>element==='water'?state.wet>0:state.charge>0)).toBe(true);
    d.advance(.8);
   };

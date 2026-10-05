@@ -6,14 +6,15 @@ class Surface extends EventTarget {
  querySelectorAll(){return this.children;}querySelector(selector:string){return this.children.find(c=>selector.includes(c.id)&&!c.disabled)??null;}
 }
 function setup(active=true){
+ const heavyButton=new Surface();heavyButton.dataset.action='heavy';
  const fillButton=new Surface();fillButton.dataset.action='attack';
  const canvas=new Surface(),stick=new Surface(),knob=new Surface(),look=new Surface(),button=new Surface(),menu=new Surface(),start=new Surface(),next=new Surface();menu.id='menu';start.id='start';next.id='next';menu.hidden=active;menu.children=[start,next];button.dataset.action='element-next';
- const document=Object.assign(new EventTarget(),{activeElement:null as Surface|null,hidden:false,hasFocus:():boolean=>true,pointerLockElement:null,querySelector:(s:string)=>s==='#move-pad'?stick:s==='#move-knob'?knob:look,querySelectorAll:()=>[button,fillButton],getElementById:(id:string)=>id==='menu'?menu:null,exitPointerLock:vi.fn()});start.onFocus=()=>document.activeElement=start;next.onFocus=()=>document.activeElement=next;
+ const document=Object.assign(new EventTarget(),{activeElement:null as Surface|null,hidden:false,hasFocus:():boolean=>true,pointerLockElement:null,querySelector:(s:string)=>s==='#move-pad'?stick:s==='#move-knob'?knob:look,querySelectorAll:()=>[button,fillButton,heavyButton],getElementById:(id:string)=>id==='menu'?menu:null,exitPointerLock:vi.fn()});start.onFocus=()=>document.activeElement=start;next.onFocus=()=>document.activeElement=next;
  let pads:(Gamepad|null)[]=[];const pad={index:0,id:'Test Standard Controller',connected:true,mapping:'standard',axes:[0,0,0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0,touched:false}))};
  vi.stubGlobal('document',document);const window=new EventTarget();vi.stubGlobal('window',window);vi.stubGlobal('matchMedia',()=>({matches:false}));vi.stubGlobal('getComputedStyle',()=>({visibility:'visible'}));const navigator={maxTouchPoints:0,getGamepads:vi.fn(()=>pads)};vi.stubGlobal('navigator',navigator);
  const action=vi.fn(),onLook=vi.fn(),pause=vi.fn(),input=createInput(canvas as unknown as HTMLCanvasElement,action,onLook,pause);input.setEnabled(active);
  const connect=()=>{pads=[pad as unknown as Gamepad];input.tick(.016);};const setButton=(id:number,down:boolean)=>{pad.buttons[id].pressed=down;pad.buttons[id].value=down?1:0;};const disconnect=()=>{pads=[];window.dispatchEvent(new Event('gamepaddisconnected'));};
- return {button,fillButton,input,action,onLook,pause,navigator,pad,connect,setButton,disconnect,document,menu,start,next};
+ return {button,fillButton,heavyButton,input,action,onLook,pause,navigator,pad,connect,setButton,disconnect,document,menu,start,next};
 }
 const key=(target:EventTarget,type:string,code:string)=>{const event=new Event(type,{cancelable:true});Object.assign(event,{code});target.dispatchEvent(event);};
 afterEach(()=>vi.unstubAllGlobals());
@@ -29,7 +30,7 @@ describe('standard gamepad input and menu routing',()=>{
  it('can start and navigate paused menus with real DOM focus/click routing',()=>{const s=setup(false);s.connect();s.input.tick(.1);expect(s.document.activeElement).toBeNull();s.setButton(0,true);s.input.tick(.1);expect(s.document.activeElement).toBe(s.start);expect(s.start.click).toHaveBeenCalledTimes(1);expect(s.action).not.toHaveBeenCalled();s.setButton(0,false);s.input.tick(.1);s.setButton(13,true);s.input.tick(.1);expect(s.document.activeElement).toBe(s.next);s.input.tick(.1);expect(s.document.activeElement).toBe(s.next);s.setButton(13,false);s.input.tick(.1);s.setButton(0,true);s.input.tick(.1);expect(s.next.click).toHaveBeenCalledTimes(1);s.input.dispose();});
  it('adjusts a focused menu slider through normal input/change events and B resumes',()=>{const s=setup(false);s.connect();const slider=new Surface();slider.id='volume';slider.tagName='INPUT';slider.type='range';slider.onFocus=()=>s.document.activeElement=slider;s.menu.children=[s.start,slider,s.next];s.document.activeElement=slider;const changed=vi.fn();slider.addEventListener('input',changed);slider.addEventListener('change',changed);s.setButton(15,true);s.input.tick(.1);expect(slider.stepUp).toHaveBeenCalledTimes(1);expect(changed).toHaveBeenCalledTimes(2);expect(s.action).not.toHaveBeenCalled();s.setButton(15,false);s.input.tick(.1);s.setButton(1,true);s.input.tick(.1);expect(s.start.click).toHaveBeenCalledTimes(1);s.input.dispose();});
  it('cannot rearm or activate a background tab and requires release after foreground return',()=>{const s=setup(false);s.connect();s.document.hidden=true;s.setButton(0,true);s.input.tick(.1);s.input.tick(.1);expect(s.start.click).not.toHaveBeenCalled();s.document.hidden=false;s.document.hasFocus=()=>false;s.input.tick(.1);expect(s.start.click).not.toHaveBeenCalled();s.document.hasFocus=()=>true;s.input.tick(.1);expect(s.start.click).not.toHaveBeenCalled();s.setButton(0,false);s.input.tick(.1);s.setButton(0,true);s.input.tick(.1);expect(s.start.click).toHaveBeenCalledTimes(1);s.input.dispose();});
- it('maps interact, building, rotation, tools and undo without inaccessible actions',()=>{const s=setup();s.connect();for(const id of [2,3,4,5,8,11,12,13,14,15]){s.setButton(id,true);s.input.tick(.1);s.setButton(id,false);s.input.tick(.1);}expect(s.action.mock.calls.map(c=>c[0])).toEqual(['interact','element-next','recipe-next','cast','special','tool','heavy','heal','dismantle','build']);s.input.dispose();});
+ it('maps interact, building, rotation, tools and undo without inaccessible actions',()=>{const s=setup();s.connect();for(const id of [2,3,4,5,8,11,12,13,14,15]){s.setButton(id,true);s.input.tick(.1);s.setButton(id,false);s.input.tick(.1);}expect(s.action.mock.calls.map(c=>c[0])).toEqual(['interact','element-next','recipe-next','cast','special','tool','heavy-start','heavy-release','heal','dismantle','build']);s.input.dispose();});
 });
 
 describe('custom gamepad controls',()=>{
@@ -46,3 +47,20 @@ describe('rake mode reaches the same authoritative transaction through real inpu
   if(device==='keyboard'){key(t.document,'keydown','KeyT');key(t.document,'keydown','KeyT');}else if(device==='touch')tap(t.fillButton);else{t.setButton(7,true);t.input.tick(.1);t.input.tick(.1);t.disconnect();t.input.tick(.1);}expect(sim.survival.soil.snapshot().patches).toHaveLength(1);expect(sim.survival.inventory[2]).toBe(9);t.input.dispose();
  });
 });
+
+
+describe('heavy charge input edges',()=>{
+ it.each(['keyboard','touch','gamepad'] as const)('%s holds, releases once and cancels on pause without an unwanted strike',device=>{
+  const t=setup(),s=new CoreSimulation();t.action.mockImplementation((a:Action)=>s.action(a,t.input.controls()));
+  const pointer=(name:string)=>{const e=new Event(name,{cancelable:true});Object.assign(e,{pointerId:4});t.heavyButton.dispatchEvent(e);};
+  const down=()=>{if(device==='keyboard')key(t.document,'keydown','KeyR');else if(device==='touch')pointer('pointerdown');else{t.setButton(12,true);t.input.tick(.016);}};
+  const up=()=>{if(device==='keyboard')key(t.document,'keyup','KeyR');else if(device==='touch')pointer('pointerup');else{t.setButton(12,false);t.input.tick(.016);}};
+  if(device==='gamepad')t.connect();down();for(let i=0;i<30;i++)s.tick(1/60,t.input.controls());expect(s.player.phase).toBe('idle');expect(s.player.stamina).toBe(100);expect(s.combat.charging).toBe(true);up();expect(s.player.phase).toBe('windup');expect(s.player.stamina).toBe(68);up();expect(s.player.stamina).toBe(68);
+  for(let i=0;i<120;i++)s.tick(1/60,t.input.controls());down();for(let i=0;i<30;i++)s.tick(1/60,t.input.controls());t.input.setEnabled(false);expect(s.combat.charging).toBe(false);up();expect(s.player.phase).toBe('idle');t.input.setEnabled(true);expect(s.player.phase).toBe('idle');t.input.dispose();
+ });
+ it('touch cancellation and blur discard the charge; focused button activation remains an accessible direct heavy',()=>{
+  const t=setup(),s=new CoreSimulation();t.action.mockImplementation((a:Action)=>s.action(a,t.input.controls()));const pointer=(name:string)=>{const e=new Event(name,{cancelable:true});Object.assign(e,{pointerId:6});t.heavyButton.dispatchEvent(e);};pointer('pointerdown');s.tick(.1,t.input.controls());pointer('pointercancel');pointer('lostpointercapture');expect(s.combat.charging).toBe(false);expect(s.player.stamina).toBe(100);key(t.document,'keydown','KeyR');window.dispatchEvent(new Event('blur'));key(t.document,'keyup','KeyR');expect(s.player.phase).toBe('idle');key(t.heavyButton,'keydown','Enter');expect(s.player.phase).toBe('windup');expect(s.player.stamina).toBe(68);t.input.dispose();
+ });
+});
+
+ it('gamepad spell input is cancelled by pause before its effect resolves',()=>{const t=setup(),s=new CoreSimulation();t.action.mockImplementation((a:Action)=>s.action(a,t.input.controls()));t.connect();t.setButton(5,true);t.input.tick(.016);expect(s.combat.pending).toBe('fire');expect(s.combat.mana).toBe(80);t.input.setEnabled(false);expect(s.combat.pending).toBeNull();for(let i=0;i<45;i++)s.tick(1/60,t.input.controls());expect(s.elements.states.size).toBe(0);expect(s.combat.mana).toBe(80);t.input.dispose();});

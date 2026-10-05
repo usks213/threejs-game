@@ -1,7 +1,7 @@
 /** PR4 transport protocol. Server is a bounded relay; host owns game rules. */
-// v4 adds finite soil, watermill escrow and western resident snapshots/frames.
+// v5 adds actor combat resources, inventory layouts, gem ranks and collectible display escrow.
 // Old peers cannot validate those saves even though packet envelopes are unchanged.
-export const CAMPAIGN_PROTOCOL=4;
+export const CAMPAIGN_PROTOCOL=5;
 export const MAX_ROOM_PLAYERS=2;
 export const MAX_PACKET_BYTES=40*1024;
 export const MAX_SNAPSHOT_BYTES=16*1024*1024;

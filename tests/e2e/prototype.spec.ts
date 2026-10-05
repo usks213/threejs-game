@@ -1,3 +1,4 @@
+import {chargeHeavy} from './helpers/charge-heavy';
 import {observeAttack} from './helpers/transient-observation';
 import {test,expect,type Page} from '@playwright/test';
 interface Probe {position:{x:number;y:number;z:number};phase:string;phaseTime:number;attack:string;timeScale:number;hp:number;stamina:number;enemies:{position:{x:number;y:number;z:number};phase:string;time:number;hp:number}[];weapon:{tip:{x:number;y:number;z:number}};seconds:number;yaw:number;pitch:number;door:boolean;tool:boolean;stats:{mode:string;shUpdates:number;exposure:number;remeshes:number;triangles:number;reflectionSources:number}}
@@ -59,7 +60,7 @@ test('motion review: windup, moving blade, follow-through and recovery',async({p
  await expect.poll(async()=>(await probe(page)).phase).toBe('windup');await expect.poll(async()=>(await probe(page)).phaseTime,{timeout:60000}).toBeGreaterThan(.17);await page.screenshot({path:`test-results/${prefix}-motion-1-windup.png`});
  await expect.poll(async()=>(await probe(page)).phase,{timeout:60000}).toBe('strike');const start=(await probe(page)).weapon.tip;await page.screenshot({path:`test-results/${prefix}-motion-2-strike.png`});
  await expect.poll(async()=>(await probe(page)).phase,{timeout:60000}).toBe('recover');const finish=(await probe(page)).weapon.tip;expect(Math.hypot(start.x-finish.x,start.y-finish.y,start.z-finish.z)).toBeGreaterThan(.3);await page.screenshot({path:`test-results/${prefix}-motion-3-followthrough.png`});
- await expect.poll(async()=>(await probe(page)).phase,{timeout:60000}).toBe('idle');if(isMobile)await page.locator('[data-action=heavy]').tap();else await page.keyboard.press('KeyR');await expect.poll(async()=>(await probe(page)).phaseTime,{timeout:60000}).toBeGreaterThan(.35);expect((await probe(page)).attack).toBe('overhead');await page.screenshot({path:`test-results/${prefix}-motion-4-overhead.png`});expect(errors).toEqual([]);
+ await expect.poll(async()=>(await probe(page)).phase,{timeout:60000}).toBe('idle');await chargeHeavy(page,isMobile);await expect.poll(async()=>(await probe(page)).phaseTime,{timeout:60000}).toBeGreaterThan(.35);expect((await probe(page)).attack).toBe('overhead');await page.screenshot({path:`test-results/${prefix}-motion-4-overhead.png`});expect(errors).toEqual([]);
 });
 
 test('desktop duel: read enemy windup, raise shield, then punish recovery',async({page,isMobile})=>{

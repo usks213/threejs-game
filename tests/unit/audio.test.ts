@@ -1,5 +1,5 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
-import {AUDIO_LIMITS,createAudio,DEFAULT_AUDIO_MIX} from '../../src/prototype/audio';
+import {AUDIO_LIMITS,effectDistanceGain,createAudio,DEFAULT_AUDIO_MIX} from '../../src/prototype/audio';
 import type {AudioEnvironment} from '../../src/prototype/audio';
 
 class FakeParam {
@@ -163,3 +163,5 @@ describe('procedural game audio',()=>{
   audio.setMix({music:0,ambience:0});await settle();expect(c.state).toBe('suspended');expect(c.gains[0].gain.value).toBe(0);
  });
 });
+
+it('attenuates world sounds by real source distance with a finite silence radius',()=>{expect(effectDistanceGain(0)).toBe(1);expect(effectDistanceGain(9)).toBe(.25);expect(effectDistanceGain(18)).toBe(0);expect(effectDistanceGain(999)).toBe(0);expect(effectDistanceGain(NaN)).toBe(0);expect(effectDistanceGain(-1)).toBe(1);});

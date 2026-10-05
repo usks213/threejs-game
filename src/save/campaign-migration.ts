@@ -1,3 +1,5 @@
+import {validPlayerBedSave} from '../prototype/core/player-rest';
+import {validCollectibleDisplaySave} from '../prototype/core/collectible-display';
 import {validSoilGeometry} from '../prototype/core/soil-fill';
 import {validWatermillSave} from '../prototype/core/watermill';
 import {VAULT_OBJECT_IDS,validEchoVaultSave} from '../prototype/core/echo-vault';
@@ -49,6 +51,8 @@ export function prepareLegacyCampaignMigration(value:unknown,prototype:Pick<Retu
  const field=migrateLegacyCampaignField(source.field,prototype.provider);if(!field)return null;
  const empty=new VoxelField(),survival=new SurvivalSystem(empty),elements=new ElementSystem(empty,new VoxelWater(empty)),campaign=new CampaignSystem(survival.inventory),home=new HomesteadSystem(survival.inventory,campaign.state.items);
  if(!survival.restoreState(source.survival)||!elements.restoreState(source.elements)||!campaign.restore(source.campaign)||!home.restore(source.home))return null;
+ if(!validPlayerBedSave(home.state.furniture,source.field))return null;
+ if(!validCollectibleDisplaySave(source.display,source.field,campaign.state,home.state))return null;
  if(!validSoilGeometry(survival.soil.snapshot(),source.field))return null;
  if(!validWatermillSave(source.watermill,source.field))return null;
  if(!validEchoVaultSave(source.dungeon,source.field,source.objects,campaign.state.items,home.state.storage.items))return null;

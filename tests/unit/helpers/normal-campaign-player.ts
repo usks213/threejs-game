@@ -16,7 +16,9 @@ export class NormalPlayer {
  advance(seconds:number,input:Partial<Controls>={}){for(let i=0;i<Math.ceil(seconds*30);i++)this.tick(input);}
  until(predicate:()=>boolean,seconds:number,input:Partial<Controls>={},label='condition'){for(let i=0;i<Math.ceil(seconds*30)&&!predicate();i++)this.tick(input);expect(predicate(),this.diagnostic(label)).toBe(true);}
  idle(){this.until(()=>this.sim.player.phase==='idle',5,{},'action returns to idle');}
- look(point:Vec3){this.idle();const p=this.sim.player,dx=point.x-p.position.x,dz=point.z-p.position.z,yaw=Math.atan2(-dx,-dz),pitch=Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz));this.sim.look(-angle(yaw-p.yaw),p.pitch-pitch);}
+ look(point:Vec3){this.idle();this.track(point);}
+ // Re-aim an ongoing cast through the same production look path.
+ track(point:Vec3){const p=this.sim.player,dx=point.x-p.position.x,dz=point.z-p.position.z,yaw=Math.atan2(-dx,-dz),pitch=Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz));this.sim.look(-angle(yaw-p.yaw),p.pitch-pitch);}
  act(action:Action,input:Partial<Controls>={}){this.sim.action(action,{...neutral,...input});}
  walk(x:number,z:number){this.idle();const start={...this.sim.player.position},dx=x-start.x,dz=z-start.z,len=Math.hypot(dx,dz);if(len<.18)return;this.look({x,y:start.y+1.52,z});this.until(()=>((x-this.sim.player.position.x)*dx+(z-this.sim.player.position.z)*dz)/len<.18,Math.max(6,len*2),{z:1},`walk to ${x},${z}`);this.advance(.25);}
  harvest(material:number,minimum:number,points:Vec3[],object:string){for(let attempt=0;attempt<20&&this.sim.survival.inventory[material]<minimum;attempt++){this.look(points[attempt%points.length]);if(this.sim.target(2.5)?.hit.cell.object!==object)continue;this.act('heavy');expect(this.sim.player.phase,this.diagnostic('harvest strike accepted')).not.toBe('idle');this.idle();this.advance(.4);}expect(this.sim.survival.inventory[material],this.diagnostic('gather material '+material)).toBeGreaterThanOrEqual(minimum);}
@@ -27,12 +29,13 @@ export class NormalPlayer {
  checkpoint(label:string){console.info('Normal-play checkpoint',label,{seconds:Number(this.sim.seconds.toFixed(2)),hp:this.sim.player.hp,position:this.sim.player.position,inventory:this.sim.survival.inventory});}
 }
 
-export function playFirstChapter(d:NormalPlayer,{reserveRidgeMedicine=false}:{reserveRidgeMedicine?:boolean}={}){
+export function playFirstChapter(d:NormalPlayer,{reserveRidgeMedicine=false,reserveGemMaterials=false,reserveManaDoses=0,reserveManaLeaves=0}:{reserveRidgeMedicine?:boolean;reserveGemMaterials?:boolean;reserveManaDoses?:number;reserveManaLeaves?:number}={}){
   const s=d.sim;expect(s.player.position).toEqual({x:0,y:.25,z:6});expect(Object.values(s.survival.inventory).every(n=>n===0)).toBe(true);
   d.walk(-.55,6.15);d.act('chisel');d.harvest(4,24,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95},{x:-2.2,y:.58,z:6.25},{x:-2.2,y:.58,z:6.95}],'sample-wood');
-  d.walk(-.55,5.25);d.walk(-3.45,5.25);d.walk(-3.45,6.35);d.harvest(3,6,[{x:-4.2,y:.55,z:6.8},{x:-4.5,y:.55,z:6.8},{x:-4.5,y:.65,z:6.5}],'sample-stone');
+  d.walk(-.55,5.25);d.walk(-3.45,5.25);d.walk(-3.45,6.35);d.harvest(3,(reserveGemMaterials?25:6)+reserveManaDoses,[{x:-4.2,y:.55,z:6.8},{x:-4.5,y:.55,z:6.8},{x:-4.5,y:.65,z:6.5}],'sample-stone');
   d.walk(-3.45,6.65);d.harvest(7,reserveRidgeMedicine?14:8,[{x:-3.45,y:.5,z:7.9},{x:-3.1,y:.5,z:7.9},{x:-3.8,y:.5,z:7.9}],'sample-grass');
-  d.walk(-3.45,5.3);d.walk(2.5,5.3);d.walk(2.5,5.75);d.harvest(6,4,[{x:2.5,y:.8,z:7.1},{x:2.8,y:.8,z:7.1},{x:2.2,y:.8,z:7.1}],'sample-metal');d.walk(2.5,5.3);d.walk(-3.5,5.3);d.interact('hearth',{x:-3,y:.9,z:4});expect(s.campaign.state.flameTier).toBe(1);d.checkpoint('hearth');
+  d.walk(-3.45,5.3);d.walk(2.5,5.3);d.walk(2.5,5.75);d.harvest(6,reserveGemMaterials?17:4,[{x:2.5,y:.8,z:7.1},{x:2.8,y:.8,z:7.1},{x:2.2,y:.8,z:7.1},...(reserveGemMaterials?[{x:1.6,y:.5,z:7.1},{x:3.8,y:.5,z:7.1},{x:1.6,y:1,z:7.1},{x:3.8,y:1,z:7.1}]:[])],'sample-metal');d.walk(2.5,5.3);d.walk(-3.5,5.3);d.interact('hearth',{x:-3,y:.9,z:4});expect(s.campaign.state.flameTier).toBe(1);d.checkpoint('hearth');
+  if(reserveManaLeaves){for(const [x,z] of [[0,5.3],[0,9.5],[-10,9.5],[-10,1.9],[-6,1.9]])d.walk(x,z);d.act('chisel');d.harvest(7,(s.survival.inventory[7]??0)+reserveManaLeaves,[{x:-5.75,y:3.4,z:3},{x:-5.4,y:3.5,z:3},{x:-6.1,y:3.5,z:3}],'tree0');for(const [x,z] of [[-10,1.9],[-10,9.5],[0,9.5],[0,5.3],[-3.5,5.3]])d.walk(x,z);}
   d.act('sword');d.walk(0,5.3);d.walk(0,3.2);d.interact('door',{x:0,y:1.4,z:1});d.fight(0);d.heal();d.checkpoint('entrance guard outside');d.walk(0,0);d.walk(-2.4,-1.8);d.interact('artisan',{x:-2.5,y:1.1,z:-3.5});expect(s.campaign.state.artisanRescued).toBe(true);d.walk(0,0);d.walk(0,3.2);d.walk(0,5.3);d.walk(-3.5,5.3);d.checkpoint('artisan rescued');
   for(const id of ['iron-blade','hide-coat','grapple','glider','bandage','bandage','berry-meal'])d.menu('craft',id);for(const id of ['iron-blade','hide-coat','grapple','glider'])d.menu('equip',id);d.menu('consume','berry-meal');expect(s.campaign.canGrapple&&s.campaign.canGlide).toBe(true);d.checkpoint('travel equipment');
   d.walk(0,5.3);d.walk(0,3.2);for(const i of [0,1]){const e=s.enemies[i];if(e.hp>0&&Math.hypot(e.position.x-s.player.position.x,e.position.z-s.player.position.z)<8)d.fight(i);}

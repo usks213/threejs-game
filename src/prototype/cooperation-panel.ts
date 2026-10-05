@@ -24,7 +24,7 @@ export function createCooperationPanel(onAction:(id:CooperationAction,text?:stri
  function update(next:CooperationSnapshot){
   state=next;controls=controlsFor(state);
   setText(role,!state.enabled?'未接続':state.role==='host'?'ホストとして接続中':state.role==='guest'?'ゲストとして接続中':'未接続');setText(participants,controls.participants);setText(statusText,state.status);
-  create.disabled=!controls.create;join.disabled=!controls.join;leave.disabled=!controls.leave;setText(leave,state.guestPreview&&!state.role?'自分の旅へ戻る':'退出する');unavailable.hidden=state.enabled;
+  create.disabled=!controls.create;join.disabled=!controls.join;leave.disabled=!controls.leave;setText(leave,state.guestPreview&&!state.role?'自分の旅へ戻る':state.savedCompanion&&!state.role?'同行を終了して一人で続ける':'退出する');unavailable.hidden=state.enabled;
   inviteWrap.hidden=!state.invite;setText(inviteCaption,state.role==='host'?'共有する招待リンク':state.role==='guest'?'参加中の招待リンク':'招待リンク · 参加操作まで未接続');if(invite.value!==(state.invite??''))invite.value=state.invite??'';copy.disabled=!controls.invite;
   permissionWrap.hidden=!state.role;permissionTitle.hidden=state.role!=='host';permission.hidden=state.role!=='host';permission.disabled=!controls.permissions;permission.dataset.coop=state.guestBuild?'deny-build':'allow-build';setText(permission,state.guestBuild?'ゲストの編集を禁止':'ゲストの編集を許可');setText(permissionText,state.role==='host'?(state.guestBuild?'ゲストの建築・編集を許可しています。':'ゲストの建築・編集を禁止しています。'):(state.guestBuild?'ホストが建築・編集を許可しています。':'建築・編集はホストが許可するまで利用できません。'));
   mute.disabled=!state.enabled||!state.role;mute.dataset.coop=state.muted?'unmute':'mute';setText(mute,state.muted?'チャットのミュートを解除':'チャットをミュート');input.disabled=!controls.chat;input.placeholder=state.muted?'ミュートを解除してください':'ルームの参加者へ';refreshSend();

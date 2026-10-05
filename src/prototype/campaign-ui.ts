@@ -1,3 +1,7 @@
+import {createInventoryView,freshInventoryDraft} from './inventory-view';
+import type {InventoryViewModel} from './inventory-presenter';
+import {createStorageTransfer} from './storage-transfer-view';
+import type {InventoryCommand} from './core/inventory';
 import {createArchiveCleanupConfirmation,type ArchiveCleanupInfo} from './archive-cleanup-view';
 import {createGamepadSettingsView} from './gamepad-settings-view';
 import type {GamepadSettings} from './gamepad-settings';
@@ -24,15 +28,15 @@ export function craftingSelection(craft:CampaignCrafting,draft:string){
   outputCount:count===null?null:craft.output.perCraft*count,
   costs:craft.costs.map(cost=>({...cost,total:count===null?null:cost.perCraft*count}))};
 }
-export interface CampaignRow {mapIcon?:string;craft?:CampaignCrafting;id:string;label:string;detail?:string;count?:number;available?:boolean;reason?:string;action?:'craft'|'equip'|'consume'|'learn'|'travel'|'remove-pin'|'homestead'|'gear';position?:{x:number;z:number};completed?:boolean}
-export interface CooperationSnapshot {guestPreview?:boolean;enabled:boolean;status:string;role:null|'host'|'guest';invite:string|null;guestBuild:boolean;muted:boolean;players:number;messages:{from:string;text:string}[];canJoin:boolean}
+export interface CampaignRow {transfer?:{maxCount:number;revision:number;stored:number};mapIcon?:string;craft?:CampaignCrafting;id:string;label:string;detail?:string;count?:number;available?:boolean;reason?:string;action?:'story-read'|'craft'|'equip'|'consume'|'learn'|'travel'|'remove-pin'|'homestead'|'gear';position?:{x:number;z:number};completed?:boolean}
+export interface CooperationSnapshot {savedCompanion?:boolean;guestPreview?:boolean;enabled:boolean;status:string;role:null|'host'|'guest';invite:string|null;guestBuild:boolean;muted:boolean;players:number;messages:{from:string;text:string}[];canJoin:boolean}
 export type CooperationAction='create'|'join'|'leave'|'allow-build'|'deny-build'|'mute'|'unmute'|'copy-invite'|'chat';
 export function cooperationChatText(value:string){return value.trim().slice(0,240);}
-export function cooperationControls(state:CooperationSnapshot){return {create:state.enabled&&!state.role&&!state.guestPreview,join:state.enabled&&!state.role&&state.canJoin,leave:!!state.role||!!state.guestPreview,invite:state.enabled&&!!state.invite,permissions:state.enabled&&state.role==='host',chat:state.enabled&&!!state.role&&!state.muted,participants:state.enabled&&state.role?`参加者 ${Math.max(1,Math.floor(state.players)||1)}人`:'未接続'};}
+export function cooperationControls(state:CooperationSnapshot){return {create:state.enabled&&!state.role&&!state.guestPreview,join:state.enabled&&!state.role&&state.canJoin,leave:!!state.role||!!state.guestPreview||!!state.savedCompanion,invite:state.enabled&&!!state.invite,permissions:state.enabled&&state.role==='host',chat:state.enabled&&!!state.role&&!state.muted,participants:state.enabled&&state.role?`参加者 ${Math.max(1,Math.floor(state.players)||1)}人`:'未接続'};}
 export interface CampaignUISnapshot {
- map?:CampaignMapData;codex?:CampaignCodexEntry[];
+ personalQuests?:CampaignRow[];inventory?:InventoryViewModel;map?:CampaignMapData;codex?:CampaignCodexEntry[];
  materials:CampaignRow[];items:CampaignRow[];recipes:CampaignRow[];quests:CampaignRow[];points:CampaignRow[];skills:CampaignRow[];equipment:CampaignRow[];
- stats:{burning?:number;wet?:number;shock?:number;level:number;xp:number;skillPoints:number;region:string;objective:string;shroud?:number;food?:number;rest?:number;oxygen?:number;cold?:number;focus?:number;weather?:string};
+ stats:{mistWarning?:string;burning?:number;wet?:number;shock?:number;level:number;xp:number;skillPoints:number;region:string;objective:string;shroud?:number;food?:number;rest?:number;oxygen?:number;cold?:number;warmth?:number;focus?:number;weather?:string};
  settings:{gamepad?:GamepadSettings;reducedMotion?:boolean;textScale?:number;cameraMode?:'first'|'third';cameraDistance?:number;audioMix?:{music:number;effects:number;ambience:number};volume:number;sensitivity:number;graphics:'balanced'|'performance'|'high'};
  save:{archiveProtection?:Record<string,string>;canCleanup?:boolean;cleanupInfo?:ArchiveCleanupInfo;cleanupPending?:string;canImport?:boolean;canExport?:boolean;fileBusy?:boolean;importInfo?:{name:string;savedAt:number;sizeBytes:number};switchBlocked?:boolean;canExpand?:boolean;expanded?:boolean;expansionBlocked?:boolean;available:boolean;label:string;status:string;archives?:CheckpointArchiveMetadata[];archiveError?:string;archiveScope?:string;disabledForGuest?:boolean};
  bindings?:{action:string;label:string;key:string}[];
@@ -40,16 +44,19 @@ export interface CampaignUISnapshot {
  cooperation?:CooperationSnapshot;
 }
 export function campaignSaveControls(save:CampaignUISnapshot['save']){const editable=!save.disabledForGuest;return {save:editable,continue:editable&&save.available,newGame:editable&&!save.archiveError&&!save.cleanupPending&&!save.switchBlocked,restore:editable&&!save.archiveError&&!save.cleanupPending&&!save.switchBlocked};}
-export type CampaignCommand={type:'prepare-cleanup';id:string}|{type:'confirm-cleanup'|'cancel-cleanup'|'recover-cleanup'}|{type:'gamepad-setting';value:GamepadSettings}|{type:'prepare-import';file:File}|{type:'export-file';id?:string}|{type:'cancel-import'|'confirm-import'}|{type:'restore-archive';id:string}|{type:'coop';id:CooperationAction;text?:string}|{type:'craft';id:string;count?:number}|{type:'equip'|'consume'|'learn'|'travel'|'remove-pin'|'homestead'|'gear';id:string}|{type:'setting';key:'volume'|'sensitivity'|'graphics'|'music'|'effects'|'ambience'|'cameraMode'|'cameraDistance'|'reducedMotion'|'textScale';value:number|string}|{type:'binding';action:string;key:string}|{type:'pin';x:number;z:number}|{type:'save'|'continue'|'new-game'|'expand-world'|'cancel-expansion'|'resume'|'open'|'close'|'reset-bindings'};
+export type CampaignCommand={type:'story-read';id:string}|InventoryCommand|{type:'storage';id:string;count:number;revision:number;stored:number}|{type:'prepare-cleanup';id:string}|{type:'confirm-cleanup'|'cancel-cleanup'|'recover-cleanup'}|{type:'gamepad-setting';value:GamepadSettings}|{type:'prepare-import';file:File}|{type:'export-file';id?:string}|{type:'cancel-import'|'confirm-import'}|{type:'restore-archive';id:string}|{type:'coop';id:CooperationAction;text?:string}|{type:'craft';id:string;count?:number}|{type:'equip'|'consume'|'learn'|'travel'|'remove-pin'|'homestead'|'gear';id:string}|{type:'setting';key:'volume'|'sensitivity'|'graphics'|'music'|'effects'|'ambience'|'cameraMode'|'cameraDistance'|'reducedMotion'|'textScale';value:number|string}|{type:'binding';action:string;key:string}|{type:'move-pin';id:string;x:number;z:number}|{type:'pin';x:number;z:number}|{type:'save'|'continue'|'new-game'|'expand-world'|'cancel-expansion'|'resume'|'open'|'close'|'reset-bindings'};
 const tabs:Record<CampaignTab,string>={inventory:'所持品',codex:'収集図鑑',crafting:'制作',equipment:'装備・成長',journal:'クエスト',map:'地図',settings:'設定・保存',homestead:'拠点生活',cooperation:'協力プレイ'};
-const actionNames={craft:'制作する',equip:'装備する',consume:'使う',learn:'習得する',travel:'移動する','remove-pin':'ピンを削除',homestead:'実行',gear:'実行'};
+const actionNames={'story-read':'経緯を読む',craft:'制作する',equip:'装備する',consume:'使う',learn:'習得する',travel:'移動する','remove-pin':'ピンを削除',homestead:'実行',gear:'実行'};
 function node<K extends keyof HTMLElementTagNameMap>(tag:K,text?:string,className?:string){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(className)el.className=className;return el;}
 
 /** Display-only controller. The app supplies validated state and executes every transaction. */
 export function createCampaignUI(onCommand:(command:CampaignCommand)=>void){
  const abort=new AbortController(),signal=abort.signal,craftDrafts=new Map<string,string>();
+ const inventoryDraft=freshInventoryDraft(),transferDrafts=new Map<string,string>();
  const codexFilter:CodexFilter={query:'',status:'all'};
- const mapSelection:{position?:MapPosition}={};
+ const mapSelection:{position?:MapPosition;mode?:'move'}={};
+ let movingPin='',pendingPin:MapPosition|null=null;
+ function clearPinMove(){inventoryDraft.confirmDrop=false;movingPin='';pendingPin=null;delete mapSelection.mode;}
  let snapshot:CampaignUISnapshot|undefined,tab:CampaignTab='inventory',opened=false,lastFocus:HTMLElement|null=null,query='',confirmExpansion=false,confirmNew=false,confirmArchive='',confirmSalvage='',lastRender='';
  let cooperationPanel:ReturnType<typeof createCooperationPanel>|null=null;
  const root=node('section',undefined,'campaign-overlay');root.id='campaign-panel';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-labelledby','campaign-heading');
@@ -57,15 +64,15 @@ export function createCampaignUI(onCommand:(command:CampaignCommand)=>void){
  const close=button('閉じる ×',()=>closePanel());close.setAttribute('aria-label','旅の記録を閉じる');header.append(heading,close);
  const summary=node('p',undefined,'campaign-summary'),nav=node('nav',undefined,'campaign-tabs');nav.setAttribute('aria-label','旅の記録の項目');
  const tabButtons=new Map<CampaignTab,HTMLButtonElement>();
- for(const [key,label] of Object.entries(tabs)){const name=key as CampaignTab,b=button(label,()=>{if(snapshot?.save.importInfo||snapshot?.save.cleanupInfo||snapshot?.save.fileBusy)onCommand({type:'cancel-import'});tab=name;query='';confirmExpansion=false;confirmNew=false;confirmArchive='';confirmSalvage='';render(true);});b.dataset.tab=name;tabButtons.set(name,b);nav.append(b);}
+ for(const [key,label] of Object.entries(tabs)){const name=key as CampaignTab,b=button(label,()=>{if(snapshot?.save.importInfo||snapshot?.save.cleanupInfo||snapshot?.save.fileBusy)onCommand({type:'cancel-import'});clearPinMove();tab=name;query='';confirmExpansion=false;confirmNew=false;confirmArchive='';confirmSalvage='';render(true);});b.dataset.tab=name;tabButtons.set(name,b);nav.append(b);}
  const body=node('div',undefined,'campaign-body');body.id='campaign-body';const feedback=node('div',undefined,'campaign-feedback');feedback.setAttribute('role','status');
  const footer=node('footer',undefined,'campaign-footer');footer.append(feedback,button('探索に戻る',()=>onCommand({type:'resume'})));
  card.append(header,summary,nav,body,footer);root.append(card);document.querySelector('#app')!.append(root);
  const openButton=button('旅の記録',()=>open('inventory'));openButton.id='campaign-toggle';openButton.setAttribute('aria-label','所持品・制作・クエスト・地図を開く');document.querySelector('.hud')!.append(openButton);
  const hud=node('div',undefined,'campaign-hud'),hudHeadline=node('span',undefined,'campaign-hud-line'),hudDetail=node('span',undefined,'campaign-hud-line');hud.append(hudHeadline,hudDetail);hud.id='campaign-status';document.querySelector('#app')!.append(hud);
  function button(text:string,click:()=>void){const b=node('button',text);b.type='button';b.addEventListener('click',click,{signal});return b;}
- function closePanel(){if(!opened)return;opened=false;root.hidden=true;confirmExpansion=false;confirmNew=false;confirmArchive='';confirmSalvage='';onCommand({type:'close'});lastFocus?.focus();}
- function open(next:CampaignTab='inventory'){if(snapshot?.save.cleanupInfo)onCommand({type:'cancel-cleanup'});if(!opened){lastFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;opened=true;onCommand({type:'open'});}tab=next;confirmExpansion=false;confirmNew=false;confirmArchive='';confirmSalvage='';query='';root.hidden=false;render(true);close.focus();}
+ function closePanel(){if(!opened)return;clearPinMove();opened=false;root.hidden=true;confirmExpansion=false;confirmNew=false;confirmArchive='';confirmSalvage='';onCommand({type:'close'});lastFocus?.focus();}
+ function open(next:CampaignTab='inventory'){clearPinMove();if(snapshot?.save.cleanupInfo)onCommand({type:'cancel-cleanup'});if(!opened){lastFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;opened=true;onCommand({type:'open'});}tab=next;confirmExpansion=false;confirmNew=false;confirmArchive='';confirmSalvage='';query='';root.hidden=false;render(true);close.focus();}
  function craftingControls(row:CampaignRow){
   const craft=row.craft!,wrap=node('div',undefined,'campaign-crafting'),controls=node('div',undefined,'campaign-craft-quantity');
   const label=node('label','制作回数（1〜20）'),input=node('input');input.type='number';input.min='1';input.max='20';input.step='1';input.inputMode='numeric';input.id='craft-quantity-'+row.id;input.dataset.craftQuantity=row.id;input.value=craftDrafts.get(row.id)??'1';input.setAttribute('aria-label',row.label+'の制作回数');label.append(input);
@@ -86,13 +93,15 @@ export function createCampaignUI(onCommand:(command:CampaignCommand)=>void){
   const grid=node('div',undefined,'campaign-grid');if(!list.length)grid.append(node('p',empty,'campaign-empty'));
   for(const row of list){
    const item=node('article',undefined,'campaign-item');item.dataset.item=row.id;item.append(node('h3',`${row.completed?'✓ ':''}${row.label}${row.count!==undefined?' ×'+row.count:''}`));if(row.detail)item.append(node('p',row.detail));
-   if(row.action==='craft'&&row.craft)item.append(craftingControls(row));
+   if(row.transfer)item.append(createStorageTransfer(row,transferDrafts,onCommand,signal));
+   else if(row.action==='craft'&&row.craft)item.append(craftingControls(row));
    else {
     if(row.reason)item.append(node('p',row.reason,'campaign-reason'));
     if(row.action){const action=row.action,b=button(actionNames[action],()=>{if(action==='gear'&&row.id.startsWith('salvage:')){confirmSalvage=row.id;render(true);}else onCommand({type:action,id:row.id});});b.disabled=row.available===false;b.dataset.command=action;item.append(b);
      if(action==='gear'&&row.id===confirmSalvage){const warning=node('div',undefined,'campaign-warning');warning.setAttribute('role','group');warning.setAttribute('aria-label','装備分解の確認');warning.append(node('p','この装備を分解しますか？ この操作は元に戻せません。'),node('p',row.detail??'装備を失い、素材を受け取ります。'));const confirm=button('分解する',()=>{confirmSalvage='';onCommand({type:'gear',id:row.id});render(true);});confirm.disabled=row.available===false;warning.append(confirm,button('やめる',()=>{confirmSalvage='';render(true);}));item.append(warning);}
     }
    }
+   if(tab==='map'&&row.id.startsWith('pin:')&&row.position){const move=button('ピンを移動',()=>{movingPin=row.id;pendingPin=null;mapSelection.position={...row.position!};mapSelection.mode='move';render(true);document.getElementById('campaign-map-surface')?.focus();});move.dataset.command='move-pin-start';item.append(move);}
    grid.append(item);
   }
   return grid;
@@ -142,7 +151,7 @@ export function createCampaignUI(onCommand:(command:CampaignCommand)=>void){
   }
   body.append(history);
  }
- function render(force=false){if(!snapshot||!opened)return;const signature=tab==='cooperation'?JSON.stringify([tab,snapshot.cooperation,snapshot.stats.level,snapshot.stats.xp,snapshot.stats.skillPoints,snapshot.stats.region]):JSON.stringify([snapshot.materials,snapshot.items,snapshot.codex,snapshot.recipes,snapshot.quests,snapshot.points,snapshot.map,snapshot.skills,snapshot.equipment,snapshot.stats.level,snapshot.stats.xp,snapshot.stats.skillPoints,snapshot.stats.region,snapshot.settings,snapshot.save,snapshot.bindings,snapshot.homestead,snapshot.cooperation,tab,query,confirmExpansion,confirmNew,confirmArchive,confirmSalvage]);if(!force&&signature===lastRender)return;
+ function render(force=false){if(!snapshot||!opened)return;const signature=tab==='cooperation'?JSON.stringify([tab,snapshot.cooperation,snapshot.stats.level,snapshot.stats.xp,snapshot.stats.skillPoints,snapshot.stats.region]):JSON.stringify([snapshot.inventory,snapshot.materials,snapshot.items,snapshot.codex,snapshot.recipes,snapshot.quests,snapshot.personalQuests,snapshot.points,snapshot.map,snapshot.skills,snapshot.equipment,snapshot.stats.level,snapshot.stats.xp,snapshot.stats.skillPoints,snapshot.stats.region,snapshot.settings,snapshot.save,snapshot.bindings,snapshot.homestead,snapshot.cooperation,tab,query,confirmExpansion,confirmNew,confirmArchive,confirmSalvage]);if(!force&&signature===lastRender)return;
   // Keep focused sliders/search stable while real-time state updates arrive.
   if(!force&&tab!=='cooperation'&&body.contains(document.activeElement)&&(document.activeElement instanceof HTMLInputElement||document.activeElement instanceof HTMLSelectElement)&&!document.activeElement.hasAttribute('data-craft-quantity'))return;
   lastRender=signature;
@@ -151,15 +160,18 @@ export function createCampaignUI(onCommand:(command:CampaignCommand)=>void){
   if(tab==='cooperation'){cooperationPanel??=createCooperationPanel((id,text)=>onCommand({type:'coop',id,text}),cooperationControls,cooperationChatText,signal);if(!body.contains(cooperationPanel.root))body.replaceChildren(cooperationPanel.root);cooperationPanel.update(snapshot.cooperation??unavailableCooperation);return;}
   const focused=document.activeElement instanceof HTMLElement&&body.contains(document.activeElement)?document.activeElement:null;const focusedRow=focused?.closest<HTMLElement>('[data-item]')?.dataset.item;const focusedArchive=focused?.closest<HTMLElement>('[data-archive-id]')?.dataset.archiveId;const focusedText=focused?.textContent;const focusedCraftControl=focused?.dataset.craftSelect??(focused?.dataset.command==='craft'?'submit':null);const focusedField=focused instanceof HTMLInputElement?{id:focused.id,start:focused.selectionStart,end:focused.selectionEnd}:null;
   body.replaceChildren();
-  if(tab==='inventory'){body.append(node('p',campaignHudText(snapshot.stats).full,'campaign-help'));title('素材');body.append(rows(snapshot.materials,'素材は木や岩を削り、近づいて集めます。'));title('道具・食料');body.append(rows(snapshot.items,'まだ道具や食料を持っていません。'));}
+  if(tab==='inventory'){body.append(node('p',campaignHudText(snapshot.stats).full,'campaign-help'));if(snapshot.inventory)body.append(createInventoryView(snapshot.inventory,inventoryDraft,onCommand,signal));title('素材');body.append(rows(snapshot.materials,'素材は木や岩を削り、近づいて集めます。'));title('道具・食料');body.append(rows(snapshot.items,'まだ道具や食料を持っていません。'));}
   if(tab==='crafting'){const label=node('label','レシピを探す','campaign-search'),search=node('input');search.type='search';search.value=query;search.placeholder='名前・必要素材';search.setAttribute('aria-label','レシピを検索');label.append(search);body.append(label);const results=node('div');const refresh=()=>{const q=query.toLocaleLowerCase();results.replaceChildren(rows(snapshot!.recipes.filter(r=>`${r.label} ${r.detail??''} ${r.reason??''} ${r.craft?.costs.map(c=>c.label).join(' ')??''}`.toLocaleLowerCase().includes(q)),'一致するレシピはありません。'));};search.addEventListener('input',()=>{query=search.value;refresh();},{signal});refresh();body.append(results);}
   if(tab==='equipment'){title('装備');body.append(rows(snapshot.equipment,'装備品は制作して入手します。'));title('技能');body.append(rows(snapshot.skills,'技能は探索と戦闘で解放します。'));}
   if(tab==='codex')body.append(createCodexView(snapshot.codex??[],codexFilter,signal));
-  if(tab==='journal')body.append(rows(snapshot.quests,'現在のクエストはありません。'));
+  if(tab==='journal'){if(snapshot.personalQuests){body.append(node('h3','この参加者の旅'),rows(snapshot.personalQuests,'同期してから個人の記録を表示します。'),node('h3','世界の共有目標'));}body.append(rows(snapshot.quests,'現在のクエストはありません。'));}
   if(tab==='homestead')body.append(rows(snapshot.homestead??[],'拠点の炉を灯すと生活設備を利用できます。'));
   if(tab==='map'){
    const data=snapshot.map??campaignMapData([],[],false,null),refs=mapPointReferences(snapshot.points);
-   body.append(createCampaignMap(data,snapshot.points,p=>onCommand({type:'pin',...p}),signal,mapSelection));
+   if(movingPin&&!snapshot.points.some(p=>p.id===movingPin))clearPinMove();
+   body.append(createCampaignMap(data,snapshot.points,p=>{if(movingPin){pendingPin={...p};render(true);}else onCommand({type:'pin',...p});},signal,mapSelection));
+   if(movingPin){const id=movingPin,edit=node('div',undefined,'campaign-warning');edit.setAttribute('role','group');edit.setAttribute('aria-label','ピンの移動');edit.append(node('p',pendingPin?'移動先：'+mapCoordinates(pendingPin):'移動先を地図で選んでください。元のピンは確定まで変わりません。'));const confirm=button('この位置へ移動',()=>{if(movingPin!==id||!pendingPin)return;const point={...pendingPin};clearPinMove();onCommand({type:'move-pin',id,...point});render(true);});confirm.disabled=!pendingPin;edit.append(confirm,button('移動をやめる',()=>{clearPinMove();render(true);}));body.append(edit);}
+
    title('地点の詳細・移動');
    body.append(rows(snapshot.points.map(point=>{const ref=refs.get(point.id);return {...point,label:ref?`${ref.icon}${ref.number} · ${point.label}`:point.label,detail:point.position?[mapCoordinates(point.position),point.detail].filter(Boolean).join(' / '):point.detail};}),'探索すると地点が記録されます。'));
   }

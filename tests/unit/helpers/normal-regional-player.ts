@@ -1,8 +1,8 @@
 import {expect} from 'vitest';
 import {NormalPlayer,playFirstChapter} from './normal-campaign-player';
 /** Starts at original spawn and finishes at the home hearth, with rootfen unlocked. */
-export function playFirstTwoRegions(d:NormalPlayer){
- const s=d.sim;playFirstChapter(d);
+export function playFirstTwoRegions(d:NormalPlayer,reserveManaDoses=0){
+ const s=d.sim;playFirstChapter(d,{reserveManaDoses});
   // Physical western path from the ridge avoids the crypt and the forest shelter.
   for(const [x,z] of [[-8,-28.5],[-10,-20],[-10,7],[-16,7],[-20,7],[-23,7]])d.walk(x,z);
   d.interact('rg-field-herb',{x:-25,y:.8,z:8});

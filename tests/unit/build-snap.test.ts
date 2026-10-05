@@ -1,0 +1,12 @@
+import {describe,it,expect} from 'vitest';
+import {buildTarget} from '../../src/prototype/core/build-snap';
+import {VoxelField} from '../../src/prototype/core/voxel';
+import {SurvivalSystem} from '../../src/prototype/core/survival';
+import {CoreSimulation} from '../../src/prototype/core/simulation';
+import {validCompanionSnapshot} from '../../src/prototype/core/companion';
+const idle={x:0,z:0,sprint:false,block:false,water:false};
+describe('building grid and free placement',()=>{
+ it('keeps real support height and never changes the source hit',()=>{const p={x:1.68,y:.263,z:-2.89};expect(buildTarget(p,true)).toEqual({x:1.5,y:.263,z:-3});expect(buildTarget(p,false)).toEqual(p);expect(buildTarget(p,false)).not.toBe(p);});
+ it.each(['floor','wall'] as const)('adjacent %s bounds share an exact seam with ordinary cost and collision validation',recipe=>{const field=new VoxelField();field.box({x:-7,y:-1,z:-7},{x:7,y:.25,z:7},3);const s=new SurvivalSystem(field);s.inventory[4]=80;expect(s.place({x:1.5,y:.25,z:0},{x:1.5,y:.25,z:-2}).ok).toBe(true);s.selected=recipe;const first=buildTarget({x:1.4,y:.25,z:1.4},true),second=buildTarget({x:2.8,y:.25,z:1.4},true),player={x:2.25,y:.25,z:3};const a=s.preview(first,player),b=s.preview(second,player);expect(a.ok).toBe(true);expect(b.ok).toBe(true);expect(a.bounds.max.x).toBe(b.bounds.min.x);expect(s.place(first,player).ok).toBe(true);expect(s.place(second,player).ok).toBe(true);const wood=s.inventory[4];expect(s.place(first,player).ok).toBe(false);expect(s.inventory[4]).toBe(wood);});
+ it('is per actor, accepts old snapshots, rejects malformed mode, and cannot place without edit authority',()=>{const sim=new CoreSimulation(true);sim.action('build-snap',idle);expect(sim.buildSnap).toBe(false);sim.action('build',idle);sim.action('build-snap',idle);expect(sim.buildSnap).toBe(true);sim.enableCompanion();expect(sim.withCompanion(()=>sim.buildSnap)).toBe(false);sim.companionAction('recipe-next');sim.companionAction('build-snap');expect(sim.companionSnapshot()?.aux.buildSnap).toBe(true);const snap=sim.companionSnapshot()!;expect(validCompanionSnapshot(snap)).toBe(true);delete snap.aux.buildSnap;expect(validCompanionSnapshot(snap)).toBe(true);Reflect.set(snap.aux,'buildSnap','yes');expect(validCompanionSnapshot(snap)).toBe(false);const before=sim.survival.exportState();sim.companionAction('build');expect(sim.survival.exportState()).toEqual(before);});
+});

@@ -1,3 +1,4 @@
+import {chargeHeavy} from './helpers/charge-heavy';
 import {test,expect,type Page} from '@playwright/test';
 interface Probe {position:{x:number;y:number;z:number};yaw:number;pitch:number;phase:string;selectedElement:string;selectedRecipe:string;inventory:Record<number,number>;burning:number;wet:number;charged:number;seconds:number;target:string;stats:{remeshes:number}}
 const probe=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__coreProbe') as Probe);
@@ -32,9 +33,9 @@ test('elemental harvesting turns broken wood into a placed SDF workbench',async(
  else {const session=await page.context().newCDPSession(page),r=(await page.locator('#move-pad').boundingBox())!;await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:r.x+r.width/2,y:r.y+12,id:1}]});await expect.poll(async()=>(await probe(page)).position.x).toBeLessThan(-.4);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await session.detach();}
  if(!isMobile)await page.keyboard.press('F4');
  await aim(page,isMobile,{x:-1.7,y:.58,z:6.25});if(isMobile)await page.locator('#tool-switch').tap();else await page.keyboard.press('Digit2');
- const beforeMeshes=(await probe(page)).stats.remeshes;if(isMobile)await page.locator('[data-action=heavy]').tap();else await page.keyboard.press('KeyR');
+ const beforeMeshes=(await probe(page)).stats.remeshes;await chargeHeavy(page,isMobile);
  await expect.poll(async()=>(await probe(page)).inventory[4],{timeout:90000}).toBeGreaterThan(0);await expect.poll(async()=>(await probe(page)).phase).toBe('idle');
- await aim(page,isMobile,{x:-1.7,y:.58,z:6.95});if(isMobile)await page.locator('[data-action=heavy]').tap();else await page.keyboard.press('KeyR');await expect.poll(async()=>(await probe(page)).phase).not.toBe('idle');await expect.poll(async()=>(await probe(page)).phase).toBe('idle');expect((await probe(page)).inventory[4]).toBeGreaterThanOrEqual(8);
+ await aim(page,isMobile,{x:-1.7,y:.58,z:6.95});await chargeHeavy(page,isMobile);await expect.poll(async()=>(await probe(page)).phase).not.toBe('idle');await expect.poll(async()=>(await probe(page)).phase).toBe('idle');expect((await probe(page)).inventory[4]).toBeGreaterThanOrEqual(8);
  await aim(page,isMobile,{x:.1,y:.25,z:4.8});const before=(await probe(page)).inventory[4];await action(page,isMobile,'build','KeyB');await expect.poll(async()=>(await probe(page)).inventory[4]).toBe(before-8);expect((await probe(page)).stats.remeshes).toBeGreaterThan(beforeMeshes);
  await page.screenshot({path:`test-results/${isMobile?'mobile':'desktop'}-elemental-workbench.png`});expect(errors).toEqual([]);
 });

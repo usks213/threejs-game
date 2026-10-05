@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {campaignMapData,campaignMapViewport,campaignMapWorldBounds,clampMapPosition,mapProjection,projectMap,unprojectMap,mapClientPosition,layoutMapLabels,mapPointReferences,mapCoordinates,MAP_WIDTH,MAP_HEIGHT,MAP_LABEL_WIDTH,MAP_LABEL_HEIGHT} from '../../src/prototype/campaign-map';
+import {moveMapPin,campaignMapData,campaignMapViewport,campaignMapWorldBounds,clampMapPosition,mapProjection,projectMap,unprojectMap,mapClientPosition,layoutMapLabels,mapPointReferences,mapCoordinates,MAP_WIDTH,MAP_HEIGHT,MAP_LABEL_WIDTH,MAP_LABEL_HEIGHT} from '../../src/prototype/campaign-map';
 import {REGIONS} from '../../src/prototype/core/regions';
 import {WEST_ROUTES,WEST_POIS,WEST_POINTS,WEST_SPECIALISTS} from '../../src/prototype/core/expedition-west';
 import {createWestExpeditionState} from '../../src/prototype/core/expedition-west-integration';
@@ -108,3 +108,5 @@ describe('presenter map state and moving specialists',()=>{
   expect(state.points.find(p=>p.id==='west-return-hearth')?.action).toBe('travel');expect(state.points.find(p=>p.id==='rest:west-return-hearth')?.action).toBe('gear');expect(state.points.find(p=>p.id==='rescue')?.action).toBe('gear');
  });
 });
+
+it('moves an existing private pin at capacity without replacing its identity or other pins',()=>{const pins=Array.from({length:12},(_,i)=>({id:'pin:'+i,x:i,z:i})),before=structuredClone(pins),selected=pins[3];expect(moveMapPin(pins,'pin:3',{x:-30,z:10},campaignMapWorldBounds(false))).toBe(true);expect(pins).toHaveLength(12);expect(pins[3]).toBe(selected);expect(pins[3]).toEqual({id:'pin:3',x:-30,z:10});expect(pins.filter(p=>p.id!=='pin:3')).toEqual(before.filter(p=>p.id!=='pin:3'));const valid=structuredClone(pins);for(const [id,position] of [['pin:missing',{x:0,z:0}],['hearth',{x:0,z:0}],['pin:3',{x:Infinity,z:0}],['pin:3',{x:81,z:0}]] as const)expect(moveMapPin(pins,id,position,campaignMapWorldBounds(false))).toBe(false);expect(pins).toEqual(valid);});

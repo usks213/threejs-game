@@ -11,7 +11,7 @@ function assault(d:NormalPlayer,index:number){
   if(s.player.stamina<25){d.advance(2,{x:s.player.position.x<-61?1:-1});continue;}
   // A cornered caster can put a wall in the wide sword arc. Aim through the
   // clear chest ray and use the game's wet-to-lightning reaction instead.
-  if(index===21&&s.target(7)?.enemy?.id===index){const element=s.enemyElements[index].wet>0?'lightning':'water';while(s.selectedElement!==element)d.act('element-next');d.act('cast');d.until(()=>s.player.phase==='idle',4,{x:.25},'western elemental cast');d.advance(.7,{x:.3});continue;}
+  if(index===21&&s.target(7)?.enemy?.id===index){if(s.combat.mana<20)d.menu('consume','mana-draught');const element=s.enemyElements[index].wet>0?'lightning':'water';while(s.selectedElement!==element)d.act('element-next');d.act('cast');d.until(()=>s.player.phase==='idle',4,{x:.25},'western elemental cast');d.advance(.7,{x:.3});continue;}
   if(Math.hypot(e.position.x-s.player.position.x,e.position.z-s.player.position.z)>1.45){const before={...s.player.position};d.advance(.2,{z:1});if(Math.hypot(s.player.position.x-before.x,s.player.position.z-before.z)<.04)d.advance(.5,{x:1});continue;}
   d.act(s.focus.value>=100?'special':'attack');d.until(()=>s.player.phase==='idle',4,{z:.2},'western assault');
  }
@@ -23,7 +23,8 @@ function talkResident(d:NormalPlayer,id:string){
 }
 
 it('rescues both western specialists, talks at their new homes, crafts their gear and restores via normal production actions',()=>{
- const d=new NormalPlayer(true),s=d.sim;playFirstTwoRegions(d);expect(s.western!.accessible).toBe(true);d.menu('learn','vigor');d.menu('equip','ember-charm');
+ const d=new NormalPlayer(true),s=d.sim;playFirstTwoRegions(d,4);expect(s.western!.accessible).toBe(true);d.menu('learn','vigor');d.menu('equip','ember-charm');
+ for(const [x,z] of [[0,5.3],[0,9.5],[-10,9.5],[-10,1.9],[-6,1.9]])d.walk(x,z);d.act('chisel');d.harvest(7,32,[{x:-5.75,y:3.4,z:3},{x:-5.4,y:3.5,z:3},{x:-6.1,y:3.5,z:3}],'tree0');d.act('sword');for(const [x,z] of [[-10,1.9],[-10,9.5],[0,9.5],[0,5.3],[-3.5,5.3]])d.walk(x,z);for(let i=0;i<4;i++)d.menu('craft','mana-draught');
  for(let i=0;i<5;i++)d.menu('craft','bandage');for(let i=0;i<5&&s.player.hp<s.campaign.maxHp;i++)d.menu('consume','bandage');
  for(const id of ['iron-blade','hide-coat'])if(s.campaign.repairStatus(id,s.player.position).ok)d.menu('gear','repair:'+id);
  d.menu('craft','berry-meal');d.menu('consume','berry-meal');

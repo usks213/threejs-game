@@ -2,6 +2,10 @@
 
 Reference: [full sourced requirements](reference/enshrouded-requirements.md). Original browser game; statuses refer to implemented mechanics, not Enshrouded parity.
 
+Current verified public checkpoint (2026-10-05 21:29 UTC): `13d087babc461a7431b9c70db4e0a57943d0cd3d`, protocol4, [CI37375156874](https://github.com/usks213/threejs-game/actions/runs/37375156874). Exact deployment and health verified; the actual two-browser join/chat/movement/permission/save-isolation/reconnect case passed, as did desktop/Android save-history/file-transfer and migration cases. Several longer routes failed their precise normal-input waypoint driver, and one first-chapter combat route failed. These remain acceptance failures for that SHA.
+
+The pending protocol5 checkpoint adds finite combat resources, inventory stacks/storage/pickups, collectible display escrow, skill ranks/gem tiers, warming fires, visible mist boundaries, pin relocation, building grid/free mode, participant-specific catch-up records and bounded enemy detours. Focused checks and real normal-Core routes are evidence for their rules, not completed browser acceptance. Final full gates, exact deployment, PC/Android/browser routes and visual checks must be recorded for the next SHA. Physical iPhone/Android/controller and actual audio listening remain unverified.
+
 Order: P0 foundation/save; P1 complete progression; P2 breadth/regions; P3 expression/UI; P4 cooperation; final acceptance. No unchecked row counts as complete.
 Source audit: 2026-10-04 21:47 UTC. This pass inspected code and test definitions; it did not execute new tests or certify browser acceptance. 「実装あり」means a reachable integration exists in source, not a passed final acceptance. 「部分実装」retains the explicit remaining scope. Paths under core/rendering are relative to src/prototype unless fully qualified. No original requirement was removed.
 
@@ -31,16 +35,16 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | F13 | 時間刻み | 部分実装 | tests/unit/campaign.test.ts; enemy-tactics.test.ts; core/simulation.ts | 霧/敵イベントの30Hz対120Hz定義はある。移動/全効果の時間不変性は未網羅 |
 | F14 | ロード状態 | 実装あり・実操作未検証 | core/world-bootstrap.ts; world-bootstrap.worker.ts; app.ts; tests/unit/world-bootstrap.test.ts | 初期拠点→背景統合/失敗/取消のブラウザ表示を確認 |
 | E01 | オープンワールド | 部分実装・公開未検証 | core/regions.ts; regional-world.ts; expedition-west.ts; western-sample-provider.ts; tests/unit/expedition-west*.test.ts | 元の7小地域に加え、別v4 opt-inで集落/二口坑道/2本の約60m道路/帰還路を接続。物理通行/有限報酬/閉開門は局所試験済み。原作規模や全域の自由探索密度、公開ブラウザ受入は未達 |
-| E02 | 霧危険地域 | 実装あり・実操作未検証 | core/campaign.ts; core/simulation.ts; tests/unit/campaign.test.ts | 霧猶予/深度/報酬/退出回復の通常プレイ受入 |
+| E02 | 霧危険地域 | 実装あり・実操作未検証 | core/campaign.ts; core/simulation.ts; tests/unit/campaign.test.ts | 霧猶予/深度/報酬/退出回復の通常プレイ受入。core/shroud-zones.ts と rendering/shroud-boundaries.ts で危険範囲を共用し、外から見える12枚/24三角形の薄霧と文字の接近/濃霧警告を追加。地形/当たり判定/既存減衰は不変。局所境界/破棄試験成功、PC/Android実画面は次版の受入待ち |
 | E03 | 致死危険度 | 実装あり・実操作未検証 | core/campaign.ts; core/simulation.ts; tests/unit/campaign.test.ts | 霧猶予/深度/報酬/退出回復の通常プレイ受入 |
 | E04 | 霧内の報酬 | 実装あり・実操作未検証 | core/campaign.ts; core/simulation.ts; tests/unit/campaign.test.ts | 霧猶予/深度/報酬/退出回復の通常プレイ受入 |
 | E05 | 地図 | 部分実装・局所検証済 | campaign-map.ts; campaign-presenter.ts; campaign-ui.ts; tests/unit/campaign-map.test.ts | 発見した地域/実在経路と通過済み西方道の等縮尺略図、未発見地点の遮蔽、番号/記号付き非重複ラベルと座標一覧。17投影/境界/探索試験。完全地形測量・実ブラウザ受入は未達 |
-| E06 | 地図ピン | 実装あり・ブラウザ受入待ち | campaign-map.ts; app.ts; tests/unit/campaign-map.test.ts; tests/e2e/campaign-map.spec.ts | 同じ投影のタッチ逆変換とキーボード選択、保存範囲制限/非有限値拒否/重複ID防止。削除/保存も接続。PC/Android実操作ケース作成、未実行 |
+| E06 | 地図ピン | 実装あり・ブラウザ受入待ち | campaign-map.ts; app.ts; tests/unit/campaign-map.test.ts; tests/e2e/campaign-map.spec.ts | 同じ投影のタッチ逆変換とキーボード選択、保存範囲制限/非有限値拒否/重複ID防止。削除/保存も接続。PC/Android実操作ケース作成、未実行。既存ピンの移動先選択→確定/取消を追加し、ID/本数/他ピンを保持。範囲/未知IDは拒否。PC/Androidの移動取消→移動→保存再開を既存地図ケースに追加、公開受入待ち |
 | E07 | 高所ランドマーク | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | E08 | 移動網 | 実装あり・実操作未検証 | core/campaign.ts; tests/unit/campaign.test.ts (discovered hearth travel) | 炉の発見→移動→再読込を実操作確認 |
-| E09 | 昼夜 | 部分実装 | core/simulation.ts (worldHour/worldDay); core/regions.ts | 昼夜時計/夜限定地点はある。空/光/敵との全体同期は未検証 |
+| E09 | 昼夜 | 実装・ブラウザ受入待ち | core/player-rest.ts; core/simulation.ts; tests/unit/player-rest-normal-play.test.ts | 自分用寝台で単独の朝/夕待機。実tickで作物・加工・天候・NPC・時限効果も進む。通常Core無支給経路/中断/保存を検証。PC/Android実入力定義あり、公開受入は未実施 |
 | E10 | 天候 | 部分実装・ブラウザ受入待ち | core/weather.ts; CoreSimulation.tick; rendering/scene.ts; tests/unit/weather.test.ts | 保存時計で晴/雨/風/霧/雪。近傍の燃焼状態/敵/落下素材を屋根判定付きで濡らし消火、質量別の風力と滑空偏流。0.5秒16本の屋根レイ上限。局所近似で気圧/流域/全世界降雨は未実装、実画面は未検証 |
-| E11 | 寒冷 | 実装あり・実操作未検証 | core/simulation.ts; core/campaign.ts; core/homestead.ts; tests/unit/campaign.test.ts | 寒冷/食事/屋根の休息を実プレイ確認。各バフ表現の一貫性は未確認 |
+| E11 | 寒冷 | 実装あり・実操作未検証 | core/simulation.ts; core/campaign.ts; core/homestead.ts; tests/unit/campaign.test.ts | 寒冷/食事/屋根の休息を実プレイ確認。各バフ表現の一貫性は未確認。core/warmth.ts: 点火済みの炉/火鉢/実燃焼セルによる距離減衰とSDF遮蔽付きの局所暖気を追加。破壊/未点火/消火を除外し、各プレイヤーの寒冷を軽減。7件の局所回帰成功、公開実操作は次版で受入待ち |
 | E12 | 休息 | 実装あり・実操作未検証 | core/simulation.ts; core/campaign.ts; core/homestead.ts; tests/unit/campaign.test.ts | 寒冷/食事/屋根の休息を実プレイ確認。各バフ表現の一貫性は未確認 |
 | E13 | 食事 | 実装あり・実操作未検証 | core/simulation.ts; core/campaign.ts; core/homestead.ts; tests/unit/campaign.test.ts | 寒冷/食事/屋根の休息を実プレイ確認。各バフ表現の一貫性は未確認 |
 | E14 | 状態異常 | 部分実装・Core検証済 | core/player-environment.ts; simulation.ts; companion.ts; tests/unit/player-environment*.test.ts | 敵/地形に加え各プレイヤーの接触炎上/濡れ/感電、鎧材質、遮蔽、有限パルス、復活/保存/旧形式/同期を検査。術者も共有地形の影響を受ける。全状態異常/プレイヤー部位破壊/ブラウザ受入は未達 |
@@ -50,48 +54,48 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | C02 | 採集 | 実装あり・実操作未検証 | core/elements.ts; core/survival.ts; core/simulation.ts; tests/unit/element-integration.test.ts | 実攻撃→破壊→素材回収の全地域/材質受入 |
 | C03 | 採掘 | 実装あり・実操作未検証 | core/elements.ts; core/survival.ts; core/simulation.ts; tests/unit/element-integration.test.ts | 実攻撃→破壊→素材回収の全地域/材質受入 |
 | C04 | 資源段階 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
-| C05 | インベントリ | 部分実装 | campaign-ui.ts; campaign-presenter.ts; core/survival.ts; core/campaign.ts | 共通材料/アイテム台帳と一覧はある。重さ/枠移動等の採否は未確定 |
+| C05 | インベントリ | 実装あり・ブラウザ受入待ち | core/inventory.ts; inventory-view.ts; tests/unit/inventory-stacks.test.ts; inventory-normal-play.test.ts | 96枠の指定数分割・結合・移動・整理、最大32個の永続物理包と指定数/照準回収。数量保存・満杯・旧保存再調整・不正保存・二重操作を検証。重さは採用しない。PC/Android対象SHAのCI待ち |
 | C06 | レシピ表示 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | C07 | 制作トランザクション | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | C08 | 複数個制作 | 実装・局所検証済・ブラウザ未 | campaign-ui.ts; campaign-presenter.ts; campaign-commands.ts; tests/unit/campaign-bulk-crafting.test.ts | 1/最大/指定1〜20回、複合素材/出力数/所持上限、原子的消費と入力保持を45重点試験。PC/Androidケースは発見のみ、実行未 |
 | C09 | 設備制作 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | C10 | 生産待ち | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
-| C11 | 収納 | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
-| C12 | 一括収納 | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
+| C11 | 収納 | 実装あり・ブラウザ受入待ち | core/homestead.ts; storage-transfer-view.ts; tests/unit/inventory-storage.test.ts; inventory-normal-play.test.ts | 炉4m以内・計500個、材料/食料/薬草/矢の指定数出入れ。装備/重要品を保護し、展示予約を保持。制作は手持ちのみと表示。実採集から保存復元まで検証、PC/Android CI待ち |
+| C12 | 一括収納 | 実装あり・ブラウザ受入待ち | core/homestead.ts; homestead-presenter.ts; tests/unit/inventory-storage.test.ts | 収納にある種類だけの材料・消耗品統合と既存の材料一括収納。装備/重要品/別種を除外し、容量不足は全取消。数量・展示予約を検証。PC/Android CI待ち |
 | C13 | 修理/耐久 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | C14 | 解体 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | C15 | 入手ヒント | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | C16 | 収集図鑑 | 実装あり・ブラウザ受入待ち | core/discovery.ts; campaign-codex.ts; campaign-codex-view.ts; tests/unit/discovery-codex.test.ts; tests/e2e/campaign-codex.spec.ts | 初入手を即時記録し、消費せず永続化。素材・制作・報酬・釣り・農業・加工・収納経路と旧保存互換を11試験で確認。日本語の発見状態・地域・入手・用途、検索と絞込。未発見の場所は伏せる。PC/Android 4ケースはローカルChromiumのsocket EPERMで起動前に停止、CIで実操作受入が必要 |
 | B01 | 基本攻撃 | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |
-| B02 | 重攻撃 | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |
+| B02 | 重攻撃 | 実装あり・実操作未検証 | core/combat-resources.ts; input.ts; core/simulation.ts; tests/unit/combat-resources.test.ts; gamepad-input.test.ts; tests/e2e/campaign-combat-resources.spec.ts | 0.45秒の長押し→溜め姿勢→離して実軌道の強撃。短押し/中断/blur取消、準備表示。PC/Android本番入力の受入は対象SHAのCI待ち |
 | B03 | 防御 | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |
 | B04 | パリィ | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |
 | B05 | 回避 | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |
 | B06 | 弓 | 部分実装 | core/simulation.ts; core/campaign.ts; tests/unit/campaign.test.ts | 弓の弾消費/魔法/剣・弓・杖は実装。武器種別の体験と長距離照準は未検証 |
-| B07 | 魔法 | 部分実装 | core/simulation.ts; core/campaign.ts; tests/unit/campaign.test.ts | 弓の弾消費/魔法/剣・弓・杖は実装。武器種別の体験と長距離照準は未検証 |
+| B07 | 魔法 | 実装あり・実操作未検証 | core/combat-resources.ts; core/simulation.ts; tests/unit/combat-resources.test.ts; campaign-combat-builds-normal.test.ts | Actor別マナ100、1術20、詠唱0.45秒、射程7m。発動時のSDF遮蔽を再検査。草葉2/石1の魔力薬で60回復。PC/Androidの実プレイはCI待ち。全魔法体系ではない |
 | B08 | 武器差 | 実装あり・ブラウザ受入待ち | core/equipment.ts; core/motion.ts; core/simulation.ts; tests/unit/equipment-tools.test.ts | 剣・大剣・短剣の連続軌道/間合い/速度/消費/怯み、盾併用制限、既存弓/杖をCore検証。新系統の実ブラウザ戦闘は未検証 |
-| B09 | 特殊技 | 部分実装 | core/enemy-tactics.ts (focus); core/simulation.ts (special); tests/unit/enemy-tactics.test.ts | 実際のFocus蓄積→消費→効果を受入。原作全特殊技ではない |
+| B09 | 特殊技 | 実装あり・実操作未検証 | core/enemy-tactics.ts; core/combat-resources.ts; core/skills.ts; tests/unit/combat-resources.test.ts | 確定命中でActor別集中を蓄積、100消費。既存の丈夫な身体ランク1＋剣/大剣/短剣で解放。9ポイント予算は保持。全特殊技ではない |
 | B10 | 属性 | 実装あり・実操作未検証 | core/elements.ts; entity-elements.ts; simulation.ts; tests/unit/element-integration.test.ts | 静的物体/敵/ドロップへの5元素反応と負荷上限をブラウザ確認 |
 | B11 | 敵AI | 部分実装・ブラウザ受入待ち | core/enemy-tactics.ts; guard-awareness.ts; simulation.ts; tests/unit/guard-awareness.test.ts | 通常番兵もSDF遮蔽・警戒・最後に見た場所の捜索・帰還を使う。閉じた実扉では非感知、開くと警戒する統合試験。全敵種/複雑な経路探索と視覚受入は未完 |
-| B12 | 敵移動 | 簡易実装・受入試験待ち | src/prototype/core/enemy-tactics.ts + tests/unit/enemy-tactics.test.ts; runtime integration pending browser | Normal-play/browser verification and remaining breadth |
+| B12 | 敵移動 | 地域敵・番兵・召喚眷属はCore検証済・ブラウザ未 | core/enemy-navigation.ts; simulation.ts; tests/unit/enemy-navigation.test.ts; ordinary-enemy-navigation.test.ts; docs/enemy-navigation-acceptance.md | 全敵種の局所経路・SDF支持/段差/崖・停止検知と帰還。実Coreの木/壁/狭路/突進/通常攻撃の足運び/閉塞した帰還先を19件で検査。HP/報酬をリセットしない。全世界経路・3D飛行と公開ブラウザ受入は未対応/未完 |
 | B13 | 敵の予備動作 | 簡易実装・受入試験待ち | src/prototype/core/enemy-tactics.ts + tests/unit/enemy-tactics.test.ts; runtime integration pending browser | Normal-play/browser verification and remaining breadth |
 | B14 | 複数敵 | 簡易実装・受入試験待ち | src/prototype/core/enemy-tactics.ts + tests/unit/enemy-tactics.test.ts; runtime integration pending browser | Normal-play/browser verification and remaining breadth |
 | B15 | ボス段階 | 簡易実装・受入試験待ち | src/prototype/core/enemy-tactics.ts + tests/unit/enemy-tactics.test.ts; runtime integration pending browser | Normal-play/browser verification and remaining breadth |
 | B16 | ボス報酬 | 実装あり・実操作未検証 | core/campaign.ts; simulation.ts; tests/unit/campaign-runtime.test.ts | 討伐→報酬→死亡/再読込で再付与しないことを通常進行で確認 |
 | B17 | 経験値 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
-| B18 | スキル | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
+| B18 | スキル | 実装あり・ブラウザ受入待ち | core/skills.ts; core/campaign.ts; tests/unit/skill-gem-progression.test.ts; docs/skill-gem-acceptance.md | 3技能×3ランク・各1pt・レベル/同ランク前提・9pt総量・正確な再配分・旧保存互換を実装。通常Core進行と保存/通信を検証、公開ブラウザ操作は未検証 |
 | B19 | 装備成長 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
-| B20 | ジェム | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
-| B21 | ビルド成立 | 部分実装 | core/campaign.ts; simulation.ts | 剣/弓/杖のデータと修飾効果あり。3系統すべてのボスまでの通常攻略は未確認 |
+| B20 | ジェム | 実装あり・ブラウザ受入待ち | core/gems.ts; core/campaign.ts; tests/unit/skill-gem-progression.test.ts; docs/skill-gem-acceptance.md | 灯火石3段階・有限素材/前段石消費・炉/野営地制限・交換/取外し/解体の容量安全な返却、実接触ダメージ/軽減・保存/通信を検証。公開ブラウザ操作は未検証 |
+| B21 | ビルド成立 | Core通し検証済・ブラウザ未 | tests/unit/campaign-combat-builds-normal.test.ts; campaign-normal-play.test.ts; tests/e2e/campaign-combat-builds.spec.ts; campaign-progression.spec.ts | 近接/旅弓/灯木の杖で初期空所持から中核番人までCore通し確認済。PC/Androidの弓・杖は各新規開始の実入力ケースを定義。対象SHAのブラウザ実行待ち |
 | B22 | 戦闘明瞭性 | 部分実装 | rendering/rig.ts; element-effects.ts; core/motion.ts | 動作/予兆/効果あり。複数敵での視認性と実機の手触り未検証 |
 | H01 | 拠点核 | 実装あり・実操作未検証 | core/campaign-world.ts; core/campaign.ts; tests/unit/campaign.test.ts | 炉の点灯/強化/領域条件を新規プレイで受入 |
 | H02 | 配置プレビュー | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
 | H03 | 建築形状 | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
 | H04 | 地形編集 | 実装あり・ブラウザ受入待ち | core/soil-fill.ts; core/survival.ts; tests/unit/soil-fill.test.ts; soil-normal-play.test.ts; docs/soil-fill-acceptance.md | 土9の有限盛土・熊手切削・平面補修・SDF表示/衝突・無傷撤去/undo・保存を実装。ゼロ付与の通常Core採集→制作→盛土→歩行→撤去→再読込を検証。公開ブラウザ実操作は未検証 |
-| H05 | 回転/スナップ | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
+| H05 | 回転/スナップ | 実装あり・実操作未検証 | core/build-snap.ts; core/survival.ts; tests/unit/build-snap.test.ts; tests/e2e/campaign-building-snap.spec.ts | 自由配置/1.5m格子をN/タッチで切替。壁・床の隣接境界一致、実支え高さ/同じプレビューと配置検証、同行者別モード。ブラウザは次回CI待ち |
 | H06 | 削除/返却 | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
 | H07 | Undo | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
-| H08 | 家具 | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
+| H08 | 家具 | 簡易実装・ブラウザ受入待ち | core/player-rest.ts; core/homestead.ts; docs/player-rest-acceptance.md | NPC用とは別の有料実寝台/屋根・破損修理・有限の快適休息を実装。火・収納・設備は既存機能。自由配置/全家具の着座は未実装。通常Core経路通過、公開PC/Android待ち |
 | H09 | NPC救出 | 部分実装・Core通し検証済 | core/campaign.ts; expedition-west.ts; expedition-west-integration.ts; tests/unit/west-specialists*.test.ts | 鍛冶師ナギに加え西方の木工師マキ/錬金師セナ。実在する身体への照準救出、条件/有限報酬/拠点への一度限りの移住を検査。初期素材0から2名救出と会話/制作/再開を通過。実ブラウザと原作規模の人数は未達 |
 | H10 | NPC専門性 | 部分実装・Core通し検証済 | core/campaign.ts; expedition-west-integration.ts; campaign-presenter.ts; tests/unit/west-specialists*.test.ts | 救出台帳でのみ専業レシピを解放。風織り翼の速度/消費と錬金杖の属性威力をCoreへ接続、移住先会話から素材/制作場所を案内。日常生活AIはH11に別記 |
 | H11 | NPC生活 | 3人実装・Core検証済 / 公開受入待ち | core/npc-life.ts; core/western-npc-life.ts; rendering/npc-life-view.ts; tests/unit/*npc-life*.test.ts; docs/npc-daily-life.md | ナギ/マキ/セナの実歩行・仕事/交流/休息、別々の実寝台と屋根、現在位置会話、建築/身体回避、厳密な旧形式移行・保存/ホスト表示を接続。初期素材0から西方2名救出→生活→会話/制作→再開を検査。限定拠点内の生活で、任意の寝床割当や住人同士の会話イベントは未実装。公開PC/Androidの視覚・日夜受入は未検証 |
@@ -99,13 +103,13 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | H13 | 家畜/ペット | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
 | H14 | 水設備 | 部分実装 | core/water.ts; core/watermill.ts; watermill-acceptance.md | 既存の局所水槽・放水レバーと固定水車を接続。新しい水路・排水口・全世界流体は対象外。満水では停止 |
 | H15 | 生産動力 | 実装あり・ブラウザ受入待ち | core/watermill.ts; tests/unit/watermill*.test.ts; tests/e2e/watermill.spec.ts; watermill-acceptance.md | 有限素材で固定水車を組立/修理。実セル面の落水量のみで草葉6→布2、停水/静水/閉塞で停止。原子性・保存・権限・ゼロ付与Core経路を検証。PC/Android4ケースは定義のみ、実ブラウザ未検証 |
-| H16 | 装飾/収集展示 | 部分実装 | core/homestead.ts; simulation.ts (buildFurniture) | 寝床/机/火鉢/敷物はある。収集展示/自由装飾の広がりは未実装 |
+| H16 | 装飾/収集展示 | 実装済み・ブラウザ受入待ち | core/collectible-display.ts; docs/collectible-display-acceptance.md; collectible-display unit/normal-play/e2e | 木4・石3で固定SDF展示台。実物1点の預入/返却・空台の材料回収・ゲスト権限・保存を検証。自由位置装飾は対象外。PC/Android実行・スクリーンショットはCI待ち |
 | W01 | 初期草原 (独自名 | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W02 | 森林 (翠の森) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W03 | 立体湿地 (沈み木の谷) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W04 | 高原 (赤岩の台地) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W05 | 荒野 (灰砂の廃都) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
-| W06 | 雪山 (白嶺) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
+| W06 | 雪山 (白嶺) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth。core/warmth.ts: 点火済みの炉/火鉢/実燃焼セルによる距離減衰とSDF遮蔽付きの局所暖気を追加。破壊/未点火/消火を除外し、各プレイヤーの寒冷を軽減。7件の局所回帰成功、公開実操作は次版で受入待ち |
 | W07 | 湖沼 (蒼水の盆地) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W08 | POI分類 | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W09 | POI内容 | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
@@ -132,13 +136,13 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | I12 | 建材 | 部分実装 | core/survival.ts; core/homestead.ts; core/simulation.ts | 壁/床/屋根/窓/階段/扉・作業台/家具はある。全建材系統ではない |
 | I13 | 設備/家具 | 部分実装 | core/survival.ts; core/homestead.ts; core/simulation.ts | 壁/床/屋根/窓/階段/扉・作業台/家具はある。全建材系統ではない |
 | I14 | 強化/重要品 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
-| I15 | 外見/収集 | 部分実装 | core/regions.ts; core/homestead.ts | 古文書/家具の一部のみ。衣装・楽器・化石展示等は未実装 |
+| I15 | 外見/収集 | 実装済み・ブラウザ受入待ち | core/collectible-display.ts; collectible-display-presenter.ts; docs/collectible-display-acceptance.md | 所持する装備/薬草/特産品/古文書/封章を選んで展示。装備は耐久/強化/ジェムを保持し、展示中は戦闘効果なし。独自の有限カテゴリであり全衣装/楽器/化石を含まない |
 | I16 | データ健全性 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | U01 | HUD | 実装あり・実操作未検証 | app.ts; input.ts; campaign-ui.ts; core/simulation.ts (target) | HUD/入力/照準コンテキストはある。全状態とPC/Android通常操作は未検証 |
 | U02 | 操作案内 | 実装あり・実操作未検証 | app.ts; input.ts; campaign-ui.ts; core/simulation.ts (target) | HUD/入力/照準コンテキストはある。全状態とPC/Android通常操作は未検証 |
 | U03 | コンテキスト操作 | 実装あり・実操作未検証 | app.ts; input.ts; campaign-ui.ts; core/simulation.ts (target) | HUD/入力/照準コンテキストはある。全状態とPC/Android通常操作は未検証 |
 | U04 | メニュー階層 | 簡易実装・受入試験待ち | src/prototype/campaign-ui.ts (browser acceptance pending) | Normal-play/browser verification and remaining breadth |
-| U05 | アイテム詳細 | 簡易実装・受入試験待ち | src/prototype/campaign-ui.ts (browser acceptance pending) | Normal-play/browser verification and remaining breadth |
+| U05 | アイテム詳細 | 実装あり・ブラウザ受入待ち | inventory-presenter.ts; inventory-view.ts; tests/unit/inventory-stacks.test.ts | 名称・分類・効果・入手方法、現在装備→選択装備の数値差、耐久・強化・ジェムを表示。実補正値と非破壊比較を検証。PC/Android CI待ち |
 | U06 | クエスト追跡 | 簡易実装・受入試験待ち | src/prototype/campaign-ui.ts (browser acceptance pending) | Normal-play/browser verification and remaining breadth |
 | U07 | レシピ検索 | 簡易実装・受入試験待ち | src/prototype/campaign-ui.ts (browser acceptance pending) | Normal-play/browser verification and remaining breadth |
 | U08 | 建築UI | 実装あり・実操作未検証 | app.ts; core/simulation.ts; rendering/scene.ts; tests/unit/build-preview.test.ts | 建築モード/回転/緑赤プレビューの実画面を確認 |
@@ -154,11 +158,11 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | G04 | 地域差 | 部分実装・ブラウザ受入待ち | rendering/meshes.ts; tests/unit/voxel-materials.test.ts | 独自材質色・草/土法線・雪/灰/赤土の色と粗さ。実画面確認と植生/地形/建築のさらなる地域差は未完 |
 | G05 | 建物 | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | G06 | 光と影 | 部分実装 | rendering/scene.ts; balanced-pipeline.ts; campaign-decor.ts; element-effects.ts | 光/霧/水/元素効果はある。地域時間天候の視覚整合・黒描画の回帰未検証 |
-| G07 | 霧 | 部分実装 | rendering/scene.ts; balanced-pipeline.ts; campaign-decor.ts; element-effects.ts | 光/霧/水/元素効果はある。地域時間天候の視覚整合・黒描画の回帰未検証 |
+| G07 | 霧 | 部分実装 | rendering/scene.ts; balanced-pipeline.ts; campaign-decor.ts; element-effects.ts | 光/霧/水/元素効果はある。地域時間天候の視覚整合・黒描画の回帰未検証。core/shroud-zones.ts と rendering/shroud-boundaries.ts で危険範囲を共用し、外から見える12枚/24三角形の薄霧と文字の接近/濃霧警告を追加。地形/当たり判定/既存減衰は不変。局所境界/破棄試験成功、PC/Android実画面は次版の受入待ち |
 | G08 | 水 | 部分実装 | rendering/scene.ts; balanced-pipeline.ts; campaign-decor.ts; element-effects.ts | 光/霧/水/元素効果はある。地域時間天候の視覚整合・黒描画の回帰未検証 |
 | G09 | 戦闘効果 | 部分実装 | rendering/scene.ts; balanced-pipeline.ts; campaign-decor.ts; element-effects.ts | 光/霧/水/元素効果はある。地域時間天候の視覚整合・黒描画の回帰未検証 |
 | G10 | 空と時間 | 部分実装 | rendering/scene.ts; balanced-pipeline.ts; campaign-decor.ts; element-effects.ts | 光/霧/水/元素効果はある。地域時間天候の視覚整合・黒描画の回帰未検証 |
-| G11 | 音 | 部分実装・聴取未検証 | src/prototype/audio.ts; app.ts; tests/unit/audio.test.ts; campaign-audio-settings.test.ts | 独自の効果音/5音源の環境・和音、天候/危険への変化、音楽/効果/環境の個別音量、隠れたタブの停止を接続。12音声API代替試験。実ブラウザ聴取・距離音響は未検証 |
+| G11 | 音 | 部分実装・聴取未検証 | src/prototype/audio.ts; app.ts; tests/unit/audio.test.ts; campaign-audio-settings.test.ts | 独自の効果音/5音源の環境・和音、天候/危険への変化、音楽/効果/環境の個別音量、隠れたタブの停止を接続。12音声API代替試験。足音/敵の予告/攻撃/矢命中は実位置から18mまで距離減衰。実ブラウザでの音の聴取は未検証 |
 | G12 | 資産品質 | 部分実装 | docs/assets-and-audio.md; public/THIRD_PARTY_NOTICES.txt; rendering/meshes.ts | 独自のSDF/人物/竿/炎/合成音とThree.js MIT通知を記録。材質表現は改善済みだが公開画面の欠損/ちらつき/高品質比較は未検証 |
 | S01 | 保存範囲 | 実装あり・Core検証済 | campaign-session.ts; src/save/campaign-file-transfer.ts; tests/unit/campaign-file-transfer.test.ts; campaign-soak.test.ts | 所持/装備/進行/地形/元素/敵/建築/水/設定を保存。通常経路後の5反復とオフラインJSON往復を検査。ファイルUI・実機の容量/操作受入は未完 |
 | S02 | 再開 | 実装あり・Core検証済 | campaign-session.ts; checkpoint.ts; campaign-file-transfer.ts; tests/unit/campaign-file-transfer.test.ts | 全構成要素を隔離検証して復元。ファイル選択と確定を分離し、検証済み不変バイトの証明を再利用。未知形式/破損/改ざん/容量不足では原本保持。旧形式の同期検証は数秒止まり得る |
@@ -169,13 +173,13 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | M01 | ネットワーク範囲 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
 | M02 | 接続 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
 | M03 | 同期 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。部屋更新を描画時計から分離し、シェーダー非同期準備と待ち時間観測を追加（docs/cooperation-render-scheduling.md）。鮮度/権限の期限は維持。公開2ブラウザ再受入待ち |
-| M04 | 個人/世界進行 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
+| M04 | 個人/世界進行 | 簡易実装・受入試験待ち | participant-journal.ts; network/game-session.ts; tests/unit/participant-journal.test.ts; tests/e2e/cooperation.spec.ts | 共有世界の報酬は一回。参加者別の拠点/住人訪問、合流前/参加中の経緯、未読/読み直しを端末内8部屋まで保存。私的記録を通信・単独保存へ混入しない。独立キャラ持込は対象外、追加ブラウザ確認待ち |
 | M05 | 権限 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
 | M06 | 会話/安全 | 部分実装 | prototype/network/coop-client.ts; tests/unit/campaign-network.test.ts | 文字チャット/ミュートのUIを接続。公開2ブラウザ検査待ち。音声なし |
-| M07 | 共有 | 未実装 | network/game-session.ts | 招待による一時的な協力のみ。保存世界の常時公開/所有権移転/公開取消は別設計が必要で、公開用データ送信機能は実装していない |
+| M07 | 共有 | 条件付き・今回は採用しない | reference/enshrouded-requirements.md; network/game-session.ts | 保存世界の一般公開は採用しない。対応は招待した2人の一時的な共同プレイと、利用者が選ぶ保存ファイル書出し。常時公開/所有権移転機能はない |
 | Q01 | 新規プレイ | Android第一章検証済・全体は部分検証 | tests/unit/campaign-normal-play.test.ts; tests/e2e/campaign-progression.spec.ts; docs/survival-wave-browser-status.md | 公開1cf73b73でAndroid相当の実タッチ採集→炉→救出→装備→鉤縄/滑空→番人→尾根→保存再開PASS（CI37309390739、artifact11346219704）。PC経路は未合格、全7地域の実ブラウザ完走は未完。素材/HP/座標付与なし。 |
 | Q02 | 進行網 | Core通し検証済・ブラウザ未 | tests/unit/campaign-regional-play.test.ts; helpers/normal-campaign-player.ts | 元の開始状態から7地域の印、9討伐報酬、有限補給/修理/強化、湖の泳ぎ帰還、保存一致がPASS。座標/HP/素材の付与なし。既知の地形に対する自動操作者のCore整合性証明で、人間の操作難度/PC・タッチ試験は別 |
-| Q03 | 3系統 | Core通し検証済・ブラウザ未 | tests/unit/campaign-combat-builds-normal.test.ts; campaign-normal-play.test.ts | 初期空所持から近接/旅弓/灯木の杖を生産操作で制作・装備、入口番兵→職人→中核番人撃破。弓は有限矢の物理命中、杖は濡れ/雷の間隔と回復予算を使用。PC/タッチによる3系統受入は未実施 |
+| Q03 | 3系統 | Core通し検証済・ブラウザ未 | tests/unit/campaign-combat-builds-normal.test.ts; campaign-normal-play.test.ts; tests/e2e/campaign-combat-builds.spec.ts; campaign-progression.spec.ts | 初期空所持→実採集→弓/杖・有限矢/魔力薬→入口番兵→職人→装備/獲得技能→中核番人。既存近接に加えPC/Androidの弓・杖4ケースを列挙済。HP・素材・座標の注入なし。定義/型確認は実ブラウザ合格の代替ではなく、対象SHA CI待ち |
 | Q04 | 失敗系 | 部分検証 | tests/unit/save.test.ts; campaign.test.ts; homestead.test.ts; building-tools.test.ts; campaign-runtime.test.ts | 単体/統合の失敗・原子性・保存検査あり。ブラウザで同等操作を検証待ち |
 | Q05 | 連打/競合 | 部分検証 | tests/unit/save.test.ts; campaign.test.ts; homestead.test.ts; building-tools.test.ts; campaign-runtime.test.ts | 単体/統合の失敗・原子性・保存検査あり。ブラウザで同等操作を検証待ち |
 | Q06 | 建築保存 | 部分検証 | tests/unit/save.test.ts; campaign.test.ts; homestead.test.ts; building-tools.test.ts; campaign-runtime.test.ts | 単体/統合の失敗・原子性・保存検査あり。ブラウザで同等操作を検証待ち |

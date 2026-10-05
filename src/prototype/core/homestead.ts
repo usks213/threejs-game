@@ -1,4 +1,5 @@
 import {CAMPAIGN_ITEMS} from './campaign';
+import {inventoryProtected} from './inventory';
 import type {Vec3} from './voxel';
 import {createHomesteadAnimalState,validHomesteadAnimalState,HOMESTEAD_ANIMAL_RULES,type HomesteadAnimalState} from './homestead-animal';
 
@@ -11,7 +12,8 @@ export const PROCESSING_RECIPES:readonly ProcessingRecipe[]=[
  {id:'bandages',label:'包帯を仕立てる',materialCost:{7:3,10:1},itemCost:{},seconds:15,materialOutput:{},itemOutput:{bandage:2},requiresArtisan:true},
 ];
 export const FURNITURE:readonly {id:string;label:string;cost:Record<number,number>;comfort:number}[]=[
- {id:'bed',label:'布張りの寝台',cost:{4:6,10:3},comfort:2},
+ {id:'bed',label:'ナギの布張り寝台',cost:{4:6,10:3},comfort:2},
+ {id:'player-bed',label:'屋根付きの自分用寝台',cost:{4:10,10:3},comfort:2},
  {id:'west-carpenter-bed',label:'荷場のマキの寝台',cost:{4:6,10:3},comfort:0},
  {id:'west-alchemist-bed',label:'荷場のセナの寝台',cost:{4:6,10:3},comfort:0},
  {id:'table',label:'木の食卓',cost:{4:4},comfort:1},
@@ -39,6 +41,7 @@ function fresh():HomesteadState{return {version:1,storage:{materials:{},items:{}
 /** All production uses explicit live simulation time. No wall clock or offline catch-up. */
 export class HomesteadSystem {
  state:HomesteadState=fresh();
+ reservedItemCount:(id:string)=>number=()=>0;
  constructor(readonly materials:Record<number,number>,readonly items:Record<string,number>={}){}
  get storedCount(){return [...Object.values(this.state.storage.materials),...Object.values(this.state.storage.items)].reduce((sum,n)=>sum+n,0);}
  get comfort(){return this.state.furniture.reduce((sum,id)=>sum+(FURNITURE.find(f=>f.id===id)?.comfort??0),0);}
@@ -69,6 +72,7 @@ export class HomesteadSystem {
   const gate=this.gate(context);if(gate)return gate;
   if(!count(amount)||amount===0)return fail('預ける数を正しく指定してください。');
   if(typeof id==='number'?!materialIds.includes(id):!Object.hasOwn(CAMPAIGN_ITEMS,id))return fail('この品物は預けられません。');
+  if(typeof id==='string'&&inventoryProtected('item:'+id))return fail('装備・釣竿・重要品は通常収納へ預けられません。展示できる装備は記念展示台を利用してください。');
   const source:Record<string,number>=typeof id==='number'?this.materials:this.items,target:Record<string,number>=typeof id==='number'?this.state.storage.materials:this.state.storage.items;
   if(!count(source[id])||source[id]<amount)return fail('所持数が足りません。');if(this.storedCount+amount>STORAGE_CAPACITY)return fail('収納がいっぱいです。');
   source[id]-=amount;target[id]=(target[id]??0)+amount;return ok('収納に預けました。');
@@ -76,8 +80,9 @@ export class HomesteadSystem {
  withdraw(id:number|string,amount:number,context:HomesteadContext):HomesteadResult {
   const gate=this.gate(context);if(gate)return gate;if(!count(amount)||amount===0)return fail('取り出す数を正しく指定してください。');
   if(typeof id==='number'?!materialIds.includes(id):!Object.hasOwn(CAMPAIGN_ITEMS,id))return fail('この品物は取り出せません。');
+  if(typeof id==='string'&&CAMPAIGN_ITEMS[id].slot)return fail('装備は記念展示台から取り出してください。');
   const source:Record<string,number>=typeof id==='number'?this.state.storage.materials:this.state.storage.items,target:Record<string,number>=typeof id==='number'?this.materials:this.items;
-  if(!count(source[id])||source[id]<amount)return fail('収納内の数が足りません。');if(!count((target[id]??0)+amount,typeof id==='number'?999999:itemLimit(id)))return fail('持ち物の上限に達しています。');
+  if(!count(source[id])||source[id]-(typeof id==='string'?this.reservedItemCount(id):0)<amount)return fail('収納内の数が足りません。展示中の品は展示台から取り出してください。');if(!count((target[id]??0)+amount,typeof id==='number'?999999:itemLimit(id)))return fail('持ち物の上限に達しています。');
   source[id]-=amount;target[id]=(target[id]??0)+amount;return ok('収納から取り出しました。');
  }
  /** Materials only: equipped and quest items are deliberately not moved in bulk. */
@@ -85,6 +90,19 @@ export class HomesteadSystem {
   const gate=this.gate(context);if(gate)return gate;const total=materialIds.reduce((sum,id)=>sum+(this.materials[id]??0),0);
   if(!materialIds.every(id=>count(this.materials[id]??0)))return fail('所持数が不正です。');if(!total)return fail('預ける素材がありません。');if(this.storedCount+total>STORAGE_CAPACITY)return fail('収納の空きが足りません。素材は移動していません。');
   for(const id of materialIds){this.state.storage.materials[id]=(this.state.storage.materials[id]??0)+(this.materials[id]??0);this.materials[id]=0;}return ok('すべての素材を預けました。');
+ }
+ /** Only existing material/ordinary-item stacks are topped up. No unrelated
+  * supplies, displayed items, equipment, or quest items are moved. Full fails atomically. */
+ depositMatching(context:HomesteadContext):HomesteadResult {
+  const gate=this.gate(context);if(gate)return gate;
+  const moves:{source:Record<string,number>;target:Record<string,number>;id:string;count:number}[]=[];
+  const stores:[Record<string,number>,Record<string,number>,boolean][]=[[this.materials,this.state.storage.materials,false],[this.items,this.state.storage.items,true]];
+  for(const [source,target,items] of stores){
+   for(const [id,n] of Object.entries(source)){if(!count(n))return fail('所持数が不正です。');if(!n||!(target[id]>0)||items&&inventoryProtected('item:'+id))continue;moves.push({source,target,id,count:n});}
+  }
+  const total=moves.reduce((n,m)=>n+m.count,0);if(!total)return fail('収納と同じ種類の素材・消耗品がありません。');
+  if(this.storedCount+total>STORAGE_CAPACITY)return fail('収納の空きが足りません。品物は移動していません。');
+  for(const m of moves){m.source[m.id]-=m.count;m.target[m.id]+=m.count;}return ok(`同じ種類の素材・消耗品を${total}個まとめて預けました。`);
  }
  startProcessing(id:string,context:HomesteadContext):HomesteadResult {
   const recipe=PROCESSING_RECIPES.find(r=>r.id===id);if(!recipe)return fail('未知の加工です。');const gate=this.gate(context,recipe.requiresArtisan);if(gate)return gate;

@@ -9,3 +9,5 @@ describe('cooperation UI permission states',()=>{
  it('lets an existing participant leave even while availability is lost',()=>{expect(cooperationControls(snapshot({role:'guest',enabled:false})).leave).toBe(true);});
  it('mutes chat locally and rejects whitespace or oversized outgoing payloads',()=>{expect(cooperationControls(snapshot({role:'host',muted:true})).chat).toBe(false);expect(cooperationChatText(' \n ')).toBe('');expect(cooperationChatText(' hello ')).toBe('hello');expect(cooperationChatText('x'.repeat(300))).toHaveLength(240);});
 });
+
+it('allows explicit ending of a saved suspended party without network availability',()=>{const c=cooperationControls(snapshot({savedCompanion:true,enabled:false}));expect(c.leave).toBe(true);expect(c.create).toBe(false);expect(c.join).toBe(false);expect(c.chat).toBe(false);});

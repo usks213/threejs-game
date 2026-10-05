@@ -7,7 +7,7 @@ import {captureCampaign,hydrateCampaign,defaultSettings} from '../../src/prototy
 function assault(d:NormalPlayer,index:number){const s=d.sim,e=s.enemies[index];for(let cycle=0;cycle<70&&e.hp>0;cycle++){d.idle();d.heal();d.look({...e.position,y:e.position.y+1.2});if(s.player.stamina<25){d.advance(2,{x:s.player.position.x<-61?1:-1});continue;}if(Math.hypot(e.position.x-s.player.position.x,e.position.z-s.player.position.z)>1.45){const before={...s.player.position};d.advance(.2,{z:1});if(Math.hypot(s.player.position.x-before.x,s.player.position.z-before.z)<.04)d.advance(.5,{x:1});continue;}d.act(s.focus.value>=100?'special':'attack');d.until(()=>s.player.phase==='idle',4,{z:.2},'western assault');}expect(e.hp,d.diagnostic('western enemy')).toBeLessThanOrEqual(0);}
 
 it('completes western mine and both roads from the original start through normal production actions',()=>{
- const d=new NormalPlayer(true),s=d.sim;playFirstTwoRegions(d);expect(s.western!.accessible).toBe(true);
+ const d=new NormalPlayer(true),s=d.sim;playFirstTwoRegions(d);d.menu('learn','vigor');expect(s.western!.accessible).toBe(true);
  for(let i=0;i<5;i++)d.menu('craft','bandage');for(let i=0;i<5&&s.player.hp<s.campaign.maxHp;i++)d.menu('consume','bandage');
  for(const id of ['iron-blade','hide-coat'])if(s.campaign.repairStatus(id,s.player.position).ok)d.menu('gear','repair:'+id);
  d.menu('craft','berry-meal');d.menu('consume','berry-meal');

@@ -18,9 +18,9 @@ describe('playable elemental survival event integration',()=>{
  });
  it('fire cast ignites target wood, water cast extinguishes it, and cast spam is committed',()=>{
   const s=quiet();aim(s,{x:-1.6,y:.58,z:6.25});s.action('cast',idle);const stamina=s.player.stamina;
-  expect([...s.elements.states.values()].some(v=>v.fire>0)).toBe(true);s.action('cast',idle);expect(s.player.stamina).toBe(stamina);
+  expect([...s.elements.states.values()].some(v=>v.fire>0)).toBe(false);advance(s,.45);expect([...s.elements.states.values()].some(v=>v.fire>0)).toBe(true);s.action('cast',idle);expect(s.player.stamina).toBe(stamina);
   s.action('element-next',idle);expect(s.selectedElement).toBe('fire');advance(s,.8);s.action('element-next',idle);expect(s.selectedElement).toBe('water');
-  s.action('cast',idle);expect([...s.elements.states.values()].some(v=>v.wet>0)).toBe(true);
+  s.action('cast',idle);advance(s,.45);expect([...s.elements.states.values()].some(v=>v.wet>0)).toBe(true);
   const hit=s.target()!;expect(s.elements.states.get(`${hit.hit.cell.x},${hit.hit.cell.y},${hit.hit.cell.z}`)?.fire??0).toBe(0);
  });
  it('physical sword contact damages a wall only once per swing',()=>{

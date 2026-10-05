@@ -40,79 +40,74 @@ jobs:
         include:
           - project: desktop-chromium
             group: desktop-input
-            cases: landscape|portrait
           - project: desktop-chromium
             group: desktop-motion
-            cases: motion review
           - project: desktop-chromium
             group: desktop-duel
-            cases: desktop duel
           - project: desktop-chromium
             group: desktop-sdf
-            cases: desktop SDF
           - project: desktop-chromium
             group: desktop-elements
-            cases: elemental
           - project: android-chromium
             group: android-chromium
-            cases: landscape|portrait|motion review|desktop
           - project: android-chromium
             group: android-elements
-            cases: elemental
           - project: desktop-chromium
             group: desktop-campaign
-            cases: campaign.spec|campaign-playthrough
           - project: desktop-chromium
             group: desktop-campaign-ui
-            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards
           - project: desktop-chromium
             group: desktop-echo-vault
-            cases: echo-vault
           - project: desktop-chromium
             group: desktop-soil-life
-            cases: campaign-soil-fill|western-npc-life
           - project: desktop-chromium
             group: desktop-watermill
-            cases: watermill
+          - project: desktop-chromium
+            group: desktop-collectible-display
+          - project: desktop-chromium
+            group: desktop-skill-gems
+          - project: desktop-chromium
+            group: desktop-inventory-stacks
+          - project: desktop-chromium
+            group: desktop-player-rest
+          - project: desktop-chromium
+            group: desktop-mist
           - project: desktop-chromium
             group: desktop-equipment-tools
-            cases: campaign-equipment-tools
           - project: desktop-chromium
             group: desktop-discovery-controls
-            cases: campaign-codex|campaign-gamepad
           - project: desktop-chromium
             group: desktop-campaign-save
-            cases: campaign-save-history|campaign-file-transfer
           - project: desktop-chromium
             group: desktop-campaign-migration
-            cases: campaign-expansion|campaign-invitation-privacy
           - project: android-chromium
             group: android-campaign
-            cases: campaign.spec|campaign-playthrough
           - project: android-chromium
             group: android-campaign-ui
-            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards
           - project: android-chromium
             group: android-echo-vault
-            cases: echo-vault
           - project: android-chromium
             group: android-soil-life
-            cases: campaign-soil-fill|western-npc-life
           - project: android-chromium
             group: android-watermill
-            cases: watermill
+          - project: android-chromium
+            group: android-collectible-display
+          - project: android-chromium
+            group: android-skill-gems
+          - project: android-chromium
+            group: android-inventory-stacks
+          - project: android-chromium
+            group: android-player-rest
+          - project: android-chromium
+            group: android-mist
           - project: android-chromium
             group: android-equipment-tools
-            cases: campaign-equipment-tools
           - project: android-chromium
             group: android-discovery-controls
-            cases: campaign-codex|campaign-gamepad
           - project: android-chromium
             group: android-campaign-save
-            cases: campaign-save-history|campaign-file-transfer
           - project: android-chromium
             group: android-campaign-migration
-            cases: campaign-expansion|campaign-invitation-privacy
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -130,7 +125,7 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --project="${{ matrix.project }}" --grep="${{ matrix.cases }}" --grep-invert="campaign first chapter|cooperation integration|streamed campaign"
+      - run: node scripts/run-browser-group.mjs "${{ matrix.project }}" "${{ matrix.group }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -194,6 +189,38 @@ jobs:
         if: always()
         with:
           name: first-chapter-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+  combat-build-browser:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, android-chromium]
+        build: [bow, staff]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- tests/e2e/campaign-combat-builds.spec.ts --project="${{ matrix.project }}" --grep="Q03 ${{ matrix.build }}:"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: combat-build-${{ matrix.project }}-${{ matrix.build }}
           path: |
             playwright-report/
             test-results/

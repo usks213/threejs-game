@@ -22,6 +22,12 @@ const finite=(p:MapPosition)=>Number.isFinite(p.x)&&Number.isFinite(p.z);
 const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
 export function clampMapPosition(p:MapPosition,bounds:RegionBounds):MapPosition{return {x:clamp(Number.isFinite(p.x)?p.x:0,bounds.minX,bounds.maxX),z:clamp(Number.isFinite(p.z)?p.z:0,bounds.minZ,bounds.maxZ)};}
 
+/** Move one existing private pin in place; never evict another pin at capacity. */
+export function moveMapPin(pins:{id:string;x:number;z:number}[],id:string,position:MapPosition,bounds:RegionBounds){
+ const pin=pins.find(p=>p.id===id);if(!id.startsWith('pin:')||!pin||!finite(position)||position.x<bounds.minX||position.x>bounds.maxX||position.z<bounds.minZ||position.z>bounds.maxZ)return false;
+ pin.x=position.x;pin.z=position.z;return true;
+}
+
 /** Coarse discovery is the existing region ledger. Western road strokes require
  * contiguous observed nodes; no line is invented between disjoint observations. */
 export function campaignMapData(discovered:readonly RegionId[],unlocked:readonly RegionId[],western:boolean,west:WestExpeditionState|null):CampaignMapData{
@@ -98,11 +104,11 @@ export function mapCoordinates(p:MapPosition){return `X ${coordinate(p.x)} · Z 
 
 /** One touch target and one keyboard target avoid tiny/overlapping map buttons.
  * Full names and existing actions stay in the ordinary accessible point list. */
-export function createCampaignMap(data:CampaignMapData,points:readonly MapPoint[],onPin:(p:MapPosition)=>void,signal:AbortSignal,selection:{position?:MapPosition}={}){
+export function createCampaignMap(data:CampaignMapData,points:readonly MapPoint[],onPin:(p:MapPosition)=>void,signal:AbortSignal,selection:{position?:MapPosition;mode?:'move'}={}){
  const section=document.createElement('section');section.className='campaign-map-section';
  const help=document.createElement('p');help.id='campaign-map-help';help.className='campaign-map-help';help.textContent='地形の概略図。北は上（Z減少）、東は右（X増加）。障害物・高低差・建築変更は省略しています。空白は未調査で、歩けるとは限りません。';
  const legend=document.createElement('p');legend.className='campaign-map-legend';legend.setAttribute('aria-label','地図の凡例');legend.textContent='▲ 現在地　⌂ 炉　◆ 手動ピン　● 発見地点　人 工匠　A〜G 地域。淡い輪郭＝谷・尾根の元の地形範囲、塗り＝発見した地域、実線＝記録した道、破線＝一部記録・開通した道。番号の詳細は下の一覧へ。';
- const map=document.createElement('div');map.className='campaign-map';map.id='campaign-map-surface';map.tabIndex=0;map.setAttribute('role','button');map.setAttribute('aria-label','地図上を選んでピンを置く');map.setAttribute('aria-describedby','campaign-map-help campaign-map-controls');
+ const map=document.createElement('div');map.className='campaign-map';map.id='campaign-map-surface';map.tabIndex=0;map.setAttribute('role','button');map.setAttribute('aria-label',selection.mode==='move'?'移動するピンの行き先を地図で選ぶ':'地図上を選んでピンを置く');map.setAttribute('aria-describedby','campaign-map-help campaign-map-controls');
  const projection=mapProjection(campaignMapViewport(data,points)),refs=mapPointReferences(points);
  for(const [key,value] of Object.entries(projection.bounds))map.dataset[key]=String(value);
  const svg=(name:string,attributes:Record<string,string|number>={},text?:string)=>{const element=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [key,value] of Object.entries(attributes))element.setAttribute(key,String(value));if(text!==undefined)element.textContent=text;return element;};
@@ -134,7 +140,7 @@ export function createCampaignMap(data:CampaignMapData,points:readonly MapPoint[
  },{signal});
  map.append(drawing);
  const directions=document.createElement('div');directions.className='campaign-map-directions';directions.append(document.createTextNode('北 ↑　東 →'),status);
- const controls=document.createElement('p');controls.id='campaign-map-controls';controls.className='campaign-map-help';controls.textContent='地図をタップ・クリックしてピンを追加。キーボードは矢印で1m（Shiftで5m）、Enter / Spaceで追加。最大12本、古いピンから置き換えます。';
+ const controls=document.createElement('p');controls.id='campaign-map-controls';controls.className='campaign-map-help';controls.textContent=selection.mode==='move'?'地図をタップ・クリック、または矢印とEnterで移動先を選択。下の「この位置へ移動」で確定します。取消なら元のピンは変わりません。':'地図をタップ・クリックしてピンを追加。キーボードは矢印で1m（Shiftで5m）、Enter / Spaceで追加。最大12本、古いピンから置き換えます。';
  const key=document.createElement('ul');key.className='campaign-map-regions';key.setAttribute('aria-label','発見した地域と道');
  const entries=['谷・尾根：元の地形の範囲のみ。内部の通路は未測量。',...data.areas.map(a=>`${a.code} · ${a.label}`),...[...new Set(data.routes.map(r=>r.label+(r.partial&&!r.label.includes('未踏')?'（踏破した区間のみ）':'')))]];
  for(const text of entries){const item=document.createElement('li');item.textContent=text;key.append(item);}

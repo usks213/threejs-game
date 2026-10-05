@@ -59,3 +59,5 @@ body:not(.campaign-mode) .values,body:not(.campaign-mode) #objective,body:not(.c
 body:not(.campaign-mode) .values{width:max-content;max-width:100%}
 
 .soil-fill-mode #recipe-switch{display:none}.campaign-mode.soil-fill-mode.touch #recipe-cost{max-width:min(420px,calc(100vw - 36px));height:auto;max-height:44px;white-space:normal}.campaign-mode.soil-fill-mode #prompt{color:#f2e6cb}
+
+#combat-status{width:max-content;max-width:min(440px,calc(100vw - 36px));margin-top:5px;padding:4px 7px;font-size:12px;line-height:18px;color:#d9dcff;background:#101c24ed;border-radius:4px;white-space:normal}.campaign-mode.touch #combat-status{position:relative;top:53px;max-width:420px;font-size:11px;line-height:16px}

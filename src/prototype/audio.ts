@@ -10,6 +10,7 @@ export interface AudioEnvironment {
  /** Optional cached roof result. Audio never casts extra world rays. */
  sheltered?:boolean;
 }
+export function effectDistanceGain(distance:number){return Number.isFinite(distance)?Math.pow(Math.max(0,1-Math.max(0,distance)/18),2):0;}
 export const DEFAULT_AUDIO_MIX:Readonly<AudioMix>=Object.freeze({music:.55,effects:1,ambience:.65});
 export const AUDIO_LIMITS=Object.freeze({effectVoices:12,bedVoices:5,environmentInterval:.5,harmonyInterval:16});
 
@@ -27,6 +28,7 @@ interface NoiseBed {filter:BiquadFilterNode;gain:GainNode}
 export function createAudio(){
  let context:AudioContext|null=null,noise:AudioBuffer|null=null,output:GainNode|null=null;
  let musicBus:GainNode|null=null,effectsBus:GainNode|null=null,ambienceBus:GainNode|null=null;
+ let effectGain=1;
  let disposed=false,failed=false,master=.8,active=true,seenEnvironment=false;
  let seconds=0,weather:WeatherKind='clear',region='',danger=0,sheltered=false;
  let nextEnvironment=-Infinity,appliedOutput=-1;
@@ -124,7 +126,7 @@ export function createAudio(){
  }
  function envelope(node:AudioNode,volume:number,duration:number){
   const c=context!,gain=own(c.createGain()),now=c.currentTime;
-  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(Math.max(.0001,volume),now+.009);
+  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(Math.max(.0001,volume*effectGain),now+.009);
   gain.gain.exponentialRampToValueAtTime(.0001,now+duration);node.connect(gain);gain.connect(effectsBus!);return gain;
  }
  function track(source:AudioScheduledSourceNode,voiceNodes:AudioNode[],duration:number){
@@ -172,7 +174,8 @@ export function createAudio(){
    seconds=nextSeconds;weather=nextWeather;region=nextRegion;danger=nextDanger;sheltered=nextSheltered;active=state.active;seenEnvironment=true;
    if(context){try{synchronize();refreshEnvironment();}catch{disable();}}
   },
-  play(kind:string){
+  play(kind:string,distance=0){
+   effectGain=effectDistanceGain(distance);if(effectGain===0)return;
    if(disposed||failed||!context||context.state!=='running'||!audible()||mix.effects===0)return;
    const needed=kind==='parry'?4:kind==='hit'||kind==='hurt'?2:1;
    if(effects.size+needed>AUDIO_LIMITS.effectVoices)return;

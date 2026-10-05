@@ -1,7 +1,7 @@
 import {describe,it,expect,vi} from 'vitest';
 import {CoreSimulation} from '../../src/prototype/core/simulation';
 import {CampaignRoomSession} from '../../src/prototype/network/game-session';
-import {defaultSettings} from '../../src/prototype/campaign-session';
+import {captureCampaign,defaultSettings} from '../../src/prototype/campaign-session';
 import type {GuestCommand} from '../../src/prototype/network/protocol';
 vi.mock('../../src/prototype/core/world',async(importOriginal)=>{const original=await importOriginal<typeof import('../../src/prototype/core/world')>();const {VoxelField}=await import('../../src/prototype/core/voxel');return {...original,createArena:()=>{const field=new VoxelField(.25);field.box({x:-8,y:-.5,z:-8},{x:8,y:.25,z:10},3);return {field,objects:new Map()};}};});
 vi.mock('../../src/prototype/campaign-network-state',()=>({captureSharedCampaign:()=>({version:1}),applySharedCampaign:()=>({ok:false})}));
@@ -48,4 +48,20 @@ describe('guest action rejection is a pre-send boundary, never a queue',()=>{
   const {hooks,session,access}=setup(),date=vi.spyOn(Date,'now').mockReturnValue(13000),client={online:true,guestRequest:vi.fn()};
   try{Object.assign(access,{roleValue:'guest',guestBuild:false,ready:true,lastFrameAt:13000,client});session.action('build');expect(hooks.notice).toHaveBeenLastCalledWith('この操作は周辺世界を変えるため、ホストの許可が必要です');expect(client.guestRequest).not.toHaveBeenCalled();}finally{date.mockRestore();}
  });
+});
+
+describe('inventory and specified storage authority',()=>{
+ it('sends guest requests without local quantity changes or solo save writes, and blocks unpermitted storage',()=>{
+  const {sim,hooks,session,access}=setup(),client={online:true,guestRequest:vi.fn(()=> 'request')};sim.survival.inventory[4]=8;const revision=sim.campaign.inventory.reconcile().revision,before=sim.campaign.snapshot();Object.assign(access,{roleValue:'guest',guestBuild:false,ready:true,lastFrameAt:Date.now(),client});
+  const inventory={type:'inventory' as const,id:'split' as const,slot:0,target:95,count:2,revision};expect(session.gameCommand(inventory)).toBe(true);expect(client.guestRequest).toHaveBeenCalledWith({action:'craft',payload:{kind:'menu',command:inventory}});expect(sim.campaign.snapshot()).toEqual(before);expect(hooks.save).not.toHaveBeenCalled();client.guestRequest.mockClear();const storage={type:'storage' as const,id:'deposit:4',count:2,revision,stored:0};expect(session.gameCommand(storage)).toBe(true);expect(client.guestRequest).not.toHaveBeenCalled();access.guestBuild=true;expect(session.gameCommand(storage)).toBe(true);expect(client.guestRequest).toHaveBeenCalledWith({action:'storage',payload:{kind:'menu',command:storage}});expect(sim.survival.inventory[4]).toBe(8);expect(hooks.save).not.toHaveBeenCalled();
+ });
+ it('host executes shared inventory count changes once and refuses forged storage permissions',async()=>{
+  const {sim,hooks,access,client}=setup();sim.survival.inventory[4]=8;sim.campaign.state.flameTier=1;const revision=sim.campaign.inventory.reconcile().revision,command={type:'inventory',id:'split',slot:0,target:95,count:2,revision};await access.executeGuest({action:'craft',payload:{kind:'menu',command}},'split-once');expect(sim.campaign.inventory.state.slots[95]?.count).toBe(2);expect(hooks.save).toHaveBeenCalledOnce();await access.executeGuest({action:'craft',payload:{kind:'menu',command}},'split-stale');expect(hooks.save).toHaveBeenCalledOnce();expect(client.hostAck).toHaveBeenLastCalledWith('split-stale',false,expect.any(String));
+  const storage={type:'storage',id:'deposit:4',count:3,revision:sim.campaign.inventory.state.revision,stored:0};await access.executeGuest({action:'craft',payload:{kind:'menu',command:storage}},'forged-storage');expect(sim.home.storedCount).toBe(0);access.guestBuild=true;sim.companionCanEdit=true;sim.companion!.position={x:-3,y:.25,z:5.3};await access.executeGuest({action:'storage',payload:{kind:'menu',command:storage}},'stored-once');expect(sim.home.state.storage.materials[4]).toBe(3);expect(sim.survival.inventory[4]).toBe(5);expect(hooks.save).toHaveBeenCalledTimes(2);
+ });
+});
+
+describe('explicit saved companion exit',()=>{
+ it('preserves the solo world and actor resources while saving only removal of the suspended party',()=>{const {sim,hooks,session,access}=setup();Object.assign(access,{roleValue:null,client:null});sim.setCompanionConnected(false);sim.combat.mana=40;sim.focus.value=36;const before=captureCampaign(sim,defaultSettings());hooks.save.mockImplementation(()=>{const saved=captureCampaign(sim,defaultSettings());expect(saved.partyCompanion).toBeNull();expect({...saved,partyCompanion:before.partyCompanion}).toEqual(before);return true;});session.leave();expect(hooks.save).toHaveBeenCalledOnce();expect(sim.companion).toBeNull();expect(sim.combat.mana).toBe(40);expect(sim.focus.value).toBe(36);});
+ it('reports persistence failure without asserting a durable solo transition',()=>{const {sim,hooks,session,access}=setup();Object.assign(access,{roleValue:null,client:null});sim.setCompanionConnected(false);hooks.save.mockReturnValue(false);session.leave();expect(hooks.notice).toHaveBeenCalledWith(expect.stringContaining('保存できません'));expect(sim.companion).toBeNull();});
 });
