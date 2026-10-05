@@ -14,10 +14,12 @@ export function safeSavedRespawn(sim:GameSimulation,point:Vec3,owner:string):boo
  for(let y=.05;y<=2;y+=.1)if(ctx.solid({x:point.x,y:point.y-y,z:point.z}))return true;
  return false;
 }
-/** Bounded deterministic search around the protected start; never stack a live arrival on a peer. */
+/** Bounded deterministic search around the protected start; never stack a live arrival on a peer.
+ * The outer rings escape a flooded clearing or the 12m enemy danger radius.
+ * They preserve every water cell, terrain edit, enemy and player construction. */
 export function safeStartRespawn(sim:GameSimulation,owner:string):Vec3|undefined{
- for(const radius of[0,1,2,3,4,6])for(let direction=0;direction<(radius?8:1);direction++){
-  const angle=direction*Math.PI/4,x=Math.sin(angle)*radius,z=8+Math.cos(angle)*radius,y=sim.groundAt(x,z)+.03,point={x,y,z};
+ for(const radius of[0,1,2,3,4,6,8,12,16,24])for(let direction=0;direction<(radius>6?16:radius?8:1);direction++){
+  const angle=direction*Math.PI/(radius>6?8:4),x=Math.sin(angle)*radius,z=8+Math.cos(angle)*radius,y=sim.groundAt(x,z)+.03,point={x,y,z};
   if(safeSavedRespawn(sim,point,owner))return point;
  }
  return undefined;

@@ -18,8 +18,10 @@
       "coop-frame-decoder.test.ts"
     ],
     "remaining": "実endpointと永続保存の最終版受入。4人上限は4人品質保証とは区別。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -36,8 +38,10 @@
       "network.spec.ts"
     ],
     "remaining": "単調操作番号と永続high-waterを追加。N1参照。最終統合/再起動試験。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -60,8 +64,10 @@
       "coop-client-liveness.test.ts"
     ],
     "remaining": "transaction/lease/revision、窓外の重複拒否を実装。公開同時操作受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -78,8 +84,10 @@
       "network.spec.ts"
     ],
     "remaining": "最終版の全員切断/停止復帰、初期状態と復旧状態の表示確認。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -102,8 +110,10 @@
       "room-management-ui.test.ts"
     ],
     "remaining": "新規記録/練習人形の保護と銘板位置分離を追加。N2参照。公開荒らし受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -121,8 +131,10 @@
       "adventure-depth-route.test.ts"
     ],
     "remaining": "三層の実入力ルートがある。最終版の公開往復受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -137,8 +149,10 @@
       "skybound-terrain.test.ts"
     ],
     "remaining": "同じ密度/編集を衝突・描画へ使用。境界の実画面受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -153,8 +167,10 @@
       "skybound-terrain.test.ts"
     ],
     "remaining": "LOD/準備待ちあり。権威の密度は描画streamingに依存せず、未描画だから衝突が消える方式ではない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -170,8 +186,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "六環境と層別造形。遠景シルエットの実画面QA。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -187,8 +205,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "共有時刻による風/天候。草の描画揺れと力学上の風は別。下記説明参照。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -204,8 +224,10 @@
       "fluid-obstacles.test.ts"
     ],
     "remaining": "水/浮力/洞窟/灯具/鉱物は存在。本書に現行水モデルを明記。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -221,8 +243,10 @@
       "fluid-obstacles.test.ts"
     ],
     "remaining": "保護/貸出品復旧/安全帰還あり。新規記録の保護はNET-05のN2。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -239,8 +263,10 @@
       "adventure-route.test.ts"
     ],
     "remaining": "実際の低いcapsule/姿勢、天井を検査した立上がり、個人/遠隔表示を追加。optional姿勢保存bit/旧記録読込/個人遠隔の分離を追加。最終受入は別。M1。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -255,8 +281,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "材質/濡れ、掴まり、警告、滑落、乗越えを追加。最終統合/遅延受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -271,8 +299,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "翼、上昇風、専用急降下あり。公開操作感。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -287,8 +317,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "浮遊/岸上がり/息の警告状態あり。HUD連携と公開2人水面確認。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -303,8 +335,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "席に加えて立った乗員を床の並進/回転へ追従。実Sessionと公開遠隔表示の受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -320,8 +354,10 @@
       "companion-render.test.ts"
     ],
     "remaining": "餌3回による仲間化、呼ぶ/追従、騎乗、牽引、安全降車。繁殖等は追加要件にしない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -336,8 +372,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "遮蔽補正、照準/建築preview、感度/反転/FOV/揺れ軽減。各場面の公開受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -353,8 +391,10 @@
       "skybound-session.test.ts"
     ],
     "remaining": "輪郭/lease/材質質量/移動回転/格子接着preview。新UIの実画面受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -370,8 +410,10 @@
       "skybound-session.test.ts"
     ],
     "remaining": "武器/盾に加えて矢の合成、効果/消費/解除preview。実装統合受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -387,8 +429,10 @@
       "skybound-session.test.ts"
     ],
     "remaining": "4秒履歴、lease/epoch固定、接着変更で履歴無効化。保存/クエストを巻き戻さない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -404,8 +448,10 @@
       "skybound-session.test.ts"
     ],
     "remaining": "支持/頭上/人/保護/再確認。出口を塞ぐ公開試験。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -421,8 +467,10 @@
       "skybound-session.test.ts"
     ],
     "remaining": "グラフ保存/再建/費用/配置/部品数検証。外部コード入力なし。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -448,8 +496,10 @@
       "quaternion-water-obstacles.test.ts"
     ],
     "remaining": "新作の保持構造物を質量に応じて投げるsky-throwを追加。P1参照。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -475,8 +525,10 @@
       "quaternion-water-obstacles.test.ts"
     ],
     "remaining": "指定9部品、単一構造の権威、電力。汎用車軸solverは必須にしない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -502,8 +554,10 @@
       "quaternion-water-obstacles.test.ts"
     ],
     "remaining": "火/水/氷/導電/風/爆発を実装。下記の優先順と上限を確認。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -527,8 +581,10 @@
       "wheel-traction-integration.test.ts"
     ],
     "remaining": "現行30Hz/64創作部品/16部品構造/4秒。Node測定は実機性能ではない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -552,8 +608,10 @@
       "wheel-traction-integration.test.ts"
     ],
     "remaining": "sleep/一度きり接触表示と、返却drop準備後の原子的解体。P2参照。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -570,8 +628,10 @@
       "adventure-gear.test.ts"
     ],
     "remaining": "地域素材/鉱物/食材/通貨dropと売却/stackあり。旧「通貨供給なし」は失効。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -585,8 +645,10 @@
       "adventure-food.test.ts"
     ],
     "remaining": "5料理効果/3枠/残時間処理に加えHUDへ残秒表示を追加。実画面受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -612,8 +674,10 @@
       "equipment-lots-ui.test.ts"
     ],
     "remaining": "個体耐久/破損/修理/強化比較/所持拡張あり。追加装備数そのものを未完了にしない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -637,8 +701,10 @@
       "equipment-websocket.test.ts"
     ],
     "remaining": "交易/固定・移動倉庫/装備metadata受渡し/設計管理あり。公開切断受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -655,8 +721,10 @@
       "layer-combat.test.ts"
     ],
     "remaining": "近接/射撃/防御/回避/parryに加え権威時刻の長押し溜め/解放を追加。C1と最終Session統合確認。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -671,8 +739,10 @@
       "combat-feel.test.ts"
     ],
     "remaining": "個人照準補助、既存parry猶予。世界slow motionは使わない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -690,8 +760,10 @@
       "adventure-navigation.test.ts"
     ],
     "remaining": "各敵役割/環境反応/群れの呼応と包囲/局所再経路。全世界navmeshは必須ではない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -710,8 +782,10 @@
       "layer-support.test.ts"
     ],
     "remaining": "4大型敵の独立部位/移動・射撃弱体化/高所・装置攻略/共有予兆。公開実戦受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -726,8 +800,10 @@
       "coop-revive-clients.test.ts"
     ],
     "remaining": "救助/安全復活/途中参加/共有報酬。公開切断/人数減少時受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -742,8 +818,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "出発地で順序付き実地導入と単独救助練習を追加。全工程を実入力で通す受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -758,8 +836,10 @@
       "adventure-trials.test.ts"
     ],
     "remaining": "七属性の試練と代替解。公開実操作。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -777,8 +857,10 @@
       "adventure-sites.test.ts"
     ],
     "remaining": "三地域に元3室＋別棟3室/高所書架、NPC/輸送救助復旧/大型敵。到達可能性・長さの公開QA。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -793,8 +875,10 @@
       "adventure-trials.test.ts"
     ],
     "remaining": "個人記録/共有設備と報酬を分離し一度だけ記録。公開同時完了。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -809,8 +893,10 @@
       "beacon-travel.test.ts"
     ],
     "remaining": "HP/スタミナ/電池容量/所持枠成長、後参加catch-up、道標/移動拠点。旧移動拠点未実装は失効。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -830,8 +916,10 @@
       "trail-race.test.ts"
     ],
     "remaining": "図鑑/九記録/個人共有ピン/踏査/写真/競走/4装飾。公開写真と操作受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -846,8 +934,10 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "終幕/後日依頼/明示確認つき次周と新規世界/旧記録保全。公開完走と失敗復旧受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -862,8 +952,10 @@
       "network.spec.ts"
     ],
     "remaining": "電力/食事残秒/泳ぎ警告と入力再割当対応表記を追加。モバイル可読性受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -881,8 +973,10 @@
       "field-guide.test.ts"
     ],
     "remaining": "層/ピン/依頼/recipe/設計/通知あり。検索並替え追加の最終版統合・focus保持受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -899,8 +993,10 @@
       "voxel-adventure.spec.ts"
     ],
     "remaining": "無音/自動再生不可でも働くsnapshot駆動音字幕と保存設定を追加。実画面受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -916,8 +1012,10 @@
       "adventure-creature-models.test.ts"
     ],
     "remaining": "独自voxel造形。水の小波/粒子/草の例外を下記に明示。実GPUで顔・手足・道具を確認。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -932,8 +1030,10 @@
       "skybound-terrain.test.ts"
     ],
     "remaining": "層色/霧/昼夜/雲/天候/草揺れ/独自音、着地遷移音あり。実聴取受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -949,8 +1049,10 @@
       "spatial-sound.test.ts"
     ],
     "remaining": "輪郭/ghost/接着点/攻撃予兆、lease所有者と残秒あり。実画面で識別性を確認。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -973,8 +1075,10 @@
       "coop-authority.test.ts"
     ],
     "remaining": "専用namespace/世代保全/破損検出/export/import。共有room管理importは原仕様必須へ追加しない。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -997,8 +1101,10 @@
       "coop-authority.test.ts"
     ],
     "remaining": "個人と共有の保存完了generation表示を追加。保存失敗時/切断時の実画面受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   },
   {
@@ -1021,8 +1127,10 @@
       "coop-authority.test.ts"
     ],
     "remaining": "個人/共有保存を分離。下記の終了時挙動と公開全員切断受入。最終版の公開/端末受入は別判定。",
-    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
-    "evidence": [],
+    "testedBuild": "368dca38: CI型/814試験171ファイル/build合格。後続の復活/次周回修正は型・関連25試験/build合格、公開検証待ち。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md"
+    ],
     "audit": "docs/adventure/full-spec-audit.md"
   }
 ]
