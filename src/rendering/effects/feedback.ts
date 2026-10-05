@@ -8,6 +8,7 @@ export function createFeedback(scene:THREE.Scene){
  const burst=(x:number,y:number,z:number,r:number,g:number,b:number)=>{for(let j=0;j<12;j++){const i=cursor++%count,k=i*3;positions[k]=x;positions[k+1]=y;positions[k+2]=z;colors[k]=r;colors[k+1]=g;colors[k+2]=b;velocity[k]=Math.sin(j*2.4)*2;velocity[k+1]=1.2+j*.12;velocity[k+2]=Math.cos(j*2.4)*2;life[i]=.5;}};
  positions.fill(-10000);
  return {
+ setReducedMotion(value:boolean){points.visible=!value;},
  update(s:Snapshot){for(const e of s.adventure.enemies){const before=enemies.get(e.id);if(before!==undefined&&e.health<before)burst(e.x,e.y+1,e.z,1,.76,.38);enemies.set(e.id,e.health);}
  for(const n of s.adventure.resources){const before=resources.get(n.id);if(before!==undefined&&n.ready>before)burst(n.x,n.y+1,n.z,.65,.83,.46);resources.set(n.id,n.ready);}
  if(enemies.size>200)for(const id of enemies.keys())if(!s.adventure.enemies.some(e=>e.id===id))enemies.delete(id);

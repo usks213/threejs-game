@@ -1,8 +1,15 @@
-# TERRA — オープンワールド・サバイバル試作
+# 空と灯の大地 — Voxel Co-op Adventure
 
-スマホ優先の、剣と魔法・地形編集・サバイバルクラフトゲームです。採集、装備、建築、5地域のボス、昼夜・天候、水と物理、協力プレイを実装中です。全仕様v0.4の完成ではありません。[全体の進捗と残項目](docs/specs/implementation-status.md)を正本とします。
 
-[遊び方・実装状況・制約](docs/phase0-status.md) / [仕様v0.4](docs/specs/open-world-survival-v0.4.md) / [設計判断](docs/adr/0001-phase0-voxel-prototype.md)
+PR3の基盤から分岐した、独自の三層世界を探索するvoxel協力アドベンチャーです。権威サーバーの共有世界で、地形を掘り、部品を組み、地表・空・洞海を旅します。任天堂作品の地図・登場人物・素材・台詞は使用していません。
+
+- [新作仕様と54項目](docs/adventure/voxel-coop-adventure-spec.md)
+- [実装・試験・未完了項目](docs/adventure/implementation-status.md) / [項目別台帳](docs/adventure/feature-status.json)
+- [最初の協力探索](docs/adventure/play-guide.md) / [移動拠点と収納](docs/adventure/mobile-camp-acceptance.md)
+
+ローカル実装と公開プレビューは別の版です。台帳のローカル成功は公開ブラウザやスマートフォンの受入完了を意味しません。公開待ち・部分実装・実機未検証を残しており、全仕様完成とはしていません。
+
+以下の従来操作は旧生成器1〜3との互換説明も含みます。新作では地形を盛る際に石を消費し、道具・装備は旅の工作から作れます。協力プレイ中の世界はサーバーへ保存され、誰かがメニューを開いても時間は止まりません。
 
 ## 操作
 

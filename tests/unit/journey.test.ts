@@ -1,3 +1,4 @@
+import {seedInventory} from '../helpers/equipment';
 import { legacySimulation } from '../helpers/legacy';
 import { expect,it } from 'vitest';
 import { GameSimulation } from '../../src/simulation/game-simulation';
@@ -11,7 +12,7 @@ it('guides a new and returning player using real inventory, buildings and boss s
  game.action('craft','axe');expect(journeyGoal(game.snapshot(),sim.player).tab).toBe('build');
  game.state.buildings.push({id:123,definition:'bench',x:3,y:sim.groundAt(3,8),z:8,rotation:0,support:3,contents:{}});
  expect(journeyGoal(game.snapshot(),sim.player).title).toContain('石剣');
- game.state.inventory.sword=1;expect(journeyGoal(game.snapshot(),sim.player).target).toEqual({x:0,z:-14});
+ seedInventory(game,{...game.state.inventory,sword:1});expect(journeyGoal(game.snapshot(),sim.player).target).toEqual({x:0,z:-14});
  game.state.death={x:5,y:1,z:5};game.state.grave={wood:3};expect(journeyGoal(game.snapshot(),sim.player).title).toContain('回収');
 });
 it('shares placement snapping and invalid-preview rules with the authority',()=>{
@@ -23,7 +24,7 @@ it('shares placement snapping and invalid-preview rules with the authority',()=>
 });
 
 it('keeps the completed Meadows objective when food expires or tools are stored',()=>{
- const sim=new GameSimulation(),g=sim.adventure;g.state.defeated=['stormstag'];g.state.inventory={};
+ const sim=new GameSimulation(undefined,3),g=sim.adventure;g.state.defeated=['stormstag'];g.state.inventory={};
  expect(journeyGoal(g.snapshot(),sim.player).title).toContain('奉納');g.state.meadows!.offered=true;
  expect(journeyGoal(g.snapshot(),sim.player).title).toContain('試練を越えた');
 });

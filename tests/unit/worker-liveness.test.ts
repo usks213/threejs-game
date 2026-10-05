@@ -11,7 +11,7 @@ it('keeps simulation and input live while rendering credits are exhausted, and a
  class Mesher {onmessage:((e:{data:unknown})=>void)|null=null;onerror=null;runtime=new TerrainRuntime();dead=false;postMessage(m:TerrainRequest){pending.push(()=>{if(this.dead)return;const r=this.runtime.handle(m);if(r)this.onmessage?.({data:r});});}terminate(){this.dead=true;}}
  vi.stubGlobal('self',scope);vi.stubGlobal('Worker',Mesher);await import('../../src/simulation/worker');
  const send=(m:SimulationClientMessage)=>scope.onmessage!({data:m});
- const sim=new GameSimulation();sim.adventure.state.inventory.club=1;sim.adventure.state.equipment='club';sim.fluid.restore([]);sim.adventure.state.enemies=[];sim.adventure.state.resources=[];sim.bodies.length=0;
+ const sim=new GameSimulation(undefined,3);sim.adventure.state.inventory.club=1;sim.adventure.state.equipment='club';sim.fluid.restore([]);sim.adventure.state.enemies=[];sim.adventure.state.resources=[];sim.bodies.length=0;
  send({type:'init',save:sim.save()});
  // No mesh ACK at startup: authoritative SDF collision and input still progress.
  while(pending.length)pending.shift()!();send({type:'input',input:{x:1,z:0,jump:false}});vi.advanceTimersByTime(1000);

@@ -30,7 +30,7 @@ describe('browser/Node shared authority simulation', () => {
   expect(sim.act('dig', target).dirty.length).toBeGreaterThan(0);
   expect(() => sim.act('add', target)).toThrow();
   for (let i = 0; i < 8; i++) sim.step(idle);
-  sim.act('add', target); expect(sim.world.edits.map(e => e.id)).toEqual([1, 2]);
+  sim.adventure.state.inventory.stone=5;sim.act('add', target); expect(sim.world.edits.map(e => e.id)).toEqual([1, 2]);
  });
  it('round-trips terrain, water, player and physics through a versioned save', () => {
   const sim = new GameSimulation(), target = { x: 0, y: terrainHeight(0, 5), z: 5 };

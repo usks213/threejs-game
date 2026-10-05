@@ -22,7 +22,7 @@ const terrain = new TerrainScheduler();let uploads = new TerrainUploadWindow(4);
 const triangles = new Map<string, number>(), editedMeshes = new Map<string, MeshData>();
 let mesher: Worker | null = null, sentEditCount = 0;
 let direct=false,inputSequence=0,lastAction='',lastError:string|null=null,combatSaveAt=0;
-const transientActions=new Set(['guard','dodge','sprint','sneak']);
+const transientActions=new Set(['guard','dodge','sprint','sneak','glide','climb']);
 let center = '', initialized = false, paused = false;
 let previous = performance.now(), accumulator = 0, meshMs = 0, editMs = 0, editStart = 0;
 function sendTerrain(message: TerrainRequest): void { mesher?.postMessage(message); }
@@ -133,7 +133,7 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
     else if (sim && message.type === 'reset-player') sim.resetPlayer();
     else if (sim && message.type === 'save' && !replica) emit({ type: 'save', save: authority!.save() });
     else if (sim && (message.type === 'action' || message.type === 'game-action')) {
-      lastAction=message.type==='action'?message.tool:message.action;const result = message.type === 'action' ? sim.act(message.tool, message.target) : sim.adventure.action(message.action, message.id, message.target, message.aim);
+      lastAction=message.type==='action'?message.tool:message.action;const result = sim.world.generator===4?authority!.action('host',message):message.type === 'action' ? sim.act(message.tool, message.target) : message.action==='revive'?authority!.action('host',message):sim.adventure.action(message.action, message.id, message.target, message.aim);
       invalidateTerrain(result.dirty); scheduleMesh();
       emit({ type: 'notice', message: result.message });
       if(message.type==='game-action'&&(message.action==='attack'||message.action==='heavy'))combatSaveAt=performance.now()+1000;

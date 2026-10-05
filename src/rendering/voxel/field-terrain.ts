@@ -16,8 +16,11 @@ interface FieldEntry {
  */
 export function createFieldTerrain(scene: THREE.Scene) {
   const entries = new Map<string, FieldEntry>(), geometry = new THREE.BoxGeometry(1, 1, 1);
+  const adventure={value:0};
   const sunlight = { value: new THREE.Color(3.2, 3.0, 2.7) };
   const sunDirection = { value: new THREE.Vector3(.5, .8, -.3).normalize() };
+  const pointLights={value:Array.from({length:5},()=>new THREE.Vector4())},pointColors={value:Array.from({length:5},()=>new THREE.Color())},fogColor={value:new THREE.Color()},fogRange={value:new THREE.Vector3()};
+  const lamps:THREE.PointLight[]=[];scene.traverse(object=>{if(object instanceof THREE.PointLight&&lamps.length<5)lamps.push(object);});
   const ambient = { value: new THREE.Color(.20, .25, .31) };
   const sunPosition = new THREE.Vector3(), targetPosition = new THREE.Vector3();
   let sun: THREE.DirectionalLight | undefined, active: ReadonlySet<string> | null = null, disposed = false;
@@ -60,8 +63,8 @@ export function createFieldTerrain(scene: THREE.Scene) {
           vertexShader: fieldVertexShader, fragmentShader: fieldFragmentShader,
           uniforms: {
             fieldDensity: { value: texture }, fieldOrigin: { value: new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z) },
-            fieldStep: { value: data.step }, fieldSize: { value: data.size }, fieldCameraNear: { value: .1 },
-            fieldSunDirection: sunDirection, fieldSunColor: sunlight, fieldAmbient: ambient,
+            fieldAdventure:adventure,fieldStep: { value: data.step }, fieldSize: { value: data.size }, fieldCameraNear: { value: .1 },
+            fieldSunDirection: sunDirection, fieldSunColor: sunlight, fieldAmbient: ambient,fieldPointLights:pointLights,fieldPointColors:pointColors,fieldFogColor:fogColor,fieldFogRange:fogRange,
           },
         });
         mesh = new THREE.Mesh(geometry, material); mesh.name = `density:${data.id}`;
@@ -97,6 +100,9 @@ export function createFieldTerrain(scene: THREE.Scene) {
     stats, raycastStats,
     ids: () => [...entries.keys()], has: (id: string) => entries.has(id),
     updateDetails(_player: THREE.Vector3, _seconds: number) {
+      adventure.value=scene.userData.generator===4?1:0;
+      for(let i=0;i<5;i++){const lamp=lamps[i];pointLights.value[i].set(lamp?.position.x??0,lamp?.position.y??0,lamp?.position.z??0,lamp&&lamp.intensity>0?lamp.distance:0);pointColors.value[i].copy(lamp?.color??ambient.value).multiplyScalar(lamp?.intensity??0);}
+      if(scene.fog instanceof THREE.Fog){fogColor.value.copy(scene.fog.color);fogRange.value.set(scene.fog.near,scene.fog.far,1);}else fogRange.value.z=0;
       if (!sun) return;
       sun.getWorldPosition(sunPosition); sun.target.getWorldPosition(targetPosition);
       sunDirection.value.copy(sunPosition).sub(targetPosition).normalize();

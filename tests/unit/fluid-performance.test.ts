@@ -109,7 +109,8 @@ it('preserves obstacle masks at thin, axis-aligned, rotated, overlapping and neg
     { x: -1, y: 1, z: -2, hx: .8, hy: .3, hz: .4, rotation: .372 },
     { x: 0, y: .5, z: 0, hx: .25, hy: .25, hz: .25, rotation: Math.PI },
   ];
-  const hashes = ['6778892f6442ccfb106bf12ba87ecd28d34bd59faa557a7ddc805684ee3ce3b0', '80d715cfe5466ea49ea567c6ccf657b51527551fcfcae34681220eb94101f73e'];
+  // Lower-face entering edges are included after the authored-room obstacle fix.
+  const hashes = ['9bacc87f828b129f8fd090f33fb6d6904d6f4081daa3f25ef03abef7a1705943', '80d715cfe5466ea49ea567c6ccf657b51527551fcfcae34681220eb94101f73e'];
   for (const [i, size] of [.5, 1].entries()) {
     const mask = voxelizeObstacles(obstacles, size);
     expect(createHash('sha256').update(JSON.stringify({ occupied: [...mask.occupied], barriers: [...mask.barriers] })).digest('hex')).toBe(hashes[i]);

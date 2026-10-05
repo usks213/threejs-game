@@ -1,0 +1,31 @@
+import {sessionFrame} from '../src/networking/frame';
+import {readFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {startCoopServer} from '../apps/coop/local-server';
+import {AuthorityRoom} from '../src/networking/authority-room';
+import {validateCheckpoint} from '../src/save/checkpoint';
+import {COOP_PROTOCOL} from '../src/networking/coop-protocol';
+import {distribution,fluidDigest,snapshotDigest} from './soak-coop-common';
+const directory=process.argv[2];if(!directory)throw Error('Supply a dedicated soak save directory');
+const started=performance.now(),emit=(event:Record<string,unknown>)=>process.stdout.write(JSON.stringify({source:'server',at:Date.now(),elapsedMs:performance.now()-started,...event})+'\n');
+let sentWaterBytes=0,sentStateBytes=0,sentBytes=0,receivedBytes=0,frames=0,acks=0,rejected=0,exceptions=0;const simTickTimes:number[]=[],stepTimes:number[]=[],receiveTimes:number[]=[],seen=new WeakSet<AuthorityRoom>(),identities=new Map<string,string>();let recentSteps:number[]=[],recentSimTicks:number[]=[];
+const originalConnect=AuthorityRoom.prototype.connect;
+AuthorityRoom.prototype.connect=function(id,wire){const room=this;if(!seen.has(room)){seen.add(room);const s=room.authority.sim;emit({kind:'baseline',epoch:room.epoch,generator:s.world.generator,fluids:s.fluid.cells.size,resources:s.adventure.state.resources.length,enemies:s.adventure.state.enemies.length,buildings:s.adventure.state.buildings.length,bodies:s.bodies.length,parts:s.skybound.state.parts.length,companions:s.companions.state.creatures.length,edits:s.world.edits.length});}
+ originalConnect.call(room,id,{close:(code,reason)=>{emit({kind:'close',connection:id,code,reason});wire.close(code,reason);},send:(packet,serialized)=>{const bytes=Buffer.byteLength(serialized??JSON.stringify(packet));sentBytes+=bytes;if(packet.type==='delta'){frames++;sentWaterBytes+=Buffer.byteLength(JSON.stringify(packet.water));sentStateBytes+=Buffer.byteLength(JSON.stringify(packet.state));}if(packet.type==='ack'){acks++;if(!packet.accepted)rejected++;}if(packet.type==='notice')emit({kind:'notice',message:packet.message});
+  if(packet.type==='welcome'||packet.type==='delta'&&packet.tick%300===0){const actor=room.authority.actors.get(packet.type==='welcome'?packet.playerId:identities.get(id)??'');
+   if(actor){const state=sessionFrame(room.authority,actor.id),cells=room.authority.sim.fluid.snapshot(actor.player);emit({kind:'fluid-sample',reference:'authority-fluid-snapshot-at-send-tick',packetKind:packet.type==='delta'?'frame':'welcome',waterRevision:packet.type==='delta'?packet.water.revision:0,playerId:actor.id,epoch:packet.epoch,tick:packet.type==='delta'?packet.tick:packet.state.tick,count:cells.length,digest:fluidDigest(cells),snapshotDigest:snapshotDigest(state)});}
+  }wire.send(packet,serialized);
+ }});
+};
+const originalReceive=AuthorityRoom.prototype.receive;
+AuthorityRoom.prototype.receive=function(id,text,identity){if(identity)identities.set(id,identity);receivedBytes+=Buffer.byteLength(text);const t=performance.now();try{return originalReceive.call(this,id,text,identity);}catch(error){exceptions++;emit({kind:'exception',phase:'receive',message:String(error)});throw error;}finally{receiveTimes.push(performance.now()-t);}};
+const originalStep=AuthorityRoom.prototype.step;
+AuthorityRoom.prototype.step=function(){const t=performance.now(),tickBefore=this.authority.sim.tick;try{return originalStep.call(this);}catch(error){exceptions++;emit({kind:'exception',phase:'step',message:error instanceof Error?error.stack:String(error)});throw error;}finally{const ms=performance.now()-t;stepTimes.push(ms);recentSteps.push(ms);if(this.authority.sim.tick!==tickBefore){const pure=this.authority.sim.metrics.tickMs;simTickTimes.push(pure);recentSimTicks.push(pure);}}};
+const server=await startCoopServer(0,directory);emit({kind:'ready',port:server.port,pid:process.pid,protocol:COOP_PROTOCOL,byteAccounting:'JSON payload bytes; incoming is measured after identity normalization'});let sample=0,busy=false,closing=false;
+const timer=setInterval(()=>{const windows=distribution(recentSteps),simWindows=distribution(recentSimTicks);recentSteps=[];recentSimTicks=[];emit({kind:'metrics',memory:process.memoryUsage(),cpu:process.cpuUsage(),sentBytes,sentWaterBytes,sentStateBytes,receivedBytes,frames,acks,rejected,exceptions,stepMs:windows,simulationTickMs:simWindows,rooms:[...server.rooms].map(([id,r])=>({id,epoch:r.epoch,tick:r.authority.sim.tick,seconds:r.authority.sim.adventure.state.seconds,connections:r.size,readOnly:r.readOnly,fluids:r.authority.sim.fluid.cells.size,bodies:r.authority.sim.bodies.length,parts:r.authority.sim.skybound.state.parts.length,enemies:r.authority.sim.adventure.state.enemies.length,resources:r.authority.sim.adventure.state.resources.length,edits:r.authority.sim.world.edits.length}))});
+ if(++sample%30===0&&!busy){busy=true;void(async()=>{for(const id of server.rooms.keys()){const text=await readFile(join(directory,id+'.json'),'utf8'),t=performance.now(),checkpoint=validateCheckpoint(JSON.parse(text));emit({kind:'save-validation',valid:true,bytes:Buffer.byteLength(text),validationMs:performance.now()-t,memberCount:checkpoint.world.members?.length??0,receiptCount:checkpoint.receipts.reduce((n,[,ids])=>n+ids.length,0),accessRevision:checkpoint.access?.revision,fluids:checkpoint.world.fluids.length});}})().catch(error=>{exceptions++;emit({kind:'save-validation',valid:false,message:String(error)});}).finally(()=>busy=false);}
+},1000);
+async function stop(code=0){if(closing)return;closing=true;clearInterval(timer);try{await server.close();emit({kind:'final',sentBytes,sentWaterBytes,sentStateBytes,receivedBytes,frames,acks,rejected,exceptions,stepMs:distribution(stepTimes),simulationTickMs:distribution(simTickTimes),receiveMs:distribution(receiveTimes),memory:process.memoryUsage()});process.exit(code);}catch(error){emit({kind:'shutdown-error',message:String(error)});process.exit(1);}}
+for(const signal of ['SIGTERM','SIGINT'] as const)process.on(signal,()=>void stop());
+process.on('uncaughtException',error=>{exceptions++;emit({kind:'exception',phase:'uncaught',message:error.stack});void stop(1);});
+process.on('unhandledRejection',error=>{exceptions++;emit({kind:'exception',phase:'rejection',message:String(error)});void stop(1);});

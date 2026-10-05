@@ -1,3 +1,6 @@
+import {CoopFrameDecoder} from '../../src/networking/coop-frame-decoder';
+import {COOP_PROTOCOL} from '../../src/networking/coop-protocol';
+import { createHash } from 'node:crypto';
 import { it, expect } from 'vitest';
 import { WebSocket } from 'ws';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
@@ -7,12 +10,12 @@ import { startCoopServer } from '../../apps/coop/local-server';
 import { AuthorityRoom } from '../../src/networking/authority-room';
 import type { CoopServerPacket } from '../../src/networking/coop-protocol';
 import type { Snapshot } from '../../src/simulation/protocol';
-const roomId='a'.repeat(48),alice='alice-player-123456',bob='bob-player-12345678';
+const roomId='a'.repeat(48),keys=['1'.repeat(64),'2'.repeat(64)],alice=createHash('sha256').update(keys[0]).digest('hex'),bob=createHash('sha256').update(keys[1]).digest('hex');
 async function connect(port:number,id:string){
- const socket=new WebSocket(`ws://127.0.0.1:${port}/coop/${roomId}`),packets:CoopServerPacket[]=[];let state:Snapshot|undefined;
- socket.on('message',data=>{const packet=JSON.parse(String(data)) as CoopServerPacket;packets.push(packet);if(packet.type==='welcome'||packet.type==='frame')state=packet.state;});
+ const socket=new WebSocket(`ws://127.0.0.1:${port}/coop/${roomId}`),packets:CoopServerPacket[]=[],decoder=new CoopFrameDecoder(token=>socket.send(JSON.stringify({type:'delivery',token})));let state:Snapshot|undefined;
+ socket.on('message',data=>{const packet=decoder.accept(JSON.parse(String(data)));packets.push(packet);if(packet.type==='welcome'||packet.type==='frame')state=packet.state;});
  await new Promise<void>((resolve,reject)=>{socket.once('open',resolve);socket.once('error',reject);});
- const send=(packet:unknown)=>socket.send(JSON.stringify(packet));send({type:'hello',protocol:1,playerId:id});
+ const send=(packet:unknown)=>socket.send(JSON.stringify(packet));send({type:'hello',protocol:COOP_PROTOCOL,resumeKey:keys[id===alice?0:1]});
  await until(()=>packets.some(p=>p.type==='welcome'));
  return {socket,packets,send,get state(){return state!;},async close(){socket.close();await new Promise<void>(r=>socket.once('close',()=>r()));}};
 }
@@ -41,15 +44,18 @@ it('real shared sockets converge, resolve duplicate pickup, resync, reconnect an
   const start=a.state.player.x;
   for(let sequence=1;sequence<=15;sequence++){a.send({type:'input',sequence,input:{x:1,z:0,jump:false}});await new Promise(r=>setTimeout(r,35));}
   await until(()=>a.state.player.x>start+.5&&b.state.peers!.some(p=>p.id===alice&&p.player.x>start+.5));
-  const p=a.state.player;a.send({type:'action',commandId:'dig-once',message:{type:'action',tool:'dig',target:{x:p.x,y:sim.groundAt(p.x,p.z+2),z:p.z+2}}});
-  await until(()=>a.state.edits===1&&b.state.edits===1);
+  const p=a.state.player;a.send({type:'action',commandId:'dig-once',message:{type:'action',tool:'dig',expectedRevision:a.state.edits,target:{x:p.x+4,y:sim.groundAt(p.x+4,p.z+2),z:p.z+2}}});
+  await until(()=>a.state.edits===1&&b.state.edits===1);const afterFirstEdit=a.state.tick;
   await b.close();clients.splice(clients.indexOf(b),1);
-  const returning=await connect(server.port,bob);clients.push(returning);expect(returning.state.edits).toBe(1);
+  await until(()=>a.state.tick>=afterFirstEdit+8);
+  a.send({type:'action',commandId:'dig-while-b-offline',message:{type:'action',tool:'dig',expectedRevision:a.state.edits,target:{x:p.x+4,y:sim.groundAt(p.x+4,p.z-2),z:p.z-2}}});
+  await until(()=>a.packets.some(p=>p.type==='ack'&&p.commandId==='dig-while-b-offline'));const ack=a.packets.find(p=>p.type==='ack'&&p.commandId==='dig-while-b-offline');expect(ack).toMatchObject({accepted:true});await until(()=>a.state.edits===2);
+  const returning=await connect(server.port,bob);clients.push(returning);expect(returning.state.edits).toBe(2);
   returning.send({type:'resync'});await until(()=>returning.packets.filter(p=>p.type==='welcome').length===2);
   const total=(a.state.adventure.inventory.wood??0)+(returning.state.adventure.inventory.wood??0);
   await Promise.all(clients.map(c=>c.close()));clients.length=0;await server.close();server=await startCoopServer(0,directory);
   const restoredA=await connect(server.port,alice),restoredB=await connect(server.port,bob);clients.push(restoredA,restoredB);
-  expect(restoredA.state.edits).toBe(1);expect(restoredB.state.edits).toBe(1);expect((restoredA.state.adventure.inventory.wood??0)+(restoredB.state.adventure.inventory.wood??0)).toBe(total);
+  expect(restoredA.state.edits).toBe(2);expect(restoredB.state.edits).toBe(2);expect((restoredA.state.adventure.inventory.wood??0)+(restoredB.state.adventure.inventory.wood??0)).toBe(total);
   restoredA.send(packets[0]);await new Promise(r=>setTimeout(r,140));expect((restoredA.state.adventure.inventory.wood??0)+(restoredB.state.adventure.inventory.wood??0)).toBe(3);
  }finally{await Promise.all(clients.map(c=>c.close()));await server.close();await rm(directory,{recursive:true,force:true});}
 },30000);

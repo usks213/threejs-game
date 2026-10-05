@@ -1,3 +1,9 @@
+import {createTrailRace} from '../game/trail-race';
+import {createExpeditions} from '../game/expeditions';
+import {createCompanions} from '../game/companions';
+import {foodEffect} from '../../content/adventure-food';
+import { createLandmarks } from '../game/landmarks';
+import { createSkybound } from '../game/skybound';
 import { createFeedback } from '../effects/feedback';
 import { createBuildingPreview } from '../game/preview';
 import { createAvatarAssets } from '../game/avatar';
@@ -11,8 +17,10 @@ import { WATER_VERTEX_CAPACITY } from '../../fluid/surface';
 import { WaterMeshingController } from '../water/controller';
 import type { Snapshot } from '../../simulation/protocol';
 export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
-  const scene = new THREE.Scene();
+  const scene = new THREE.Scene();scene.userData.direct=direct;
   scene.background = new THREE.Color(meadow.sky); scene.fog = new THREE.Fog(meadow.fog, 28, 61);
+  const glow=new THREE.PointLight('#c5efbd',0,3.5,2);scene.add(glow);
+  const race=createTrailRace(scene),skybound=createSkybound(scene),companions=createCompanions(scene),expeditions=createExpeditions(scene),landmarks=createLandmarks(scene);
   const feedback=createFeedback(scene), preview=createBuildingPreview(scene);
   const atmosphere = createAtmosphere(scene,renderer), entities = createEntities(scene,direct), bodies = createBodies(scene), shadows = createContactShadows(scene);
   const avatars = createAvatarAssets(), localAvatar = avatars.create(), player = localAvatar.group; scene.add(player);
@@ -41,9 +49,10 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
   const waterMesher = new WaterMeshingController(() => new Worker(new URL('../water/worker.ts', import.meta.url), { type: 'module' }));
   const resetWater = () => { waterTick = -1; waterMesher.reset(); waterGeometry.setDrawRange(0, 0); };
   return {
+    setReducedMotion(value:boolean){scene.userData.reducedMotion=value;feedback.setReducedMotion(value);},
     scene, player, marker, atmosphere, waterSurface:water, preview:preview.update,faceCamera:entities.faceCamera,
     raycastBuildings: entities.raycast,
-    resetWater,
+    resetWater,selectPart:skybound.select,
     get waterStats() { return waterMesher.stats; },
     prepareWater() {
       return waterMesher.prepare(result => {
@@ -58,8 +67,11 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
       });
     },
     update(state: Snapshot) {
+      scene.userData.generator=state.adventure.generator;glow.intensity=foodEffect(state.adventure,'glow')?3:0;glow.position.set(state.player.x,state.player.y+1,state.player.z);
+      race.update(state);skybound.update(state.adventure.skybound,state.player);companions.update(state);expeditions.update(state);
       waterTime.value = state.adventure.seconds; feedback.update(state);
-      localAvatar.setPose({ ...state.adventure, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:state.adventure.meadows?state.adventure.meadows.gear.offhand==='towerShield':!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?Object.fromEntries(Object.entries(state.adventure.meadows.gear).filter(([,id])=>state.adventure.inventory[id]>0)):undefined, grounded: state.player.grounded });
+      player.rotation.z=state.adventure.coop?.downedSeconds?-1.25:0;
+      localAvatar.setPose({ ...state.adventure,riding:!!state.adventure.companions?.riding, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:state.adventure.meadows?state.adventure.meadows.gear.offhand==='towerShield':!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?Object.fromEntries(Object.entries(state.adventure.meadows.gear).filter(([,id])=>state.adventure.inventory[id]>0)):undefined, grounded: state.player.grounded });
       for (const [id, view] of remotePlayers) if (!state.peers?.some(peer => peer.id === id)) { scene.remove(view.model.group); remotePlayers.delete(id); }
       for (const peer of state.peers ?? []) {
         let view = remotePlayers.get(peer.id);
@@ -67,10 +79,12 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
           const model = avatars.create(); model.group.position.set(peer.player.x, peer.player.y, peer.player.z);
           view = { model, target: model.group.position.clone(), heading: peer.player.heading }; remotePlayers.set(peer.id, view); scene.add(model.group);
         }
-        view.model.setPose({ ...peer.appearance, grounded: peer.player.grounded });
+        view.model.group.rotation.z=peer.appearance?.downed?-1.25:0;
+        view.model.setPose({ ...peer.appearance,riding:state.adventure.companions?.creatures.some(c=>c.rider===peer.id), grounded: peer.player.grounded });
         view.target.set(peer.player.x, peer.player.y, peer.player.z); view.heading = peer.player.heading;
         if (view.model.group.position.distanceToSquared(view.target) > 100) view.model.group.position.copy(view.target);
       }
+      landmarks.update(state,player,remotePlayers);
       const revision = Math.floor(state.tick / 3);
       if (revision < waterTick) resetWater();
       if (revision !== waterTick) { waterTick = revision; waterMesher.request(state.fluids, revision); }
@@ -78,7 +92,7 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
       bodies.update(state); shadows.update(state);
     },
     interpolate(dt: number) {
-      feedback.animate(dt); const alpha = 1 - Math.exp(-16 * dt); localAvatar.animate(dt);
+      companions.animate(dt);expeditions.animate(dt);feedback.animate(dt); const alpha = 1 - Math.exp(-16 * dt); localAvatar.animate(dt);
       for (const view of remotePlayers.values()) {
         view.model.group.position.lerp(view.target, alpha);
         const angle = view.heading - view.model.group.rotation.y;
@@ -87,7 +101,7 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
       }
     },
     dispose() {
-      waterMesher.dispose();
+      race.dispose();companions.dispose();expeditions.dispose();landmarks.dispose();skybound.dispose();waterMesher.dispose();
       atmosphere.dispose();feedback.dispose();preview.dispose();bodies.dispose(); entities.dispose(); shadows.dispose(); scene.remove(player);
       for (const view of remotePlayers.values()) scene.remove(view.model.group); avatars.dispose();
       const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();

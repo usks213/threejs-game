@@ -1,3 +1,5 @@
+import {ADVENTURE_ENEMIES} from './adventure-encounters';
+import {SITE_BOSSES} from './adventure-sites';
 export interface BiomeDefinition { id: string; name: string; tier: number; center: { x: number; z: number }; grass: string; sky: string; fog: string; boss: string; resource: string }
 export const BIOMES: BiomeDefinition[] = [
  { id: 'verdant', name: '若葉の林', tier: 1, center: { x: 0, z: 0 }, grass: '#74955a', sky: '#abc8dc', fog: '#b8cbc0', boss: 'root', resource: 'stone' },
@@ -16,13 +18,15 @@ export const ENEMIES: EnemyDefinition[] = [
 ];
 export interface BossDefinition { id: string; name: string; health: number; damage: number; color: string; summon: Record<string, number>; reward: string; element: string }
 export const BOSSES: BossDefinition[] = [
+ ...SITE_BOSSES,
+ { id: 'stormcore', name: '嵐心の機殻', health: 260, damage: 12, color: '#6db9be', summon: { crystal: 3 }, reward: 'star', element: 'magic' },
  { id: 'root', name: '古樹の守護者', health: 220, damage: 15, color: '#587652', summon: { wood: 8, resin: 2 }, reward: 'copper', element: 'physical' },
  { id: 'tusk', name: '黒角の巨獣', health: 340, damage: 20, color: '#7c645c', summon: { copper: 6, fang: 4 }, reward: 'iron', element: 'physical' },
  { id: 'mirelord', name: '沼の王', health: 460, damage: 25, color: '#60896a', summon: { iron: 6, resin: 6 }, reward: 'crystal', element: 'poison' },
  { id: 'frostwing', name: '霜翼', health: 600, damage: 30, color: '#9fb9d3', summon: { crystal: 6, fang: 8 }, reward: 'aether', element: 'frost' },
  { id: 'riftheart', name: '星裂の心臓', health: 780, damage: 36, color: '#b189cf', summon: { aether: 8, crystal: 8 }, reward: 'star', element: 'magic' },
 ];
-export const ITEM_NAMES: Record<string, string> = { wood: '木材', stone: '石', resin: '樹脂', berry: '木の実', fang: '牙', copper: '銅鉱', iron: '鉄鉱', crystal: '霜晶', aether: '魔晶', star: '星核', sword: '石剣', axe: '石斧', shield: '木盾', bow: '弓', staff: '杖', armor: '革鎧', stew: '森の煮込み', copperSword: '銅剣', ironSword: '鉄剣', crystalSword: '霜晶剣', aetherSword: '星裂剣', greatsword: '大剣', spear: '槍', book: '魔導書' };
+export const ITEM_NAMES: Record<string, string> = { glider: '帆布の翼', wood: '木材', stone: '石', resin: '樹脂', berry: '木の実', fang: '牙', copper: '銅鉱', iron: '鉄鉱', crystal: '霜晶', aether: '魔晶', star: '星核', sword: '石剣', axe: '石斧', shield: '木盾', bow: '弓', staff: '杖', armor: '革鎧', stew: '森の煮込み', copperSword: '銅剣', ironSword: '鉄剣', crystalSword: '霜晶剣', aetherSword: '星裂剣', greatsword: '大剣', spear: '槍', book: '魔導書' };
 export const WEAPONS: Record<string, { damage: number; reach: number; stamina: number; cooldown: number; ranged?: boolean }> = {
  hands: { damage: 7, reach: 2.2, stamina: 8, cooldown: 0.35 },
  axe: { damage: 16, reach: 2.5, stamina: 12, cooldown: 0.5 },
@@ -102,3 +106,6 @@ for(const id of ['roofCorner45','roofInner45'])BUILDINGS.push({id,name:id==='roo
 ENEMIES.push({id:'draugrArcher',name:'弓を持つ亡者',health:100,damage:40,speed:1.6,reach:12,color:'#718271',shape:'walker',element:'physical',resistance:'poison'},{id:'draugrElite',name:'亡者の精鋭',health:200,damage:58,speed:2,reach:2,color:'#5a715f',shape:'walker',element:'physical',resistance:'poison'});
 
 ENEMIES.push({id:'greydwarfBrute',name:'森の剛腕',health:150,damage:30,speed:2,reach:2,color:'#686b43',shape:'walker',element:'physical',resistance:'poison'},{id:'greydwarfShaman',name:'森の祈祷師',health:60,damage:14,speed:1.6,reach:1.7,color:'#659e67',shape:'walker',element:'physical',resistance:'poison'});
+
+export const LEGACY_ENEMIES:readonly EnemyDefinition[]=[...ENEMIES];
+ENEMIES.push(...ADVENTURE_ENEMIES);

@@ -27,7 +27,21 @@ test.describe.serial('two real browsers',()=>{
   test.setTimeout(45000);stage('move and observe');const before=Number(await b.locator('#position').getAttribute('data-x'));
   await b.keyboard.down('KeyD');try{await expect.poll(async()=>Number(await b.locator('#position').getAttribute('data-x'))).toBeGreaterThan(before+.4);}finally{await b.keyboard.up('KeyD');}
   await expect.poll(async()=>{const peers=JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]');return peers.find((p:{id:string})=>p.id===identity)?.x??-999;}).toBeGreaterThan(before+.4);
+  const peer=async()=>JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===identity);
+  await expect.poll(async()=>Math.abs((await peer())?.heading??0)).toBeGreaterThan(.3);
+  const ground=(await peer()).y;await b.keyboard.press('Space');await expect.poll(async()=>(await peer())?.y??ground).toBeGreaterThan(ground+.15);
   await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('movement verified');
+ });
+ test('resolve a simultaneous shared supply pickup without duplicating inventory',async()=>{
+  test.setTimeout(90000);stage('shared pickup conflict');
+  for(const page of[a,b]){await page.keyboard.press('Escape');await page.locator('#adventure-menu').click();await page.locator('[data-tab=bag]').click();await expect(page.locator('[data-drop-kind=wood]')).toBeVisible();}
+  const targetA=await a.locator('[data-drop-kind=wood]').getAttribute('data-id'),targetB=await b.locator('[data-drop-kind=wood]').getAttribute('data-id');expect(targetA).toBe(targetB);
+  await a.locator('[data-drop-kind=wood]').focus();await b.locator('[data-drop-kind=wood]').focus();
+  await Promise.all([a.keyboard.press('Enter'),b.keyboard.press('Enter')]);
+  await expect.poll(async()=>Number(await a.locator('#bag-material-counts [data-item=wood]').getAttribute('data-count'))+Number(await b.locator('#bag-material-counts [data-item=wood]').getAttribute('data-count'))).toBe(12);
+  await expect(a.locator('[data-drop-kind=wood]')).toHaveCount(0);await expect(b.locator('[data-drop-kind=wood]')).toHaveCount(0);
+  for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-last-command',new RegExp('gather'));await page.keyboard.press('Escape');await page.locator('#session-menu').click();}
+  stage('single transfer verified');
  });
  test('commit a visible terrain edit and converge on both clients',async()=>{
   test.setTimeout(90000);stage('visible terrain tool');await a.keyboard.press('Escape');await a.locator('#adventure-menu').click();await a.locator('[data-tab=build]').click();await a.locator('[data-game-action=tool][data-id=dig]').click();

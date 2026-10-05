@@ -1,0 +1,6 @@
+import {it,expect} from 'vitest';
+import {GameSimulation} from '../../src/simulation/game-simulation';
+import {bossAttack} from '../../src/game/bosses';
+import {stormcoreMultiplier} from '../../src/content/stormcore';
+it('provides three readable original boss patterns and a limited exposed-core weakness',()=>{expect(bossAttack('stormcore',false,'pulse').radius).toBe(5);expect(bossAttack('stormcore',false,'prism').shots).toBe(3);expect(bossAttack('stormcore',true,'prism').shots).toBe(5);expect(bossAttack('stormcore',false,'rush').charge).toBe(true);expect(stormcoreMultiplier(10,0,'physical')).toBe(.45);expect(stormcoreMultiplier(10,12,'physical')).toBe(1.65);expect(stormcoreMultiplier(13,12,'frost')).toBe(1.25);});
+it('completes an authority attack, exposes its core, and retains the shared encounter on the sky island',()=>{const sim=new GameSimulation();sim.fluid.restore([]);const e={id:990001,definition:'stormcore',tier:1,x:48,y:29,z:29,homeX:48,homeZ:29,health:260,cooldown:0,windup:0,slow:0,boss:true};sim.adventure.state.enemies=[e];Object.assign(sim.player,{x:48,y:29,z:25});for(let i=0;i<85;i++)sim.step({x:0,z:0,jump:false});expect(e.y).toBeGreaterThan(28);expect(sim.adventure.state.enemies[0].attackReady?.exposed).toBeGreaterThan(sim.adventure.state.seconds);});

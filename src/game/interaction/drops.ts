@@ -1,5 +1,8 @@
+import {ITEM_NAMES} from '../../content/catalog';
+import {emptyGear,isEquipment,mintGear,validateGear,GEAR_LIMITS} from '../equipment/items';
+import type {GearAllocator,GearContainer} from '../equipment/items';
 import type { Adventure } from '../adventure';
-import type { ResourceNode } from '../types';
+import type { ResourceNode,BuildingState } from '../types';
 import type { Vec3 } from '../../world/types';
 import type { WaterObstacle } from '../../fluid/obstacles';
 import { carryAmount } from '../meadows/inventory';
@@ -9,43 +12,56 @@ import { voxelSlabs } from '../voxel/obstacles';
 
 const DROP_STACK = 100, DROP_RADIUS = .08, SKIN = 1e-5;
 const finitePoint = (point: Vec3) => [point.x, point.y, point.z].every(Number.isFinite);
-
-/** Ground items own their count until an explicit pickup transaction succeeds. */
-export function dropItem(game: Adventure, id: string, count: number, point: Vec3): void {
- if (!id || !Number.isSafeInteger(count) || count < 0 || count > 100000000 || !finitePoint(point)) throw new Error('品物の数や位置が不正です');
- if (!count) return;
- const nearby = game.state.resources.filter(r => r.drop && r.kind === id && r.ready <= game.state.seconds
-  && Number.isSafeInteger(r.amount) && r.amount > 0 && r.amount < DROP_STACK
-  && Math.hypot(r.x - point.x, r.y - point.y, r.z - point.z) < .75);
- for (const drop of nearby) {
-  const add = Math.min(count, DROP_STACK - drop.amount);
-  drop.amount += add;
-  count -= add;
-  if (!count) return;
+export const DROP_LIMIT=100000;
+/** Pure resource-array plan, including exact equipment holder identity. */
+export function planItemDrops(game:Adventure,id:string,count:number,point:Vec3,allocate:GearAllocator,gear?:GearContainer,source=game.state.resources):ResourceNode[]{
+ if(!Object.hasOwn(ITEM_NAMES,id)||!Number.isSafeInteger(count)||count<0||count>100000000||!finitePoint(point))throw Error('品物の数や位置が不正です');
+ if(!count)return source;
+ const equipment=isEquipment(id),resources=[...source],at={x:point.x,y:point.y,z:point.z};
+ if(equipment){
+  const container=gear?validateGear(gear,{[id]:count}):mintGear(emptyGear(),id,count,allocate);
+  if(resources.length+container.lots.length>DROP_LIMIT)throw Error('地面の品物が上限です。空きを作ってください');
+  // A homogeneous legacy batch is one physical holder, regardless of its count.
+  for(const lot of container.lots){const part=structuredClone(lot);resources.push({id:allocate(),kind:id,amount:lot.count,ready:0,drop:true,...at,velocity:{x:0,y:1,z:0},gearItems:{version:1,revision:0,lots:[part],activeByKind:{[id]:part.id}}});}
+  return resources;
  }
- while (count > 0) {
-  const amount = Math.min(DROP_STACK, count);
-  game.state.resources.push({id: game.sim.allocateEntityId(), kind: id, amount, ready: 0, drop: true,
-   x: point.x, y: point.y, z: point.z, velocity: {x: 0, y: 1, z: 0}});
-  count -= amount;
- }
+ for(let i=0;i<resources.length&&count;i++){const drop=resources[i];if(!drop.drop||drop.kind!==id||drop.gearItems||drop.ready>game.state.seconds||!Number.isSafeInteger(drop.amount)||drop.amount<=0||drop.amount>=DROP_STACK||Math.hypot(drop.x-point.x,drop.y-point.y,drop.z-point.z)>=.75)continue;const add=Math.min(count,DROP_STACK-drop.amount);resources[i]={...drop,amount:drop.amount+add};count-=add;}
+ if(resources.length+Math.ceil(count/DROP_STACK)>DROP_LIMIT)throw Error('地面の品物が上限です。空きを作ってください');
+ while(count){const amount=Math.min(DROP_STACK,count);resources.push({id:allocate(),kind:id,amount,ready:0,drop:true,...at,velocity:{x:0,y:1,z:0}});count-=amount;}
+ return resources;
 }
-export function pickupItem(game: Adventure, id: number): number {
- const node = game.state.resources.find(n => n.id === id && n.drop && n.ready <= game.state.seconds);
- if (!node || !Number.isSafeInteger(node.amount) || node.amount <= 0) throw new Error('品物はもうありません');
- const player = game.sim.player;
- if (!finitePoint(node) || Math.hypot(node.x - player.x, node.y - player.y, node.z - player.z) > 3.5) throw new Error('品物に近づいてください');
- const state = game.state, count = carryAmount(state.inventory, node.kind, node.amount, state.meadows);
- if (!count) throw new Error('持ち物に空きがありません');
- // Commit ownership once, without the general grant helper's overflow-to-drop fallback.
- state.inventory[node.kind] = (state.inventory[node.kind] ?? 0) + count;
- node.amount -= count;
- if (!node.amount) state.resources = state.resources.filter(r => r !== node);
- if (state.meadows) {
-  if (!state.meadows.discovered.includes(node.kind)) state.meadows.discovered.push(node.kind);
-  reconcileSlots(state.meadows, state.inventory);
- }
- return count;
+/** Preserve live node/array references only after the entire immutable plan has passed. */
+export function commitItemDrops(game:Adventure,planned:ResourceNode[]):void{
+ const target=game.state.resources,existing=new Map(target.map(node=>[node.id,node]));
+ const committed=planned.map(node=>{const prior=existing.get(node.id);if(!prior||prior===node)return node;Object.assign(prior,node);return prior;});
+ target.length=committed.length;for(let i=0;i<committed.length;i++)target[i]=committed[i];
+}
+/** Newly produced loot; transfers from an existing holder must pass its exact gear container. */
+export function dropItem(game:Adventure,id:string,count:number,point:Vec3,gear?:GearContainer):void{
+ if(!Object.hasOwn(ITEM_NAMES,id)||!Number.isSafeInteger(count)||count<0||count>100000000||!finitePoint(point))throw Error('品物の数や位置が不正です');
+ if(count===0)return;const ids=game.sim.reserveEntityIds(isEquipment(id)?GEAR_LIMITS.lots*2:Math.ceil(count/DROP_STACK)+1),resources=planItemDrops(game,id,count,point,ids.allocate,gear);ids.commit();commitItemDrops(game,resources);
+}
+export function dropOwnedItem(game:Adventure,selection:string,point:Vec3):string{
+ const s=game.state,personal=game.gear.ensure(),{kind,count,lotId}=game.gear.selection(selection,personal,s.inventory,10),ids=game.sim.reserveEntityIds(isEquipment(kind)?GEAR_LIMITS.lots*2:Math.ceil(count/DROP_STACK)+1);
+ const transfer=isEquipment(kind)?game.gear.extract(kind,count,ids.allocate,lotId):undefined,resources=planItemDrops(game,kind,count,point,ids.allocate,transfer?.cargo);
+ ids.commit();commitItemDrops(game,resources);if(transfer)game.gear.commit(transfer.personal);else{s.inventory[kind]-=count;if(s.meadows)reconcileSlots(s.meadows,s.inventory);}return kind;
+}
+export function pickupItem(game:Adventure,id:number):number{
+ const node=game.state.resources.find(n=>n.id===id&&(n.drop||isEquipment(n.kind))&&n.ready<=game.state.seconds);
+ if(!node||!Number.isSafeInteger(node.amount)||node.amount<=0)throw Error('品物はもうありません');
+ const player=game.sim.player;if(!finitePoint(node)||Math.hypot(node.x-player.x,node.y-player.y,node.z-player.z)>3.5)throw Error('品物に近づいてください');
+ const state=game.state,count=carryAmount(state.inventory,node.kind,node.amount,state.meadows);if(!count)throw Error('持ち物に空きがありません');
+ if(isEquipment(node.kind)){game.gear.receive(node,count);return count;}
+ state.inventory[node.kind]=(state.inventory[node.kind]??0)+count;node.amount-=count;if(!node.amount)state.resources=state.resources.filter(r=>r!==node);
+ if(state.meadows){if(!state.meadows.discovered.includes(node.kind))state.meadows.discovered.push(node.kind);reconcileSlots(state.meadows,state.inventory);}return count;
+}
+/** Called before deleting a building; all contents and salvage become drops or nothing changes. */
+export function releaseBuildingItems(game:Adventure,building:BuildingState,salvage:Record<string,number>):void{
+ const total=Object.values(building.contents).concat(Object.values(salvage)).reduce((n,c)=>n+Math.ceil(c/DROP_STACK),0),ids=game.sim.reserveEntityIds(total*2+GEAR_LIMITS.lots*2);
+ const gear=game.gear.planHolder(building.contents,building.gearItems,ids.allocate);let resources=game.state.resources;
+ for(const[id,count]of Object.entries(salvage))if(count)resources=planItemDrops(game,id,count,building,ids.allocate,undefined,resources);
+ for(const[id,count]of Object.entries(building.contents))if(count){const lots=gear.lots.filter(l=>l.kind===id),container=isEquipment(id)?{version:1 as const,revision:0,lots,activeByKind:lots.length?{[id]:lots[0].id}:{}}:undefined;resources=planItemDrops(game,id,count,building,ids.allocate,container,resources);}
+ ids.commit();commitItemDrops(game,resources);building.contents={};building.gearItems=emptyGear();building.salvage={};
 }
 
 type Pose = Vec3 & {rotation: number};
@@ -143,7 +159,7 @@ export function stepDrops(game: Adventure, dt: number): void {
   velocity.y = Math.max(-12, velocity.y + (-9.8 + water * 12) * dt);
   const delta = {x: velocity.x * dt, y: velocity.y * dt, z: velocity.z * dt};
   moveDrop(node, delta, collidersFor(game, node, Math.hypot(delta.x, delta.z)));
-  const floor = game.sim.groundAt(node.x, node.z) + DROP_RADIUS;
+  const floor = game.sim.groundAt(node.x, node.z,node.y) + DROP_RADIUS;
   if (node.y < floor) { node.y = floor; velocity.y = 0; }
  }
 }

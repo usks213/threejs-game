@@ -40,7 +40,7 @@ export class FluidGrid {
   private staticKey='';private staticSolids=new Map<string,number>();private staticBarriers=new Set<string>();
   setObstacles(obstacles:readonly WaterObstacle[],fixed:readonly WaterObstacle[]=[]):void{
    const key=JSON.stringify(fixed);if(key!==this.staticKey){const v=voxelizeObstacles(fixed,this.cellSize);this.staticKey=key;this.staticSolids=v.occupied;this.staticBarriers=v.barriers;}
-   this.viewKey='';this.obstacleRevision++;const v=voxelizeObstacles(obstacles,this.cellSize);this.solids=new Map(this.staticSolids);for(const [id,n]of v.occupied)this.solids.set(id,Math.min(1,(this.solids.get(id)??0)+n));this.barriers=new Set([...this.staticBarriers,...v.barriers]);
+   this.viewKey='';this.obstacleRevision++;const v=voxelizeObstacles(obstacles,this.cellSize);this.solids=v.occupied;this.barriers=v.barriers;
   }
   private bottom(p:Vec3,id=key(p)):number{return this.bottomAt(this.position(p.x,p.y,p.z,id));}
   private bottomAt(p: CellPosition): number {
@@ -48,7 +48,7 @@ export class FluidGrid {
       p.terrainFloor = this.sampleTerrainBottom(p); p.terrainRevision = this.world.edits.length; p.obstacleRevision = -1;
     }
     if (p.obstacleRevision !== this.obstacleRevision) {
-      p.floor = Math.min(this.cellSize, p.terrainFloor + (this.solids.get(p.id) ?? 0) * this.cellSize);
+      p.floor = Math.min(this.cellSize, p.terrainFloor + Math.min(1,(this.staticSolids.get(p.id)??0)+(this.solids.get(p.id)??0)) * this.cellSize);
       p.obstacleRevision = this.obstacleRevision;
     }
     return p.floor;
@@ -106,8 +106,20 @@ export class FluidGrid {
       for(let dx=0;dx<size;dx+=this.cellSize)for(let dz=0;dz<size;dz+=this.cellSize)for(let dy=0;dy<size;dy+=this.cellSize){const volume=Math.max(0,Math.min(top,dy+this.cellSize)-Math.max(bottom,dy))*this.area;if(volume<=1e-8)continue;const n={x:c.x+dx,y:c.y+dy,z:c.z+dz,volume,size:this.cellSize,vx:c.vx??0,vz:c.vz??0};this.cells.set(key(n),n);if(c.frozen)this.frozen.set(key(n),this.phase+80);}
     }
   }
+  private clearStaticDisplacement(cell:FluidCell,target:CellPosition):boolean{
+    if(!this.staticBarriers.size)return true;
+    const at=[cell.x,cell.y,cell.z],to=[target.x,target.y,target.z];let from=`${at[0]},${at[1]},${at[2]}`,steps=0;
+    // Displacement targets are at most two cells up plus one horizontal cell away.
+    // Check each intervening static edge rather than testing only a nonexistent diagonal edge.
+    for(const axis of [1,0,2])while(Math.abs(at[axis]-to[axis])>this.cellSize*.1){
+      if(++steps>3)return false;at[axis]+=Math.sign(to[axis]-at[axis])*this.cellSize;
+      const next=`${at[0]},${at[1]},${at[2]}`;if(this.staticBarriers.has(`${from}/${next}`))return false;from=next;
+    }
+    return true;
+  }
   private transfer(cell: FluidCell, sourceId: string, p: CellPosition, wanted: number, displacing=false, floor?: number): number {
-    if(!displacing&&this.barriers.has(`${sourceId}/${p.id}`))return 0;
+    if(displacing&&!this.clearStaticDisplacement(cell,p))return 0;
+    if(!displacing){const edge=`${sourceId}/${p.id}`;if(this.staticBarriers.has(edge)||this.barriers.has(edge))return 0;}
     const amount = Math.min(cell.volume, Math.max(0, wanted));
     if (amount <= 0.000001) return 0;
     const target = this.cells.get(p.id);

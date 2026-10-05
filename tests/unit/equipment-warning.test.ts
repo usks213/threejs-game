@@ -1,0 +1,5 @@
+import {it,expect} from 'vitest';
+import {equipmentWarnings,type EquipmentWarningState} from '../../src/ui/equipment-warning';
+function state():EquipmentWarningState{return {equipment:'club',inventory:{club:1,shield:1},meadows:{gear:{offhand:'shield'},quality:{club:3,shield:1},durability:{club:7,shield:0}}};}
+it('warns in words before breakage, prioritizes broken held gear and retains exact quality-dependent maximum',()=>{const warnings=equipmentWarnings(state());expect(warnings[0]).toMatchObject({kind:'shield',broken:true,remaining:0});expect(warnings[0].text).toContain('破損中');expect(warnings[1]).toMatchObject({kind:'club',broken:false,remaining:7,maximum:200});expect(warnings[1].text).toContain('壊れそう');});
+it('uses the selected canonical item and does not invent warnings for unknown legacy or unowned gear',()=>{const s=state();s.gearItems={version:1,revision:0,lots:[{id:1,kind:'club',count:1,quality:1,durability:100}],activeByKind:{club:1}};s.inventory.shield=0;expect(equipmentWarnings(s)).toEqual([]);delete s.gearItems;delete s.meadows!.durability.club;expect(equipmentWarnings(s)).toEqual([]);});

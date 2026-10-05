@@ -20,7 +20,7 @@ it('runs the Node authority with eight actual Colyseus clients and confirms auth
   const initial = new Map(positions);
   for (let sequence = 1; sequence <= 20; sequence++) { for (const room of clients) room.send('input', { input: { x: 1, z: 0, jump: false }, sequence }); await new Promise(resolve => setTimeout(resolve, 35)); }
   expect(positions.size).toBe(8); for (const room of clients) expect(positions.get(room.sessionId)!).toBeGreaterThan(initial.get(room.sessionId)! + 1);
-  clients[0].send('action', { type: 'action', tool: 'dig', target: { x: 1, y: 1, z: 5 } });
+  clients[0].send('action', { type: 'action', tool: 'dig', target: { x: 4, y: 1, z: 8 } });
   await new Promise(resolve => setTimeout(resolve, 400)); expect(edits.size).toBe(8);
  } finally { await Promise.all(clients.map(room => room.leave())); await server.gracefullyShutdown(false); }
 }, 15000);

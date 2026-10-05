@@ -5,7 +5,7 @@ import {validateSave} from '../../src/save/format';
 it('retains the original terrain generator for existing worlds',()=>{
  const old=new GameSimulation().save();old.generator=1;
  const restored=new GameSimulation(validateSave(old));expect(restored.world.heightAt(90,90)).toBe(terrainHeight(90,90));
- expect(restored.save().generator).toBe(1);expect(new GameSimulation().save().generator).toBe(3);
+ expect(restored.save().generator).toBe(1);expect(new GameSimulation().save().generator).toBe(4);
 });
 it('gives the five regions distinct terrain and creates rift islands',()=>{
  expect(landscapeHeight(0,90)).toBeGreaterThan(terrainHeight(0,90)+4);

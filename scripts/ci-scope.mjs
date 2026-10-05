@@ -20,7 +20,7 @@ const config = changed(/^(package(-lock)?\.json|tsconfig.*\.json|vite\.config\.t
 const gameTests = changed(/^tests\/(unit|e2e)\//);
 const game = config || gameTests || changed(/^(src\/|public\/|index\.html$|wrangler\.jsonc$|scripts\/deploy-preview\.mjs$)/);
 const signaling = false; // This isolated adventure never redeploys PR3's signaling service.
-const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/(dedicated|signaling)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
+const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/(dedicated|signaling|coop)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
 const host = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/signaling\/|tests\/e2e\/network\.spec\.ts$)/);
 const checks = manual || game || signaling || network || changed(/^tests\/unit\//);
 const patterns = new Set();
@@ -31,6 +31,7 @@ if (changed(/^src\/(game\/|content\/|ui\/)/)) patterns.add('survival adventure')
 if (changed(/^src\/rendering\//)) patterns.add('renders equipped');
 if(changed(/^src\/(world\/field-data|rendering\/voxel\/field-|platform\/live-diagnostics)/))patterns.add('direct field terrain');
 if(changed(/^tests\/unit\/water-meshing\.test\.ts$/))patterns.add('direct field terrain');
+if(game)patterns.add('voxel adventure');
 const outputs = { game: manual || game, checks, signaling, network, host, browser: patterns.size > 0, browser_grep: [...patterns].join('|') };
 for (const [key, value] of Object.entries(outputs)) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
 console.log(JSON.stringify({ changedFiles: paths.length, ...outputs }));

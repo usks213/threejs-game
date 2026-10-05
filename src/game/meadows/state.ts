@@ -1,14 +1,16 @@
+import {siteGrowth} from '../sites';
 import { roofHeight } from './building-shapes';
 import { ARMOR, FOODS, ITEM_WEIGHT, TOOL_DURABILITY } from '../../content/meadows/data';
 import type { AdventureSave, BuildingState } from '../types';
 import type { Vec3 } from '../../world/types';
 export interface MeadowState {
- version:1; resting?:number; smoke?:boolean; raidCenter?:{x:number;z:number}; raidSpawn?:number; raidKind?:'animals'|'forest'; contentVersion?:number; corpseRun?:number; fishing?:import('./fishing').FishingState; worldTiles?:string[]; pendingWaterTiles?:{x:number;z:number;column:number}[]; slots?:(import('./inventory-layout').ItemSlot|null)[]; pins?:{id:number;x:number;z:number;label:string}[]; exerting?:boolean; mapCells?:string[]; kills?:number; noSkillDrain?:number; riding?:number; graves?:{x:number;y:number;z:number;items:Record<string,number>}[]; sprinting?:boolean; sneaking?:boolean; foods:{id:string;remaining:number}[]; gear:Record<string,string>; durability:Record<string,number>; quality:Record<string,number>; skills:Record<string,number>; discovered:string[]; power:number; powerCooldown:number; offered:boolean; wet:number; shelter:boolean; warmth:boolean; cold:boolean; comfort:number; weight:number; raid:number; raidAt:number; tutorial:number;
+ slotLimit?:number; version:1; resting?:number; smoke?:boolean; raidCenter?:{x:number;z:number}; raidSpawn?:number; raidKind?:'animals'|'forest'; contentVersion?:number; corpseRun?:number; fishing?:import('./fishing').FishingState; worldTiles?:string[]; pendingWaterTiles?:{x:number;z:number;column:number}[]; slots?:(import('./inventory-layout').ItemSlot|null)[]; pins?:{id:number;x:number;y?:number;z:number;label:string}[]; exerting?:boolean; mapCells?:string[]; kills?:number; noSkillDrain?:number; riding?:number; graves?:{x:number;y:number;z:number;items:Record<string,number>;gearItems?:import('../equipment/items').GearContainer}[]; sprinting?:boolean; sneaking?:boolean; foods:{id:string;remaining:number}[]; gear:Record<string,string>; durability:Record<string,number>; quality:Record<string,number>; skills:Record<string,number>; discovered:string[]; power:number; powerCooldown:number; offered:boolean; wet:number; shelter:boolean; warmth:boolean; cold:boolean; comfort:number; weight:number; raid:number; raidAt:number; tutorial:number;
 }
 export function newMeadows():MeadowState{return {version:1,contentVersion:2,foods:[],gear:{chest:'ragTunic'},durability:{ragTunic:100},quality:{},skills:{},discovered:['ragTunic'],power:0,powerCooldown:0,offered:false,wet:0,shelter:false,warmth:false,cold:false,comfort:0,weight:0,raid:0,raidAt:2760,tutorial:0};}
 export function foodStats(s:AdventureSave){
  if(!s.meadows)return {health:100,stamina:100,healing:s.food>0?.8:0};
- let health=25,stamina=50,healing=0;
+ const growth=s.trialWorld?.version===1?s.trialWorld.completed.length:0;
+ const sites=siteGrowth(s);let health=25+growth*2+sites.health,stamina=50+growth*3+sites.stamina,healing=0;
  for(const food of s.meadows.foods){const def=FOODS[food.id];if(!def)continue;const scale=.5+.5*Math.min(1,food.remaining/def.seconds);health+=def.health*scale;stamina+=def.stamina*scale;healing+=def.healing/10;}
  return {health:Math.round(health),stamina:Math.round(stamina),healing};
 }

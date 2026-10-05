@@ -29,22 +29,24 @@ export function createEntities(scene: THREE.Scene, direct = false) {
     const def = e.boss ? BOSSES.find(d => d.id === e.definition)! : ENEMIES.find(d => d.id === e.definition)!;
     const far=!!player&&Math.hypot(e.x-player.x,e.z-player.z)>18;
     const group = object('enemy' + e.id+(far?'far':''), g => {
-     if(['deer','boar','neck','greyling','greydwarf','greydwarfBrute','greydwarfShaman','draugr','draugrArcher','draugrElite','gull','stormstag'].includes(e.definition))g.add(far?creatures.far(e.definition):creatures.make(e.definition));
+     if(['deer','boar','neck','greyling','greydwarf','greydwarfBrute','greydwarfShaman','draugr','draugrArcher','draugrElite','gull','stormstag','shellguard','reedspitter','cinderunner','veilray','loadwarden','echowarden','sailwarden'].includes(e.definition))g.add(far?creatures.far(e.definition):creatures.make(e.definition));
      else {
-     const shape = e.boss ? ({root:'walker',tusk:'boar',mirelord:'slime',frostwing:'flyer',riftheart:'walker'} as const)[e.definition as 'root'] : ENEMIES.find(d => d.id === e.definition)!.shape;
+     const shape = e.boss ? ({stormcore:'walker',root:'walker',tusk:'boar',mirelord:'slime',frostwing:'flyer',riftheart:'walker'} as const)[e.definition as 'root'] : ENEMIES.find(d => d.id === e.definition)!.shape;
      part(g, sphere, def.color, 0, 0.7, 0, shape === 'slime' ? 1.5 : 1.1, shape === 'slime' ? 0.8 : 1.5, shape === 'boar' ? 1.8 : 1.1);
      if (shape !== 'slime') { part(g, box, def.color, 0, 1.2, -0.4, 0.6, 0.6, 0.8); part(g, sphere, '#f1d297', -0.3, 1.3, -0.7, 0.2, 0.45, 0.2); part(g, sphere, '#f1d297', 0.3, 1.3, -0.7, 0.2, 0.45, 0.2); }
      if (shape === 'flyer') { part(g, box, def.color, -0.9, 0.8, 0, 1.6, 0.08, 0.5); part(g, box, def.color, 0.9, 0.8, 0, 1.6, 0.08, 0.5); }
+     if(e.boss&&e.definition==='stormcore'){part(g,box,'#21465c',0,.9,0,1.25,.65,1.1);part(g,box,'#d8ebae',0,1.4,-.6,.38,.38,.2);part(g,box,def.color,-.8,.65,0,.35,1.1,.4);part(g,box,def.color,.8,.65,0,.35,1.1,.4);}
      if(e.boss && e.definition==='root'){part(g,cone,def.color,0,1.8,0,0.7,0.8,0.7);part(g,box,def.color,-0.8,1,0,1.2,0.25,0.3);part(g,box,def.color,0.8,1,0,1.2,0.25,0.3);}
      if(e.boss && e.definition==='riftheart')part(g,sphere,'#e2baff',0,1.4,0,0.5,0.5,0.5);
      }
      const warning = new THREE.Mesh(geo('warning',()=>new THREE.RingGeometry(1.8,2,24)),mat('#ef916a')); warning.name='warning';warning.rotation.x=-Math.PI/2;warning.position.y=0.05; g.add(warning);
      const bar = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.09), new THREE.MeshBasicMaterial({ color: '#e4a17a', side: THREE.DoubleSide })); bar.name = 'health'; bar.position.y = 2; g.add(bar);
     });
-    const scale = e.definition==='stormstag'?2:e.boss ? 2.5 : e.baby?.55:1+(e.stars??0)*.12; group.scale.setScalar(scale * (e.windup > 0 ? 1.05 : 1)); group.position.set(e.x, e.y + Math.sin(state.seconds * 5 + e.id) * 0.035, e.z); const old=group.userData.previous as {x:number;z:number}|undefined; if(old&&Math.hypot(e.x-old.x,e.z-old.z)>.005)group.rotation.y=Math.atan2(old.x-e.x,old.z-e.z);creatures.animate(group,state.seconds,!!old&&Math.hypot(e.x-old.x,e.z-old.z)>.002,e.windup);group.userData.previous={x:e.x,z:e.z}; group.visible = true;
+    const scale = e.definition==='stormstag'?2:e.boss ? 2.5 : e.baby?.55:1+(e.stars??0)*.12; group.scale.setScalar(scale * (e.windup > 0&&!scene.userData.reducedMotion ? 1.05 : 1)); group.position.set(e.x, e.y + (scene.userData.reducedMotion?0:Math.sin(state.seconds * 5 + e.id) * 0.035), e.z); const old=group.userData.previous as {x:number;z:number}|undefined; if(old&&Math.hypot(e.x-old.x,e.z-old.z)>.005)group.rotation.y=Math.atan2(old.x-e.x,old.z-e.z);creatures.animate(group,state.seconds,!!old&&Math.hypot(e.x-old.x,e.z-old.z)>.002,e.windup);group.userData.previous={x:e.x,z:e.z}; group.visible = true;
     group.getObjectByName('health')!.visible=e.boss||e.health<def.health*(1+(e.stars??0))*(1+(e.tier-1)*.4);
-    if(e.definition==='stormstag')group.rotation.y=(e.heading??0)+Math.PI;
-    group.getObjectByName('warning')!.visible = e.windup > 0&&e.definition!=='stormstag';
+    if(e.windup>0&&['loadwarden','echowarden','sailwarden','stormcore'].includes(e.definition))group.rotation.y=(e.attackYaw??0)+Math.PI;
+    if(e.definition==='stormstag'||['shellguard','reedspitter','cinderunner','veilray'].includes(e.definition))group.rotation.y=(e.heading??0)+Math.PI;
+    group.getObjectByName('warning')!.visible = e.windup > 0&&!['stormstag','stormcore','loadwarden','echowarden','sailwarden'].includes(e.definition);
     group.getObjectByName('health')!.scale.x = Math.max(0.01, e.health / (def.health * (e.boss ? 1 : (1+(e.stars??0))*(1 + (e.tier - 1) * 0.4))));
    }
    for(const n of state.resources)if(n.kind==='merchant'){
