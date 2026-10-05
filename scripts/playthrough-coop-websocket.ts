@@ -2,6 +2,7 @@
  * Usage: node --import tsx scripts/playthrough-coop-websocket.ts TRACE OUTPUT [PROVENANCE]
  * Optional: --continue-from-replay COMPLETED_RUN (explicit new-player continuation)
  * Source upgrade requires --continuation-source-hash EXACT_NEW_SHA256.
+ * Expected negative actions require --allow-expected-rejections and expected:true.
  * The trace contains controls only; saved fixtures are never imported. Server
  * restarts reload only checkpoints this run earned through real wire messages.
  * The deterministic clock is not wall-clock, browser, rendering, or device QA. */
@@ -20,7 +21,7 @@ import {ADVENTURE_DECORATIONS} from '../src/content/adventure-chapters';
 import {decorationUnlocked} from '../src/game/adventure-progression';
 import {snapshotDigest,fluidDigest,inventoryDigest} from './soak-coop-common';
 
-type TraceEvent={kind:string;stage?:string;tick:number;ticks?:number;inputs?:Record<string,PlayerInput>;player?:string;message?:CoopAction;result?:string;active?:string[];completedTrials?:number[];completedSites?:number[];defeated?:string[];players?:{id:string;player:{x:number;y:number;z:number};inventory:Record<string,number>;progression?:unknown}[]};
+type TraceEvent={observation?:string;traversals?:{id:string;traversal:Snapshot['adventure']['traversal'];stamina:number;health:number}[];expected?:boolean;error?:string;kind:string;stage?:string;tick:number;ticks?:number;inputs?:Record<string,PlayerInput>;player?:string;message?:CoopAction;result?:string;active?:string[];ids?:number[];owner?:string|null;completedTrials?:number[];completedSites?:number[];defeated?:string[];players?:{id:string;player:{x:number;y:number;z:number};inventory:Record<string,number>;progression?:unknown}[]};
 type Ack=Extract<CoopServerPacket,{type:'ack'}>;
 interface Reference {epoch:string;playerId:string;packetKind:string;tick:number;waterRevision:number;snapshotHash:string;waterHash:string}
 interface ServerEvent extends Partial<Reference> {kind:string;id?:number;error?:string;message?:string;code?:string;port?:number;protocol?:number;file?:string;pid?:number;resumed?:boolean;sourceHash?:string}
@@ -29,12 +30,14 @@ const output=resolve(process.argv[3]??'/tmp/voxel-coop-websocket-journey');mkdir
 const saveDirectory=join(output,'saves'),roomId='f'.repeat(48),saveFile=join(saveDirectory,roomId+'.json');
 if(existsSync(saveFile))throw Error('Fresh-start verification requires an empty output/save directory');
 const traceText=readFileSync(tracePath,'utf8'),trace=JSON.parse(traceText) as TraceEvent[];
-let continuationDirectory:string|undefined,continuationSourceHash:string|undefined,provenancePath:string|undefined;
+let continuationDirectory:string|undefined,continuationSourceHash:string|undefined,provenancePath:string|undefined,allowExpectedRejections=false;
 for(let i=4;i<process.argv.length;i++){const option=process.argv[i];
- if(option==='--continue-from-replay'){if(continuationDirectory||!process.argv[i+1]||process.argv[i+1].startsWith('--'))throw Error('Continuation requires one completed replay directory');continuationDirectory=resolve(process.argv[++i]);}
+ if(option==='--allow-expected-rejections'){if(allowExpectedRejections)throw Error('Repeated expected-rejection option');allowExpectedRejections=true;}
+ else if(option==='--continue-from-replay'){if(continuationDirectory||!process.argv[i+1]||process.argv[i+1].startsWith('--'))throw Error('Continuation requires one completed replay directory');continuationDirectory=resolve(process.argv[++i]);}
  else if(option==='--continuation-source-hash'){if(continuationSourceHash||!process.argv[i+1]||!/^([a-f0-9]{64})$/.test(process.argv[i+1]))throw Error('Supply one exact continuation source SHA-256');continuationSourceHash=process.argv[++i];}
  else if(!option.startsWith('--')&&!provenancePath)provenancePath=resolve(option);else throw Error('Unknown or repeated replay option '+option);
 }
+if(trace.some(event=>event.kind==='action-rejected'&&event.expected===true)&&!allowExpectedRejections)throw Error('Expected rejection requires explicit --allow-expected-rejections');
 if(continuationSourceHash&&!continuationDirectory)throw Error('A source transition requires an explicit own-checkpoint continuation');
 const provenance=provenancePath?JSON.parse(readFileSync(provenancePath,'utf8')) as Record<string,unknown>:undefined;
 if(provenance&&provenance.composedTraceSha256!==createHash('sha256').update(traceText).digest('hex'))throw Error('Provenance does not match the supplied input trace');
@@ -45,7 +48,7 @@ const originalMembers=new Map<string,unknown>();
 const newClientInitialStates:Record<string,unknown>[]=[];
 let preservedOriginalMembers=0,continuation:Continuation|undefined;
 if(continuationDirectory){
- if(trace.at(-1)?.kind!=='route-complete'||trace.some(e=>e.kind==='blocked'||e.kind==='action-rejected'))throw Error('Continuation trace must be complete with no failed/rejected operations');
+ if(trace.at(-1)?.kind!=='route-complete'||trace.some(e=>e.kind==='blocked'||e.kind==='action-rejected'&&!(allowExpectedRejections&&e.expected===true)))throw Error('Continuation trace must be complete with no failed/rejected operations');
  const summaryText=readFileSync(join(continuationDirectory,'summary.json'),'utf8'),summary=JSON.parse(summaryText) as {status?:string;sourceTerminalKind?:string;failures?:unknown[];sourceHash?:string;frameChecks?:number;waterChecks?:number};
  if(summary.status!=='completed-source-route'||summary.sourceTerminalKind!=='route-complete'||!Array.isArray(summary.failures)||summary.failures.length||!summary.sourceHash||(summary.frameChecks??0)<20||(summary.waterChecks??0)<20)throw Error('Continuation requires a completed, verified actual-socket route receipt');
  const checkpointText=readFileSync(join(continuationDirectory,'saves',roomId+'.json'),'utf8'),checkpoint=validateCheckpoint(JSON.parse(checkpointText));
@@ -59,7 +62,7 @@ if(continuationDirectory){
 }else if((trace[0] as unknown as {resume?:string|null}).resume)throw Error('The replay must start at a fresh initial world');
 const events=join(output,'events.jsonl'),failures:string[]=[],completed:string[]=[],references=new Map<string,Reference>(),observed=new Map<string,Reference>();
 const startedAt=new Date().toISOString(),started=performance.now(),idle:PlayerInput={x:0,z:0,jump:false};
-let server:ChildProcess|undefined,port=0,tick=0,generation=0,commandSequence=0,stage='fresh-start',running=true,serverStopping=false,error:Error|undefined,frames=0,frameChecks=0,waterChecks=0,actions=0,steps=0,restarts=0,checkpoints=0,disconnects=0,rejoins=0;
+let server:ChildProcess|undefined,port=0,tick=0,generation=0,commandSequence=0,stage='fresh-start',running=true,serverStopping=false,error:Error|undefined,frames=0,frameChecks=0,waterChecks=0,actions=0,acceptedActions=0,expectedRejections=0,steps=0,restarts=0,checkpoints=0,disconnects=0,rejoins=0;
 let sourceHash:string|undefined=continuation?.replaySourceHash;
 const pending=new Map<number,{resolve:(event:ServerEvent)=>void;reject:(reason:Error)=>void;timer:ReturnType<typeof setTimeout>}>();
 function record(event:Record<string,unknown>){appendFileSync(events,JSON.stringify({at:new Date().toISOString(),stage,generation,...event})+'\n');}
@@ -109,7 +112,7 @@ class Client {
  }
  async close(){this.active=false;this.plannedClose=true;const socket=this.socket;if(!socket||socket.readyState===WebSocket.CLOSED)return;await new Promise<void>(resolve=>{socket.once('close',()=>resolve());socket.close();});}
  input(input:PlayerInput){this.send({type:'input',sequence:++this.sequence,input,clientTick:tick});}
- async act(message:CoopAction){
+ async act(message:CoopAction,expectRejection=false){
   if(message.type==='game-action'&&message.id){const sourceId=message.id;if(clients.some(c=>c.sourceId===sourceId))message={...message,id:getClient(sourceId).publicId};}
   if(message.type==='action'&&(message.tool==='dig'||message.tool==='add'))message={...message,expectedRevision:this.state!.edits};
   if(message.type==='game-action'&&['sky-store','sky-take','sky-camp','sky-move','sky-glue','sky-unglue','sky-recall','sky-salvage','sky-toggle','sky-charge','sky-ride','sky-share','sky-upright','sky-throw'].includes(message.action)){
@@ -118,7 +121,8 @@ class Client {
   const commandId=`seq_${++this.actionSequence}_${randomUUID()}`;
   const result=new Promise<Ack>((resolve,reject)=>{const timer=setTimeout(()=>{this.acknowledgments.delete(commandId);reject(Error('Action ACK timeout '+commandId));},15000);this.acknowledgments.set(commandId,{resolve,reject,timer});});
   this.send({type:'action',commandId,message,clientTick:tick});const ack=await result;actions++;
-  record({kind:'action',playerId:this.publicId,sourceId:this.sourceId,commandId,tick,message,accepted:ack.accepted,result:ack.message});
+  record({kind:'action',playerId:this.publicId,sourceId:this.sourceId,commandId,tick,message,accepted:ack.accepted,result:ack.message,...(expectRejection?{expectedRejection:true}:{})});
+  if(ack.accepted)acceptedActions++;if(expectRejection){if(ack.accepted)throw Error('Expected rejection was accepted '+commandId);return ack;}
   if(!ack.accepted)throw Error(`Rejected ${this.sourceId} ${JSON.stringify(message)}: ${ack.message}`);return ack;
  }
 }
@@ -127,7 +131,28 @@ function getClient(id:string){const c=clients.find(c=>c.sourceId===id);if(!c)thr
 async function step(inputs:Record<string,PlayerInput>){
  const active=clients.filter(c=>c.active);for(const c of active)c.input(inputs[c.sourceId]??idle);
  const reply=await command('step',{tick,expectedInputs:active.map(c=>({playerId:c.publicId,sequence:c.sequence}))});tick=reply.tick!;steps++;
- if(tick%3===0)await until(()=>active.every(c=>c.state?.tick===tick),'both client snapshots at tick '+tick);
+ if(tick%3===0){await until(()=>active.every(c=>c.state?.tick===tick),'both client snapshots at tick '+tick);verifyExpectedRejectionFrames();}
+}
+/** Reject atomically without advancing time. Observe paid client state on the
+ * next normal trace-driven frame, respecting the production resync rate limit. */
+type PaidPart={id:number;kind:string;material:string;mass:number;links:number[];epoch:number;creator?:string;shared?:boolean;trial?:number;loan?:unknown};
+type PaidPlan={id:number;owner:string;name:string;parts:{kind:string;material:string;links:number[]}[]};
+const paidProjection=(inventory:Record<string,number>,parts:readonly PaidPart[]=[],plans:readonly PaidPlan[]=[])=>snapshotDigest({inventory,parts:parts.map(p=>({id:p.id,kind:p.kind,material:p.material,mass:p.mass,links:p.links,epoch:p.epoch,creator:p.creator,shared:p.shared,trial:p.trial,loan:p.loan})),blueprints:plans.map(p=>({id:p.id,owner:p.owner,name:p.name,parts:p.parts.map(q=>({kind:q.kind,material:q.material,links:q.links}))}))});
+const pendingRejections:{tick:number;playerId:string;action:CoopAction;reason:string;authorityHash:string;clients:{client:Client;hash:string}[]}[]=[];
+function verifyExpectedRejectionFrames(){
+ for(let i=pendingRejections.length-1;i>=0;i--){const pending=pendingRejections[i];if(!pending.clients.every(({client})=>client.state&&client.state.tick>pending.tick))continue;
+  for(const {client,hash}of pending.clients){const state=client.state!.adventure;if(paidProjection(state.inventory,state.skybound?.parts,state.skybound?.blueprints)!==hash)throw Error('Rejected operation changed observed client inventory/part graph/blueprints '+client.sourceId);}
+  expectedRejections++;record({kind:'expected-rejection-verified',tick:pending.tick,clientObservedTick:tick,playerId:pending.playerId,action:pending.action,reason:pending.reason,accepted:false,unchangedAuthorityHash:pending.authorityHash,unchangedClients:pending.clients.length,extraSimulationSteps:0,authoritativeAssertionSteps:0});pendingRejections.splice(i,1);
+ }
+}
+async function verifyExpectedRejection(event:TraceEvent){
+ if(!allowExpectedRejections||event.expected!==true||event.tick!==tick||!event.player||!event.message||typeof event.error!=='string')throw Error('Unapproved or incomplete expected-rejection event');
+ const ownWorld=()=>validateCheckpoint(JSON.parse(readFileSync(saveFile,'utf8'))).world;
+ const ownProjection=(world:ReturnType<typeof ownWorld>)=>snapshotDigest({nextEntityId:world.nextEntityId,hostInventory:world.adventure?.inventory,members:world.members?.map(m=>({id:m.id,inventory:m.adventure.inventory,gearItems:m.adventure.gearItems})),skybound:world.skybound,resources:world.adventure?.resources,edits:world.edits});
+ await command('checkpoint');const before=ownWorld(),beforeHash=ownProjection(before);
+ const ack=await getClient(event.player).act(event.message,true),reason=event.error.replace(/^(?:Error|TypeError|RangeError): /,'');if(ack.message!==reason)throw Error('Rejection reason diverged: expected '+reason+'; got '+ack.message);
+ await command('checkpoint');const after=ownWorld(),afterHash=ownProjection(after);if(beforeHash!==afterHash)throw Error('Rejected operation mutated inventory, parts, blueprints, drops, terrain or entity allocation');
+ pendingRejections.push({tick,playerId:getClient(event.player).publicId,action:event.message,reason,authorityHash:afterHash,clients:clients.filter(c=>c.active).map(client=>{const member=after.members?.find(m=>m.id===client.publicId);if(!member)throw Error('Rejected-action member disappeared');return {client,hash:paidProjection(member.adventure.inventory,after.skybound?.parts,after.skybound?.blueprints.filter(plan=>plan.owner===client.publicId))};})});
 }
 function verifyCheckpoint(event:TraceEvent){
  const checkpoint=validateCheckpoint(JSON.parse(readFileSync(saveFile,'utf8'))),world=checkpoint.world;
@@ -150,9 +175,30 @@ try{
    if(event.tick!==tick)throw Error(`Input trace expected tick ${event.tick}, server has ${tick}`);
    for(let i=0;i<(event.ticks??0);i++)await step(event.inputs??{});
   }else if(event.kind==='action'){
-   if(event.tick!==tick||!event.player||!event.message)throw Error('Invalid action trace at '+tick);
+   if(event.tick!==tick||!event.player||!event.message)throw Error('Invalid action trace at '+tick);if(pendingRejections.length)throw Error('Source must include a normal client observation frame after expected rejection before another action');
    const ack=await getClient(event.player).act(event.message);if(ack.message!==event.result)throw Error('Action outcome diverged: expected '+event.result+'; got '+ack.message);
-  }else if(event.kind==='action-rejected'||event.kind==='blocked')throw Error('Source route was blocked at '+event.stage);
+  }else if(event.kind==='action-rejected'){await verifyExpectedRejection(event);}
+  else if(event.kind==='assembly-lease-observation'){
+   if(event.tick!==tick||!event.ids?.length||event.ids.some(id=>!Number.isSafeInteger(id))||(event.owner!==null&&typeof event.owner!=='string'))throw Error('Invalid assembly lease observation');
+   const active=clients.filter(client=>client.active),owner=event.owner===null?undefined:getClient(event.owner!).publicId;
+   if(JSON.stringify(active.map(client=>client.sourceId))!==JSON.stringify(event.active))throw Error('Lease observation membership differs');
+   for(const client of active){if(client.state?.tick!==tick)throw Error('Lease observation requires a current normal client frame');for(const id of event.ids){const part=client.state.adventure.skybound?.parts.find(item=>item.id===id);if(!part||part.lease?.owner!==owner)throw Error('Client-observed assembly lease differs for '+client.sourceId+' part '+id);}}
+   record({kind:'assembly-lease-verified',tick,ids:event.ids,owner:owner??null,clients:active.map(client=>client.publicId),partChecks:event.ids.length*active.length});
+  }
+  else if(event.kind==='traversal-observation'){
+   const active=clients.filter(client=>client.active);
+   if(event.tick!==tick||tick%3!==0||typeof event.observation!=='string'||!event.observation||!Array.isArray(event.traversals)||event.traversals.length!==active.length||new Set(event.traversals.map(item=>item.id)).size!==active.length)throw Error('Invalid or incomplete traversal observation');
+   const checked=[];
+   for(const expected of event.traversals){
+    const client=getClient(expected.id);
+    if(!client.active||client.state?.tick!==tick||!expected.traversal||!Number.isFinite(expected.stamina)||!Number.isFinite(expected.health))throw Error('Traversal observation requires current normal frames and complete values');
+    const actual={traversal:client.state.adventure.traversal,stamina:client.state.adventure.stamina,health:client.state.adventure.health};
+    if(snapshotDigest(actual)!==snapshotDigest({traversal:expected.traversal,stamina:expected.stamina,health:expected.health}))throw Error('Client traversal flags/stamina/health differ for '+expected.id+' at '+event.observation);
+    checked.push({sourceId:expected.id,playerId:client.publicId,...actual});
+   }
+   record({kind:'traversal-observation-verified',observation:event.observation,tick,players:checked,extraSimulationSteps:0,resyncRequests:0});
+  }
+  else if(event.kind==='blocked')throw Error('Source route was blocked at '+event.stage);
   else if(event.kind==='checkpoint'){
    await command('checkpoint');checkpoints++;const evidence=verifyCheckpoint(event);completed.push(stage);record({kind:'checkpoint',tick,...evidence});console.log(JSON.stringify({kind:'checkpoint',stage,tick,trials:evidence.trials.length}));
   }else if(event.kind==='leave'){
@@ -167,16 +213,16 @@ try{
    if(tick!==event.tick)throw Error('Restart tick diverged');restarts++;record({kind:'restart',tick,fromOwnPersistedCheckpoint:true,inventoryMatched:true});
   }
  }
- await command('checkpoint');await until(()=>references.size===0&&observed.size===0,'all snapshot and water hashes matched');
+ await command('checkpoint');await until(()=>references.size===0&&observed.size===0,'all snapshot and water hashes matched');if(pendingRejections.length)throw Error('Expected rejection lacks a subsequent normal client observation frame');
  if(!completed.length||actions===0||frameChecks<20)throw Error('Insufficient replay evidence');
- record({kind:'route-controls-complete',completed,actions,steps,restarts,disconnects,rejoins,frameChecks,waterChecks});
+ record({kind:'route-controls-complete',completed,actions,acceptedActions,expectedRejections,steps,restarts,disconnects,rejoins,frameChecks,waterChecks});
 }catch(reason){fail(reason);}
 finally{
  if(server?.connected&&!error)try{await stopServer();}catch(reason){fail(reason);}
  running=false;serverStopping=true;for(const c of clients){c.plannedClose=true;c.socket?.terminate();}if(server&&server.exitCode===null)server.kill('SIGTERM');
  for(const wait of pending.values()){clearTimeout(wait.timer);wait.reject(Error('Replay ended'));}pending.clear();
  let storedProgress:Record<string,unknown>|undefined;try{if(existsSync(saveFile)){const world=validateCheckpoint(JSON.parse(readFileSync(saveFile,'utf8'))).world;for(const [id,expected]of originalMembers){const member=world.members?.find(m=>m.id===id);if(!member||snapshotDigest(personalRecord(member.adventure))!==snapshotDigest(expected))throw Error('Original member personal inventory/progress was not preserved: '+id);preservedOriginalMembers++;}storedProgress={beacons:world.adventure?.resources.filter(n=>n.id>=810001&&n.id<=810004&&n.ready>1e9).map(n=>n.id)??[],trials:world.adventure?.trialWorld?.completed??[],sites:world.adventure?.siteWorld?.completed??[],defeated:world.adventure?.defeated??[],sharedReported:world.adventure?.siteWorld?.regional?.reported??[],sharedEpilogue:world.adventure?.siteWorld?.regional?.epilogue??[],sharedMechanismsSolved:world.adventure?.siteWorld?.regional?.solved??[],availableRoomCount:SITES.length*(SITE_ROOMS.length+ANNEX_ROOMS.length),placedDecorations:world.adventure?.buildings.filter(b=>(b.health??100)>0&&ADVENTURE_DECORATIONS.some(d=>d.id===b.definition)).map(b=>({id:b.id,definition:b.definition,creator:b.creator,position:{x:b.x,y:b.y,z:b.z},health:b.health??100}))??[],players:world.members?.map(m=>{const roomIds=(m.adventure.siteJournal??[]).filter(id=>SITES.some(site=>id>=site.id*10&&id<=site.id*10+5)),records=m.adventure.progression?.records??[];return {playerId:m.id,sourceId:clients.find(c=>c.publicId===m.id)?.sourceId,tutorial:m.adventure.progression?.tutorial,health:m.adventure.health,roomIds,roomCount:roomIds.length,roomsBySite:SITES.map(site=>({site:site.id,roomIds:roomIds.filter(id=>id>=site.id*10&&id<=site.id*10+5)})),records,recordCount:records.length,unlockedDecorations:ADVENTURE_DECORATIONS.filter(d=>decorationUnlocked({...m.adventure,siteWorld:world.adventure?.siteWorld},d.id)).map(d=>d.id)};})};}}catch(reason){fail(reason);}
- const result={status:failures.length?'failed':'completed-source-route',harness:'real-websocket-deterministic-clock',startedAt,elapsedMs:performance.now()-started,traceSha256:createHash('sha256').update(traceText).digest('hex'),sourceTrace:tracePath,sourceTraceEventCount:trace.length,sourceTerminalKind:trace.at(-1)?.kind,sourceProvenance:provenance,continuation,preservedOriginalMembers,newClientInitialStates,freshStart:!continuation,sourceHash,stage,completed,storedProgress,protocol:COOP_PROTOCOL,players:2,actions,steps,restarts,disconnects,rejoins,checkpoints,frames,frameChecks,waterChecks,unmatchedReferences:references.size,unmatchedObserved:observed.size,fixturesReplaced:false,notCovered:['wall-clock scheduling','browser input/rendering','real device performance','public internet transport','stages absent from source trace'],failures};
- if(!failures.length)record({kind:'success',completed,actions,steps,restarts,disconnects,rejoins,frameChecks,waterChecks,preservedOriginalMembers});
+ const result={status:failures.length?'failed':'completed-source-route',harness:'real-websocket-deterministic-clock',startedAt,elapsedMs:performance.now()-started,traceSha256:createHash('sha256').update(traceText).digest('hex'),sourceTrace:tracePath,sourceTraceEventCount:trace.length,sourceTerminalKind:trace.at(-1)?.kind,sourceProvenance:provenance,continuation,preservedOriginalMembers,newClientInitialStates,freshStart:!continuation,sourceHash,stage,completed,storedProgress,protocol:COOP_PROTOCOL,players:2,actions,acceptedActions,expectedRejections,steps,restarts,disconnects,rejoins,checkpoints,frames,frameChecks,waterChecks,unmatchedReferences:references.size,unmatchedObserved:observed.size,fixturesReplaced:false,notCovered:['wall-clock scheduling','browser input/rendering','real device performance','public internet transport','stages absent from source trace'],failures};
+ if(!failures.length)record({kind:'success',completed,actions,acceptedActions,expectedRejections,steps,restarts,disconnects,rejoins,frameChecks,waterChecks,preservedOriginalMembers});
  writeFileSync(join(output,'summary.json'),JSON.stringify(result,null,2));console.log(JSON.stringify({status:result.status,summary:join(output,'summary.json'),completed,failures},null,2));if(failures.length)process.exitCode=1;
 }

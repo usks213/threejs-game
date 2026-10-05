@@ -26,7 +26,7 @@ export class AuthorityRoom {
  private pendingAccess:{access:RoomAccessState;command?:RoomAdminCommand;commit:()=>void}|undefined;
  private failed=false;
  get readOnly():boolean{return this.failed;}
- constructor(checkpoint: RoomCheckpoint | null, epoch: string,private readonly roomId:string|null=null) {
+ constructor(checkpoint: RoomCheckpoint | null, epoch: string,private readonly roomId:string|null=null,private readonly ingressTime:()=>number=()=>performance.now()/1000) {
   this.authority = new SessionAuthority(checkpoint?.world, true); this.epoch = epoch;this.access=checkpoint?.access?validateRoomAccess(checkpoint.access):initialRoomAccess(!checkpoint,checkpoint?.world.members?.map(m=>m.id));
   for(const [id,sequence] of checkpoint?.actionSequences??[])this.actionSequences.set(id,sequence);
   for (const [id, ids] of checkpoint?.receipts ?? []) this.receipts.set(id, new Set(ids.slice(-256)));
@@ -35,7 +35,7 @@ export class AuthorityRoom {
  connect(id: string, wire: RoomConnection): void {
   if(this.failed){wire.close(1013,'Room reload required');return;}
   if (this.connections.size >= MAX_COOP_PLAYERS + 2) { wire.close(1008, 'Room full'); return; }
-  this.connections.set(id, { delivery:new DeliveryWindow(),snapshot:new SnapshotWireEncoder(),water:new FluidWireEncoder(),wire, editBase: 0, window: this.elapsed, messages: 0,created:this.elapsed });
+  this.connections.set(id, { delivery:new DeliveryWindow(),snapshot:new SnapshotWireEncoder(),water:new FluidWireEncoder(),wire, editBase: 0, window: this.ingressTime(), messages: 0,created:this.elapsed });
  }
  disconnect(id: string): void {
   const connection = this.connections.get(id); if (!connection) return;
@@ -46,7 +46,10 @@ export class AuthorityRoom {
  receive(id: string, text: string,authenticatedPlayerId?:string): { changed: boolean; acknowledgment?: () => void } {
   const connection = this.connections.get(id); if (!connection||this.failed) return { changed: false };
   if (text.length > 8192) { connection.wire.close(1009, 'Message too large'); return { changed: false }; }
-  if (this.elapsed - connection.window >= 1) { connection.messages = 0; connection.window = this.elapsed; }
+  // Ingress arrives in real time even when the simulation is overloaded.
+  // Gameplay ticks must never shrink a legitimate client's packet allowance.
+  const receivedAt=this.ingressTime();
+  if (receivedAt - connection.window >= 1) { connection.messages = 0; connection.window = receivedAt; }
   if (++connection.messages > 90) { connection.wire.close(1008, 'Rate limit'); return { changed: false }; }
   try {
    const packet = JSON.parse(text) as Record<string, unknown>;
