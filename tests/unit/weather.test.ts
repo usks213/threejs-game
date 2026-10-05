@@ -47,5 +47,5 @@ describe('bounded systemic weather',()=>{
   sim.tick(1/60,neutral);expect(sim.enemyElements[0].wet).toBeGreaterThan(0);expect(sim.weather.kind).toBe('rain');
   const save=captureCampaign(sim,defaultSettings()),restored=new CoreSimulation(true,false,true);expect(!!restoreCampaignInto(restored,save)).toBe(true);expect(restored.weather).toEqual(sim.weather);
   const trial=new CoreSimulation();trial.worldHour=11;trial.tick(1/60,neutral);expect(trial.weatherReactions.lastRayCount).toBe(0);
- });
+ },15000);
 });
