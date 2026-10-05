@@ -12,6 +12,8 @@ Acceptance update (2026-10-05): physical animal movement, player wet/fire/shock 
 
 Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8e21033d1d83ad`, [CI37287775537](https://github.com/usks213/threejs-game/actions/runs/37287775537). GitHub 780/780 tests, typecheck and build passed; deploy job111693190536 verified the exact preview commit and protocol-2 relay health. Browser save history/file transfer passed on PC/Android; input/duel/motion and elemental cases also passed. Invitation/co-op availability, legacy-to-streamed conversion, a standard-preset water-visibility assertion, and authored long-play routes exposed failures. The following patch addresses their concrete causes and retains browser acceptance as pending until its own run. The legacy conversion failure protected the original save before writes.
 
+First-chapter ridge correction (2026-10-05): [Android job111722895799](https://github.com/usks213/threejs-game/actions/runs/37297158358/job/111722895799), artifact11341885822, reached rescue, equipment, the crypt warden, grapple/cache/glide and flame tier2, then failed the final guard. Trace checkpoints show HP68.2 at the flame with no medicine, but grass6/cloth24 still held. The route passed the approaching guard before turning about147°: HP68.2→45.8 during the waypoint, then23.4→1 during the turn. Its first guarded counter reduced guard HP100→58 before death. The correction gathers a guaranteed six extra grass, crafts two additional real bandages with exact cost assertions, and faces the guard at z=-24 before passing it. Normal Core full-chapter and delayed ridge look/counter routes pass with zero deaths and no state grants; typecheck/build and PC/Android browser-test discovery pass. Damage, hit geometry, aim tolerances, death checks and timeouts are unchanged. Actual PC/Android first-chapter acceptance remains pending the corrected SHA; local Chromium was not retried because the known launch socket restriction occurs before a page opens.
+
 | ID | Requirement | Status | Implementation/evidence | Remaining |
 |---|---|---|---|---|
 | F01 | ゲーム開始と再開 | 実装あり・実操作未検証 | src/prototype/campaign-ui.ts; input.ts; app.ts; tests/unit/prototype-input.test.ts | 新規/続き/取消/入力解放を実ブラウザで通す |
@@ -67,7 +69,7 @@ Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8
 | B05 | 回避 | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |
 | B06 | 弓 | 部分実装 | core/simulation.ts; core/campaign.ts; tests/unit/campaign.test.ts | 弓の弾消費/魔法/剣・弓・杖は実装。武器種別の体験と長距離照準は未検証 |
 | B07 | 魔法 | 部分実装 | core/simulation.ts; core/campaign.ts; tests/unit/campaign.test.ts | 弓の弾消費/魔法/剣・弓・杖は実装。武器種別の体験と長距離照準は未検証 |
-| B08 | 武器差 | 部分実装 | core/simulation.ts; core/campaign.ts; tests/unit/campaign.test.ts | 弓の弾消費/魔法/剣・弓・杖は実装。武器種別の体験と長距離照準は未検証 |
+| B08 | 武器差 | 実装あり・ブラウザ受入待ち | core/equipment.ts; core/motion.ts; core/simulation.ts; tests/unit/equipment-tools.test.ts | 剣・大剣・短剣の連続軌道/間合い/速度/消費/怯み、盾併用制限、既存弓/杖をCore検証。新系統の実ブラウザ戦闘は未検証 |
 | B09 | 特殊技 | 部分実装 | core/enemy-tactics.ts (focus); core/simulation.ts (special); tests/unit/enemy-tactics.test.ts | 実際のFocus蓄積→消費→効果を受入。原作全特殊技ではない |
 | B10 | 属性 | 実装あり・実操作未検証 | core/elements.ts; entity-elements.ts; simulation.ts; tests/unit/element-integration.test.ts | 静的物体/敵/ドロップへの5元素反応と負荷上限をブラウザ確認 |
 | B11 | 敵AI | 部分実装・ブラウザ受入待ち | core/enemy-tactics.ts; guard-awareness.ts; simulation.ts; tests/unit/guard-awareness.test.ts | 通常番兵もSDF遮蔽・警戒・最後に見た場所の捜索・帰還を使う。閉じた実扉では非感知、開くと警戒する統合試験。全敵種/複雑な経路探索と視覚受入は未完 |
@@ -92,7 +94,7 @@ Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8
 | H08 | 家具 | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
 | H09 | NPC救出 | 部分実装・Core通し検証済 | core/campaign.ts; expedition-west.ts; expedition-west-integration.ts; tests/unit/west-specialists*.test.ts | 鍛冶師ナギに加え西方の木工師マキ/錬金師セナ。実在する身体への照準救出、条件/有限報酬/拠点への一度限りの移住を検査。初期素材0から2名救出と会話/制作/再開を通過。実ブラウザと原作規模の人数は未達 |
 | H10 | NPC専門性 | 部分実装・Core通し検証済 | core/campaign.ts; expedition-west-integration.ts; campaign-presenter.ts; tests/unit/west-specialists*.test.ts | 救出台帳でのみ専業レシピを解放。風織り翼の速度/消費と錬金杖の属性威力をCoreへ接続、移住先会話から素材/制作場所を案内。日常生活AIは含まない |
-| H11 | NPC生活 | 部分実装 | core/campaign-world.ts | 職人の配置はある。生活行動/移動/寝床のAIは未確認 |
+| H11 | NPC生活 | ナギ実装・Core検証済 / 西方未実装 | core/npc-life.ts; rendering/npc-life-view.ts; tests/unit/npc-life*.test.ts; docs/npc-daily-life.md | ナギの実歩行・道具手入れ/交流/休息・実寝台と屋根・遮蔽会話・建築回避・保存/協力表示を接続。専用18試験・通常Core経路を検査。統合SHAの全回帰/公開受入は別途。マキ/セナは固定身体を維持し生活AIは未実装。公開PC/Androidの視覚・日夜受入は未検証 |
 | H12 | 作物 | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
 | H13 | 家畜/ペット | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
 | H14 | 水設備 | 部分実装 | core/water.ts; core/homestead.ts | 水/生産タイマーはあるが水門・水路・水車動力の統合は未実装 |
@@ -107,7 +109,7 @@ Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8
 | W07 | 湖沼 (蒼水の盆地) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W08 | POI分類 | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W09 | POI内容 | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
-| W10 | ダンジョン | 部分実装 | core/regional-world.ts; world.ts; regions.ts | 洞窟/坑道/地下墓所形状と扉あり。鍵/罠/スイッチを組み合わせたダンジョン受入は未実装 |
+| W10 | ダンジョン | 小規模実装・通常Core検証済・ブラウザ未 | core/echo-vault.ts; rendering/echo-vault-view.ts; campaign-session.ts; tests/unit/echo-vault*.test.ts; tests/e2e/echo-vault.spec.ts; 局所最終872/872・型/ビルド/62件列挙PASS | 薄響の封庫で開始0素材→手掛かり→実採掘→鍵→予告罠/安全側道/停止→実開閉機/格子→唯一報酬→徒歩退出/再開。旧保存衝突回避・全所有形状/台帳/収納整合・死亡/共有再適用を検査。戦闘/休憩を含む大型迷宮、多数の鍵謎、PC/Android実画面は未完。docs/echo-vault-acceptance.md |
 | W11 | 昼夜限定POI | 実装あり・実操作未検証 | core/regions.ts; core/campaign.ts; tests/unit/campaign.test.ts | 夜限定読物/敵の時間判定あり。表示と実体の同期を確認 |
 | W12 | 戦闘勢力 | 簡易実装・受入試験待ち | src/prototype/core/enemy-tactics.ts + tests/unit/enemy-tactics.test.ts; runtime integration pending browser | Normal-play/browser verification and remaining breadth |
 | W13 | 中ボス | 簡易実装・受入試験待ち | src/prototype/core/enemy-tactics.ts + tests/unit/enemy-tactics.test.ts; runtime integration pending browser | Normal-play/browser verification and remaining breadth |
@@ -119,11 +121,11 @@ Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8
 | I01 | 自然資源 | 部分実装 | core/materials.ts; core/campaign.ts; core/homestead.ts; core/regions.ts | 素材と制作参照あり。カテゴリ全品目の入手/用途網羅は未確認 |
 | I02 | 加工資源 | 部分実装 | core/materials.ts; core/campaign.ts; core/homestead.ts; core/regions.ts | 素材と制作参照あり。カテゴリ全品目の入手/用途網羅は未確認 |
 | I03 | 危険地域資源 | 部分実装 | core/materials.ts; core/campaign.ts; core/homestead.ts; core/regions.ts | 素材と制作参照あり。カテゴリ全品目の入手/用途網羅は未確認 |
-| I04 | 道具 | 部分実装 | core/simulation.ts; core/campaign.ts | 剣/彫刻具/建築操作あり。斧・つるはし・整地具の独立した道具差は未達 |
+| I04 | 道具 | 実装あり・ブラウザ受入待ち | core/equipment.ts; core/elements.ts; core/simulation.ts; tests/unit/equipment-normal-play.test.ts | 独立制作/選択した斧・つるはしの材質別採集、熊手の切削整地、槌の有料建築/解体、有限修理を実装。新規Core通常操作→保存を検証。盛土は未実装、ブラウザは定義のみ |
 | I05 | 移動具 | 実装あり・実操作未検証 | core/campaign.ts; core/simulation.ts | 鉤縄/滑空具と実移動あり。保温装備含む実攻略経路は受入待ち |
-| I06 | 近接武器 | 部分実装 | core/campaign.ts; core/simulation.ts | 剣/弓/杖/盾/防具を実装。両手/短剣/全防具部位・全魔法体系ではない |
+| I06 | 近接武器 | 実装あり・ブラウザ受入待ち | core/motion.ts; core/simulation.ts; rendering/rig.ts; tests/unit/equipment-tools.test.ts | 片手/大剣/短剣の共有描画・命中軌道、速度/射程/消費/怯みとSDF壁遮蔽をCore検証。各新系統の全章ブラウザ完走は未検証 |
 | I07 | 遠距離/魔法 | 部分実装 | core/campaign.ts; core/simulation.ts | 剣/弓/杖/盾/防具を実装。両手/短剣/全防具部位・全魔法体系ではない |
-| I08 | 防具/副装備 | 部分実装 | core/campaign.ts; core/simulation.ts | 剣/弓/杖/盾/防具を実装。両手/短剣/全防具部位・全魔法体系ではない |
+| I08 | 防具/副装備 | 実装あり・ブラウザ受入待ち | core/equipment.ts; core/campaign.ts; rendering/rig.ts; tests/unit/equipment-tools.test.ts | 頭/胴/脚/盾/共用護符・指輪枠、実軽減/重量/寒冷/材質反応、個別表示、旧5枠保存の復元を検証。画面選択定義あり、実ブラウザ受入待ち |
 | I09 | 消耗品 | 部分実装 | core/campaign.ts; core/homestead.ts | 包帯/料理/修理と消費ガードあり。魚料理・全状態治療は未網羅 |
 | I10 | 食品 | 部分実装・統合受入中 | core/campaign.ts; homestead.ts; fishing.ts; tests/unit/fishing.test.ts | 料理/食事、実水面での釣りと魚料理を接続中。釣竿・餌・待ち/食いつき/巻上げ、原子的な魚料理コストを重点検査。全食品/治療体系と実ブラウザ受入は未完 |
 | I11 | 農業/生物 | 実装あり・実操作未検証 | core/homestead.ts; tests/unit/homestead.test.ts | 種の準備/栽培/餌/動物生産あり。世界内モデルとの視覚一致は未検証 |
@@ -141,7 +143,7 @@ Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8
 | U07 | レシピ検索 | 簡易実装・受入試験待ち | src/prototype/campaign-ui.ts (browser acceptance pending) | Normal-play/browser verification and remaining breadth |
 | U08 | 建築UI | 実装あり・実操作未検証 | app.ts; core/simulation.ts; rendering/scene.ts; tests/unit/build-preview.test.ts | 建築モード/回転/緑赤プレビューの実画面を確認 |
 | U09 | キー設定 | 簡易実装・受入試験待ち | src/prototype/campaign-ui.ts (browser acceptance pending) | Normal-play/browser verification and remaining breadth |
-| U10 | コントローラー | 部分実装・実機受入待ち | input.ts; tests/unit/gamepad-input.test.ts; index.html | 標準Gamepadの移動/視点/戦闘/建築、開始/再開/メニューDOM操作、デッドゾーン/切断/非表示中中立化を21入力試験で検査。物理パッドと実ブラウザ受入は未実施、独自配列再設定は未実装 |
+| U10 | コントローラー | 部分実装・実機受入待ち | input.ts; tests/unit/gamepad-input.test.ts; index.html | 標準 Gamepad の移動/視点/戦闘/建築とメニュー操作に加え、15 操作のボタン交換、左右スティック交換、上下反転、遊び調整、初期化と旧セーブ互換を接続。Pause とメニュー決定/戻るは固定し、変更後は中立入力を要求。39 件の設定/実入力/保存/連続編集試験を通過。実画面の変更・再開ケースを追加、実ブラウザと物理パッドの受入は未完 |
 | U11 | 小画面 | 部分実装・ブラウザ受入待ち | campaign-ui.css; style.css; tests/e2e/campaign-hud.spec.ts | HUD背景/文字/地域欄の分離と建築コンテキスト表示を修正。960/844/568幅の次CI画像を確認、実端末試験は未完 |
 | U12 | アクセシビリティ | 部分実装・ブラウザ受入待ち | campaign-ui.ts; input.ts; rendering/camera-motion.ts; tests/unit/camera-motion.test.ts | 感度/キー/音量、説明文100〜125%、歩行揺れ/被弾カメラ揺れ/赤明滅の軽減を保存。初回OSの揺れ軽減設定を反映。武器命中軌道は不変。色代替・全字幕/小画面実画面は未網羅 |
 | U13 | 苦手表現 | 対象外・将来再評価 | rendering/rig.ts; core/regions.ts | 現在の敵一覧に蜘蛛は登場しないため蜘蛛置換は不要。将来対象生物を追加する際は判定/難易度を変えない代替表示を要検討 |
@@ -166,7 +168,7 @@ Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8
 | S06 | 世界リセット | 実装あり・ブラウザ受入待ち | src/save/checkpoint.ts; src/save/campaign-startup.ts; app.ts; tests/unit/checkpoint-archives.test.ts; campaign-startup.test.ts | 新規前に検証済みの現行/回復保存を不変保管。招待プレビューは永続保存へ一切アクセスせずゲストの新規/復元を禁止。型・重点試験通過、PC/Android実行は次の対象SHAで確認待ち |
 | M01 | ネットワーク範囲 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
 | M02 | 接続 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
-| M03 | 同期 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
+| M03 | 同期 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。部屋更新を描画時計から分離し、シェーダー非同期準備と待ち時間観測を追加（docs/cooperation-render-scheduling.md）。鮮度/権限の期限は維持。公開2ブラウザ再受入待ち |
 | M04 | 個人/世界進行 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
 | M05 | 権限 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
 | M06 | 会話/安全 | 部分実装 | prototype/network/coop-client.ts; tests/unit/campaign-network.test.ts | 文字チャット/ミュートのUIを接続。公開2ブラウザ検査待ち。音声なし |
@@ -185,3 +187,5 @@ Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8
 | Q12 | 公開確認 | 部分検証 | 3eb279af deployment job111693190536; preview-release artifact11335461632 | 公開SHA/ヘルス一致確認済み。全チェックリスト受入後の最終版確認は未完 |
 | Q13 | 見た目比較 | Not implemented / unverified | — | Audit and implement |
 | Q14 | 残課題 | 追跡中 | docs/implementation-checklist.md | 全171IDを保持し未実装/簡易/未検証を明示。最終公開結果に合わせ更新 |
+
+Equipment/tool checkpoint details and explicit limitations: [equipment tools acceptance](equipment-tools-acceptance.md).

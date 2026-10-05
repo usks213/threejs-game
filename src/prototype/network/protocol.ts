@@ -1,6 +1,7 @@
 /** PR4 transport protocol. Server is a bounded relay; host owns game rules. */
-// v2 adds independently validated player exposure in the actor codec.
-export const CAMPAIGN_PROTOCOL=2;
+// v3 adds crafted tool/armor slots and item definitions to shared snapshots.
+// Old peers cannot validate those saves even though packet envelopes are unchanged.
+export const CAMPAIGN_PROTOCOL=3;
 export const MAX_ROOM_PLAYERS=2;
 export const MAX_PACKET_BYTES=40*1024;
 export const MAX_SNAPSHOT_BYTES=16*1024*1024;

@@ -1,3 +1,4 @@
+import {VAULT_OBJECT_IDS,validEchoVaultSave} from '../prototype/core/echo-vault';
 import {isCampaignSave,type CampaignSave} from '../prototype/campaign-session';
 import {CAMPAIGN_SAMPLE_MANIFEST,createCampaignSamplePrototype} from '../prototype/core/campaign-sample-provider';
 import {StreamedCampaignField,type StreamedVoxelState} from '../prototype/core/streamed-campaign-field';
@@ -41,10 +42,12 @@ export function migrateLegacyCampaignField(value:unknown,provider:DeterministicS
  * to a NEW v3 key; normal v3 autosaves must never overwrite the original v2 key. */
 export function prepareLegacyCampaignMigration(value:unknown,prototype:Pick<ReturnType<typeof createCampaignSamplePrototype>,'provider'|'objects'>):StreamedCampaignSave|null {
  if(!isCampaignSave(value)||value.world!=='campaign-v2')return null;let source:CampaignSave;try{source=JSON.parse(JSON.stringify(value)) as CampaignSave;}catch{return null;}if(!isCampaignSave(source))return null;
- if(source.objects.length!==prototype.objects.size||source.objects.some(object=>!prototype.objects.has(object.id)))return null;
+ const baseObjects=source.objects.filter(object=>!VAULT_OBJECT_IDS.includes(object.id));
+ if(baseObjects.length!==prototype.objects.size||baseObjects.some(object=>!prototype.objects.has(object.id)))return null;
  const field=migrateLegacyCampaignField(source.field,prototype.provider);if(!field)return null;
  const empty=new VoxelField(),survival=new SurvivalSystem(empty),elements=new ElementSystem(empty,new VoxelWater(empty)),campaign=new CampaignSystem(survival.inventory),home=new HomesteadSystem(survival.inventory,campaign.state.items);
  if(!survival.restoreState(source.survival)||!elements.restoreState(source.elements)||!campaign.restore(source.campaign)||!home.restore(source.home))return null;
+ if(!validEchoVaultSave(source.dungeon,source.field,source.objects,campaign.state.items,home.state.storage.items))return null;
  if(!new FishingSystem(campaign,empty,()=>null).restore(source.fishing??createFishingState()))return null;
  for(const state of source.entities)if(!new EntityElements().restoreState(state))return null;
  return {...source,world:'campaign-v3',field};

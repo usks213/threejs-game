@@ -2,6 +2,7 @@ import {test,expect,type Page,type CDPSession} from '@playwright/test';
 
 export interface Point {x:number;y:number;z:number}
 export interface CampaignProbe {
+ npcLife:{position:Point;activity:string;recovery:string}|null;
  position:Point;yaw:number;pitch:number;phase:string;seconds:number;tool:boolean;hp:number;stamina:number;gliding:boolean;grapple:Point|null;enemies:{position:Point;phase:string;time:number;hp:number}[];
  streamedWorld:boolean;worldSamples:number[];restoreFailure:string|null;settings:{graphics:'balanced'|'performance'|'high'};stats:{graphics:string;worldResidency:{bucketScans:number;provider:null|{numericCacheBytes:number;numericCacheBudgetBytes:number;cachedBlocks:number;cacheEvictions:number;[key:string]:number}}};
  inventory:Record<number,number>;target?:string;worldReady:boolean;saveStatus:string;

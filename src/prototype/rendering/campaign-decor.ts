@@ -1,3 +1,4 @@
+import {createNpcLifeView} from './npc-life-view';
 import * as THREE from 'three';
 import type {PlacementPreview} from '../core/survival';
 import type {CoreSimulation} from '../core/simulation';
@@ -36,7 +37,7 @@ export function createHearthFlames(scene:THREE.Scene){
 }
 /** Small reusable visual layer for gameplay state; no particles edit the world. */
 export function createCampaignDecor(scene:THREE.Scene,sim:CoreSimulation){
- const buildGhost=createBuildGhost(scene,()=>sim.buildPreview()),hearthFlames=createHearthFlames(scene),animalView=createHomesteadAnimalView(scene,sim);
+ const buildGhost=createBuildGhost(scene,()=>sim.buildPreview()),hearthFlames=createHearthFlames(scene),animalView=createHomesteadAnimalView(scene,sim),npcView=createNpcLifeView(scene,sim);
  const resources:THREE.BufferGeometry[]=[],materials:THREE.Material[]=[],root=new THREE.Group();scene.add(root);
  const waterMat=new THREE.MeshPhysicalMaterial({color:'#5e9cad',roughness:.28,metalness:.12,transparent:true,opacity:.68,depthWrite:false});materials.push(waterMat);
  if(sim.campaignMode)for(const w of REGIONAL_WATERS){const g=new THREE.PlaneGeometry(w.max.x-w.min.x,w.max.z-w.min.z,10,10);resources.push(g);const mesh=new THREE.Mesh(g,waterMat);mesh.rotation.x=-Math.PI/2;mesh.position.set((w.min.x+w.max.x)/2,w.surfaceY,(w.min.z+w.max.z)/2);root.add(mesh);}
@@ -48,9 +49,9 @@ export function createCampaignDecor(scene:THREE.Scene,sim:CoreSimulation){
  const dummy=new THREE.Object3D(),up=new THREE.Vector3(0,1,0),direction=new THREE.Vector3();const fog=new THREE.FogExp2('#8cab9e',.025);
  return {update(){buildGhost.update(sim.buildMode,performance.now());hearthFlames.update(sim.campaignMode,sim.campaign.state,sim.player.position,sim.seconds);let n=0;for(const a of sim.arrows){if(n>=32)break;dummy.position.set(a.position.x,a.position.y,a.position.z);dummy.quaternion.setFromUnitVectors(up,direction.set(a.velocity.x,a.velocity.y,a.velocity.z).normalize());dummy.scale.set(1,1,1);dummy.updateMatrix();arrows.setMatrixAt(n++,dummy.matrix);}arrows.count=n;arrows.instanceMatrix.needsUpdate=true;let bn=0;for(const b of sim.enemyShots){dummy.position.set(b.position.x,b.position.y,b.position.z);dummy.quaternion.identity();dummy.scale.setScalar(b.radius/.18);dummy.updateMatrix();bolts.setMatrixAt(bn++,dummy.matrix);}bolts.count=bn;bolts.instanceMatrix.needsUpdate=true;let rn=0;for(const t of sim.tells){dummy.position.set(t.position.x,t.position.y+.045,t.position.z);dummy.rotation.set(-Math.PI/2,0,0);dummy.scale.setScalar(Math.max(.3,t.radius));dummy.updateMatrix();rings.setMatrixAt(rn++,dummy.matrix);}rings.count=rn;rings.instanceMatrix.needsUpdate=true;
   rope.visible=!!sim.grapple;if(sim.grapple){const p=sim.eye(),a=ropeGeometry.getAttribute('position') as THREE.BufferAttribute;a.setXYZ(0,p.x+.2,p.y-.3,p.z);a.setXYZ(1,sim.grapple.x,sim.grapple.y+1,sim.grapple.z);a.needsUpdate=true;ropeGeometry.computeBoundingSphere();}
-  animalView.update();
+  animalView.update();npcView.update();
   plants.forEach((p,i)=>{const plot=sim.home.state.plots[i];p.visible=sim.campaignMode&&plot.planted;p.scale.y=.15+.85*(1-plot.remaining/60);});
   const target=sim.campaign.objective().waypoint;pointer.visible=sim.campaignMode&&!!target;if(target){pointer.position.set(target.position.x,target.position.y+2.2+Math.sin(sim.seconds*2)*.1,target.position.z);pointer.rotation.y=sim.seconds;}
   if(sim.campaignMode){const region=regionAt(sim.player.position),mist=sim.player.position.x>5&&sim.player.position.x<11&&sim.player.position.z<-5&&sim.player.position.z>-15||sim.player.position.z<-18&&sim.player.position.z>-26||region?.climate==='ash';fog.color.set(mist?'#6b8d82':region?.airColor??'#b8cbd0');fog.density=mist?.075:region?.climate==='freezing'?.02:.004;scene.fog=fog;}
- },dispose(){buildGhost.dispose();hearthFlames.dispose();animalView.dispose();arrows.dispose();bolts.dispose();rings.dispose();scene.remove(root);for(const g of resources)g.dispose();for(const m of materials)m.dispose();}};
+ },dispose(){buildGhost.dispose();hearthFlames.dispose();animalView.dispose();npcView.dispose();arrows.dispose();bolts.dispose();rings.dispose();scene.remove(root);for(const g of resources)g.dispose();for(const m of materials)m.dispose();}};
 }

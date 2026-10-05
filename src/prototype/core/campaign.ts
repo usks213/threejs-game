@@ -1,10 +1,12 @@
 import {acquisitionInventory,validDiscoveryIds,materialDiscoveryId,itemDiscoveryId,MAX_DISCOVERY_IDS} from './discovery';
+
+import {ARMOR_STATS,EQUIPMENT_ITEMS,EQUIPMENT_RECIPES,EQUIPMENT_SLOTS,LEGACY_EQUIPMENT_SLOTS,GEAR_SLOTS,isTwoHanded,meleeArchetype} from './equipment';
 import type {Vec3} from './voxel';
 import {REGIONS,REGIONAL_POINTS,REGIONAL_ENEMIES,REGIONAL_UPGRADES,REGIONAL_QUESTS,regionAt,isRegionalOpen,type RegionalReward,type RegionId} from './regions';
 
 /** Original, finite single-player campaign. This module owns progression, never the
  * voxel field, movement, combat hits, or the shared material inventory. */
-export type EquipmentSlot='weapon'|'armor'|'grapple'|'glider'|'charm';
+export type EquipmentSlot='weapon'|'armor'|'head'|'legs'|'shield'|'tool'|'grapple'|'glider'|'charm';
 export interface CampaignItem {id:string;label:string;category:'weapon'|'armor'|'tool'|'food'|'medicine'|'quest'|'accessory'|'ammunition'|'resource'|'farming';icon:string;stackLimit:number;description:string;source:string;slot?:EquipmentSlot}
 const item=(id:string,label:string,category:CampaignItem['category'],icon:string,description:string,source:string,slot?:EquipmentSlot):CampaignItem=>({id,label,category,icon,stackLimit:slot?1:category==='quest'?1:category==='ammunition'?200:20,description,source,slot});
 const regionalItems:CampaignItem[]=[
@@ -16,7 +18,9 @@ const regionalItems:CampaignItem[]=[
  {...item('lore-leaf','帰還者の記録','quest','▱','各地に残された灯をつなぐ人々の記録。','見張り塔・坑道・湖の碑を調べる'),stackLimit:10},
 ];
 export const CAMPAIGN_ITEMS:Readonly<Record<string,CampaignItem>>={
- ...Object.fromEntries(regionalItems.map(i=>[i.id,i])),
+ 'echo-vault-key':item('echo-vault-key','薄響の鍵','quest','⚿','封庫の開閉機で一度だけ消費する。死亡しても失わない。収納した場合は取り出して使う。','開始地点の南東、薄響の封庫の案内板を読み、入口左の鉱殻を鑿で削る'),
+ 'echo-vault-seal':item('echo-vault-seal','薄響の封章','quest','◇','薄響の封庫を探索した唯一の証。死亡しても失わない。','鳴動床を避けるか解除し、鍵差し開閉機で格子を上げ、奥の箱を開く'),
+ ...Object.fromEntries([...regionalItems,...EQUIPMENT_ITEMS].map(i=>[i.id,i])),
  'fishing-rod':{...item('fishing-rod','葦糸の釣竿','tool','⌁','岸で釣竿を選び、水面へ投げる。食いつき中に操作すると釣り上げる。','木材5・草葉3で手作り。練り餌を用意し、水槽では先に水門のレバーを放水にする'),stackLimit:1},
  'fish-bait':{...item('fish-bait','草実の練り餌','resource','•','有効な投げ入れ1回につき1個消費。中断した餌は戻らない。','草葉2から3個作る。水辺で釣竿と一緒に使う'),stackLimit:100},
  'silverfin':item('silverfin','澄鰭魚','resource','◁','水辺で釣れる生魚。炉で焼くか、薬草と煮込む。生では食べられない。','地下墓所脇の水門を開け、水槽の南岸から西寄りへ投げる。浅い中央を避ける。澄鐘の湖でも釣れる'),
@@ -59,6 +63,7 @@ export const CAMPAIGN_PROFESSIONS:Readonly<Record<CampaignProfession,{label:stri
 export interface CampaignProfessionProvider {rescued(role:CampaignProfession):boolean;atWorkshop(position:Vec3):boolean}
 export interface CampaignRecipe {id:string;label:string;output:string;cost:Record<number,number>;station:'hand'|'hearth'|'forge';requiresArtisan:boolean;requiresProfession?:CampaignProfession;description:string;outputCount?:number;itemCost?:Record<string,number>}
 export const CAMPAIGN_RECIPES:readonly CampaignRecipe[]=[
+ ...EQUIPMENT_RECIPES,
  {id:'fishing-rod',label:'葦糸の釣竿',output:'fishing-rod',cost:{4:5,7:3},station:'hand',requiresArtisan:false,description:'釣竿を選択し、水面へ投げ入れる'},
  {id:'fish-bait',label:'草実の練り餌 ×3',output:'fish-bait',cost:{7:2},station:'hand',requiresArtisan:false,description:'岸釣り1回につき1個消費',outputCount:3},
  {id:'grilled-silverfin',label:'澄鰭魚の炉焼き',output:'grilled-silverfin',cost:{4:1},itemCost:{silverfin:1},station:'hearth',requiresArtisan:false,description:'釣った魚を焼く。HP +20 / スタミナ +15、120秒'},
@@ -112,7 +117,7 @@ export interface CampaignState {
 }
 export interface CampaignResult {ok:boolean;message:string;position?:Vec3;heal?:number;materials?:Record<number,number>;items?:Record<string,number>}
 export interface CampaignTick {position:Vec3;inShroud?:boolean;resting?:boolean;sheltered?:boolean}
-const slots:EquipmentSlot[]=['weapon','armor','grapple','glider','charm'];
+const slots=EQUIPMENT_SLOTS;
 const materialIds=[2,3,4,6,7,10];
 const finitePosition=(p:Vec3)=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Number.isFinite(p.z)&&Math.abs(p.x)<1000&&Math.abs(p.y)<1000&&Math.abs(p.z)<1000;
 const dist=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
@@ -124,7 +129,7 @@ export const isShrouded=(position:Vec3)=>position.x>5&&position.x<11&&position.z
 export const isDeepShroud=(position:Vec3)=>position.z<-18&&position.z>-26;
 
 export class CampaignSystem {
- state:CampaignState={version:1,collections:[],items:acquisitionInventory<string>({},id=>this.discoverItem(id)),gearState:{},equipment:{weapon:null,armor:null,grapple:null,glider:null,charm:null},completed:[],claimedEnemies:[],xp:0,level:1,skillPoints:0,skills:[],unlockedRegions:[],discoveredRegions:[],claimedPoints:[],flameTier:0,artisanRescued:false,gateOpen:false,campUnlocked:false,foodSeconds:0,restSeconds:0,shroudSeconds:60,discovered:['hearth'],built:[],deaths:0,deathPending:false,deathBag:null};
+ state:CampaignState={version:1,collections:[],items:acquisitionInventory<string>({},id=>this.discoverItem(id)),gearState:{},equipment:{weapon:null,armor:null,head:null,legs:null,shield:null,tool:null,grapple:null,glider:null,charm:null},completed:[],claimedEnemies:[],xp:0,level:1,skillPoints:0,skills:[],unlockedRegions:[],discoveredRegions:[],claimedPoints:[],flameTier:0,artisanRescued:false,gateOpen:false,campUnlocked:false,foodSeconds:0,restSeconds:0,shroudSeconds:60,discovered:['hearth'],built:[],deaths:0,deathPending:false,deathBag:null};
  constructor(readonly materials:Record<number,number>){this.discoverHoldings();}
  /** Called at acquisition, never when viewing a recipe or unknown catalog entry. */
  private discover(id:string){const known=this.state.collections??(this.state.collections=[]);if(known.length<MAX_DISCOVERY_IDS&&!known.includes(id))known.push(id);}
@@ -139,18 +144,25 @@ export class CampaignSystem {
  setProfessionProvider(provider:CampaignProfessionProvider|null){this.professionProvider=provider;}
  professionUnlocked(role:CampaignProfession){return this.professionProvider?.rescued(role)??false;}
  get maxHp(){return 100+(this.state.skills.includes('vigor')?20:0)+(this.state.foodSeconds>0?20:0)+(this.state.equipment.charm==='ember-charm'?15:0);}
- get maxStamina(){return 100+(this.state.skills.includes('endurance')?20:0)+(this.state.foodSeconds>0?15:0);}
+ get maxStamina(){return 100+(this.state.skills.includes('endurance')?20:0)+(this.state.foodSeconds>0?15:0)+(this.state.equipment.charm==='traveler-ring'?15:0);}
  get equippedWeapon(){return this.state.equipment.weapon;}
  get isStaffWeapon(){return this.equippedWeapon==='staff'||this.equippedWeapon==='resin-staff';}
  get spellMultiplier(){const id=this.equippedWeapon;return id==='staff'?1.2*this.gearPower(id):id==='resin-staff'?1.4*this.gearPower(id):1;}
  get attackMultiplier(){const id=this.equippedWeapon;return (id==='iron-blade'?1.3:1)*(id?this.gearPower(id):1);}
- get armorMaterial():0|6|10{return this.state.equipment.armor==='copper-mail'?6:this.state.equipment.armor==='hide-coat'?10:0;}
- get damageReduction(){const id=this.state.equipment.armor;if(id!=='hide-coat'&&id!=='copper-mail')return 0;const g=this.gearInfo(id);return Math.min(.5,((id==='copper-mail'?.3:.2)+g.upgrade*.03+(g.socket ? .05 : 0))*(g.durability>0?1:.5));}
+ get equippedTool(){return this.state.equipment.tool;}
+ get meleeArchetype(){return meleeArchetype(this.equippedWeapon);}
+ get canGuard(){return !isTwoHanded(this.equippedWeapon);}
+ get guardCost(){return this.state.equipment.shield==='copper-shield'&&this.gearInfo('copper-shield').durability>0?12:18;}
+ get projectileGuardCost(){return this.guardCost===12?10:14;}
+ get armorIds(){return [this.state.equipment.armor,this.state.equipment.head,this.state.equipment.legs,this.state.equipment.shield].filter((id):id is string=>!!id);}
+ get armorMaterial():0|6|10{const mats=this.armorIds.map(id=>ARMOR_STATS[id]?.material);return mats.includes(6)?6:mats.includes(10)?10:0;}
+ get coldMultiplier(){return this.armorIds.reduce((n,id)=>n*(ARMOR_STATS[id]?.cold??1),1);}
+ get damageReduction(){return Math.min(.65,this.armorIds.reduce((sum,id)=>{const base=ARMOR_STATS[id];if(!base)return sum;const g=this.gearInfo(id);return sum+(base.reduction+g.upgrade*.03+(g.socket?.05:0))*(g.durability>0?1:.5);},0));}
  private gearPower(id:string){const g=this.gearInfo(id);return (1+g.upgrade*.1+(g.socket ? .12 : 0))*(g.durability>0?1:.5);}
  gearInfo(id:string):GearState {const g=this.state.gearState[id];return g?{...g}:{durability:100,maxDurability:100,upgrade:0,socket:null};}
  private ensureGear(id:string){return this.state.gearState[id]??(this.state.gearState[id]=this.gearInfo(id));}
 
- get moveMultiplier(){return (this.state.skills.includes('endurance')?1.08:1)*(this.state.equipment.armor==='copper-mail'?.94:1);}
+ get moveMultiplier(){return (this.state.skills.includes('endurance')?1.08:1)*this.armorIds.reduce((n,id)=>n*(ARMOR_STATS[id]?.speed??1),1);}
  get staminaRegenMultiplier(){return this.state.restSeconds>0?1.4:1;}
  get shroudMaximum(){return 60+Math.max(0,this.state.flameTier-1)*30+(this.state.skills.includes('attunement')?30:0);}
  get canGlide(){return this.state.equipment.glider==='glider'||this.state.equipment.glider==='windwoven-glider';}
@@ -198,24 +210,27 @@ export class CampaignSystem {
  craft(id:string,position:Vec3,count=1):CampaignResult {const status=this.recipeStatus(id,position,count);if(!status.ok)return status;const r=CAMPAIGN_RECIPES.find(r=>r.id===id)!;
   for(const [key,n] of Object.entries(r.cost))this.materials[Number(key)]-=n*count;
   for(const [id,n] of Object.entries(r.itemCost??{}))this.state.items[id]-=n*count;
-  this.state.items[r.output]=(this.state.items[r.output]??0)+count*(r.outputCount??1);if(['weapon','armor'].includes(CAMPAIGN_ITEMS[r.output].slot??''))this.ensureGear(r.output);this.refresh();return success(`${CAMPAIGN_ITEMS[r.output].label} ×${count*(r.outputCount??1)}を制作。装備品は持物から装備する`);
+  this.state.items[r.output]=(this.state.items[r.output]??0)+count*(r.outputCount??1);if(GEAR_SLOTS.includes(CAMPAIGN_ITEMS[r.output].slot!))this.ensureGear(r.output);this.refresh();return success(`${CAMPAIGN_ITEMS[r.output].label} ×${count*(r.outputCount??1)}を制作。装備品は持物から装備する`);
  }
  private atForge(position:Vec3):CampaignResult {if(!finitePosition(position)||dist(position,point('hearth')!.position)>3)return fail('灯守りの炉から3m以内で作業する');if(!this.state.flameTier||!this.state.artisanRescued)return fail('炉を点火し、鍛冶師を救出する');return success('鍛冶設備を利用できる');}
- private workableGear(id:string){return this.has(id)&&['weapon','armor'].includes(CAMPAIGN_ITEMS[id]?.slot??'');}
+ private workableGear(id:string){return this.has(id)&&GEAR_SLOTS.includes(CAMPAIGN_ITEMS[id]?.slot!);}
  private canPay(cost:Record<number,number>){return Object.entries(cost).every(([id,n])=>(this.materials[Number(id)]??0)>=n);}
  private pay(cost:Record<number,number>){for(const [id,n] of Object.entries(cost))this.materials[Number(id)]-=n;}
- repairStatus(id:string,position:Vec3):CampaignResult {if(!this.workableGear(id))return fail('所持している武器か防具を選ぶ');const station=this.atForge(position);if(!station.ok)return station;const g=this.gearInfo(id);if(g.durability>=g.maxDurability)return fail('修理は不要');const cost:Record<number,number>={6:Math.ceil((g.maxDurability-g.durability)/25)};return {ok:this.canPay(cost),message:`修理: 金属${cost[6]}${this.canPay(cost)?'':'（不足）'}`,materials:cost};}
+ repairStatus(id:string,position:Vec3):CampaignResult {if(!this.workableGear(id))return fail('所持している武器・防具・道具を選ぶ');const station=CAMPAIGN_ITEMS[id].slot==='tool'?success('手元で道具を修理'):this.atForge(position);if(!station.ok)return station;const g=this.gearInfo(id);if(g.durability>=g.maxDurability)return fail('修理は不要');const mat=CAMPAIGN_ITEMS[id].slot==='tool'?3:6,cost:Record<number,number>={[mat]:Math.ceil((g.maxDurability-g.durability)/25)};return {ok:this.canPay(cost),message:`修理: ${mat===3?'石':'金属'}${cost[mat]}${this.canPay(cost)?'':'（不足）'}`,materials:cost};}
  repair(id:string,position:Vec3):CampaignResult {const check=this.repairStatus(id,position);if(!check.ok)return check;this.pay(check.materials!);const g=this.ensureGear(id);g.durability=g.maxDurability;return success(CAMPAIGN_ITEMS[id].label+'を修理');}
- upgradeStatus(id:string,position:Vec3):CampaignResult {if(!this.workableGear(id))return fail('所持している武器か防具を選ぶ');const station=this.atForge(position);if(!station.ok)return station;const g=this.gearInfo(id);if(g.upgrade>=3)return fail('強化上限 +3');if(g.upgrade>=2&&!this.state.campUnlocked)return fail('最終強化には尾根の野営地への到達が必要');if(g.upgrade>=Math.max(this.state.flameTier,this.state.campUnlocked?3:0))return fail('次の強化には炉の強化が必要');const cost:Record<number,number>={6:2*(g.upgrade+1),3:3*(g.upgrade+1)};return {ok:this.canPay(cost),message:`強化 +${g.upgrade+1}: 金属${cost[6]}・石${cost[3]}${this.canPay(cost)?'':'（不足）'}`,materials:cost};}
+ upgradeStatus(id:string,position:Vec3):CampaignResult {if(id==='build-hammer')return fail('建築槌は修理のみ対応。強化は不要');if(!this.workableGear(id))return fail('所持している武器・防具・道具を選ぶ');const station=this.atForge(position);if(!station.ok)return station;const g=this.gearInfo(id);if(g.upgrade>=3)return fail('強化上限 +3');if(g.upgrade>=2&&!this.state.campUnlocked)return fail('最終強化には尾根の野営地への到達が必要');if(g.upgrade>=Math.max(this.state.flameTier,this.state.campUnlocked?3:0))return fail('次の強化には炉の強化が必要');const cost:Record<number,number>={6:2*(g.upgrade+1),3:3*(g.upgrade+1)};return {ok:this.canPay(cost),message:`強化 +${g.upgrade+1}: 金属${cost[6]}・石${cost[3]}${this.canPay(cost)?'':'（不足）'}`,materials:cost};}
  upgrade(id:string,position:Vec3):CampaignResult {const check=this.upgradeStatus(id,position);if(!check.ok)return check;this.pay(check.materials!);this.ensureGear(id).upgrade++;return success(CAMPAIGN_ITEMS[id].label+`を +${this.state.gearState[id].upgrade} に強化`);}
- socket(id:string,gem:string|null,position:Vec3):CampaignResult {if(!this.workableGear(id))return fail('武器か防具にだけジェムを装着できる');const station=this.atForge(position);if(!station.ok)return station;if(gem!==null&&gem!=='ember-gem')return fail('対応していないジェム');const g=this.gearInfo(id);if(g.socket===gem)return fail(gem?'同じジェムを装着済み':'ジェムは付いていない');if(gem&&!this.has(gem))return fail('灯火の石を制作する');if(g.socket&&(this.state.items[g.socket]??0)>=CAMPAIGN_ITEMS[g.socket].stackLimit)return fail('取り外すジェムの所持枠がない');if(gem)this.state.items[gem]--;if(g.socket)this.state.items[g.socket]=(this.state.items[g.socket]??0)+1;this.ensureGear(id).socket=gem;return success(gem?'灯火の石を装着':'灯火の石を取り外した');}
+ socket(id:string,gem:string|null,position:Vec3):CampaignResult {if(id==='build-hammer')return fail('建築槌にはジェム枠がない');if(!this.workableGear(id))return fail('武器・防具・採集道具にだけジェムを装着できる');const station=this.atForge(position);if(!station.ok)return station;if(gem!==null&&gem!=='ember-gem')return fail('対応していないジェム');const g=this.gearInfo(id);if(g.socket===gem)return fail(gem?'同じジェムを装着済み':'ジェムは付いていない');if(gem&&!this.has(gem))return fail('灯火の石を制作する');if(g.socket&&(this.state.items[g.socket]??0)>=CAMPAIGN_ITEMS[g.socket].stackLimit)return fail('取り外すジェムの所持枠がない');if(gem)this.state.items[gem]--;if(g.socket)this.state.items[g.socket]=(this.state.items[g.socket]??0)+1;this.ensureGear(id).socket=gem;return success(gem?'灯火の石を装着':'灯火の石を取り外した');}
  consumeAttackDurability(amount=1):CampaignResult {return this.wear(this.equippedWeapon,amount);}
- consumeArmorDurability(amount=1):CampaignResult {return this.wear(this.state.equipment.armor,amount);}
- private wear(id:string|null,amount:number):CampaignResult {if(!id||!this.workableGear(id)||!Number.isFinite(amount)||amount<=0)return fail('耐久を消費する装備がない');const g=this.ensureGear(id),old=g.durability;g.durability=Math.max(0,g.durability-Math.min(100,amount));return success(g.durability===0&&old>0?`${CAMPAIGN_ITEMS[id].label}が破損。性能が半減。炉で修理する`:g.durability<=20&&old>20?`${CAMPAIGN_ITEMS[id].label}の耐久が残り20以下`:'');}
- salvagePreview(id:string):CampaignResult {if(!this.workableGear(id))return fail('武器と防具だけ解体できる。重要品・移動具は保持する');if(Object.values(this.state.equipment).includes(id))return fail('装備中の品は解体できない');const recipe=CAMPAIGN_RECIPES.find(r=>r.output===id);if(!recipe)return fail('解体できない品');const materials:Record<number,number>={};for(const [key,n] of Object.entries(recipe.cost))if(n>=2)materials[Number(key)]=Math.floor(n/2);const socket=this.gearInfo(id).socket,items:Record<string,number>={};if(socket){if((this.state.items[socket]??0)>=CAMPAIGN_ITEMS[socket].stackLimit)return fail('取り外すジェムの所持枠がない');items[socket]=1;}return {ok:true,message:'元の制作素材の半分を返却（端数切捨て）。強化費用は返却しない',materials,items};}
+ consumeArmorDurability(amount=1):CampaignResult {let result=fail('防具未装備');for(const id of this.armorIds)result=this.wear(id,amount);return result;}
+ consumeToolDurability(amount=1){return this.wear(this.equippedTool,amount);}
+ consumeShieldDurability(){return this.wear(this.state.equipment.shield,1);}
+ get toolEfficiency(){return this.equippedTool?this.gearPower(this.equippedTool):1;}
+ private wear(id:string|null,amount:number):CampaignResult {if(!id||!this.workableGear(id)||!Number.isFinite(amount)||amount<=0)return fail('耐久を消費する装備がない');const g=this.ensureGear(id),old=g.durability;g.durability=Math.max(0,g.durability-Math.min(100,amount));return success(g.durability===0&&old>0?`${CAMPAIGN_ITEMS[id].label}が破損。${id==='build-hammer'?'修理するまで配置・解体できない':id==='copper-shield'?'ガード消費軽減がなくなった':'性能が半減'}。装備画面から修理する`:g.durability<=20&&old>20?`${CAMPAIGN_ITEMS[id].label}の耐久が残り20以下`:'');}
+ salvagePreview(id:string):CampaignResult {if(!this.workableGear(id))return fail('武器・防具・採集建築具だけ解体できる。重要品・移動具は保持する');if(Object.values(this.state.equipment).includes(id))return fail('装備中の品は解体できない');const recipe=CAMPAIGN_RECIPES.find(r=>r.output===id);if(!recipe)return fail('解体できない品');const materials:Record<number,number>={};for(const [key,n] of Object.entries(recipe.cost))if(n>=2)materials[Number(key)]=Math.floor(n/2);const socket=this.gearInfo(id).socket,items:Record<string,number>={};if(socket){if((this.state.items[socket]??0)>=CAMPAIGN_ITEMS[socket].stackLimit)return fail('取り外すジェムの所持枠がない');items[socket]=1;}return {ok:true,message:'元の制作素材の半分を返却（端数切捨て）。強化費用は返却しない',materials,items};}
  salvage(id:string,confirmed=false):CampaignResult {if(!confirmed)return fail('解体の内容を確認してから確定する');const preview=this.salvagePreview(id);if(!preview.ok)return preview;this.state.items[id]--;delete this.state.gearState[id];for(const [key,n] of Object.entries(preview.materials!))this.materials[Number(key)]=(this.materials[Number(key)]??0)+n;for(const [key,n] of Object.entries(preview.items!))this.state.items[key]=(this.state.items[key]??0)+n;return success(CAMPAIGN_ITEMS[id].label+'を解体',preview);}
  consumeAmmo(count=1):boolean {if(!Number.isSafeInteger(count)||count<1||(this.state.items.arrows??0)<count)return false;this.state.items.arrows-=count;return true;}
- equip(id:string):CampaignResult {const i=CAMPAIGN_ITEMS[id];if(!i?.slot||!this.has(id))return fail('所持している装備を選ぶ');this.state.equipment[i.slot]=id;this.refresh();return success(i.label+'を装備');}
+ equip(id:string):CampaignResult {const i=CAMPAIGN_ITEMS[id];if(!i?.slot||!this.has(id))return fail('所持している装備を選ぶ');if(i.slot==='shield'&&!this.canGuard)return fail('両手武器を外してから盾を装備する');const stowed=i.slot==='weapon'&&isTwoHanded(id)&&this.state.equipment.shield;if(stowed)this.state.equipment.shield=null;this.state.equipment[i.slot]=id;this.refresh();return success(i.label+'を装備'+(stowed?'。盾を持物に戻した':''));}
  unequip(slot:EquipmentSlot):CampaignResult {if(!slots.includes(slot)||this.state.equipment[slot]===null)return fail('この枠には装備していない');this.state.equipment[slot]=null;return success('装備を外した');}
  consume(id:string,hp=this.maxHp):CampaignResult {if(!this.has(id))return fail('持っていない');
   if(id==='berry-meal'||id==='milk'||id==='grilled-silverfin'||id==='herb-fish-soup'){this.state.items[id]--;this.state.foodSeconds=id==='milk'||id==='grilled-silverfin'?120:180;this.refresh();return success(`${CAMPAIGN_ITEMS[id].label} · ${this.state.foodSeconds}秒、最大HP +20 / スタミナ +15`);}
@@ -267,7 +282,7 @@ export class CampaignSystem {
  respawn(){this.state.deathPending=false;this.state.foodSeconds=0;this.state.restSeconds=0;this.state.shroudSeconds=this.shroudMaximum;return this.spawn;}
  recover(position:Vec3):CampaignResult {const b=this.state.deathBag;if(!b)return fail('回収する落とし物はない');if(!finitePosition(position)||dist(position,b.position)>2.8)return fail('落とし物の近くへ移動する');for(const [key,n] of Object.entries(b.materials))this.materials[Number(key)]=(this.materials[Number(key)]??0)+n;this.state.deathBag=null;return success('死亡時の素材をすべて回収');}
  snapshot(){return clone(this.state);}
- restore(value:unknown):boolean {if(!validCampaignState(value))return false;const restored=clone(value),items=this.state.items;for(const id of Object.keys(items))delete items[id];Object.assign(items,restored.items);this.state={...restored,items,collections:(restored.collections??[]).filter(id=>id.startsWith('material:')?Object.hasOwn(CAMPAIGN_MATERIALS,id.slice(9)):Object.hasOwn(CAMPAIGN_ITEMS,id.slice(5)))};
+ restore(value:unknown):boolean {if(!validCampaignState(value))return false;const restored=clone(value),items=this.state.items;for(const slot of slots)restored.equipment[slot]??=null;for(const id of Object.keys(items))delete items[id];Object.assign(items,restored.items);this.state={...restored,items,collections:(restored.collections??[]).filter(id=>id.startsWith('material:')?Object.hasOwn(CAMPAIGN_MATERIALS,id.slice(9)):Object.hasOwn(CAMPAIGN_ITEMS,id.slice(5)))};
   // Pre-codex saves prove current holdings, equipped gems and recoverable materials.
   // Do not infer that every recipe, previously consumed item or region was found.
   this.discoverHoldings();if(this.state.deathBag)this.discoverHoldings(this.state.deathBag.materials,{});
@@ -291,9 +306,10 @@ export function validCampaignState(value:unknown):value is CampaignState {if(!va
  if(!number(s.foodSeconds,0,180)||!number(s.restSeconds,0,180)||!number(s.shroudSeconds,0,210))return false;
  if(!s.items||typeof s.items!=='object'||Array.isArray(s.items)||Object.entries(s.items).some(([id,n])=>!Object.hasOwn(CAMPAIGN_ITEMS,id)||!number(n,0,CAMPAIGN_ITEMS[id].stackLimit,true)))return false;
  if(!s.gearState||typeof s.gearState!=='object'||Array.isArray(s.gearState))return false;
- for(const [id,g] of Object.entries(s.gearState)){if(!Object.hasOwn(CAMPAIGN_ITEMS,id)||!['weapon','armor'].includes(CAMPAIGN_ITEMS[id].slot??'')||(s.items[id]??0)<1||!g||typeof g!=='object'||!number(g.maxDurability,100,100,true)||!number(g.durability,0,g.maxDurability)||!number(g.upgrade,0,3,true)||(g.socket!==null&&g.socket!=='ember-gem'))return false;}
- for(const [id,n] of Object.entries(s.items))if(n>0&&['weapon','armor'].includes(CAMPAIGN_ITEMS[id].slot??'')&&!Object.hasOwn(s.gearState,id))return false;
- if(!s.equipment||typeof s.equipment!=='object'||Array.isArray(s.equipment)||Object.keys(s.equipment).length!==slots.length||slots.some(slot=>{const id=s.equipment[slot];return id!==null&&(typeof id!=='string'||!Object.hasOwn(CAMPAIGN_ITEMS,id)||CAMPAIGN_ITEMS[id].slot!==slot||(s.items[id]??0)<1);}))return false;
+ for(const [id,g] of Object.entries(s.gearState)){if(!Object.hasOwn(CAMPAIGN_ITEMS,id)||!GEAR_SLOTS.includes(CAMPAIGN_ITEMS[id].slot!)||(s.items[id]??0)<1||!g||typeof g!=='object'||!number(g.maxDurability,100,100,true)||!number(g.durability,0,g.maxDurability)||!number(g.upgrade,0,3,true)||(g.socket!==null&&g.socket!=='ember-gem')||id==='build-hammer'&&(g.upgrade!==0||g.socket!==null))return false;}
+ for(const [id,n] of Object.entries(s.items))if(n>0&&GEAR_SLOTS.includes(CAMPAIGN_ITEMS[id].slot!)&&!Object.hasOwn(s.gearState,id))return false;
+ if(!s.equipment||typeof s.equipment!=='object'||Array.isArray(s.equipment)||![slots.length,LEGACY_EQUIPMENT_SLOTS.length].includes(Object.keys(s.equipment).length)||Object.keys(s.equipment).some(slot=>!slots.includes(slot as EquipmentSlot))||!LEGACY_EQUIPMENT_SLOTS.every(slot=>Object.hasOwn(s.equipment,slot))||slots.some(slot=>{const id=s.equipment[slot];return Object.hasOwn(s.equipment,slot)&&id===undefined||id!==undefined&&id!==null&&(typeof id!=='string'||!Object.hasOwn(CAMPAIGN_ITEMS,id)||CAMPAIGN_ITEMS[id].slot!==slot||(s.items[id]??0)<1);}))return false;
+ if(isTwoHanded(s.equipment.weapon)&&s.equipment.shield)return false;
  if(s.flameTier===0&&(s.artisanRescued||s.gateOpen||s.campUnlocked)||s.gateOpen&&s.flameTier<2||s.campUnlocked&&!s.gateOpen)return false;
  if(s.deathBag!==null){const b=s.deathBag;if(!b||!finitePosition(b.position)||!b.materials||typeof b.materials!=='object'||Array.isArray(b.materials)||Object.entries(b.materials).some(([id,n])=>!materialIds.includes(Number(id))||!number(n,0,100000000,true)))return false;}
  return true;

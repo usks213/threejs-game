@@ -54,12 +54,12 @@ export class ElementSystem {
    const c=this.field.get(x,y,z);if(!c)continue;const p=this.position(c);if(Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<=radius)found.push(c);
   }return found;
  }
- damage(hit:Hit,power:number,radius=.27):DamageResult{
+ damage(hit:Hit,power:number,radius=.27,perSample?:(cell:Cell,position:Vec3)=>number):DamageResult{
   if(!Number.isFinite(power)||power<=0)return {damaged:0,destroyed:0};
   // Clamp area work. Include the authoritative occupied hit sample even on an interpolated boundary.
   const cells=this.nearby(hit.point,Math.max(0,Math.min(1,Number.isFinite(radius)?radius:.27)));
   if(!cells.some(c=>c.x===hit.cell.x&&c.y===hit.cell.y&&c.z===hit.cell.z))cells.push(hit.cell);
-  const result={damaged:0,destroyed:0};for(const c of cells){const r=this.damageCell(c,power);result.damaged+=r.damaged;result.destroyed+=r.destroyed;}return result;
+  const result={damaged:0,destroyed:0};for(const c of cells){const r=this.damageCell(c,perSample?Math.max(0,Math.min(power,perSample(c,this.position(c)))):power);result.damaged+=r.damaged;result.destroyed+=r.destroyed;}return result;
  }
  private state(c:Cell){const id=key(c.x,c.y,c.z);let state=this.states.get(id);
   if(!state&&this.states.size<this.maxStates){state={position:this.position(c),fire:0,wet:0,charge:0};this.states.set(id,state);}return state;

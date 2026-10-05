@@ -64,7 +64,16 @@ jobs:
             cases: campaign.spec|campaign-playthrough
           - project: desktop-chromium
             group: desktop-campaign-ui
-            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards|campaign-codex
+            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards
+          - project: desktop-chromium
+            group: desktop-echo-vault
+            cases: echo-vault
+          - project: desktop-chromium
+            group: desktop-equipment-tools
+            cases: campaign-equipment-tools
+          - project: desktop-chromium
+            group: desktop-discovery-controls
+            cases: campaign-codex|campaign-gamepad
           - project: desktop-chromium
             group: desktop-campaign-save
             cases: campaign-save-history|campaign-file-transfer
@@ -76,7 +85,16 @@ jobs:
             cases: campaign.spec|campaign-playthrough
           - project: android-chromium
             group: android-campaign-ui
-            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards|campaign-codex
+            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards
+          - project: android-chromium
+            group: android-echo-vault
+            cases: echo-vault
+          - project: android-chromium
+            group: android-equipment-tools
+            cases: campaign-equipment-tools
+          - project: android-chromium
+            group: android-discovery-controls
+            cases: campaign-codex|campaign-gamepad
           - project: android-chromium
             group: android-campaign-save
             cases: campaign-save-history|campaign-file-transfer
