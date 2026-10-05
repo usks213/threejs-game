@@ -59,6 +59,10 @@ export class SkyboundPowers {
  private readonly metrics={activeAssemblies:0,sleepingParts:0,contacts:0,dynamicContacts:0,historyFrames:0};
  constructor(saved?: SkyboundSave) {
   this.state = saved ? validateSkybound(saved) : {version: 2, parts: [], blueprints: [], fusions: {}};
+  // Old sky-site loans had an isolated anchored emitter that could never be
+  // wired by a player. Unlock only that impossible loan, keeping every pose,
+  // inventory, custom part and valid connected circuit. Load starts new history.
+  for(const part of this.state.parts)if(part.loan?.site===850003&&part.kind==='emitter'&&part.anchored&&part.links.length===0){part.anchored=false;part.epoch=Number.isSafeInteger(part.epoch+1)?part.epoch+1:0;part.sleeping=false;}
   this.nextId = this.state.nextId??Math.max(0, ...this.state.parts.map(p => p.id), ...this.state.blueprints.map(p => p.id)) + 1;
  }
  private requireIds(count:number):void{if(!Number.isSafeInteger(this.nextId+count))throw new Error('部品IDの上限に達しました');}

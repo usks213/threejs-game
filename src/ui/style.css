@@ -117,3 +117,6 @@ header{display:flex!important;left:calc(12px + var(--safe-left));top:calc(8px + 
 #sound-captions{position:absolute;left:50%;top:25%;transform:translateX(-50%);max-width:50%;padding:6px 10px;color:white;background:#101923dc;border-radius:6px;font-size:12px;pointer-events:none;z-index:12}
 
 .food-hud{display:flex;gap:3px;flex-wrap:wrap}.food-hud>span{max-width:62px;min-width:34px;white-space:normal;overflow:visible;padding:2px 4px}.food-hud>span>b{display:block;max-width:62px;font-weight:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.food-hud>span>small{display:block;font-size:10px;white-space:nowrap}
+/* Six adventure tabs fit the landscape panel without pushing the journal below the fold. */
+#adventure-panel nav:has([data-tab=market]:not([hidden])){grid-template-columns:repeat(6,minmax(48px,1fr))}
+.catalog-tools input,.catalog-tools select{background:#14271f;color:#f0e3c4;border:1px solid #b6a578;border-radius:4px;padding:8px}
