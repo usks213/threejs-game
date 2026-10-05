@@ -22,3 +22,11 @@ Cloudflareは[isolate当たり128MBの上限](https://developers.cloudflare.com/
 ## 成果物
 
 CI artifact `public-coop-load-evidence` の `public-coop-load.json`。期待SHA、開始/終了時刻、上記の観測値と限界を含む。公開実行後、その結果を別途追記する。
+
+## 測定器とCIの回帰（22:06 UTC）
+
+7e36cdbaのCIは公開実測より前に停止。ローカルserverもViteのCI定義からbuild SHAを持つのに、測定器の単体fixtureが文字列`local`を期待していた。fixtureは実際の`COOP_BUILD_ID`を使い、loopbackに限り`local`または厳密な40桁SHAを許可するよう修正。公開originの制限やasset/authorityのSHA照合は緩めていない。明示した`GITHUB_SHA`で3試験が合格。
+
+新規世界のローカル実4socketを60.063秒動かした観測は26.372tick/秒、受信31,412,860byte、各29pingのp95が約200〜222ms。schedulerは28回のrebase、8,168msの古い遅れを記録した。ただし同じNodeにserverと4decoderがあり、同じ作業環境で別のCPU profileも重なったため、独立したserver容量や最適化前後の比較には使わない。ゲームソースはローカル3f25f59で、公開Workerの結果ではない。
+
+CIの公開測定も同じpreview上の別部屋のbrowser QAと並行し得る。部屋ごとの4参加者は確認するが、同一isolate/共有基盤の他の負荷がゼロとは仮定しない。

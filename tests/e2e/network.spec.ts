@@ -1,4 +1,5 @@
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
+import {installCoopBrowserImpairment} from '../helpers/coop-browser-impairment';
 import type {SkyboundSnapshot} from '../../src/game/skybound/types';
 import type {EditOperation} from '../../src/world/types';
 import type {PeerRenderSample} from '../../src/rendering/scene/peer-render-probe';
@@ -8,7 +9,7 @@ import {COOP_PROTOCOL,type CoopServerPacket} from '../../src/networking/coop-pro
 test.use({trace:'off'});
 test.describe.serial('two real browsers',()=>{
  type Ack=Extract<CoopServerPacket,{type:'ack'}>;
- const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>}>();
+ const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>;welcomeEdits:EditOperation[]}>();
  let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',expectedEditCount=0,errors:string[]=[],failed=false,tracePaths:string[]=[];
  const stage=(name:string)=>console.log('COOP_BROWSER_PHASE',name);
  const running=(page:Page)=>expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
@@ -24,23 +25,14 @@ test.describe.serial('two real browsers',()=>{
   [a,b]=await Promise.all(contexts.map(context=>context.newPage()));
   for(const page of[a,b]){
    page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
-   // Withhold one received real delta from the application when explicitly
-   // armed below. Keep the actual socket/endpoint and its outgoing bytes intact.
-   // This avoids routing resume capabilities through recorded Playwright calls.
-   await page.addInitScript(()=>{
-    const fault={skipNextDelta:false,skipped:0};(window as typeof window&{coopDeliveryFault?:typeof fault}).coopDeliveryFault=fault;
-    window.WebSocket=new Proxy(window.WebSocket,{construct(Target,args,newTarget){
-     const socket=Reflect.construct(Target,args,newTarget) as WebSocket;
-     socket.addEventListener('message',event=>{if(!fault.skipNextDelta)return;try{if(JSON.parse(String(event.data)).type==='delta'){fault.skipNextDelta=false;fault.skipped++;event.stopImmediatePropagation();}}catch{}},{capture:true});
-     return socket;
-    }});
-   });
-   const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>()};wire.set(page,observed);
+   await page.addInitScript(installCoopBrowserImpairment);
+   const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>(),welcomeEdits:[] as EditOperation[]};wire.set(page,observed);
    // Observe the actual transport before navigation, including reconnects. Keep
    // only action IDs/results; never retain or log handshake/resume capabilities.
    page.on('websocket',socket=>{
     socket.on('framereceived',frame=>{try{
      const packet=JSON.parse(String(frame.payload));
+     if(packet.type==='welcome')observed.welcomeEdits=packet.save.edits;
      if(packet.type==='welcome')console.log('COOP_BASELINE',JSON.stringify({epoch:packet.epoch,tick:packet.state?.tick,ack:packet.state?.ack,edits:packet.state?.edits,playerId:packet.playerId}));
      if(packet.type==='welcome'||packet.type==='frame'||packet.type==='delta')for(const edit of packet.edits??packet.save?.edits??[])observed.edits.set(edit.id,edit);
      if(packet.type==='ack'&&typeof packet.commandId==='string'&&typeof packet.accepted==='boolean'&&typeof packet.message==='string')observed.acks.set(packet.commandId,{type:'ack',commandId:packet.commandId,accepted:packet.accepted,message:packet.message});
@@ -61,7 +53,8 @@ test.describe.serial('two real browsers',()=>{
   identity=(await b.locator('#session-status').getAttribute('data-player'))!;expect(identity).not.toBe(await a.locator('#session-status').getAttribute('data-player'));
   // Both connections remain live; only one software-GPU view renders at a time.
   for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-players','2');await page.keyboard.press('Escape');await running(page);await page.locator('#session-menu').click();}
-  stage('two browsers ready');}catch(error){failed=true;await Promise.all([a,b].filter(Boolean).map(diagnostics));throw error;}
+  for(const page of[a,b])await page.evaluate(()=>{window.coopDeliveryFault.enabled=true;});
+  stage('two browsers ready with 150ms injected RTT');}catch(error){failed=true;await Promise.all([a,b].filter(Boolean).map(diagnostics));throw error;}
  });
  test.afterEach(async({},info)=>{if(info.status!==info.expectedStatus){failed=true;for(const page of[a,b].filter(Boolean))await diagnostics(page);}});
  test.afterAll(async()=>{await Promise.allSettled(contexts.map((c,i)=>Promise.race([c.tracing.stop(failed?{path:tracePaths[i]}:undefined),new Promise<void>(r=>setTimeout(r,5000))])));await Promise.allSettled(contexts.map(c=>Promise.race([c.close(),new Promise<void>(r=>setTimeout(r,5000))])));});
@@ -72,11 +65,16 @@ test.describe.serial('two real browsers',()=>{
   await a.locator('[data-drop-kind=wood]').focus();await b.locator('[data-drop-kind=wood]').focus();
   await Promise.all([a.keyboard.press('Enter'),b.keyboard.press('Enter')]);
   await expect.poll(async()=>Number(await a.locator('#bag-material-counts [data-item=wood]').getAttribute('data-count'))+Number(await b.locator('#bag-material-counts [data-item=wood]').getAttribute('data-count'))).toBe(12);
+  const replay=()=>{for(const page of[a,b]){const actions=wire.get(page)!.actions.filter(action=>action.action==='gather');for(const action of actions)if(actions.filter(other=>other.commandId===action.commandId).length>1)return {page,id:action.commandId};}return undefined;};
+  await expect.poll(()=>replay()?.id).toBeTruthy();const retried=replay()!;await expect.poll(()=>wire.get(retried.page)!.acks.get(retried.id)?.accepted).toBe(false);
+  // The retry's receipt has arrived: the original successful transfer still
+  // appears exactly once in the real UI, not just before a delayed replay.
+  await expect.poll(async()=>Number(await a.locator('#bag-material-counts [data-item=wood]').getAttribute('data-count'))+Number(await b.locator('#bag-material-counts [data-item=wood]').getAttribute('data-count'))).toBe(12);
   await expect(a.locator('[data-drop-kind=wood]')).toHaveCount(0);await expect(b.locator('[data-drop-kind=wood]')).toHaveCount(0);
   for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-last-command',new RegExp('gather'));await page.keyboard.press('Escape');await page.locator('#session-menu').click();}
   stage('single transfer verified');
  });
- test('move one shared creative block, reject a competing grab and recover expired or disconnected leases',async()=>{
+ test('move one shared creative block, reject a competing grab and recover expired or disconnected leases',async({},info)=>{
   test.setTimeout(180000);stage('NET-A02 shared creative block');
   const pages=[a,b],playerIds=await Promise.all(pages.map(page=>page.locator('#session-status').getAttribute('data-player')));
   const sky=async(page:Page)=>JSON.parse(await page.locator('#app').getAttribute('data-skybound')??'null') as SkyboundSnapshot|null;
@@ -162,7 +160,25 @@ test.describe.serial('two real browsers',()=>{
   const restoredPosition=(await part(other))!.position;await expect.poll(async()=>(await part(holder))?.position).toEqual(restoredPosition);
   await command(other,'#powers-panel [data-power=release]','sky-release',partId);
   for(const page of pages){await expect.poll(async()=>!!(await part(page))?.lease).toBe(false);await page.locator('#powers-close').click();await page.locator('#session-menu').click();}
-  expect(errors).toEqual([]);stage('NET-A02 conflict movement expiry and reconnect verified');
+  stage('NET-A09 release despite one lost idle packet');
+  await b.locator('#session-close').click();await running(b);
+  const delayedPeer=async()=>JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]').find((peer:{id:string})=>peer.id===identity) as {x:number;z:number};
+  const beforeMotion=(await delayedPeer()).x;await b.keyboard.down('KeyD');
+  try{await expect.poll(async()=>(await delayedPeer()).x,{intervals:[50,100]}).toBeGreaterThan(beforeMotion+.35);await b.evaluate(()=>{window.coopDeliveryFault.dropNextIdle=true;});}finally{await b.keyboard.up('KeyD');}
+  await expect.poll(()=>b.evaluate(()=>window.coopDeliveryFault.stats.droppedIdleInputs)).toBe(1);
+  const releasedTick=Number(await a.locator('#session-status').getAttribute('data-tick'));await expect.poll(async()=>Number(await a.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThanOrEqual(releasedTick+20);
+  const stopped={...await delayedPeer()},settledTick=Number(await a.locator('#session-status').getAttribute('data-tick'));await expect.poll(async()=>Number(await a.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThanOrEqual(settledTick+20);
+  const afterStop=await delayedPeer();expect(Math.hypot(afterStop.x-stopped.x,afterStop.z-stopped.z)).toBeLessThan(.03);await b.locator('#session-menu').click();
+  // The preceding ordinary pickup and all original lease assertions ran under
+  // this profile. Count actual loss/retry events; never infer them from setup.
+  for(const page of pages){await expect.poll(()=>page.evaluate(()=>window.coopDeliveryFault.stats.droppedDeltas),{timeout:20000}).toBe(2);await expect.poll(()=>page.evaluate(()=>window.coopDeliveryFault.stats.pingRttMs.length)).toBeGreaterThan(0);}
+  const impairment=await Promise.all(pages.map(page=>page.evaluate(()=>window.coopDeliveryFault.stats)));
+  expect(impairment.reduce((sum,stats)=>sum+stats.duplicatedActions,0)).toBe(1);
+  for(const stats of impairment){expect(stats.delayedIncoming).toBeGreaterThan(0);expect(stats.delayedOutgoing).toBeGreaterThan(0);expect(Math.min(...stats.incomingDelayMs)).toBeGreaterThanOrEqual(70);expect(Math.min(...stats.outgoingDelayMs)).toBeGreaterThanOrEqual(70);expect(Math.min(...stats.pingRttMs)).toBeGreaterThanOrEqual(140);}
+  await info.attach('impaired-browser-transport.json',{body:JSON.stringify({injectedOneWayMs:75,jitterMs:[0,25],note:'150ms added application RTT, plus actual internet and browser scheduling delay; not TCP packet loss or phone performance',clients:impairment,stopped,afterStop},null,2),contentType:'application/json'});
+  for(const page of pages)await page.evaluate(()=>{window.coopDeliveryFault.enabled=false;});
+  for(const page of pages)await expect.poll(()=>page.evaluate(()=>window.coopDeliveryFault.stats.queued)).toBe(0);
+  expect(errors).toEqual([]);stage('NET-A02 lease and NET-A09 impaired transport verified');
  });
  test('move, turn and jump with mutually visible rendered avatars through the public authority',async({},info)=>{
   test.setTimeout(120000);stage('NET-A01 actual peer pixels');
@@ -198,7 +214,7 @@ test.describe.serial('two real browsers',()=>{
   await info.attach('mutual-avatar-render-evidence.json',{body:JSON.stringify(evidence,null,2),contentType:'application/json'});expect(errors).toEqual([]);stage('mutual movement heading and airborne pixels verified');
  });
  test('commit a terrain edit and verify remote rendered surface and collision',async({},info)=>{
-  test.setTimeout(150000);stage('visible terrain tool');await a.keyboard.press('Escape');await running(a);
+  test.setTimeout(210000);stage('visible terrain tool');await a.keyboard.press('Escape');await running(a);
   // The initial camera aimed into the protected arrival/landmark cores. Walk
   // east using real input before digging; keep both clients on the same world.
   const creator=await a.locator('#session-status').getAttribute('data-player');
@@ -231,7 +247,17 @@ test.describe.serial('two real browsers',()=>{
   const target=(await renderedAim()).target!;expect(Math.hypot(target.x-edit.position.x,target.z-edit.position.z)).toBeLessThan(2.3);
   await b.screenshot({path:info.outputPath('remote-excavation-collision.png'),timeout:60000,scale:'css',animations:'disabled'});
   await info.attach('terrain-render-collision-evidence.json',{body:JSON.stringify({edit,collided,renderedAim:await renderedAim(),streaming:JSON.parse(await b.locator('#app').getAttribute('data-streaming')??'{}')},null,2),contentType:'application/json'});
-  await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('shared edit rendered and collision verified');
+  stage('NET-A04 leave and re-enter the same excavated floor');
+  const beforeReentryEdits=[...wire.get(b)!.edits.values()].sort((left,right)=>left.id-right.id);expect(beforeReentryEdits).toHaveLength(expectedEditCount);
+  const beforeReentryEpoch=await b.locator('#app').getAttribute('data-world-epoch');await b.locator('#session-menu').click();await b.locator('#session-leave').click();await expect(a.locator('#session-status')).toHaveAttribute('data-players','1');await b.locator('#session-close').click();await running(b);
+  await b.locator('#session-menu').click();await b.locator('#session-code').fill(code);await b.locator('#session-join').click();await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await expect(b.locator('#session-status')).toHaveAttribute('data-player',identity);await running(b);await expect(b.locator('#app')).not.toHaveAttribute('data-world-epoch',beforeReentryEpoch!);await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount));await expect(a.locator('#session-status')).toHaveAttribute('data-players','2');expect(wire.get(b)!.welcomeEdits).toEqual(beforeReentryEdits);
+  await b.locator('#session-close').click();await expect.poll(async()=>(await peer()).grounded).toBe(true);await expect.poll(async()=>(await peer()).y).toBeCloseTo(collided.y,1);const restoredFloor=(await peer()).y;
+  // A real jump and landing distinguish rebuilt collision from merely loading
+  // a saved coordinate inside the hole. No teleport or fixture is introduced.
+  await b.keyboard.press('Space');await expect.poll(async()=>(await peer()).y,{intervals:[50,100]}).toBeGreaterThan(restoredFloor+.15);await expect.poll(async()=>(await peer()).grounded).toBe(true);await expect.poll(async()=>(await peer()).y).toBeCloseTo(restoredFloor,1);await expect.poll(async()=>Number(await b.locator('#position').getAttribute('data-y'))).toBeCloseTo(restoredFloor,1);
+  await expect.poll(async()=>(await renderedAim()).target?.y??Infinity).toBeLessThan(edit.position.y-.3);const reentryTarget=(await renderedAim()).target!;expect(Math.hypot(reentryTarget.x-edit.position.x,reentryTarget.z-edit.position.z)).toBeLessThan(2.3);
+  await b.screenshot({path:info.outputPath('remote-excavation-reentry.png'),timeout:60000,scale:'css',animations:'disabled'});await info.attach('terrain-reentry-evidence.json',{body:JSON.stringify({edit,beforeReentryEpoch,afterReentryEpoch:await b.locator('#app').getAttribute('data-world-epoch'),restoredFloor,landed:await peer(),renderedAim:await renderedAim()},null,2),contentType:'application/json'});
+  await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('shared edit rendered and collision verified before and after re-entry');
  });
  test('reconnect, restore a late browser and continue after the creator leaves',async({browser})=>{
   test.setTimeout(180000);stage('disconnect and reconnect');await contexts[1].setOffline(true);
