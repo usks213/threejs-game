@@ -23,4 +23,4 @@ it('completes western mine and both roads from the original start through normal
  expect(s.western!.snapshot().completed).toContain('west-two-roads');
  expect(s.campaign.state.deaths).toBe(0);const saved=captureCampaign(s,defaultSettings()),restored=hydrateCampaign(JSON.parse(JSON.stringify(saved)));expect(restored).not.toBeNull();expect(restored!.sim.western!.snapshot()).toEqual(s.western!.snapshot());expect(restored!.sim.campaign.snapshot()).toEqual(s.campaign.snapshot());
  d.checkpoint('western settlement and checkpoint');
-},60000);
+},180000);

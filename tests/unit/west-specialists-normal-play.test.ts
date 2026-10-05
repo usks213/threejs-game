@@ -39,4 +39,4 @@ it('rescues both western specialists, talks at their new homes, crafts their gea
  d.walk(-45,-14.5);d.act('jump');d.until(()=>!s.player.grounded,2,{},'specialist glider takeoff');d.act('jump');expect(s.gliding).toBe(true);d.advance(.3);d.act('jump');d.until(()=>s.player.grounded,5,{},'specialist glider landing');
  expect(s.campaign.state.deaths).toBe(0);const saved=captureCampaign(s,defaultSettings()),restored=hydrateCampaign(JSON.parse(JSON.stringify(saved)));expect(restored).not.toBeNull();expect(restored!.sim.western!.snapshot()).toEqual(s.western!.snapshot());expect(restored!.sim.campaign.snapshot()).toEqual(s.campaign.snapshot());
  expect(restored!.sim.campaign.professionUnlocked('carpenter')).toBe(true);expect(restored!.sim.campaign.professionUnlocked('alchemist')).toBe(true);expect(restored!.sim.western!.geometryConsistent()).toBe(true);d.checkpoint('two specialists, crafted equipment and restored settlement');
-},60000);
+},180000);

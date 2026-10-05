@@ -79,5 +79,5 @@ describe('regional progression through ordinary production Core controls (not br
   expect(s.campaign.state.deaths).toBe(0);expect(s.campaign.state.claimedPoints).toEqual(expect.arrayContaining(['rg-field-cache','rg-field-herb','rg-wood-cache','rg-fen-cache','rg-mesa-cache','rg-ash-cache','rg-rime-cache','rg-lake-cache']));
   expect(s.campaign.state.unlockedRegions).toHaveLength(7);for(const seal of ['field','wood','fen','mesa','ash','rime','lake'])expect(s.campaign.state.items[seal+'-seal']).toBe(1);expect(s.campaign.state.claimedEnemies).toEqual(expect.arrayContaining(['regional:101','regional:102','regional:104','regional:106','regional:107','regional:108','regional:109','regional:110','regional:111']));
   const restored=hydrateCampaign(JSON.parse(JSON.stringify(captureCampaign(s,defaultSettings()))));expect(restored).not.toBeNull();expect(restored!.sim.campaign.snapshot()).toEqual(s.campaign.snapshot());expect(restored!.sim.survival.exportState()).toEqual(s.survival.exportState());expect(restored!.sim.weather).toEqual(s.weather);d.checkpoint('regional save verified');
- },120000);
+ },180000);
 });

@@ -12,7 +12,7 @@ export class NormalPlayer {
  diagnostic(label:string){const s=this.sim,p=s.player;return JSON.stringify({label,seconds:s.seconds,position:p.position,hp:p.hp,stamina:p.stamina,phase:p.phase,animal:s.animal.state,inventory:s.survival.inventory,enemies:s.enemies.filter(e=>e.hp>0).map(e=>({id:e.id,hp:e.hp,position:e.position,phase:e.phase})),recent:s.events.slice(-4).map(e=>e.text)});}
  // The 24,000 simulation-step cap is invariant. Allow slower shared CI CPUs
  // to execute the same route; this is a liveness timeout, not an FPS benchmark.
- tick(input:Partial<Controls>={}){if(++this.steps>24000||performance.now()-this.started>110000)throw Error(this.diagnostic('Bounded normal-play wall-time/step budget exceeded'));this.sim.tick(1/30,{...neutral,...input});if(this.sim.player.hp<=0)throw Error(this.diagnostic('Player died during normal play'));}
+ tick(input:Partial<Controls>={}){if(++this.steps>24000||performance.now()-this.started>150000)throw Error(this.diagnostic('Bounded normal-play wall-time/step budget exceeded'));this.sim.tick(1/30,{...neutral,...input});if(this.sim.player.hp<=0)throw Error(this.diagnostic('Player died during normal play'));}
  advance(seconds:number,input:Partial<Controls>={}){for(let i=0;i<Math.ceil(seconds*30);i++)this.tick(input);}
  until(predicate:()=>boolean,seconds:number,input:Partial<Controls>={},label='condition'){for(let i=0;i<Math.ceil(seconds*30)&&!predicate();i++)this.tick(input);expect(predicate(),this.diagnostic(label)).toBe(true);}
  idle(){this.until(()=>this.sim.player.phase==='idle',5,{},'action returns to idle');}

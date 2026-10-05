@@ -21,6 +21,9 @@ export default defineConfig({
   test: {
     include: ['tests/unit/**/*.test.ts'],
     environment: 'node',
+    // Full-world save/restore fixtures exceed Vitest's 5s default on shared CI.
+    // Performance contracts remain explicit assertions; this only bounds liveness.
+    testTimeout: 15_000,
     maxWorkers: 2,
   },
 });
