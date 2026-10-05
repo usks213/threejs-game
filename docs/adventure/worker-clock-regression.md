@@ -1,0 +1,21 @@
+# Worker時計での正のtimer yield
+
+2026-10-05。公開ed64434cではWebSocketが開いた後、welcomeも受信byteも得られず20秒で検査が止まった。以下はその原因候補を再現する時計モデルと最小修正であり、この時点では公開復旧の証明ではない。
+
+[Cloudflareの時計仕様](https://developers.cloudflare.com/workers/runtime-apis/performance/)では、公開Workerの時計はI/Oの後に進み、同期JSのCPU時間には使えない。ローカルworkerdの時計は異なる動作になる。 [Web標準の説明](https://developers.cloudflare.com/workers/runtime-apis/web-standards/#performancetimeorigin-and-performancenow)ではperformance.nowとDate.nowの関係も明記されている。
+
+従来のschedulerは33.333…msのdeadlineに対し、残り0.333…msのtimerをそのまま渡していた。整数epoch時計と小数ms切捨てを組み合わせた再現モデルでは、最初の33msの後で時刻が変わらない0ms timerを繰り返す。モデル上はtickが1回も進まず、35msに待っているhelloイベントにも到達しない。修正前の新規テストはこのlivelockを検出して失敗した。
+
+修正は待ち時間を切上げて必ず1ms以上の正の整数にする。Nodeの微小な浮動小数点残差だけを除き、未到達deadlineを0msで待ち続けない。既存の固定dt、backlog上限、停止/再開始と古いcallbackの保護を維持する。
+
+WorkerはmaxCatchUpSteps=1とし、重いstepごとにtimerへ戻る。時計が止まっている間の「12ms CPU制限」は主張しない。Nodeは従来の最大3stepと、同期中に進む時計によるbest-effortの時間予算を維持する。
+
+10関連試験に合格。整数epoch/frozen-clock・切捨てtimerでhelloが進むこと、正の整数delay、30回/約1秒の固定step、1回80ms相当の同期処理でcallbackを1stepに制限することを追加確認した。実Workerの入力gate・公開の再welcome・再接続・持続tickは公開版で別途検証する。
+
+## ローカルworkerdも分けて確認
+
+公開用と同じWrangler4.147.0が依存するMiniflare5.20261001.0-alpha/workerdで、変更前のcommitted sourceと修正後のbundleを別々に起動した。実4WebSocketによるwelcome、独立ID、3peer、進むframe、正常切断は両方で合格した。変更前も通るので、ローカルworkerdだけでは公開時計の退行を再現できないことも記録する。
+
+各1秒の短い測定器smokeであり、Workers128MB適合・30Hzや長時間負荷の証拠ではない。修正後には実際にoverload/rebaseも記録された。公開ed64434cの失敗結果はhealth/build照合成功、1hello送信、受信0byte、測定0msであり、「4人が動いた」とは扱わない。
+
+統合した最小修正は型・全882試験/189ファイル・buildに合格。公開でのwelcome復旧とブラウザの完走は次の同SHA CIで確認する。Workerの同期処理内にあるtickMs等もCPU時間の実測にはならず、client側の実時間tick/RTTと区別する。

@@ -3,7 +3,9 @@
  * explicitly rebased and counted instead of silently claiming the target rate. */
 export interface FixedStepStats {steps:number;turns:number;catchUpSteps:number;rebases:number;droppedMs:number;maxDebtMs:number}
 export interface FixedStepOptions {
- intervalMs?:number;maxCatchUpSteps?:number;maxWorkMs?:number;maxBacklogMs?:number;
+ intervalMs?:number;maxCatchUpSteps?:number;
+ // Best-effort only when now() advances during synchronous work.
+ maxWorkMs?:number;maxBacklogMs?:number;
  now?:()=>number;
  schedule?:(callback:()=>void,delayMs:number)=>()=>void;
  onOverload?:(event:{debtMs:number;droppedMs:number;stats:FixedStepStats})=>void;
@@ -23,7 +25,14 @@ export class FixedStepClock {
  get stats():FixedStepStats{return {...this.values};}
  start():void{if(this.running)return;this.running=true;this.generation++;this.deadline=this.now()+this.interval;this.arm();}
  stop():void{this.running=false;this.generation++;this.cancel?.();this.cancel=undefined;}
- private arm():void{const generation=this.generation;this.cancel=this.schedule(()=>{if(!this.running||generation!==this.generation)return;this.cancel=undefined;this.turn(generation);},Math.max(0,this.deadline-this.now()));}
+ private arm():void{
+  const generation=this.generation;
+  // Event-frozen integer clocks can repeatedly observe a fractional deadline as
+  // still ahead after a sub-ms timeout is truncated to zero. Always yield a real
+  // positive timer; epsilon only removes sub-nanosecond arithmetic residue.
+  const delay=Math.max(1,Math.ceil(this.deadline-this.now()-1e-7));
+  this.cancel=this.schedule(()=>{if(!this.running||generation!==this.generation)return;this.cancel=undefined;this.turn(generation);},delay);
+ }
  private turn(generation:number):void{
   const started=this.now();let steps=0;this.values.turns++;
   try{

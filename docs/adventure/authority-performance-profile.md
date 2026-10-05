@@ -38,7 +38,7 @@
 従来のsetIntervalでは、3tickごとのbroadcastが33.3msを超えると、平均CPUが予算内でも遅れを取り戻せない。Node/Workerを共通の `FixedStepClock` に変更した。
 
 - 単調な時計のdeadlineへ固定dtの呼出しを合わせる。simulationのdt、ネット送信頻度や物理の精度は変えない。
-- 1 turnは最大3step、原則12msの仕事まで。1回の重いstep自体は途中で打ち切れない。残りはtimerへ戻して通信イベントへ実行機会を渡す。
+- Nodeは1 turn最大3step、時計が同期処理中にも進む環境では原則12msの仕事まで。Workersは1 callback最大1stepとし、正の整数ms timerへ必ず戻す。Workersの時計は同期JS中に進まないので、12msのCPU上限を測れているとは扱わない。1回の重いstep自体は途中で打ち切れない。
 - 250msを超える古い遅れはrebaseし、`rebases`, `droppedMs`, `maxDebtMs` へ明記する。ここで失った壁時計時間をゲームが30Hzで処理したとはしない。
 - Nodeは `server.timing()` とsoakのmetrics/finalに統計を出す。Workerはrebase時に `coop-scheduler-overload` をlogへ出す。`steps` はscheduler呼出し数で、保存待ち/参加待ちを除いた実simulation tick数ではない。
 - stop/再start、古いcallback、最後の退出、保存失敗、例外、サーバーshutdownのcleanupを維持する。古いroomの遅延closeイベントが新しいroomの時計を止めないようidentityも確認する。

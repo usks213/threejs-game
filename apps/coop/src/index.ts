@@ -40,7 +40,9 @@ export class CoopRoom extends DurableObject<Env> {
   if (!this.timer) {this.timer = new FixedStepClock(() => {
    try { room.step(); if (Date.now() - this.lastSave > 30000) { this.lastSave = Date.now(); this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); } }
    catch { room.notice('共有シミュレーションを停止しました。再接続してください'); this.timer?.stop(); this.timer = undefined; }
-  }, {onOverload:event=>console.warn(JSON.stringify({event:'coop-scheduler-overload',...event}))});this.timer.start();}
+  // Workers freeze performance.now() during synchronous JS; one step is the
+  // enforceable per-callback bound, followed by a positive-timer I/O yield.
+  }, {maxCatchUpSteps:1,onOverload:event=>console.warn(JSON.stringify({event:'coop-scheduler-overload',...event}))});this.timer.start();}
   return new Response(null, { status: 101, webSocket: client });
  }
  private persistenceFailed(room:AuthorityRoom):void{room.failPersistence();if(this.room===room){this.timer?.stop();this.timer=undefined;this.room=null;this.loading=null;}}
