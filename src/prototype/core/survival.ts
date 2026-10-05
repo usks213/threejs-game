@@ -1,3 +1,4 @@
+import {SoilFillSystem,decodeSoilFill,type SoilFillState} from './soil-fill';
 import {acquisitionInventory} from './discovery';
 import {record,number,integer,text,vector,checksum} from '../../save/validation';
 import type {VoxelWater} from './water';
@@ -11,7 +12,7 @@ export const SURVIVAL_RECIPES:Record<RecipeId,{id:RecipeId;label:string;cost:num
 export interface DropInput {material:number;position:Vec3;count:number;id?:string|number}
 export interface MaterialDrop {id:number;material:number;position:Vec3;count:number;velocity?:Vec3;fire?:number;wet?:number;charge?:number}
 export interface BuildingState {id:string;recipe:RecipeId;position:Vec3;anchor:Vec3;rotation?:number;cost?:number;signature?:string;open?:boolean}
-export interface SurvivalState {version:1;inventory:Record<number,number>;drops:MaterialDrop[];pendingDrops:MaterialDrop[];selected:RecipeId;sequence:number;buildings:BuildingState[];sourceIds:(string|number)[];rotation?:number}
+export interface SurvivalState {soil?:SoilFillState;version:1;inventory:Record<number,number>;drops:MaterialDrop[];pendingDrops:MaterialDrop[];selected:RecipeId;sequence:number;buildings:BuildingState[];sourceIds:(string|number)[];rotation?:number}
 export interface PlacementResult {ok:boolean;message:string}
 export interface PlacementPreview extends PlacementResult {bounds:{min:Vec3;max:Vec3};recipe:RecipeId;rotation:number;target:Vec3}
 interface BuildingShape {min:Vec3;max:Vec3;sdf:Sdf;anchor:Vec3}
@@ -45,8 +46,9 @@ export class SurvivalSystem {
  private dropKey(d:DropInput){return `${d.material}:${d.position.x},${d.position.y},${d.position.z}`;}
  private pendingCursor=0;private sequence=0;private buildings:BuildingState[]=[];
  private accepted=new WeakSet<DropInput>();private readonly sourceIds=new Set<string|number>();
- constructor(readonly field:VoxelField,readonly water?:VoxelWater,readonly damagedObjects?:ReadonlySet<string>){}
- exportState():SurvivalState {const clone=(d:MaterialDrop):MaterialDrop=>({...d,position:{...d.position},...(d.velocity?{velocity:{...d.velocity}}:{})});return {version:1,inventory:{...this.inventory},drops:this.drops.map(clone),pendingDrops:this.pendingDrops.map(clone),selected:this.selected,sequence:this.sequence,buildings:this.buildings.map(b=>({...b,position:{...b.position},anchor:{...b.anchor}})),sourceIds:[...this.sourceIds],rotation:this.rotation};}
+ readonly soil:SoilFillSystem;
+ constructor(readonly field:VoxelField,readonly water?:VoxelWater,readonly damagedObjects?:ReadonlySet<string>){this.soil=new SoilFillSystem(field,this.inventory,damagedObjects);}
+ exportState():SurvivalState {const clone=(d:MaterialDrop):MaterialDrop=>({...d,position:{...d.position},...(d.velocity?{velocity:{...d.velocity}}:{})});return {soil:this.soil.snapshot(),version:1,inventory:{...this.inventory},drops:this.drops.map(clone),pendingDrops:this.pendingDrops.map(clone),selected:this.selected,sequence:this.sequence,buildings:this.buildings.map(b=>({...b,position:{...b.position},anchor:{...b.anchor}})),sourceIds:[...this.sourceIds],rotation:this.rotation};}
  restoreState(value:unknown):boolean {
   if(!record(value)||value.version!==1||!record(value.inventory)||!text(value.selected)||!Object.hasOwn(SURVIVAL_RECIPES,value.selected)||!integer(value.sequence)||!Array.isArray(value.drops)||value.drops.length>this.maxDrops||!Array.isArray(value.pendingDrops)||value.pendingDrops.length>100000||!Array.isArray(value.buildings)||value.buildings.length>this.maxBuildings||!Array.isArray(value.sourceIds)||value.sourceIds.length>8192)return false;
   if(value.rotation!==undefined&&!integer(value.rotation,0,3))return false;
@@ -56,7 +58,8 @@ export class SurvivalSystem {
   const drops=parseDrops(value.drops,false),pending=parseDrops(value.pendingDrops,true);if(!drops||!pending)return false;
   const buildingIds=new Set<string>(),buildings:BuildingState[]=[];for(const b of value.buildings){if(!record(b)||!text(b.id)||!text(b.recipe)||!Object.hasOwn(SURVIVAL_RECIPES,b.recipe)||!vector(b.position)||!vector(b.anchor)||buildingIds.has(b.id))return false;const serial=Number(b.id.split(':').at(-1));if(b.id!==`build:${b.recipe}:${serial}`||!integer(serial,1,value.sequence)||ids.has(serial))return false;ids.add(serial);buildingIds.add(b.id);if(b.rotation!==undefined&&!integer(b.rotation,0,3)||b.cost!==undefined&&b.cost!==SURVIVAL_RECIPES[b.recipe as RecipeId].cost||b.signature!==undefined&&!(typeof b.signature==='string'&&/^[0-9a-f]{8}$/.test(b.signature))||b.open!==undefined&&typeof b.open!=='boolean')return false;buildings.push({id:b.id,recipe:b.recipe as RecipeId,position:{...b.position},anchor:{...b.anchor},rotation:(b.rotation??0) as number,...(b.cost!==undefined?{cost:b.cost as number}:{}),...(b.signature!==undefined?{signature:b.signature as string}:{}),open:b.open===true});}
   const sources=new Set<string|number>();for(const id of value.sourceIds){if(!(text(id)||integer(id))||sources.has(id))return false;sources.add(id);}
-  Object.assign(this.inventory,inventory);this.drops.splice(0,this.drops.length,...drops);this.pendingDrops.length=0;for(const d of pending)this.pendingDrops.push(d);this.pendingIndex.clear();for(const d of pending)this.pendingIndex.set(this.dropKey(d),d);this.pendingCursor=0;this.sequence=value.sequence;this.selected=value.selected as RecipeId;this.buildings=buildings;this.rotation=(value.rotation??0) as number;this.undoRecord=null;this.sourceIds.clear();for(const id of sources)this.sourceIds.add(id);this.accepted=new WeakSet();return true;
+  const soil=decodeSoilFill(value.soil);if(!soil)return false;
+  this.soil.restore(soil);Object.assign(this.inventory,inventory);this.drops.splice(0,this.drops.length,...drops);this.pendingDrops.length=0;for(const d of pending)this.pendingDrops.push(d);this.pendingIndex.clear();for(const d of pending)this.pendingIndex.set(this.dropKey(d),d);this.pendingCursor=0;this.sequence=value.sequence;this.selected=value.selected as RecipeId;this.buildings=buildings;this.rotation=(value.rotation??0) as number;this.undoRecord=null;this.sourceIds.clear();for(const id of sources)this.sourceIds.add(id);this.accepted=new WeakSet();return true;
  }
  ladder(id:string){const b=this.buildings.find(b=>b.id===id&&b.recipe==='ladder');if(!b||!this.alive(b)||this.damagedObjects?.has(id))return null;return {id:b.id,position:{...b.position},rotation:b.rotation??0,height:2.4};}
  get recipe(){return SURVIVAL_RECIPES[this.selected];}

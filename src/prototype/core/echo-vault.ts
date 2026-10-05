@@ -64,21 +64,22 @@ const sameTuple=(a:SampleState,b:SampleState)=>a[0]===b[0]&&a[1]===b[1]&&a[2]===
 /** Validate complete raw ownership, not just one occupied probe. The mined crust
  * alone may deplete its original cells; it may never grow or regain claimed ore. */
 export function validEchoVaultGeometry(field:VoxelState,state:EchoVaultState){
- const actual=field.layers.filter(l=>l.id.startsWith('vault-'));
+ const actual=field.layers.filter(l=>l.id.startsWith('vault-'));let crustMined=false;
  if(!state.installed)return actual.length===0&&!field.order.some(id=>id.startsWith('vault-'))&&!field.suppressed?.some(id=>id.startsWith('vault-'));
  const expected=template(state.gateOpen).layers;
  if(actual.some(l=>!VAULT_OBJECT_IDS.includes(l.id))||field.suppressed?.some(id=>id.startsWith('vault-')))return false;
  for(const layer of expected){
   const saved=actual.find(l=>l.id===layer.id);
   if(layer.id==='vault-crust'){
-   if(!saved)continue;if(saved.removed.length)return false;const samples=new Map(layer.cells.map(c=>[key(c[0],c[1],c[2]),c]));
+   if(!saved){crustMined=true;continue;}if(saved.removed.length)return false;const samples=new Map(layer.cells.map(c=>[key(c[0],c[1],c[2]),c]));
    if(saved.cells.some(c=>{const a=samples.get(key(c[0],c[1],c[2]));return !a||c[4]!==a[4]||c[3]<a[3]-1e-12;}))return false;
+   const remaining=new Map(saved.cells.map(c=>[key(c[0],c[1],c[2]),c]));if(remaining.size!==saved.cells.length)return false;crustMined=layer.cells.some(c=>c[3]<0&&(!remaining.has(key(c[0],c[1],c[2]))||remaining.get(key(c[0],c[1],c[2]))![3]>=0));
   }else{
    if(!saved||saved.removed.length||saved.cells.length!==layer.cells.length)return false;
    const samples=new Map(saved.cells.map(c=>[key(c[0],c[1],c[2]),c]));if(layer.cells.some(c=>{const a=samples.get(key(c[0],c[1],c[2]));return !a||!sameTuple(c,a);}))return false;
   }
  }
- return true;
+ return !state.keyTaken||crustMined;
 }
 export function vaultObjectOpen(id:string,s:EchoVaultState){return id==='vault-note'?s.clue:id==='vault-key'?s.keyTaken:id==='vault-brake'?s.disarmed:id==='vault-switch'||id==='vault-gate'?s.gateOpen:id==='vault-cache'?s.rewardTaken:false;}
 export function validEchoVaultSave(state:EchoVaultState|undefined,field:VoxelState,objects:readonly {id:string;open:boolean;hp:number}[],items:Record<string,number>,stored:Record<string,number>){
@@ -87,7 +88,7 @@ export function validEchoVaultSave(state:EchoVaultState|undefined,field:VoxelSta
  const count=(id:string)=>(items[id]??0)+(stored[id]??0);
  return count(VAULT_KEY)===(s.keyTaken&&!s.gateOpen?1:0)&&count(VAULT_REWARD)===(s.rewardTaken?1:0);
 }
-export interface VaultActor {position:Vec3;alive:boolean;mayEdit:boolean}
+export interface VaultActor {position:Vec3;alive:boolean;mayEdit:boolean;hitPoint?:Vec3}
 const fail=(message:string):CampaignResult=>({ok:false,message});
 const ok=(message:string):CampaignResult=>({ok:true,message});
 const finite=(v:Vec3)=>!!v&&[v.x,v.y,v.z].every(Number.isFinite);
@@ -114,6 +115,9 @@ export class EchoVaultSystem {
   const obstacle=this.arena.field.ray({x:position.x,y:.4,z:position.z},{x:0,y:1,z:0},Math.max(0,position.y-.3));if(obstacle&&obstacle.cell.object!=='vault-plate')return 0;
   return Math.floor((to-4.2+1e-9)/6)>Math.floor((from-4.2+1e-9)/6)?22:0;
  }
+ /** Bounded authored-sample evidence. A different occluding solid is never
+  * mistaken for mining; any genuinely depleted crust sample is sufficient. */
+ crustMined(){if(!this.enabled)return false;return template(false).layers.find(l=>l.id==='vault-crust')!.cells.some(([x,y,z,d])=>{if(d>=0)return false;const current=this.arena.field.get(x,y,z);return !current||current.distance>=0;});}
  actionLabel(id:string,seconds:number){
   if(id==='vault-crust')return '鑿の攻撃で鍵の前の鉱殻を削る';
   if(id==='vault-plate')return '三本歯: '+({quiet:'停止中',warning:'せり上がり · 退避',strike:'噴出中 · 危険',disarmed:'停止梃子で解除済み'}[this.trapPhase(seconds)])+' · 右の白い側道は安全';
@@ -123,9 +127,15 @@ export class EchoVaultSystem {
   if(!this.enabled||!actor.alive||!finite(actor.position))return fail('生きている間に封庫を調べる');
   if(!actor.mayEdit)return fail('封庫の操作・報酬回収はホストの編集許可が必要');
   const q=VAULT_POINTS.find(q=>q.id===id);if(!q)return fail('封庫の対象がありません');
-  const aim={...q.position,y:id==='vault-plate'?.3:id==='vault-key'?1:q.position.y+.85};
+  // Core supplies the actual aimed surface point. A partially exposed key must
+  // not depend on an unrelated crust sample or a different centre-line ray.
+  const aim=id==='vault-key'&&actor.hitPoint?actor.hitPoint:{...q.position,y:id==='vault-plate'?.3:id==='vault-key'?1:q.position.y+.85};
+  if(!finite(aim))return fail('対象の表面に照準を合わせる');
   if(Math.hypot(actor.position.x-q.position.x,actor.position.y-q.position.y,actor.position.z-q.position.z)>2.8)return fail('対象から2.8m以内へ移動する');
-  const eye={...actor.position,y:actor.position.y+1.52},dir={x:aim.x-eye.x,y:aim.y-eye.y,z:aim.z-eye.z},distance=Math.hypot(dir.x,dir.y,dir.z),hit=this.arena.field.ray(eye,dir,distance);
+  const eye={...actor.position,y:actor.position.y+1.52},dir={x:aim.x-eye.x,y:aim.y-eye.y,z:aim.z-eye.z},distance=Math.hypot(dir.x,dir.y,dir.z);
+  if(distance>4.5)return fail('近くの対象の表面に照準を合わせる');
+  const hit=this.arena.field.ray(eye,dir,distance+(id==='vault-key'?.04:0));
+  if(id==='vault-key'&&hit?.cell.object!=='vault-key')return fail('鍵が見えるまで、照準の先の鉱殻を鑿で削る');
   if(hit&&hit.cell.object!==id&&hit.distance<distance-.12)return fail('遮蔽物の向こうは操作できません');
   if(id==='vault-shell'||id==='vault-plate'||id==='vault-gate')return ok(id==='vault-gate'?(this.state.gateOpen?'格子は開通済み。入口へ歩いて帰れる':'右手の開閉機へ薄響の鍵を差すと格子が上がる'):VAULT_CLUE);
   if(id==='vault-crust')return fail('鑿を選び、鍵の前の鉱殻を攻撃して削る');
@@ -133,7 +143,7 @@ export class EchoVaultSystem {
   if(id==='vault-note'){next.clue=true;message=VAULT_CLUE;}
   if(id==='vault-key'){
    if(!next.clue)return fail('先に入口手前の案内板を読む');if(next.keyTaken)return fail('鍵は回収済み。収納した場合は拠点で取り出す');
-   if(this.arena.field.get(26,3,45)?.object==='vault-crust')return fail('鍵の前の鉱殻を鑿で削る');
+   if(!this.crustMined())return fail('鍵を覆う鉱殻を鑿で削る');
    if((campaign.items[VAULT_KEY]??0)!==0)return fail('鍵の所持上限です');next.keyTaken=true;campaign.items[VAULT_KEY]=1;message='薄響の鍵を発見。右の白い側道で停止梃子と鍵差し開閉機へ';
   }
   if(id==='vault-brake'){if(next.disarmed)return fail('鳴動床は解除済み');next.disarmed=true;message='鳴動床を停止した。三本歯が沈み、帰り道も安全になった';}

@@ -36,3 +36,9 @@ Local final typecheck, full unit suite, production build and Playwright discover
 - `npm run e2e -- --list`: PASS, **62 cases in 19 files**, including the new PC and Android vault route.
 - `git diff --check`: PASS. No frozen provider/manifest files, protocol roster, or dependency lockfile changed.
 - Browser execution, rendered screenshots, integrated-commit GitHub status and exact-SHA public preview verification: **pending release coordination**, not passed by local unit tests.
+
+## 2026-10-05: actual mining and exposed-key regression
+
+The Android candidate trace showed the old single-sample `dungeonCrustCleared` flag becoming true while the actual key aim still hit the crust. Production also rejected visible portions of the key when that unrelated sample remained. The key now requires both genuine depletion of at least one originally solid crust sample and a freshly validated ray to the actual aimed key surface. Intact-crust walkarounds, blocked rays, absent key geometry and duplicate claims remain rejected. Claimed-key saves with wholly intact crust are rejected before commit; the frozen terrain and key/reward costs are unchanged.
+
+The Core route mines with production actions from both the nominal approach and a trace-adjacent offset, then completes the gate/reward/exit/save route. Focused rule/runtime/Core checks pass (26 tests), as do TypeScript and build. The PC/Android definitions now require actual mining and actual key targeting, rather than a sentinel voxel; both definitions list successfully. Browser execution remains pending because local Chromium is known to fail with socket EPERM; no launch retry was made. The release integration owns the full aggregate rerun and the shared transient-attack observer adaptation for slow CDP acknowledgements.

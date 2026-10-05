@@ -1,3 +1,5 @@
+import {ElementSystem} from '../../src/prototype/core/elements';
+import {VoxelWater} from '../../src/prototype/core/water';
 import {describe,it,expect} from 'vitest';
 import {VoxelField} from '../../src/prototype/core/voxel';
 import {CampaignSystem} from '../../src/prototype/core/campaign';
@@ -19,4 +21,20 @@ describe('one bounded original seal-vault',()=>{
  it('strictly validates dependencies, named objects, all gate samples and cross-inventory unique counts',()=>{const v=setup();open(v);expect(v.vault.interact('vault-cache',actor(8.5,16.2)).ok).toBe(true);const state=v.vault.snapshot(),field=v.field.exportState(),objects=[...v.arena.objects.values()],items={...v.campaign.state.items};expect(validEchoVaultSave(state,field,objects,items,{})).toBe(true);expect(validEchoVaultSave(state,field,objects,{...items,[VAULT_REWARD]:0},{[VAULT_REWARD]:1})).toBe(true);expect(validEchoVaultSave(state,field,objects,items,{[VAULT_REWARD]:1})).toBe(false);expect(validEchoVaultSave(undefined,field,objects,items,{})).toBe(false);for(const bad of [{...state,keyTaken:false},{...state,installed:false},{...state,version:2},{...state,extra:true}])expect(validEchoVaultState(bad)).toBe(false);const bad=clone(field);bad.layers.find(l=>l.id==='vault-gate')!.cells[5][3]=.49;expect(validEchoVaultGeometry(bad,state)).toBe(false);expect(validEchoVaultGeometry({...field,layers:field.layers.filter(l=>l.id!=='vault-shell')},state)).toBe(false);expect(validEchoVaultSave(state,field,objects.map(o=>({...o,open:o.id==='vault-cache'?false:o.open})),items,{})).toBe(false);});
  it('allows only depletion within the original rock-cover samples',()=>{const v=setup();let field=v.field.exportState();const crust=field.layers.find(l=>l.id==='vault-crust')!;crust.cells.find(c=>c[3]<0)![3]=.25;expect(validEchoVaultGeometry(field,v.vault.snapshot())).toBe(true);crust.cells[0][0]=200;expect(validEchoVaultGeometry(field,v.vault.snapshot())).toBe(false);field=v.field.exportState();field.layers.find(l=>l.id==='vault-crust')!.cells[0][3]=-.5;expect(validEchoVaultGeometry(field,v.vault.snapshot())).toBe(false);});
  it('does not overwrite old builds, tombstones, same-name objects or prior raw claims',()=>{const field=new VoxelField(),empty=field.exportState();expect(canInstallEchoVault(empty,[])).toBe(true);expect(canInstallEchoVault({...empty,removedBase:['30,2,50']},[])).toBe(false);field.box({x:7,y:.25,z:12},{x:8,y:2,z:13},4,'build:wall');expect(canInstallEchoVault(field.exportState(),[])).toBe(false);expect(canInstallEchoVault(empty,[{id:'vault-key'}])).toBe(false);expect(canInstallEchoVault({...empty,order:['vault-injected']},[])).toBe(false);expect(VAULT_OBJECT_IDS.length).toBe(VAULT_POINTS.length);expect(validEchoVaultState(freshEchoVaultState())).toBe(true);});
+});
+
+it('requires real mining, then accepts an exposed off-axis key while its center ray and old arbitrary crust sample remain blocked',()=>{
+ const v=setup(),a=actor(7.038,11.06),eye={...a.position,y:1.77},point={x:6.4,y:1.15,z:12.1},delta={x:point.x-eye.x,y:point.y-eye.y,z:point.z-eye.z};
+ expect(v.vault.interact('vault-note',actor(8.5,9)).ok).toBe(true);const hit=v.field.ray(eye,delta,3)!;expect(hit.cell.object).toBe('vault-key');
+ const aimed={...a,hitPoint:hit.point};expect(v.vault.crustMined()).toBe(false);expect(v.vault.interact('vault-key',aimed).ok).toBe(false);
+ const intact=v.field.exportState(),cell=v.field.get(24,2,45)!;expect(cell.object).toBe('vault-crust');expect(cell.distance).toBeLessThan(0);
+ const elements=new ElementSystem(v.field,new VoxelWater(v.field));expect(elements.damage({cell,point:{x:6.125,y:.625,z:11.375},normal:{x:0,y:1,z:0},distance:1},100,0).destroyed).toBe(1);
+ expect(v.vault.crustMined()).toBe(true);expect(v.field.get(26,3,45)?.distance).toBeLessThan(0);expect(v.field.get(26,3,45)?.object).toBe('vault-crust');
+ expect(v.vault.interact('vault-key',a).ok).toBe(false);expect(v.vault.interact('vault-key',{...a,hitPoint:{x:NaN,y:1,z:12}}).ok).toBe(false);expect(v.vault.interact('vault-key',aimed).ok).toBe(true);expect(v.campaign.state.items[VAULT_KEY]).toBe(1);expect(v.vault.interact('vault-key',aimed).ok).toBe(false);
+ expect(validEchoVaultSave(v.vault.snapshot(),v.field.exportState(),[...v.arena.objects.values()],v.campaign.state.items,{})).toBe(true);expect(validEchoVaultGeometry(intact,v.vault.snapshot())).toBe(false);
+});
+it('removing the former sentinel does not grant a still-occluded key, and absent key geometry cannot grant one',()=>{
+ const v=setup();expect(v.vault.interact('vault-note',actor(8.5,9)).ok).toBe(true);const f=v.field.exportState(),crust=f.layers.find(l=>l.id==='vault-crust')!;crust.cells=crust.cells.filter(c=>c[0]!==26||c[1]!==3||c[2]!==45);expect(v.field.restoreState(f)).toBe(true);expect(v.field.get(26,3,45)?.object).not.toBe('vault-crust');expect(v.vault.crustMined()).toBe(true);
+ const before=v.campaign.snapshot(),state=v.vault.snapshot();expect(v.vault.interact('vault-key',actor(7.038,11.06)).ok).toBe(false);expect(v.campaign.snapshot()).toEqual(before);expect(v.vault.snapshot()).toEqual(state);
+ v.field.removeObject('vault-crust');v.field.removeObject('vault-key');expect(v.vault.interact('vault-key',actor(7.5,11.35)).ok).toBe(false);expect(v.campaign.snapshot()).toEqual(before);
 });

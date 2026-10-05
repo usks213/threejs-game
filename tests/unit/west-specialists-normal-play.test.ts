@@ -18,6 +18,10 @@ function assault(d:NormalPlayer,index:number){
  expect(e.hp,d.diagnostic('western enemy')).toBeLessThanOrEqual(0);
 }
 
+function talkResident(d:NormalPlayer,id:string){
+ const a=d.sim.westNpcs.get(id)!;expect(a.visible).toBe(true);d.walk(a.position.x+1.35,a.position.z);const xp=d.sim.campaign.state.xp,materials={...d.sim.survival.inventory};d.interact(id,{...a.position,y:a.position.y+1.1});expect(d.sim.target()?.npcId).toBe(id);expect(d.sim.campaign.state.xp).toBe(xp);expect(d.sim.survival.inventory).toEqual(materials);
+}
+
 it('rescues both western specialists, talks at their new homes, crafts their gear and restores via normal production actions',()=>{
  const d=new NormalPlayer(true),s=d.sim;playFirstTwoRegions(d);expect(s.western!.accessible).toBe(true);d.menu('learn','vigor');d.menu('equip','ember-charm');
  for(let i=0;i<5;i++)d.menu('craft','bandage');for(let i=0;i<5&&s.player.hp<s.campaign.maxHp;i++)d.menu('consume','bandage');
@@ -29,14 +33,14 @@ it('rescues both western specialists, talks at their new homes, crafts their gea
  d.fight(18);d.walk(-49.7,-11.5);d.interact('west-hamlet-cache',{x:-50,y:1.1,z:-13});expect(s.western!.snapshot().claimed).toContain('west-hamlet-cache');
  d.walk(-47,-14);d.interact('west-return-hearth',{x:-46.5,y:1.35,z:-16});expect(s.western!.snapshot().campUnlocked).toBe(true);
  d.walk(-45,-15.7);d.walk(-44.65,-16.8);d.interact('west-carpenter',{x:-43.5,y:1.75,z:-17});expect(s.campaign.professionUnlocked('carpenter')).toBe(true);
- d.walk(-47,-14);d.walk(-49.15,-11.5);const carpenterXp=s.campaign.state.xp;d.interact('west-carpenter',{x:-50.5,y:1.75,z:-11.5});expect(s.campaign.state.xp).toBe(carpenterXp);
+ d.walk(-47,-14);talkResident(d,'west-carpenter');
  d.walk(-46,-13);for(const p of WEST_ROUTES[0].nodes.slice(5,-1))d.walk(p.x,p.z);
  assault(d,20);d.advance(4);d.heal();d.walk(-63,-40);assault(d,21);d.walk(-63,-43.8);d.interact('west-mine-switch',{x:-63.75,y:5.2,z:-44.3});expect(s.western!.snapshot().gateOpen).toBe(true);
  d.walk(-63,-40);d.interact('west-alchemist',{x:-64.25,y:5.25,z:-40.15});expect(s.campaign.professionUnlocked('alchemist')).toBe(true);
  d.walk(-63,-43);d.walk(-61,-45);d.walk(-58,-43);d.interact('west-mine-cache',{x:-58,y:4.65,z:-45});expect(s.western!.snapshot().claimed).toContain('west-mine-cache');
- d.menu('travel','west-return-hearth');d.walk(-48.3,-14);d.walk(-49.8,-13.6);const alchemistXp=s.campaign.state.xp;d.interact('west-alchemist',{x:-51,y:1.75,z:-13.8});expect(s.campaign.state.xp).toBe(alchemistXp);
+ d.menu('travel','west-return-hearth');d.walk(-47.2,-14);talkResident(d,'west-alchemist');
  d.walk(-47.2,-14.5);for(const id of ['windwoven-glider','resin-staff']){d.menu('craft',id);d.menu('equip',id);}expect(s.campaign.glideSpeedMultiplier).toBe(1.2);expect(s.campaign.glideStaminaMultiplier).toBe(.75);expect(s.campaign.spellMultiplier).toBeCloseTo(1.4);expect(s.campaign.isStaffWeapon).toBe(true);
  d.walk(-45,-14.5);d.act('jump');d.until(()=>!s.player.grounded,2,{},'specialist glider takeoff');d.act('jump');expect(s.gliding).toBe(true);d.advance(.3);d.act('jump');d.until(()=>s.player.grounded,5,{},'specialist glider landing');
- expect(s.campaign.state.deaths).toBe(0);const saved=captureCampaign(s,defaultSettings()),restored=hydrateCampaign(JSON.parse(JSON.stringify(saved)));expect(restored).not.toBeNull();expect(restored!.sim.western!.snapshot()).toEqual(s.western!.snapshot());expect(restored!.sim.campaign.snapshot()).toEqual(s.campaign.snapshot());
+ d.advance(12);for(const a of s.westNpcs.actors){expect(a.visible).toBe(true);expect(a.state?.activity).toMatch(/work|social|rest|shelter|walking|waiting/);expect([...s.arena.field.objectSamples(a.profile.id)]).toHaveLength(0);}expect(s.campaign.state.deaths).toBe(0);const saved=captureCampaign(s,defaultSettings()),restored=hydrateCampaign(JSON.parse(JSON.stringify(saved)));expect(restored).not.toBeNull();expect(restored!.sim.western!.snapshot()).toEqual(s.western!.snapshot());expect(restored!.sim.westNpcs.snapshot()).toEqual(s.westNpcs.snapshot());expect(restored!.sim.campaign.snapshot()).toEqual(s.campaign.snapshot());
  expect(restored!.sim.campaign.professionUnlocked('carpenter')).toBe(true);expect(restored!.sim.campaign.professionUnlocked('alchemist')).toBe(true);expect(restored!.sim.western!.geometryConsistent()).toBe(true);d.checkpoint('two specialists, crafted equipment and restored settlement');
 },180000);

@@ -1,11 +1,12 @@
 import {createNpcLifeView} from './npc-life-view';
 import * as THREE from 'three';
 import type {PlacementPreview} from '../core/survival';
+import type {SoilPreview} from '../core/soil-fill';
 import type {CoreSimulation} from '../core/simulation';
 import {REGIONAL_WATERS,REGIONAL_POINTS,regionAt} from '../core/regions';
 import {createHomesteadAnimalView} from './homestead-animal-view';
 /** Reuses one unit box and edge buffer. Expensive placement checks run at most 10Hz. */
-export function createBuildGhost(scene:THREE.Scene,preview:()=>PlacementPreview|null){
+export function createBuildGhost(scene:THREE.Scene,preview:()=>PlacementPreview|SoilPreview|null){
  const geometry=new THREE.BoxGeometry(1,1,1),edges=new THREE.EdgesGeometry(geometry),fill=new THREE.MeshBasicMaterial({color:0x68db94,transparent:true,opacity:.12,depthWrite:false}),line=new THREE.LineBasicMaterial({color:0x68db94,transparent:true,opacity:.85,depthWrite:false});
  const root=new THREE.Group();root.name='building-preview';root.visible=false;root.add(new THREE.Mesh(geometry,fill),new THREE.LineSegments(edges,line));scene.add(root);
  let nextCheck=0,wasEnabled=false,disposed=false;
@@ -37,7 +38,7 @@ export function createHearthFlames(scene:THREE.Scene){
 }
 /** Small reusable visual layer for gameplay state; no particles edit the world. */
 export function createCampaignDecor(scene:THREE.Scene,sim:CoreSimulation){
- const buildGhost=createBuildGhost(scene,()=>sim.buildPreview()),hearthFlames=createHearthFlames(scene),animalView=createHomesteadAnimalView(scene,sim),npcView=createNpcLifeView(scene,sim);
+ const buildGhost=createBuildGhost(scene,()=>sim.soilFilling?sim.soilPreview():sim.buildPreview()),hearthFlames=createHearthFlames(scene),animalView=createHomesteadAnimalView(scene,sim),npcView=createNpcLifeView(scene,sim);
  const resources:THREE.BufferGeometry[]=[],materials:THREE.Material[]=[],root=new THREE.Group();scene.add(root);
  const waterMat=new THREE.MeshPhysicalMaterial({color:'#5e9cad',roughness:.28,metalness:.12,transparent:true,opacity:.68,depthWrite:false});materials.push(waterMat);
  if(sim.campaignMode)for(const w of REGIONAL_WATERS){const g=new THREE.PlaneGeometry(w.max.x-w.min.x,w.max.z-w.min.z,10,10);resources.push(g);const mesh=new THREE.Mesh(g,waterMat);mesh.rotation.x=-Math.PI/2;mesh.position.set((w.min.x+w.max.x)/2,w.surfaceY,(w.min.z+w.max.z)/2);root.add(mesh);}
@@ -47,7 +48,7 @@ export function createCampaignDecor(scene:THREE.Scene,sim:CoreSimulation){
  const pointerG=new THREE.OctahedronGeometry(.12),pointerM=new THREE.MeshBasicMaterial({color:'#e9bf70',transparent:true,opacity:.8}),pointer=new THREE.Mesh(pointerG,pointerM);resources.push(pointerG);materials.push(pointerM);root.add(pointer);
  const boltG=new THREE.IcosahedronGeometry(.18,0),boltM=new THREE.MeshBasicMaterial({color:'#b391e6'}),bolts=new THREE.InstancedMesh(boltG,boltM,32);bolts.count=0;bolts.frustumCulled=false;root.add(bolts);resources.push(boltG);materials.push(boltM);const ringG=new THREE.RingGeometry(.91,1,32),ringM=new THREE.MeshBasicMaterial({color:'#ff975e',side:THREE.DoubleSide,transparent:true,opacity:.65,depthWrite:false}),rings=new THREE.InstancedMesh(ringG,ringM,24);rings.count=0;rings.frustumCulled=false;root.add(rings);resources.push(ringG);materials.push(ringM);
  const dummy=new THREE.Object3D(),up=new THREE.Vector3(0,1,0),direction=new THREE.Vector3();const fog=new THREE.FogExp2('#8cab9e',.025);
- return {update(){buildGhost.update(sim.buildMode,performance.now());hearthFlames.update(sim.campaignMode,sim.campaign.state,sim.player.position,sim.seconds);let n=0;for(const a of sim.arrows){if(n>=32)break;dummy.position.set(a.position.x,a.position.y,a.position.z);dummy.quaternion.setFromUnitVectors(up,direction.set(a.velocity.x,a.velocity.y,a.velocity.z).normalize());dummy.scale.set(1,1,1);dummy.updateMatrix();arrows.setMatrixAt(n++,dummy.matrix);}arrows.count=n;arrows.instanceMatrix.needsUpdate=true;let bn=0;for(const b of sim.enemyShots){dummy.position.set(b.position.x,b.position.y,b.position.z);dummy.quaternion.identity();dummy.scale.setScalar(b.radius/.18);dummy.updateMatrix();bolts.setMatrixAt(bn++,dummy.matrix);}bolts.count=bn;bolts.instanceMatrix.needsUpdate=true;let rn=0;for(const t of sim.tells){dummy.position.set(t.position.x,t.position.y+.045,t.position.z);dummy.rotation.set(-Math.PI/2,0,0);dummy.scale.setScalar(Math.max(.3,t.radius));dummy.updateMatrix();rings.setMatrixAt(rn++,dummy.matrix);}rings.count=rn;rings.instanceMatrix.needsUpdate=true;
+ return {update(){buildGhost.update(sim.buildMode||sim.soilFilling,performance.now());hearthFlames.update(sim.campaignMode,sim.campaign.state,sim.player.position,sim.seconds);let n=0;for(const a of sim.arrows){if(n>=32)break;dummy.position.set(a.position.x,a.position.y,a.position.z);dummy.quaternion.setFromUnitVectors(up,direction.set(a.velocity.x,a.velocity.y,a.velocity.z).normalize());dummy.scale.set(1,1,1);dummy.updateMatrix();arrows.setMatrixAt(n++,dummy.matrix);}arrows.count=n;arrows.instanceMatrix.needsUpdate=true;let bn=0;for(const b of sim.enemyShots){dummy.position.set(b.position.x,b.position.y,b.position.z);dummy.quaternion.identity();dummy.scale.setScalar(b.radius/.18);dummy.updateMatrix();bolts.setMatrixAt(bn++,dummy.matrix);}bolts.count=bn;bolts.instanceMatrix.needsUpdate=true;let rn=0;for(const t of sim.tells){dummy.position.set(t.position.x,t.position.y+.045,t.position.z);dummy.rotation.set(-Math.PI/2,0,0);dummy.scale.setScalar(Math.max(.3,t.radius));dummy.updateMatrix();rings.setMatrixAt(rn++,dummy.matrix);}rings.count=rn;rings.instanceMatrix.needsUpdate=true;
   rope.visible=!!sim.grapple;if(sim.grapple){const p=sim.eye(),a=ropeGeometry.getAttribute('position') as THREE.BufferAttribute;a.setXYZ(0,p.x+.2,p.y-.3,p.z);a.setXYZ(1,sim.grapple.x,sim.grapple.y+1,sim.grapple.z);a.needsUpdate=true;ropeGeometry.computeBoundingSphere();}
   animalView.update();npcView.update();
   plants.forEach((p,i)=>{const plot=sim.home.state.plots[i];p.visible=sim.campaignMode&&plot.planted;p.scale.y=.15+.85*(1-plot.remaining/60);});

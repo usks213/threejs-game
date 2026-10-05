@@ -3,11 +3,13 @@ import {FURNITURE,PROCESSING_RECIPES,STORAGE_CAPACITY,CROP_SECONDS,ANIMAL_SECOND
 import type {HomesteadSystem,HomesteadContext} from './core/homestead';
 import type {CampaignRow} from './campaign-ui';
 
+export interface FurniturePresentation {context:(id:string)=>HomesteadContext;blocked:(id:string)=>boolean}
+
 /** Read-only view model; every enabled operation is revalidated by HomesteadSystem. */
-export function homesteadRows(home:HomesteadSystem,context:HomesteadContext):CampaignRow[]{
+export function homesteadRows(home:HomesteadSystem,context:HomesteadContext,furnitureView?:FurniturePresentation):CampaignRow[]{
  const rows:CampaignRow[]=[];
- const distance=Math.hypot(context.position.x-context.basePosition.x,context.position.y-context.basePosition.y,context.position.z-context.basePosition.z);
- const gate=!context.baseActive?'先に拠点の炉を灯してください。':!Number.isFinite(distance)||distance>4?'拠点の4m以内で操作してください。':'';
+ const gateFor=(ctx:HomesteadContext)=>{const distance=Math.hypot(ctx.position.x-ctx.basePosition.x,ctx.position.y-ctx.basePosition.y,ctx.position.z-ctx.basePosition.z);return !ctx.baseActive?'先に拠点の炉を灯してください。':!Number.isFinite(distance)||distance>4?'拠点の4m以内で操作してください。':'';};
+ const gate=gateFor(context);
  const materialName=(id:string|number)=>CAMPAIGN_MATERIALS[Number(id)]?.label??String(id);
  const costText=(materials:Record<number,number>,items:Record<string,number>={})=>[...Object.entries(materials).map(([id,n])=>`${materialName(id)} ${n}`),...Object.entries(items).map(([id,n])=>`${CAMPAIGN_ITEMS[id]?.label??id} ${n}`)].join(' · ');
  const canPay=(materials:Record<number,number>,items:Record<string,number>={})=>Object.entries(materials).every(([id,n])=>(home.materials[Number(id)]??0)>=n)&&Object.entries(items).every(([id,n])=>(home.items[id]??0)>=n);
@@ -35,6 +37,6 @@ export function homesteadRows(home:HomesteadSystem,context:HomesteadContext):Cam
  if(!animal.tamed)add('tame','山羊をなつかせる','草葉8 · 拠点でミルクを生産できるようになります。',animalReason||(!canPay({7:8})?'草葉8が必要です。':''));
  else if(animal.ready)add('animal','山羊のミルクを受け取る','ミルク1 · 食事として使用できます。',animalReason||((home.items.milk??0)>=20?'ミルクの所持上限です。':''));
  else add('feed','山羊に餌を与える',animal.remaining>0?`餌を食べています · あと${Math.ceil(animal.remaining)}秒`:`草葉2 · ${ANIMAL_SECONDS}秒後にミルク1`,animalReason||(animal.remaining>0?'搾乳できるまでお待ちください。':!canPay({7:2})?'草葉2が必要です。':''));
- for(const furniture of FURNITURE){const placed=home.state.furniture.includes(furniture.id);if(placed)rows.push({id:`furniture:${furniture.id}`,label:furniture.label+' · 設置済み',detail:`快適度 +${furniture.comfort} · 同じ種類は重複しません。`,completed:true});else add(`furniture:${furniture.id}`,furniture.label+'を設置',`${costText(furniture.cost)} · 快適度 +${furniture.comfort}`,!canPay(furniture.cost)?'家具の素材が足りません。':'');}
+ for(const furniture of FURNITURE){const placed=home.state.furniture.includes(furniture.id);if(placed)rows.push({id:`furniture:${furniture.id}`,label:furniture.label+' · 設置済み',detail:`快適度 +${furniture.comfort} · 同じ種類は重複しません。`,completed:true});else{const reason=furnitureView?.blocked(furniture.id)?'住人や同行者などが設置場所にいます。通り過ぎるのを待ってください':gateFor(furnitureView?.context(furniture.id)??context)||(!canPay(furniture.cost)?'家具の素材が足りません。':'');rows.push({id:`furniture:${furniture.id}`,label:furniture.label+'を設置',detail:`${costText(furniture.cost)} · 快適度 +${furniture.comfort}`,reason,available:!reason,action:'homestead'});}}
  return rows;
 }

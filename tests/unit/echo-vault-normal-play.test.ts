@@ -3,14 +3,14 @@ import {NormalPlayer} from './helpers/normal-campaign-player';
 import {VAULT_KEY,VAULT_REWARD} from '../../src/prototype/core/echo-vault';
 import {captureCampaign,defaultSettings,hydrateCampaign} from '../../src/prototype/campaign-session';
 
-it('walks from empty starter inventory, mines the clue key, avoids and disarms the trap, opens a physical gate, claims one seal and walks out',()=>{
+it.each([[7.5,11.35],[7.05,11.06]])('walks from empty inventory and mines the actual key ray from (%s,%s), clears the vault and restores once',(miningX,miningZ)=>{
  const d=new NormalPlayer(),s=d.sim;expect(Object.values(s.survival.inventory).every(n=>n===0)).toBe(true);expect(s.campaign.state.flameTier).toBe(0);
  d.walk(8.5,6);d.walk(8.5,9);d.interact('vault-note',{x:6.5,y:1,z:9});expect(s.dungeon.snapshot().clue).toBe(true);
- d.walk(8.5,11.35);d.walk(7.5,11.35);d.act('chisel');
- for(let i=0;i<16&&s.arena.field.get(26,3,45)?.object==='vault-crust';i++){
-  d.look({x:6.5,y:.95,z:11.4});expect(s.target(2.5)?.hit.cell.object,d.diagnostic('mine vault crust')).toBe('vault-crust');d.act('heavy');d.idle();d.advance(.4);
+ d.walk(8.5,11.35);d.walk(miningX,miningZ);d.act('chisel');
+ for(let i=0;i<16;i++){
+  const mined=s.dungeon.crustMined();d.look(mined?{x:6.5,y:1,z:11.95}:{x:6.5,y:.95,z:11.4});if(mined&&s.target(2.5)?.hit.cell.object==='vault-key')break;expect(s.target(2.5)?.hit.cell.object,d.diagnostic('mine vault crust')).toBe('vault-crust');d.act('heavy');d.idle();d.advance(.4);
  }
- expect(s.arena.field.get(26,3,45)?.object).not.toBe('vault-crust');
+ expect(s.dungeon.crustMined()).toBe(true);d.look({x:6.5,y:1,z:11.95});expect(s.target(2.5)?.hit.cell.object).toBe('vault-key');
  d.interact('vault-key',{x:6.5,y:1,z:11.95});expect(s.campaign.state.items[VAULT_KEY],d.diagnostic('key claim')).toBe(1);
  const hp=s.player.hp;d.walk(8.5,11.35);d.walk(10,11.35);d.interact('vault-brake',{x:10.6,y:1,z:12.1});expect(s.dungeon.snapshot().disarmed).toBe(true);
  // The key is necessary and the unchanged gate has real blocking samples.

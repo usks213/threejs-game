@@ -87,18 +87,18 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | H01 | 拠点核 | 実装あり・実操作未検証 | core/campaign-world.ts; core/campaign.ts; tests/unit/campaign.test.ts | 炉の点灯/強化/領域条件を新規プレイで受入 |
 | H02 | 配置プレビュー | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
 | H03 | 建築形状 | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
-| H04 | 地形編集 | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
+| H04 | 地形編集 | 実装あり・ブラウザ受入待ち | core/soil-fill.ts; core/survival.ts; tests/unit/soil-fill.test.ts; soil-normal-play.test.ts; docs/soil-fill-acceptance.md | 土9の有限盛土・熊手切削・平面補修・SDF表示/衝突・無傷撤去/undo・保存を実装。ゼロ付与の通常Core採集→制作→盛土→歩行→撤去→再読込を検証。公開ブラウザ実操作は未検証 |
 | H05 | 回転/スナップ | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
 | H06 | 削除/返却 | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
 | H07 | Undo | 実装あり・実操作未検証 | core/survival.ts; core/simulation.ts; rendering/scene.ts; tests/unit/building-tools.test.ts; build-preview.test.ts | 8レシピ/回転/開口/地形破壊/返却/undoあり。実操作・保存後の衝突を確認 |
 | H08 | 家具 | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
 | H09 | NPC救出 | 部分実装・Core通し検証済 | core/campaign.ts; expedition-west.ts; expedition-west-integration.ts; tests/unit/west-specialists*.test.ts | 鍛冶師ナギに加え西方の木工師マキ/錬金師セナ。実在する身体への照準救出、条件/有限報酬/拠点への一度限りの移住を検査。初期素材0から2名救出と会話/制作/再開を通過。実ブラウザと原作規模の人数は未達 |
-| H10 | NPC専門性 | 部分実装・Core通し検証済 | core/campaign.ts; expedition-west-integration.ts; campaign-presenter.ts; tests/unit/west-specialists*.test.ts | 救出台帳でのみ専業レシピを解放。風織り翼の速度/消費と錬金杖の属性威力をCoreへ接続、移住先会話から素材/制作場所を案内。日常生活AIは含まない |
-| H11 | NPC生活 | ナギ実装・Core検証済 / 西方未実装 | core/npc-life.ts; rendering/npc-life-view.ts; tests/unit/npc-life*.test.ts; docs/npc-daily-life.md | ナギの実歩行・道具手入れ/交流/休息・実寝台と屋根・遮蔽会話・建築回避・保存/協力表示を接続。専用18試験・通常Core経路を検査。統合SHAの全回帰/公開受入は別途。マキ/セナは固定身体を維持し生活AIは未実装。公開PC/Androidの視覚・日夜受入は未検証 |
+| H10 | NPC専門性 | 部分実装・Core通し検証済 | core/campaign.ts; expedition-west-integration.ts; campaign-presenter.ts; tests/unit/west-specialists*.test.ts | 救出台帳でのみ専業レシピを解放。風織り翼の速度/消費と錬金杖の属性威力をCoreへ接続、移住先会話から素材/制作場所を案内。日常生活AIはH11に別記 |
+| H11 | NPC生活 | 3人実装・Core検証済 / 公開受入待ち | core/npc-life.ts; core/western-npc-life.ts; rendering/npc-life-view.ts; tests/unit/*npc-life*.test.ts; docs/npc-daily-life.md | ナギ/マキ/セナの実歩行・仕事/交流/休息、別々の実寝台と屋根、現在位置会話、建築/身体回避、厳密な旧形式移行・保存/ホスト表示を接続。初期素材0から西方2名救出→生活→会話/制作→再開を検査。限定拠点内の生活で、任意の寝床割当や住人同士の会話イベントは未実装。公開PC/Androidの視覚・日夜受入は未検証 |
 | H12 | 作物 | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
 | H13 | 家畜/ペット | 簡易実装・受入試験待ち | src/prototype/core/homestead.ts + tests/unit/homestead.test.ts | Normal-play/browser verification and remaining breadth |
-| H14 | 水設備 | 部分実装 | core/water.ts; core/homestead.ts | 水/生産タイマーはあるが水門・水路・水車動力の統合は未実装 |
-| H15 | 生産動力 | 部分実装 | core/water.ts; core/homestead.ts | 水/生産タイマーはあるが水門・水路・水車動力の統合は未実装 |
+| H14 | 水設備 | 部分実装 | core/water.ts; core/watermill.ts; watermill-acceptance.md | 既存の局所水槽・放水レバーと固定水車を接続。新しい水路・排水口・全世界流体は対象外。満水では停止 |
+| H15 | 生産動力 | 実装あり・ブラウザ受入待ち | core/watermill.ts; tests/unit/watermill*.test.ts; tests/e2e/watermill.spec.ts; watermill-acceptance.md | 有限素材で固定水車を組立/修理。実セル面の落水量のみで草葉6→布2、停水/静水/閉塞で停止。原子性・保存・権限・ゼロ付与Core経路を検証。PC/Android4ケースは定義のみ、実ブラウザ未検証 |
 | H16 | 装飾/収集展示 | 部分実装 | core/homestead.ts; simulation.ts (buildFurniture) | 寝床/机/火鉢/敷物はある。収集展示/自由装飾の広がりは未実装 |
 | W01 | 初期草原 (独自名 | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
 | W02 | 森林 (翠の森) | 簡易実装・受入試験待ち | src/prototype/core/regions.ts + regional-world.ts + tests/unit/regions.test.ts | Normal-play/browser verification and remaining breadth |
@@ -121,7 +121,7 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | I01 | 自然資源 | 部分実装 | core/materials.ts; core/campaign.ts; core/homestead.ts; core/regions.ts | 素材と制作参照あり。カテゴリ全品目の入手/用途網羅は未確認 |
 | I02 | 加工資源 | 部分実装 | core/materials.ts; core/campaign.ts; core/homestead.ts; core/regions.ts | 素材と制作参照あり。カテゴリ全品目の入手/用途網羅は未確認 |
 | I03 | 危険地域資源 | 部分実装 | core/materials.ts; core/campaign.ts; core/homestead.ts; core/regions.ts | 素材と制作参照あり。カテゴリ全品目の入手/用途網羅は未確認 |
-| I04 | 道具 | 実装あり・ブラウザ受入待ち | core/equipment.ts; core/elements.ts; core/simulation.ts; tests/unit/equipment-normal-play.test.ts | 独立制作/選択した斧・つるはしの材質別採集、熊手の切削整地、槌の有料建築/解体、有限修理を実装。新規Core通常操作→保存を検証。盛土は未実装、ブラウザは定義のみ |
+| I04 | 道具 | 実装あり・ブラウザ受入待ち | core/equipment.ts; core/elements.ts; core/simulation.ts; tests/unit/equipment-normal-play.test.ts | 独立制作/選択した斧・つるはしの材質別採集、熊手の切削整地、槌の有料建築/解体、有限修理を実装。新規Core通常操作→保存を検証。土9の有限盛土/切削切替と無傷撤去を追加。ブラウザは定義のみ |
 | I05 | 移動具 | 実装あり・実操作未検証 | core/campaign.ts; core/simulation.ts | 鉤縄/滑空具と実移動あり。保温装備含む実攻略経路は受入待ち |
 | I06 | 近接武器 | 実装あり・ブラウザ受入待ち | core/motion.ts; core/simulation.ts; rendering/rig.ts; tests/unit/equipment-tools.test.ts | 片手/大剣/短剣の共有描画・命中軌道、速度/射程/消費/怯みとSDF壁遮蔽をCore検証。各新系統の全章ブラウザ完走は未検証 |
 | I07 | 遠距離/魔法 | 部分実装 | core/campaign.ts; core/simulation.ts | 剣/弓/杖/盾/防具を実装。両手/短剣/全防具部位・全魔法体系ではない |
@@ -189,3 +189,5 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | Q14 | 残課題 | 追跡中 | docs/implementation-checklist.md | 全171IDを保持し未実装/簡易/未検証を明示。最終公開結果に合わせ更新 |
 
 Equipment/tool checkpoint details and explicit limitations: [equipment tools acceptance](equipment-tools-acceptance.md).
+
+最新の公開ブラウザ検証と未解消失敗は `docs/survival-wave-browser-status.md` を参照。939件のルール検証合格は、全171要件や全ブラウザ受入の完了を意味しない。

@@ -8,7 +8,7 @@ const entry=(id:string,label:string,category:CampaignItem['category'],slot:Equip
 export const EQUIPMENT_ITEMS:readonly CampaignItem[]=[
  entry('wood-axe','木割り斧','tool','tool','道具選択（2）後に攻撃。木・加工木・草に強く、石・金属には弱い。耐久を消費。','木材3・石2で手作り'),
  entry('stone-pick','石穿ちのつるはし','tool','tool','道具選択（2）後に攻撃。石・碑石・金属に強く、木には弱い。耐久を消費。','木材3・石3で手作り'),
- entry('terrain-rake','平削りの熊手','tool','tool','道具選択（2）後に土を攻撃。接触面の高さへ土・草だけを平らに削る。追加盛土はしない。','木材4・石2で手作り'),
+ entry('terrain-rake','平削りの熊手','tool','tool','道具選択（2）後に土を攻撃。接触面の高さへ土・草だけを平らに削る。F / 属性切替で盛土モード。土9で0.75m角の平面を追加。無傷の撤去だけ返却。','木材4・石2で手作り'),
  entry('build-hammer','建築槌','tool','tool','装備で建築モード。攻撃で配置、重攻撃で解体。V部品、F回転、X取消、G終了。成功時に耐久を消費。石で修理できる。強化・ジェムは非対応。','木材4・石2で手作り'),
  entry('greatsword','峰割りの大剣','weapon','weapon','両手武器。長い刃1.5m、通常48/強撃78、消費30/44。遅い振り、通常も怯ませる。盾は併用不可。','鍛冶場: 金属10・木材4'),
  entry('dagger','燕返しの短剣','weapon','weapon','短い刃0.58m、通常20/強撃34、消費10/18。素早い刺突、強撃で小さな怯み。盾併用可。','木材2・石3で手作り'),

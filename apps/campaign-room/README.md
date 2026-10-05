@@ -1,6 +1,6 @@
-# PR4 campaign co-op relay (protocol 3)
+# PR4 campaign co-op relay (protocol 4)
 
-Protocol 3 separates the nine-slot equipment/item snapshot schema from old protocol-2 peers. Reload both clients after this update; saved single-player worlds remain backward compatible.
+Protocol 4 separates finite soil, watermill escrow and dynamic western resident snapshots/frames from older peers (including protocol 3). Reload both clients after this update; saved single-player worlds remain backward compatible.
 
 Independent from PR5. Route: `/campaign-room/<64 lowercase hex characters>`.
 

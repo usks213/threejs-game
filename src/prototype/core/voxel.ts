@@ -97,6 +97,9 @@ export class VoxelField {
  }
  /** Composed samples, including the positive SDF band, for deterministic object signatures. */
  *objectSamples(object:string):Generator<Cell,void>{for(const cell of this.cells.values())if(cell.object===object)yield cell;}
+ layerSamplesAt(x:number,y:number,z:number):Cell[]{const id=key(x,y,z);return [this.base,...this.layers.values()].flatMap(layer=>{const c=layer.get(id);return c?[c]:[];});}
+ /** Owned samples, including those hidden under another layer. */
+ *ownedLayerSamples(object:string):Generator<Cell,void>{yield* this.layers.get(object)?.values()??[];}
  sample(x:number,y:number,z:number){return this.cells.get(key(x,y,z))?.distance??this.size*2;}
  get(x:number,y:number,z:number){const c=this.cells.get(key(x,y,z));return c&&c.distance<0?c:undefined;}
  private readonly base=new Map<string,Cell>();private readonly layers=new Map<string,Map<string,Cell>>();

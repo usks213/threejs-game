@@ -1,10 +1,13 @@
+import {validSoilGeometry} from './core/soil-fill';
+import {freshWatermillState,validWatermillState,validWatermillSave} from './core/watermill';
 import {freshEchoVaultState,validEchoVaultState,validEchoVaultSave,VAULT_OBJECT_IDS} from './core/echo-vault';
 import {defaultGamepadSettings,validGamepadSettings,copyGamepadSettings,type GamepadSettings} from './gamepad-settings';
 import {validNpcLifeState} from './core/npc-life';
+import {validWesternNpcLifeState} from './core/western-npc-life';
 import {createPlayerEnvironmentState,clonePlayerEnvironmentState,validPlayerEnvironmentState} from './core/player-environment';
 import {DEFAULT_AUDIO_MIX,type AudioMix} from './audio';
 import {FishingSystem,createFishingState,createFishingWaterProbe,validFishingState} from './core/fishing';
-import {WEST_EXPEDITION_MANIFEST,WEST_POINTS,WEST_RESOURCES} from './core/expedition-west';
+import {WEST_EXPEDITION_MANIFEST,WEST_POINTS,WEST_RESOURCES,WEST_SPECIALISTS} from './core/expedition-west';
 import {WEST_RUNTIME_ENEMIES,WestExpeditionSystem,validWestExpeditionState} from './core/expedition-west-integration';
 import {StreamedCampaignField} from './core/streamed-campaign-field';
 import {ensureCampaignAnchor,reconcileRegionalClaims} from './core/campaign-repairs';
@@ -32,7 +35,7 @@ function captureTerrain(sim:CoreSimulation,reuse=false):VoxelState {
  if(cached&&cached.field===field&&cached.revision===field.revision)return JSON.parse(cached.json) as VoxelState;
  const json=JSON.stringify(field.exportState());terrainCache.set(sim,{field,revision:field.revision,json,validated:false,entities:cached?.entities});return JSON.parse(json) as VoxelState;
 }
-export function captureCampaign(sim:CoreSimulation,settings:CampaignSettings,options:CampaignSnapshotOptions={}){return {version:1 as const,world:sim.westernContent?'campaign-v4' as const:sim.streamedWorld?'campaign-v3' as const:'campaign-v2' as const,seconds:sim.seconds,worldHour:sim.worldHour,worldDay:sim.worldDay,cold:sim.cold,...(sim.campaignMode?{environment:clonePlayerEnvironmentState(sim.environment)}:{}),player:{position:{...sim.player.position},yaw:sim.player.yaw,pitch:sim.player.pitch,hp:sim.player.hp,stamina:sim.player.stamina,flasks:sim.player.flasks,tool:sim.player.tool},field:captureTerrain(sim,options.reuseTerrain),survival:sim.survival.exportState(),elements:sim.elements.exportState(),entities:sim.enemyElements.map(e=>e.exportState()),enemies:sim.enemies.map(e=>({id:e.id,summonOwner:e.summonOwner,position:{...e.position},yaw:e.yaw,hp:e.hp})),objects:[...sim.arena.objects.values()].map(o=>({id:o.id,open:o.open,hp:o.hp})),campaign:sim.campaign.snapshot(),home:sim.home.snapshot(),npcLife:sim.npc.snapshot(),...(sim.campaignMode?{fishing:sim.fishing.snapshot()}:{}),water:{volume:Array.from(sim.water.volume),injected:sim.water.injected,phase:sim.water.phase,on:sim.waterOn},settings:JSON.parse(JSON.stringify(settings)) as CampaignSettings,...(options.includeCompanion===false?{}:{partyCompanion:sim.companionSnapshot()}),...(sim.western?{western:sim.western.snapshot()}:{}),...(sim.dungeon.enabled?{dungeon:sim.dungeon.snapshot()}:{})};}
+export function captureCampaign(sim:CoreSimulation,settings:CampaignSettings,options:CampaignSnapshotOptions={}){return {version:1 as const,world:sim.westernContent?'campaign-v4' as const:sim.streamedWorld?'campaign-v3' as const:'campaign-v2' as const,seconds:sim.seconds,worldHour:sim.worldHour,worldDay:sim.worldDay,cold:sim.cold,...(sim.campaignMode?{environment:clonePlayerEnvironmentState(sim.environment)}:{}),player:{position:{...sim.player.position},yaw:sim.player.yaw,pitch:sim.player.pitch,hp:sim.player.hp,stamina:sim.player.stamina,flasks:sim.player.flasks,tool:sim.player.tool},field:captureTerrain(sim,options.reuseTerrain),survival:sim.survival.exportState(),elements:sim.elements.exportState(),entities:sim.enemyElements.map(e=>e.exportState()),enemies:sim.enemies.map(e=>({id:e.id,summonOwner:e.summonOwner,position:{...e.position},yaw:e.yaw,hp:e.hp})),objects:[...sim.arena.objects.values()].map(o=>({id:o.id,open:o.open,hp:o.hp})),campaign:sim.campaign.snapshot(),home:sim.home.snapshot(),...(sim.campaignMode?{watermill:sim.watermill.snapshot()}:{}),npcLife:sim.npc.snapshot(),...(sim.campaignMode?{fishing:sim.fishing.snapshot()}:{}),water:{volume:Array.from(sim.water.volume),injected:sim.water.injected,phase:sim.water.phase,on:sim.waterOn},settings:JSON.parse(JSON.stringify(settings)) as CampaignSettings,...(options.includeCompanion===false?{}:{partyCompanion:sim.companionSnapshot()}),...(sim.western?{western:sim.western.snapshot(),westernNpcLife:sim.westNpcs.snapshot()}:{}),...(sim.dungeon.enabled?{dungeon:sim.dungeon.snapshot()}:{})};}
 export type CampaignSave=ReturnType<typeof captureCampaign>;
 const REGULAR_ENEMIES=4,RESERVE_SUMMONS=3,SUMMON_START=REGULAR_ENEMIES+REGIONAL_ENEMIES.length,ENEMY_COUNT=SUMMON_START+RESERVE_SUMMONS;
 const SUMMONERS=new Set(REGIONAL_ENEMIES.flatMap((enemy,index)=>enemy.tactic==='summoner'?[REGULAR_ENEMIES+index]:[]));
@@ -52,10 +55,16 @@ function validEnemy(value:unknown,index:number,western=false){
 export function isCampaignSave(v:unknown):v is CampaignSave{
  if(!record(v)||v.version!==1||!['campaign-v2','campaign-v3','campaign-v4'].includes(String(v.world))||!number(v.seconds,0,1e9)||!number(v.worldHour,0,24)||!integer(v.worldDay,0,1e9)||!number(v.cold,0,100)||!record(v.player)||!knownKeys(v.player,['position','yaw','pitch','hp','stamina','flasks','tool'])||!worldPosition(v.player.position,v.world==='campaign-v4')||!number(v.player.hp,0,500)||!number(v.player.stamina,0,500)||!integer(v.player.flasks,0,10000)||!number(v.player.yaw)||!number(v.player.pitch,-Math.PI/2,Math.PI/2)||typeof v.player.tool!=='boolean')return false;
  if(v.npcLife!==undefined&&v.npcLife!==null&&(!validNpcLifeState(v.npcLife)||!record(v.campaign)||v.campaign.artisanRescued!==true))return false;
+ if(v.watermill!==undefined&&!validWatermillState(v.watermill))return false;
  if(v.dungeon!==undefined&&!validEchoVaultState(v.dungeon))return false;
  if(v.environment!==undefined&&!validPlayerEnvironmentState(v.environment))return false;
  if(v.partyCompanion!==undefined&&v.partyCompanion!==null&&!validCompanionSnapshot(v.partyCompanion,v.world==='campaign-v4'))return false;
- if(v.world==='campaign-v4'?!validWestExpeditionState(v.western):v.western!==undefined)return false;if(v.fishing!==undefined&&!validFishingState(v.fishing))return false;
+ if(v.world==='campaign-v4'?!validWestExpeditionState(v.western):v.western!==undefined)return false;
+ if(v.westernNpcLife!==undefined){
+  if(v.world!=='campaign-v4'||!validWesternNpcLifeState(v.westernNpcLife)||!validWestExpeditionState(v.western))return false;
+  for(const npc of WEST_SPECIALISTS)if(v.western.claimed.includes(npc.id)!==(v.westernNpcLife.actors[npc.id as keyof typeof v.westernNpcLife.actors]!==null))return false;
+ }
+ if(v.fishing!==undefined&&!validFishingState(v.fishing))return false;
  const enemyCount=v.world==='campaign-v4'?ENEMY_COUNT+4:ENEMY_COUNT;
  if(!record(v.field)||!record(v.survival)||!record(v.elements)||!record(v.campaign)||!record(v.home)||!Array.isArray(v.entities)||v.entities.length!==enemyCount||!Array.from(v.entities).every(record)||!Array.isArray(v.enemies)||v.enemies.length!==enemyCount||!Array.from(v.enemies).every((enemy,index)=>validEnemy(enemy,index,v.world==='campaign-v4'))||!Array.isArray(v.objects)||v.objects.length>1024)return false;
  if((v.world==='campaign-v3'||v.world==='campaign-v4')&&(v.field.baseline!==(v.world==='campaign-v4'?WEST_EXPEDITION_MANIFEST:CAMPAIGN_SAMPLE_MANIFEST)||v.field.version!==1||v.field.size!==.25||!Array.isArray(v.field.suppressed))||v.world==='campaign-v2'&&v.field.suppressed!==undefined)return false;
@@ -72,7 +81,7 @@ export function isCampaignSave(v:unknown):v is CampaignSave{
 }
 export function hydrateCampaign(data:unknown):{sim:CoreSimulation;settings:CampaignSettings}|null{
  if(!isCampaignSave(data))return null;const sim=new CoreSimulation(true,false,data.world!=='campaign-v2',data.world==='campaign-v4');return restoreCampaignInto(sim,data);}
-export type CampaignRestoreFailure='not-ready'|'active-companion'|'envelope'|'object-index'|'survival'|'elements'|'campaign'|'home'|'fishing'|'dungeon'|'terrain'|'western'|'western-geometry'|`entity-${number}`;
+export type CampaignRestoreFailure='not-ready'|'active-companion'|'envelope'|'object-index'|'survival'|'elements'|'campaign'|'home'|'fishing'|'dungeon'|'terrain'|'western'|'western-geometry'|'watermill'|`entity-${number}`;
 const restoreFailures=new WeakMap<CoreSimulation,CampaignRestoreFailure>();
 /** Stage labels only: suitable for error reports without leaking a save or connection details. */
 export const getCampaignRestoreFailure=(sim:CoreSimulation):CampaignRestoreFailure|null=>restoreFailures.get(sim)??null;
@@ -93,6 +102,7 @@ export function restoreCampaignInto(sim:CoreSimulation,data:unknown,options:Camp
  if(baseObjects.length!==expectedBase.length||baseObjects.some(object=>!expectedBase.includes(object.id))||data.objects.length!==expectedBase.length+(data.dungeon?.installed?VAULT_OBJECT_IDS.length:0))return fail('object-index');
  const survival=new SurvivalSystem(sim.arena.field,sim.water),elements=new ElementSystem(sim.arena.field,sim.water),campaign=new CampaignSystem(survival.inventory),home=new HomesteadSystem(survival.inventory,campaign.state.items),entities:EntityElements[]=[];
  if(!survival.restoreState(data.survival))return fail('survival');
+ if(!validSoilGeometry(survival.soil.snapshot(),data.field))return fail('survival');
  if(!elements.restoreState(data.elements))return fail('elements');
  if(!campaign.restore(data.campaign))return fail('campaign');
  if(!home.restore(data.home))return fail('home');
@@ -106,8 +116,9 @@ export function restoreCampaignInto(sim:CoreSimulation,data:unknown,options:Camp
   stagedWest=new WestExpeditionSystem(campaign,{field:stagedField,objects},WEST_EXPEDITION_MANIFEST);if(!stagedWest.restore(data.western))return fail('western');
   const state=stagedWest.snapshot();for(const point of [...WEST_POINTS,...WEST_RESOURCES]){const expected=point.id==='west-shortcut-gate'?state.gateOpen:state.claimed.includes(point.id);if(objects.get(point.id)?.open!==expected)return fail('western');}
   for(const entry of WEST_RUNTIME_ENEMIES)if(state.defeated.includes(entry.key)&&data.enemies[entry.slot].hp>0)return fail('western');
-  if(!stagedWest.geometryConsistent())return fail('western-geometry');
+  if(!stagedWest.geometryConsistent(data.westernNpcLife??null))return fail('western-geometry');
  }else if(!reuseTerrain&&!sim.arena.field.restoreState(data.field,true))return fail('terrain');
+ if(!validWatermillSave(data.watermill,data.field))return fail('watermill');
  if(!validEchoVaultSave(data.dungeon,data.field,data.objects,campaign.state.items,home.state.storage.items))return fail('dungeon');
  const entityProofs:EntityCacheEntry[]=[];
  for(let i=0;i<data.entities.length;i++){const value=data.entities[i],json=options.reuseTerrain?JSON.stringify(value):'',proof=cached?.entities?.[i],current=sim.enemyElements[i];
@@ -116,7 +127,7 @@ export function restoreCampaignInto(sim:CoreSimulation,data:unknown,options:Camp
  }
  // Commit is synchronous and contains only the same already-validated DTOs. No callbacks or
  // yields can observe a partially installed state. Preserve shared material/item references.
- if(!reuseTerrain)sim.arena.field.restoreState(data.field);sim.survival.restoreState(survival.exportState());sim.elements.restoreState(elements.exportState());sim.campaign.restore(campaign.snapshot());sim.home.restore(home.snapshot());sim.fishing=new FishingSystem(sim.campaign,sim.arena.field,createFishingWaterProbe(sim.arena.field,sim.water));sim.fishing.restore(fishing.snapshot());
+ if(!reuseTerrain)sim.arena.field.restoreState(data.field);sim.survival.restoreState(survival.exportState());sim.elements.restoreState(elements.exportState());sim.campaign.restore(campaign.snapshot());sim.home.restore(home.snapshot());sim.watermill.restore(data.watermill??freshWatermillState());sim.water.resetTransfers();sim.fishing=new FishingSystem(sim.campaign,sim.arena.field,createFishingWaterProbe(sim.arena.field,sim.water));sim.fishing.restore(fishing.snapshot());
  for(let i=0;i<entities.length;i++)sim.enemyElements[i]=entities[i];
  sim.dungeon.restore(data.dungeon??freshEchoVaultState());sim.dungeon.reconcileObjects();
  for(const value of data.objects){const object=sim.arena.objects.get(value.id)!;object.open=value.open;object.hp=value.hp;}
@@ -125,9 +136,9 @@ export function restoreCampaignInto(sim:CoreSimulation,data:unknown,options:Camp
  for(let i=0;i<sim.enemies.length;i++)Object.assign(sim.enemies[i],{hp:data.enemies[i].hp,yaw:data.enemies[i].yaw,summonOwner:i<SUMMON_START||i>=ENEMY_COUNT?undefined:data.enemies[i].summonOwner,position:{...data.enemies[i].position},phase:data.enemies[i].hp>0?'idle':'dead',time:0,vy:0,hit:false,hitstop:0,interrupted:undefined});
  sim.resetEnemyAwareness();
  sim.defeated=sim.enemies.filter(e=>e.hp<=0).length;sim.water.volume.set(data.water.volume);sim.water.injected=data.water.injected;sim.water.phase=data.water.phase;sim.waterOn=data.water.on;if(!reuseTerrain)sim.water.refreshSolids();sim.water.revision++;
- const beforeRepairs=field.revision;if(!data.dungeon&&options.includeCompanion!==false)sim.dungeon.install([data.player.position,...(data.partyCompanion?[data.partyCompanion.player.position]:[]),...data.enemies.filter(e=>e.hp>0).map(e=>e.position)]);sim.protectQuestObjects();ensureCampaignAnchor(sim.arena.field);reconcileRegionalClaims(sim.arena,sim.campaign.state.claimedPoints);if(stagedWest){sim.western!.restore(stagedWest.snapshot());sim.western!.reconcileGeometry();}let repairedGeometry=field.revision!==beforeRepairs;
+ const beforeRepairs=field.revision;if(!data.dungeon&&options.includeCompanion!==false)sim.dungeon.install([data.player.position,...(data.partyCompanion?[data.partyCompanion.player.position]:[]),...data.enemies.filter(e=>e.hp>0).map(e=>e.position)]);sim.protectQuestObjects();ensureCampaignAnchor(sim.arena.field);reconcileRegionalClaims(sim.arena,sim.campaign.state.claimedPoints);if(stagedWest){sim.western!.restore(stagedWest.snapshot());sim.western!.reconcileGeometry(data.westernNpcLife??null);}let repairedGeometry=field.revision!==beforeRepairs;
  if(options.includeCompanion!==false){sim.restoreCompanion(data.partyCompanion??null);sim.companionCanEdit=false;if(sim.companion){sim.companion.vx=0;sim.companion.vz=0;}sim.setCompanionConnected(false);}
- sim.npc.restore(data.npcLife??null);sim.reconcileNpc();repairedGeometry ||=field.revision!==beforeRepairs;
+ sim.npc.restore(data.npcLife??null);sim.westNpcs.restore(data.westernNpcLife??{version:1,actors:{'west-carpenter':null,'west-alchemist':null}});sim.reconcileNpc();repairedGeometry ||=field.revision!==beforeRepairs;
  sim.animal.reconcileTerrain({field:sim.arena.field,blockers:[sim.player.position,...(sim.companion?[sim.companion.position]:[]),...sim.enemies.filter(e=>e.hp>0&&sim.enemyActive(e)).map(e=>e.position)]});
  if(sim.player.hp>0&&sim.arena.field.overlaps(sim.player.position))sim.player.position=sim.safePosition(sim.campaign.spawn,true);
  if(options.reuseTerrain)terrainCache.set(sim,{field,revision:field.revision,json:repairedGeometry?JSON.stringify(field.exportState()):terrainJson,validated:true,entities:entityProofs});

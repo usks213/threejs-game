@@ -1,8 +1,11 @@
 import {CAMPAIGN_ITEMS,CAMPAIGN_PROFESSIONS,validCampaignState,type CampaignSystem,type CampaignResult,type CampaignProfession} from './campaign';
-import type {Vec3} from './voxel';
+import {VoxelField,key,type Cell,type Vec3} from './voxel';
+import {SparseOverlayField,type SparseOverlayState} from './sample-overlay';
+import type {NpcLife} from './npc-life';
+import {validWesternNpcLifeState,type WesternNpcLifeState} from './western-npc-life';
 import type {createArena} from './world';
 import type {RegionalEnemy,RegionalReward} from './regions';
-import {WEST_EXPEDITION_MANIFEST,WEST_EXPEDITION_ACCESS,WEST_POINTS,WEST_RESOURCES,WEST_ENCOUNTERS,WEST_QUESTS,WEST_SPECIALISTS,WEST_SPECIALIST_QUESTS,WEST_ROUTES,setWestShortcut,setWestSpecialistLocation} from './expedition-west';
+import {WEST_EXPEDITION_MANIFEST,WEST_EXPEDITION_ACCESS,WEST_POINTS,WEST_RESOURCES,WEST_ENCOUNTERS,WEST_QUESTS,WEST_SPECIALISTS,WEST_SPECIALIST_QUESTS,WEST_ROUTES,setWestShortcut,setWestSpecialistLocation,type WestSpecialist} from './expedition-west';
 
 const points=[...WEST_POINTS,...WEST_RESOURCES],pointIds=points.map(p=>p.id),enemyIds=WEST_ENCOUNTERS.map(e=>e.id);
 export const WEST_PROTECTED_OBJECT_IDS:readonly string[]=pointIds;
@@ -22,6 +25,7 @@ export interface WestRouteProgress {forward:number;reverse:number}
 export interface WestExpeditionState {version:1;manifest:typeof WEST_EXPEDITION_MANIFEST;claimed:string[];defeated:string[];completed:string[];routes:Record<typeof routeIds[number],WestRouteProgress>;campUnlocked:boolean;gateOpen:boolean}
 export const createWestExpeditionState=():WestExpeditionState=>({version:1,manifest:WEST_EXPEDITION_MANIFEST,claimed:[],defeated:[],completed:[],routes:{'west-high-road':{forward:0,reverse:0},'west-low-road':{forward:0,reverse:0}},campUnlocked:false,gateOpen:false});
 export interface WestActorContext {authority:'host'|'guest';alive:boolean;position:Vec3}
+export interface WestNpcLifeProvider {get(id:string):Pick<NpcLife,'position'|'visible'|'label'|'talk'>|undefined;snapshot():WesternNpcLifeState}
 const list=(v:unknown,allowed:readonly string[])=>Array.isArray(v)&&v.length<=allowed.length&&new Set(v).size===v.length&&v.every(id=>typeof id==='string'&&allowed.includes(id));
 const routeComplete=(s:WestExpeditionState,id:typeof routeIds[number])=>{const n=WEST_ROUTES.find(r=>r.id===id)!.nodes.length;return s.routes[id].forward===n||s.routes[id].reverse===n;};
 export function validWestExpeditionState(value:unknown):value is WestExpeditionState{
@@ -37,18 +41,39 @@ export function validWestExpeditionState(value:unknown):value is WestExpeditionS
  return true;
 }
 
+
+const specialistGeometry=new Map<string,ReadonlyMap<string,Cell>>();
+function expectedSpecialistGeometry(npc:WestSpecialist,rescued:boolean,size:number){
+ const id=npc.id+':'+rescued+':'+size,cached=specialistGeometry.get(id);if(cached)return cached;
+ const field=new VoxelField(size);setWestSpecialistLocation(field,npc,rescued);const cells=new Map(field.cells);specialistGeometry.set(id,cells);return cells;
+}
+/** Inspect the owning layer, including samples hidden beneath another object. */
+function exactSpecialistGeometry(field:VoxelField,npc:WestSpecialist,rescued:boolean,overlay?:SparseOverlayState){
+ const expected=expectedSpecialistGeometry(npc,rescued,field.size),actual=new Map<string,Cell>();
+ if(field instanceof SparseOverlayField&&overlay){
+  if(!overlay.order.includes(npc.id))return false;
+  if(!overlay.suppressed.includes(npc.id)){const b=field.provider.layerBounds.get(npc.id);if(b)for(let x=b.minX;x<=b.maxX;x++)for(let y=b.minY;y<=b.maxY;y++)for(let z=b.minZ;z<=b.maxZ;z++){const cell=field.provider.layersAt(x,y,z).get(npc.id);if(cell)actual.set(key(x,y,z),cell);}}
+  const edits=overlay.layers.find(layer=>layer.id===npc.id);for(const id of edits?.removed??[])actual.delete(id);for(const [x,y,z,distance,material] of edits?.cells??[])actual.set(key(x,y,z),{x,y,z,distance,material,object:npc.id});
+ }else for(const cell of field.objectSamples(npc.id))actual.set(key(cell.x,cell.y,cell.z),cell);
+ if(actual.size!==expected.size)return false;
+ for(const [id,cell] of expected){const saved=actual.get(id);if(!saved||saved.distance!==cell.distance||saved.material!==cell.material)return false;}
+ return true;
+}
+
 /** Opt-in host adapter. No construction/import activates it. Save code must store this
  * snapshot alongside campaign state and terrain in the same checked checkpoint.
  * Host combat calls defeat only after resolving HP; never forward client-supplied HP. */
 export class WestExpeditionSystem {
  private state=createWestExpeditionState();
+ private npcLife?:WestNpcLifeProvider;
+ setNpcLifeProvider(provider:WestNpcLifeProvider){this.npcLife=provider;}
  constructor(readonly campaign:CampaignSystem,readonly arena:ReturnType<typeof createArena>,readonly activeManifest:string){
   if(this.enabled)campaign.setProfessionProvider({rescued:role=>this.professionUnlocked(role),atWorkshop:position=>this.accessible&&this.state.campUnlocked&&finite(position)&&distance(position,WEST_POINTS.find(p=>p.id==='west-return-hearth')!.position)<=3});
  }
  get enabled(){const provider=(this.arena.field as {provider?:{manifestId:string}}).provider;return this.activeManifest===WEST_EXPEDITION_MANIFEST&&(!provider||provider.manifestId===WEST_EXPEDITION_MANIFEST);}
  get accessible(){return this.enabled&&this.campaign.regionUnlocked(WEST_EXPEDITION_ACCESS.region)&&this.campaign.state.flameTier>=WEST_EXPEDITION_ACCESS.minimumFlameTier;}
  professionUnlocked(role:CampaignProfession){return this.accessible&&WEST_SPECIALISTS.some(npc=>npc.role===role&&this.state.claimed.includes(npc.id));}
- pointPosition(id:string):Vec3|null{const npc=WEST_SPECIALISTS.find(p=>p.id===id),point=points.find(p=>p.id===id);return point?{...(npc&&this.state.claimed.includes(id)?npc.homePosition:point.position)}:null;}
+ pointPosition(id:string):Vec3|null{const npc=WEST_SPECIALISTS.find(p=>p.id===id),point=points.find(p=>p.id===id);return point?{...(npc&&this.state.claimed.includes(id)?this.npcLife?.get(id)?.position??npc.homePosition:point.position)}:null;}
  snapshot(){return clone(this.state);}
  restore(value:unknown,validateOnly=false){if(!validWestExpeditionState(value))return false;if(!validateOnly)this.state=clone(value);return true;}
  private access(actor:WestActorContext){if(!this.enabled)return fail('西方遠征はまだ有効ではありません');if(actor.authority!=='host')return fail('世界のホストが操作を確認します');if(!actor.alive||!finite(actor.position))return fail('行動できる状態ではありません');if(!this.accessible)return fail('炉を段階2にし、琥珀枝の森を解放する');return ok('操作可能');}
@@ -66,6 +91,7 @@ export class WestExpeditionSystem {
  interact(id:string,actor:WestActorContext):CampaignResult{
   const access=this.access(actor);if(!access.ok)return access;const point=points.find(p=>p.id===id),object=this.arena.objects.get(id);if(!point||!object)return fail('西方遠征の対象が見つかりません');
   const position=this.pointPosition(id)!,specialist=WEST_SPECIALISTS.find(npc=>npc.id===id);
+  if(specialist&&this.state.claimed.includes(id)&&this.npcLife){const resident=this.npcLife.get(id);return resident?.visible?resident.talk({...actor.position,y:actor.position.y+1.15},this.arena.field):fail(specialist.name+'は安全な足場を待っています');}
   if(distance(actor.position,position)>2.8)return fail(point.name+'の近くへ移動する');if(!this.visible(actor,id,position))return fail('遮蔽物の向こうは操作できません');
   if(this.state.claimed.includes(id))return specialist?ok(specialist.name+'「'+specialist.dialogue+'」'):point.kind==='hearth'?ok('発見済みの帰還炉です'):fail('操作・回収済みです');
   if(specialist){
@@ -108,17 +134,29 @@ export class WestExpeditionSystem {
  }
  /** Restore calls this only after both the expedition ledger and terrain validate.
   * It does not reward anything, recreate mined resources, or close an opened shortcut. */
- geometryConsistent(){
-  const c=this.arena.field.get(-168,16,-116);if(this.state.gateOpen&&c?.object==='west-shortcut-gate')return false;
-  // Saved relocation must agree with rescue claims. Never regenerate or teleport
-  // the body during hydration, which would overwrite edited player geometry.
-  for(const npc of WEST_SPECIALISTS){const rescued=this.state.claimed.includes(npc.id),q=rescued?npc.homePosition:npc.position,other=rescued?npc.position:npc.homePosition;
-   const size=this.arena.field.size,body=this.arena.field.get(Math.floor(q.x/size),Math.floor((q.y+1)/size),Math.floor(q.z/size));if(body?.object!==npc.id||body.distance>=0)return false;
-   if([...this.arena.field.objectSamples(npc.id)].some(c=>c.distance<0&&Math.hypot((c.x+.5)*this.arena.field.size-other.x,(c.z+.5)*this.arena.field.size-other.z)<.6))return false;
+ geometryConsistent(npcLife:WesternNpcLifeState|null=this.npcLife?.snapshot()??null){
+  const field=this.arena.field,c=field.get(-168,16,-116);if(this.state.gateOpen&&c?.object==='west-shortcut-gate')return false;
+  if(npcLife!==null&&!validWesternNpcLifeState(npcLife))return false;
+  const overlay=field instanceof SparseOverlayField?field.exportOverlay():undefined;
+  for(const npc of WEST_SPECIALISTS){const rescued=this.state.claimed.includes(npc.id),actor=npcLife?.actors[npc.id as keyof WesternNpcLifeState['actors']];
+   if(npcLife!==null){
+    if(rescued!==(actor!==null))return false;
+    if(rescued){
+     // A tombstone alone is insufficient: a suppressed authored ID can still
+     // be recreated by a later layer, including invisible/positive samples.
+     if(!overlay?.suppressed.includes(npc.id)||overlay.order.includes(npc.id)||overlay.layers.some(layer=>layer.id===npc.id)||!field.objectSamples(npc.id).next().done)return false;
+     continue;
+    }
+   }
+   // Old checkpoints must contain the complete, original or relocated body
+   // before conversion. Never repair a forged ledger by creating/removing it.
+   const q=rescued?npc.homePosition:npc.position,other=rescued?npc.position:npc.homePosition,size=field.size,body=field.get(Math.floor(q.x/size),Math.floor((q.y+1)/size),Math.floor(q.z/size));
+   if(body?.object!==npc.id||body.distance>=0||!exactSpecialistGeometry(field,npc,rescued,overlay))return false;
+   if([...field.objectSamples(npc.id)].some(cell=>cell.distance<0&&Math.hypot((cell.x+.5)*size-other.x,(cell.z+.5)*size-other.z)<.6))return false;
   }
   return true;
  }
- reconcileGeometry(){if(!this.enabled||!this.geometryConsistent())return false;for(const id of this.state.claimed){const object=this.arena.objects.get(id);if(object)object.open=true;if(WEST_RESOURCES.some(p=>p.id===id))this.arena.field.removeObject(id);}if(this.state.gateOpen){const gate=this.arena.objects.get('west-shortcut-gate');if(gate)gate.open=true;}return true;}
+ reconcileGeometry(npcLife:WesternNpcLifeState|null=this.npcLife?.snapshot()??null){if(!this.enabled||!this.geometryConsistent(npcLife))return false;for(const id of this.state.claimed){const object=this.arena.objects.get(id);if(object)object.open=true;if(WEST_RESOURCES.some(p=>p.id===id))this.arena.field.removeObject(id);}if(this.state.gateOpen){const gate=this.arena.objects.get('west-shortcut-gate');if(gate)gate.open=true;}return true;}
 
  specialistRows(){return WEST_SPECIALISTS.map(npc=>({id:npc.id,name:npc.name,label:CAMPAIGN_PROFESSIONS[npc.role].label,role:npc.role,position:this.pointPosition(npc.id)!,rescued:this.state.claimed.includes(npc.id),status:this.state.claimed.includes(npc.id)?'rescued' as const:this.accessible&&npc.requiresClaims.every(id=>this.state.claimed.includes(id))&&npc.requiresDefeats.every(id=>this.state.defeated.includes(id))?'ready' as const:'locked' as const,recipes:[...npc.recipes],description:this.state.claimed.includes(npc.id)?npc.dialogue:npc.rescueHint,requirements:[...npc.requiresClaims.map(id=>({id,label:points.find(p=>p.id===id)!.name,done:this.state.claimed.includes(id)})),...npc.requiresDefeats.map(id=>({id,label:WEST_ENCOUNTERS.find(e=>e.id===id)!.name,done:this.state.defeated.includes(id)}))]}));}
  questRows(){return [...WEST_QUESTS.map(q=>({id:q.id,label:q.name,status:this.state.completed.includes(q.id)?'complete':this.accessible&&q.requires.every(id=>id==='region-resinwood'||this.state.completed.includes(id))?'active':'locked',objectives:q.objectives.map(id=>({id,done:this.state.claimed.includes(id)}))})),...WEST_SPECIALIST_QUESTS.map(q=>({id:q.id,label:q.name,status:this.state.completed.includes(q.id)?'complete':this.accessible?'active':'locked',objectives:q.objectives.map(id=>({id,done:this.state.claimed.includes(id)}))})),{id:WEST_SURVEY_QUEST,label:'二つの荷道を踏破する',status:this.state.completed.includes(WEST_SURVEY_QUEST)?'complete':this.accessible?'active':'locked',objectives:routeIds.map(id=>({id,done:routeComplete(this.state,id)}))}];}

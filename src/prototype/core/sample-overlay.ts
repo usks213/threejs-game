@@ -31,6 +31,8 @@ export class SparseOverlayField extends ProviderQueryField {
  /** Composed samples, including the positive SDF band: matches legacy cells filtering. */
  override *objectSamples(object:string):Generator<Cell,void>{const b=this.objectSampleBounds(object);if(!b)return;for(let x=b.minX;x<=b.maxX;x++)for(let y=b.minY;y<=b.maxY;y++)for(let z=b.minZ;z<=b.maxZ;z++){const cell=this.sampleCell(x,y,z);if(cell?.object===object)yield cell;}}
 
+ override layerSamplesAt(x:number,y:number,z:number):Cell[]{return [...this.values(x,y,z).values()];}
+ override *ownedLayerSamples(object:string):Generator<Cell,void>{const b=this.objectSampleBounds(object);if(!b)return;for(let x=b.minX;x<=b.maxX;x++)for(let y=b.minY;y<=b.maxY;y++)for(let z=b.minZ;z<=b.maxZ;z++){const cell=this.values(x,y,z).get(object);if(cell)yield cell;}}
  private values(x:number,y:number,z:number){const values=this.provider.layersAt(x,y,z),id=key(x,y,z);for(const layer of this.suppressed)values.delete(layer);for(const [layer,edits] of this.overrides){if(!edits.has(id))continue;const value=edits.get(id);if(value)values.set(layer,value);else values.delete(layer);}return values;}
  override sampleCell(x:number,y:number,z:number){
   const edited=this.editedSamples.has(key(x,y,z)),suppressed=[...this.suppressed].some(id=>{const b=this.provider.layerBounds.get(id);return !!b&&x>=b.minX&&x<=b.maxX&&y>=b.minY&&y<=b.maxY&&z>=b.minZ&&z<=b.maxZ;});

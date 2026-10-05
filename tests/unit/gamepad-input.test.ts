@@ -1,3 +1,4 @@
+import {CoreSimulation,type Action} from '../../src/prototype/core/simulation';
 import {afterEach,describe,it,expect,vi} from 'vitest';
 import {createInput} from '../../src/prototype/input';
 class Surface extends EventTarget {
@@ -5,13 +6,14 @@ class Surface extends EventTarget {
  querySelectorAll(){return this.children;}querySelector(selector:string){return this.children.find(c=>selector.includes(c.id)&&!c.disabled)??null;}
 }
 function setup(active=true){
+ const fillButton=new Surface();fillButton.dataset.action='attack';
  const canvas=new Surface(),stick=new Surface(),knob=new Surface(),look=new Surface(),button=new Surface(),menu=new Surface(),start=new Surface(),next=new Surface();menu.id='menu';start.id='start';next.id='next';menu.hidden=active;menu.children=[start,next];button.dataset.action='element-next';
- const document=Object.assign(new EventTarget(),{activeElement:null as Surface|null,hidden:false,hasFocus:():boolean=>true,pointerLockElement:null,querySelector:(s:string)=>s==='#move-pad'?stick:s==='#move-knob'?knob:look,querySelectorAll:()=>[button],getElementById:(id:string)=>id==='menu'?menu:null,exitPointerLock:vi.fn()});start.onFocus=()=>document.activeElement=start;next.onFocus=()=>document.activeElement=next;
+ const document=Object.assign(new EventTarget(),{activeElement:null as Surface|null,hidden:false,hasFocus:():boolean=>true,pointerLockElement:null,querySelector:(s:string)=>s==='#move-pad'?stick:s==='#move-knob'?knob:look,querySelectorAll:()=>[button,fillButton],getElementById:(id:string)=>id==='menu'?menu:null,exitPointerLock:vi.fn()});start.onFocus=()=>document.activeElement=start;next.onFocus=()=>document.activeElement=next;
  let pads:(Gamepad|null)[]=[];const pad={index:0,id:'Test Standard Controller',connected:true,mapping:'standard',axes:[0,0,0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0,touched:false}))};
  vi.stubGlobal('document',document);const window=new EventTarget();vi.stubGlobal('window',window);vi.stubGlobal('matchMedia',()=>({matches:false}));vi.stubGlobal('getComputedStyle',()=>({visibility:'visible'}));const navigator={maxTouchPoints:0,getGamepads:vi.fn(()=>pads)};vi.stubGlobal('navigator',navigator);
  const action=vi.fn(),onLook=vi.fn(),pause=vi.fn(),input=createInput(canvas as unknown as HTMLCanvasElement,action,onLook,pause);input.setEnabled(active);
  const connect=()=>{pads=[pad as unknown as Gamepad];input.tick(.016);};const setButton=(id:number,down:boolean)=>{pad.buttons[id].pressed=down;pad.buttons[id].value=down?1:0;};const disconnect=()=>{pads=[];window.dispatchEvent(new Event('gamepaddisconnected'));};
- return {input,action,onLook,pause,navigator,pad,connect,setButton,disconnect,document,menu,start,next};
+ return {button,fillButton,input,action,onLook,pause,navigator,pad,connect,setButton,disconnect,document,menu,start,next};
 }
 const key=(target:EventTarget,type:string,code:string)=>{const event=new Event(type,{cancelable:true});Object.assign(event,{code});target.dispatchEvent(event);};
 afterEach(()=>vi.unstubAllGlobals());
@@ -35,4 +37,12 @@ describe('custom gamepad controls',()=>{
  it('uses configured deadzone, stick exchange and vertical inversion',()=>{const s=setup();s.input.setGamepadSettings({...s.input.gamepadSettings(),deadzone:.3,swapSticks:true,invertY:true});s.connect();s.pad.axes=[.2,.2,.2,.2];s.input.tick(.1);expect(s.input.controls()).toMatchObject({x:0,z:0});expect(s.onLook).not.toHaveBeenCalled();s.pad.axes=[0,1,1,0];s.input.tick(.1);expect(s.input.controls()).toMatchObject({x:1,z:0});expect(s.onLook.mock.lastCall).toEqual([0,-.17]);s.input.dispose();});
  it('requires neutral input after reconfiguration and copies accepted state',()=>{const s=setup();s.connect();s.setButton(7,true);s.input.tick(.1);const config=s.input.gamepadSettings();expect(s.input.setGamepadSettings(config)).toBe(true);config.buttons.attack=0;s.input.tick(.1);expect(s.action).toHaveBeenCalledTimes(1);expect(s.input.gamepadSettings().buttons.attack).toBe(7);s.setButton(7,false);s.input.tick(.1);s.setButton(7,true);s.input.tick(.1);expect(s.action).toHaveBeenCalledTimes(2);expect(s.input.setGamepadSettings({...config,deadzone:NaN})).toBe(false);s.input.dispose();});
  it('keeps pause and menu navigation available regardless of gameplay remapping',()=>{const s=setup(false),settings=s.input.gamepadSettings();[settings.buttons.attack,settings.buttons.jump]=[settings.buttons.jump,settings.buttons.attack];settings.swapSticks=true;s.input.setGamepadSettings(settings);s.connect();s.setButton(0,true);s.input.tick(.1);expect(s.start.click).toHaveBeenCalledTimes(1);expect(s.action).not.toHaveBeenCalled();s.setButton(0,false);s.input.tick(.1);s.input.setEnabled(true);s.input.tick(.1);s.setButton(9,true);s.input.tick(.1);expect(s.pause).toHaveBeenCalledTimes(1);s.input.dispose();});
+});
+
+describe('rake mode reaches the same authoritative transaction through real input adapters',()=>{
+ it.each(['keyboard','touch','gamepad'] as const)('%s toggles cut/fill and spends one finite tile, without repeat on a held edge',device=>{const t=setup(),sim=new CoreSimulation(true,false,true);sim.survival.inventory[4]=4;sim.survival.inventory[3]=2;sim.survival.inventory[2]=18;sim.campaign.craft('terrain-rake',sim.player.position);sim.campaign.equip('terrain-rake');sim.campaign.state.flameTier=1;sim.action('chisel',{x:0,z:0,sprint:false,block:false,water:false});sim.player.pitch=-.8;t.action.mockImplementation((action:Action)=>sim.action(action,t.input.controls()));
+  const tap=(surface:Surface)=>{const event=new Event('pointerdown',{cancelable:true});Object.assign(event,{pointerId:1});surface.dispatchEvent(event);surface.dispatchEvent(new Event('pointerup'));};
+  if(device==='keyboard')key(t.document,'keydown','KeyF');else if(device==='touch')tap(t.button);else{t.connect();t.setButton(3,true);t.input.tick(.1);t.input.tick(.1);t.setButton(3,false);t.input.tick(.1);}expect(sim.soilFilling).toBe(true);expect(sim.soilPreview()?.ok).toBe(true);
+  if(device==='keyboard'){key(t.document,'keydown','KeyT');key(t.document,'keydown','KeyT');}else if(device==='touch')tap(t.fillButton);else{t.setButton(7,true);t.input.tick(.1);t.input.tick(.1);t.disconnect();t.input.tick(.1);}expect(sim.survival.soil.snapshot().patches).toHaveLength(1);expect(sim.survival.inventory[2]).toBe(9);t.input.dispose();
+ });
 });

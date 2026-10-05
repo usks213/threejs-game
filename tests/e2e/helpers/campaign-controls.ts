@@ -1,11 +1,12 @@
 import {test,expect,type Page,type CDPSession} from '@playwright/test';
+import {observeAttack} from './transient-observation';
 
 export interface Point {x:number;y:number;z:number}
 export interface CampaignProbe {
  npcLife:{position:Point;activity:string;recovery:string}|null;
  position:Point;yaw:number;pitch:number;phase:string;seconds:number;tool:boolean;hp:number;stamina:number;gliding:boolean;grapple:Point|null;enemies:{position:Point;phase:string;time:number;hp:number}[];
  streamedWorld:boolean;worldSamples:number[];restoreFailure:string|null;settings:{graphics:'balanced'|'performance'|'high'};stats:{graphics:string;worldResidency:{bucketScans:number;provider:null|{numericCacheBytes:number;numericCacheBudgetBytes:number;cachedBlocks:number;cacheEvictions:number;[key:string]:number}}};
- inventory:Record<number,number>;target?:string;worldReady:boolean;saveStatus:string;
+ drops:{material:number;count:number;position:Point}[];inventory:Record<number,number>;target?:string;worldReady:boolean;saveStatus:string;
  campaign:{flameTier:number;completed:string[];artisanRescued:boolean;deaths:number;items:Record<string,number>;equipment:Record<string,string|null>;campUnlocked:boolean;gateOpen:boolean};
 }
 // Observation only. No test writes to game state, invokes actions, or seeds storage.
@@ -79,8 +80,11 @@ export class PlayerControls {
   }
  }
  async walkTo(x:number,z:number){
+  const before=await motion(this.page);if(Math.hypot(x-before.position.x,z-before.position.z)<.18)return;
+  await this.aim({x,y:before.position.y+1.52,z});
+  // Momentum may carry the player while aiming. Measure the walking segment
+  // after the real look input, rather than projecting against a stale origin.
   const start=await motion(this.page),dx=x-start.position.x,dz=z-start.position.z,length=Math.hypot(dx,dz);if(length<.18)return;
-  await this.aim({x,y:start.position.y+1.52,z});
   let movementFailed=false;try{
    if(this.mobile){const box=await this.page.locator('#move-pad').boundingBox();expect(box).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:box!.x+box!.width/2,y:box!.y+10}]});this.liveTouch=true;}
    else await this.page.keyboard.down('KeyW');
@@ -93,9 +97,17 @@ export class PlayerControls {
    await this.aim(points[i%points.length]);
    // A mined patch may expose another part or terrain. Do not call private hit APIs.
    if((await read(this.page)).target!==object)continue;
-   await this.action('[data-action="heavy"]','KeyR');
-   await expect.poll(async()=>(await motion(this.page)).phase,{intervals:[50,100]}).not.toBe('idle');
+   const attack=await observeAttack(this.page);
+   try{await this.action('[data-action="heavy"]','KeyR');await expect.poll(()=>attack.read()).not.toBeNull();}finally{await attack.dispose();}
    await expect.poll(async()=>(await motion(this.page)).phase,{timeout:60000,intervals:[100]}).toBe('idle');
+   const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[100]}).toBeGreaterThan(seconds+.3);
+  }
+  // Mined chunks have physical inertia. Walk toward nearby physical drops
+  // instead of assuming every chunk lands inside the 1.65 m pickup radius.
+  for(let attempt=0;attempt<4&&(await read(this.page)).inventory[material]<minimum;attempt++){
+   const p=await read(this.page),drop=p.drops.filter(d=>d.material===material&&d.count>0&&Math.abs(d.position.y-p.position.y)<1.2&&Math.hypot(d.position.x-p.position.x,d.position.z-p.position.z)<3.5).sort((a,b)=>Math.hypot(a.position.x-p.position.x,a.position.z-p.position.z)-Math.hypot(b.position.x-p.position.x,b.position.z-p.position.z))[0];
+   if(!drop)break;const dx=drop.position.x-p.position.x,dz=drop.position.z-p.position.z,length=Math.hypot(dx,dz);
+   if(length>.65)await this.walkTo(drop.position.x-dx/length*.55,drop.position.z-dz/length*.55);
    const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[100]}).toBeGreaterThan(seconds+.3);
   }
   expect((await read(this.page)).inventory[material],`Actual chisel strikes and nearby pickup must gather material ${material}`).toBeGreaterThanOrEqual(minimum);

@@ -1,7 +1,7 @@
 export const GAMEPAD_ACTIONS=['jump','dodge','interact','element-next','recipe-next','cast','block','attack','special','sprint','tool','heavy','heal','dismantle','build'] as const;
 export type GamepadAction=typeof GAMEPAD_ACTIONS[number];
 export interface GamepadSettings {buttons:Record<GamepadAction,number>;deadzone:number;invertY:boolean;swapSticks:boolean}
-export const GAMEPAD_LABELS:Record<GamepadAction,string>={jump:'ジャンプ/滑空',dodge:'回避',interact:'操作','element-next':'属性切替','recipe-next':'建築切替',cast:'属性術',block:'盾を構える',attack:'斬撃',special:'集中技/建築を戻す',sprint:'走る',tool:'剣/道具切替',heavy:'強撃',heal:'回復',dismantle:'建築を解体',build:'設置'};
+export const GAMEPAD_LABELS:Record<GamepadAction,string>={jump:'ジャンプ/滑空',dodge:'回避',interact:'操作','element-next':'属性/熊手モード切替','recipe-next':'建築切替',cast:'属性術',block:'盾を構える',attack:'斬撃',special:'集中技/建築を戻す',sprint:'走る',tool:'剣/道具切替',heavy:'強撃',heal:'回復',dismantle:'建築/盛土を撤去',build:'設置'};
 export const GAMEPAD_BUTTONS=[0,1,2,3,4,5,6,7,8,10,11,12,13,14,15] as const;
 export const gamepadButtonLabel=(button:number)=>['A / ×','B / ○','X / □','Y / △','LB / L1','RB / R1','LT / L2','RT / R2','Back / Share','Start / Options','左スティック押込','右スティック押込','十字キー上','十字キー下','十字キー左','十字キー右'][button]??String(button);
 export function defaultGamepadSettings():GamepadSettings{return {buttons:Object.fromEntries(GAMEPAD_ACTIONS.map((action,index)=>[action,GAMEPAD_BUTTONS[index]])) as Record<GamepadAction,number>,deadzone:.18,invertY:false,swapSticks:false};}

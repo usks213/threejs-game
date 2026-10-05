@@ -69,6 +69,12 @@ jobs:
             group: desktop-echo-vault
             cases: echo-vault
           - project: desktop-chromium
+            group: desktop-soil-life
+            cases: campaign-soil-fill|western-npc-life
+          - project: desktop-chromium
+            group: desktop-watermill
+            cases: watermill
+          - project: desktop-chromium
             group: desktop-equipment-tools
             cases: campaign-equipment-tools
           - project: desktop-chromium
@@ -89,6 +95,12 @@ jobs:
           - project: android-chromium
             group: android-echo-vault
             cases: echo-vault
+          - project: android-chromium
+            group: android-soil-life
+            cases: campaign-soil-fill|western-npc-life
+          - project: android-chromium
+            group: android-watermill
+            cases: watermill
           - project: android-chromium
             group: android-equipment-tools
             cases: campaign-equipment-tools

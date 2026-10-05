@@ -12,6 +12,8 @@ export const PROCESSING_RECIPES:readonly ProcessingRecipe[]=[
 ];
 export const FURNITURE:readonly {id:string;label:string;cost:Record<number,number>;comfort:number}[]=[
  {id:'bed',label:'布張りの寝台',cost:{4:6,10:3},comfort:2},
+ {id:'west-carpenter-bed',label:'荷場のマキの寝台',cost:{4:6,10:3},comfort:0},
+ {id:'west-alchemist-bed',label:'荷場のセナの寝台',cost:{4:6,10:3},comfort:0},
  {id:'table',label:'木の食卓',cost:{4:4},comfort:1},
  {id:'brazier',label:'石の火鉢',cost:{3:5,4:3},comfort:1},
  {id:'rug',label:'織物の敷物',cost:{10:4,7:2},comfort:2},

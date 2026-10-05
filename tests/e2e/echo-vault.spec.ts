@@ -1,7 +1,8 @@
 import {test,expect,type Page} from '@playwright/test';
+import {observeAttack} from './helpers/transient-observation';
 import type {EchoVaultState,VaultTrapPhase} from '../../src/prototype/core/echo-vault';
 import {PlayerControls,read,choosePerformance,type CampaignProbe} from './helpers/campaign-controls';
-const vaultRead=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__coreProbe') as CampaignProbe&{dungeon:EchoVaultState;dungeonCrustCleared:boolean;dungeonTrapPhase:VaultTrapPhase});
+const vaultRead=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__coreProbe') as CampaignProbe&{dungeon:EchoVaultState;dungeonCrustMined:boolean;dungeonTrapPhase:VaultTrapPhase});
 
 test('seal vault uses real PC/Android input for clue, mining, safe trap lane, keyed gate, unique reward, exit and reload',async({page,isMobile},testInfo)=>{
  test.setTimeout(900000);const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));
@@ -12,10 +13,11 @@ test('seal vault uses real PC/Android input for clue, mining, safe trap lane, ke
  try{
   await controls.walkTo(8.5,6);await controls.walkTo(8.5,9);await interact('vault-note',{x:6.5,y:1,z:9});await expect.poll(async()=>(await vaultRead(page)).dungeon.clue).toBe(true);
   await controls.walkTo(8.5,11.35);await controls.walkTo(7.5,11.35);await controls.action('#tool-switch','Digit2');await expect.poll(async()=>(await read(page)).tool).toBe(true);
-  for(let i=0;i<16&&!(await vaultRead(page)).dungeonCrustCleared;i++){
-   await controls.aim({x:6.5,y:.95,z:11.4});await expect(page.locator('#game')).toHaveAttribute('data-target','vault-crust');await controls.action('[data-action="heavy"]','KeyR');await expect.poll(async()=>(await read(page)).phase,{intervals:[50,100]}).not.toBe('idle');await expect.poll(async()=>(await read(page)).phase,{timeout:60000}).toBe('idle');
+  // Mine the actual key ray. A single depleted sample does not imply clear LOS.
+  for(let i=0;i<16;i++){
+   const mined=(await vaultRead(page)).dungeonCrustMined;await controls.aim(mined?{x:6.5,y:1,z:11.95}:{x:6.5,y:.95,z:11.4});await expect.poll(async()=>(await read(page)).target).toMatch(/^vault-(crust|key)$/);if(mined&&(await read(page)).target==='vault-key')break;await expect(page.locator('#game')).toHaveAttribute('data-target','vault-crust');const attack=await observeAttack(page);try{await controls.action('[data-action="heavy"]','KeyR');await expect.poll(()=>attack.read()).not.toBeNull();}finally{await attack.dispose();}await expect.poll(async()=>(await read(page)).phase,{timeout:60000}).toBe('idle');
   }
-  expect((await vaultRead(page)).dungeonCrustCleared).toBe(true);await interact('vault-key',{x:6.5,y:1,z:11.95});await expect.poll(async()=>(await read(page)).campaign.items['echo-vault-key']).toBe(1);
+  expect((await vaultRead(page)).dungeonCrustMined).toBe(true);await controls.aim({x:6.5,y:1,z:11.95});await expect(page.locator('#game')).toHaveAttribute('data-target','vault-key');await interact('vault-key',{x:6.5,y:1,z:11.95});await expect.poll(async()=>(await read(page)).campaign.items['echo-vault-key']).toBe(1);
   await controls.walkTo(8.5,11.35);await controls.walkTo(10,11.35);await controls.aim({x:8.25,y:.35,z:13});await expect.poll(async()=>(await vaultRead(page)).dungeonTrapPhase,{timeout:90000,intervals:[100]}).toBe('warning');await page.screenshot({path:testInfo.outputPath('seal-vault-warning-and-side-lane.png')});
   const hp=(await read(page)).hp;await interact('vault-brake',{x:10.6,y:1,z:12.1});await expect.poll(async()=>(await vaultRead(page)).dungeon.disarmed).toBe(true);
   await controls.walkTo(10,13.6);await interact('vault-switch',{x:10.6,y:1,z:14.4});await expect.poll(async()=>(await vaultRead(page)).dungeon.gateOpen).toBe(true);expect((await read(page)).campaign.items['echo-vault-key']).toBe(0);

@@ -7,6 +7,10 @@ export class VoxelWater {
  readonly origin:Vec3={x:4,y:-.5,z:-5};
  readonly volume=new Float32Array(this.nx*this.ny*this.nz);
  readonly blocked=new Uint8Array(this.volume.length);
+ private readonly downward=new Float32Array(this.volume.length);
+ /** Cubic metres transferred down from this cell by the latest solver step. */
+ downwardTransfer(x:number,y:number,z:number){return x>=0&&x<this.nx&&y>0&&y<this.ny&&z>=0&&z<this.nz?this.downward[this.index(x,y,z)]*this.size**3:0;}
+ resetTransfers(){this.downward.fill(0);}
  revision=0;injected=0;phase=0;
  private readonly queue=new Int32Array(this.volume.length);
  private readonly visited=new Uint32Array(this.volume.length);private stamp=0;
@@ -27,10 +31,10 @@ export class VoxelWater {
   }
  }
  step(){
-  const a=this.volume,nx=this.nx,nz=this.nz,layer=nx*nz;
+  const a=this.volume,nx=this.nx,nz=this.nz,layer=nx*nz;this.downward.fill(0);
   // Cells embedded by an edit retain their volume and redistribute before normal flow.
   for(let i=0;i<a.length;i++)if(this.blocked[i]&&a[i]>0)this.displace(i);
-  for(let y=1;y<this.ny;y++)for(let z=0;z<nz;z++)for(let x=0;x<nx;x++){const i=this.index(x,y,z),j=i-layer;if(this.blocked[i]||this.blocked[j])continue;const q=Math.min(a[i],1-a[j]);a[i]-=q;a[j]+=q;}
+  for(let y=1;y<this.ny;y++)for(let z=0;z<nz;z++)for(let x=0;x<nx;x++){const i=this.index(x,y,z),j=i-layer;if(this.blocked[i]||this.blocked[j])continue;const q=Math.min(a[i],1-a[j]);a[i]-=q;a[j]+=q;this.downward[i]=q;}
   // Alternating sweep removes the permanent directional bias of an in-place solver.
   const reverse=(this.phase++&1)===1;
   for(let y=0;y<this.ny;y++)for(let zz=0;zz<nz;zz++)for(let xx=0;xx<nx;xx++){

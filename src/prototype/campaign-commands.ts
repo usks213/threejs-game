@@ -13,7 +13,7 @@ export function isGameCommand(value:unknown):value is GameCommand {
 export function executeGameCommand(sim:CoreSimulation,cmd:GameCommand):CommandResult {
  if(!(sim.player.hp>0)&&!(cmd.type==='gear'&&cmd.id.split(':')[0]==='rescue'))return {ok:false,message:'死亡中は復活してから操作する'};
  if(cmd.type==='craft')return sim.campaign.craft(cmd.id,sim.player.position,cmd.count);
- if(cmd.type==='equip'){if(!sim.canChangeEquipment)return {ok:false,message:'全員の動作が終わってから共有装備を変える'};const result=sim.campaign.equip(cmd.id);if(result.ok&&(sim.campaign.equippedTool===cmd.id||sim.campaign.equippedWeapon===cmd.id)){sim.fishing.selectRod(false);sim.player.tool=sim.campaign.equippedTool===cmd.id;sim.buildMode=sim.player.tool&&cmd.id==='build-hammer';}return result;}
+ if(cmd.type==='equip'){if(!sim.canChangeEquipment)return {ok:false,message:'全員の動作が終わってから共有装備を変える'};const result=sim.campaign.equip(cmd.id);if(result.ok&&(sim.campaign.equippedTool===cmd.id||sim.campaign.equippedWeapon===cmd.id)){sim.fishing.selectRod(false);sim.soilFill=false;sim.player.tool=sim.campaign.equippedTool===cmd.id;sim.buildMode=sim.player.tool&&cmd.id==='build-hammer';}return result;}
  if(cmd.type==='consume'){const r=sim.campaign.consume(cmd.id,sim.player.hp);if(r.heal)sim.player.hp=Math.min(sim.campaign.maxHp,sim.player.hp+r.heal);return r;}
  if(cmd.type==='learn')return sim.campaign.learn(cmd.id);
  if(cmd.type==='travel'){const r=sim.enemies.some(e=>e.hp>0&&sim.enemyActive(e)&&Math.hypot(e.position.x-sim.player.position.x,e.position.z-sim.player.position.z)<8)?{ok:false,message:'敵が近い。安全な場所から移動する'}:cmd.id==='west-return-hearth'&&sim.western?sim.western.travel(cmd.id,sim.westActorContext):sim.campaign.travel(cmd.id);if(r.position){sim.player.position=sim.safePosition(r.position,true);sim.player.vx=sim.player.vz=sim.player.vy=0;sim.gliding=false;sim.grapple=null;}return r;}
@@ -29,9 +29,10 @@ export function executeGameCommand(sim:CoreSimulation,cmd:GameCommand):CommandRe
   if(action==='reset-skills')return sim.campaign.resetSkills();
  }
  if(cmd.type==='homestead'){const [action,id]=cmd.id.split(':'),h=sim.home,ctx=sim.homeContext;
+  if(action==='watermill-build')return sim.watermill.build(sim.watermillContext);if(action==='watermill-repair')return sim.watermill.build(sim.watermillContext,true);if(action==='watermill-start')return sim.watermill.start(sim.watermillContext);if(action==='watermill-claim')return sim.watermill.claim(Number(id),sim.watermillContext);
   if(action==='deposit')return h.deposit(Number(id),1,ctx);if(action==='withdraw')return h.withdraw(Number(id),1,ctx);if(action==='deposit-all')return h.depositAll(ctx);
   if(action==='seed')return h.prepareSeeds(ctx);if(action==='plant')return h.plant(Number(id),ctx);if(action==='harvest')return h.harvest(Number(id),ctx);
   if(action==='tame')return h.tame(ctx);if(action==='feed')return h.feed(ctx);if(action==='animal')return h.claimAnimal(ctx);if(action==='process')return h.startProcessing(id,ctx);if(action==='claim')return h.claimProcessing(Number(id),ctx);
-  if(action==='furniture'){if(sim.furnitureBlocked(id))return {ok:false,message:'ナギが設置場所にいます。通り過ぎるのを待ってください'};const r=h.placeFurniture(id,ctx);if(r.ok)sim.buildFurniture(id);return r;}
+  if(action==='furniture'){if(sim.furnitureBlocked(id))return {ok:false,message:'住人や同行者などが設置場所にいます。通り過ぎるのを待ってください'};const r=h.placeFurniture(id,sim.furnitureContext(id));if(r.ok)sim.buildFurniture(id);return r;}
  }return {ok:false,message:'この操作は利用できません'};
 }

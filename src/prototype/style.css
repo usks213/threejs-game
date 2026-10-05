@@ -57,3 +57,5 @@ button:disabled{opacity:.4;cursor:default}
 /* Trial HUD must remain readable against bright sky as well as dark stone. */
 body:not(.campaign-mode) .values,body:not(.campaign-mode) #objective,body:not(.campaign-mode) #inventory,body:not(.campaign-mode) #recipe-cost{background:#101b22ed;border-radius:3px;padding:3px 6px;color:#fff3d9;text-shadow:none}
 body:not(.campaign-mode) .values{width:max-content;max-width:100%}
+
+.soil-fill-mode #recipe-switch{display:none}.campaign-mode.soil-fill-mode.touch #recipe-cost{max-width:min(420px,calc(100vw - 36px));height:auto;max-height:44px;white-space:normal}.campaign-mode.soil-fill-mode #prompt{color:#f2e6cb}
