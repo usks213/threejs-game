@@ -11,16 +11,20 @@ function valid(t:unknown):t is FluidTuple{
  const[x,y,z,size,volume,bottom,vx,vz,frozen]=t;return[.5,1].includes(size)&&[x,y,z].every(v=>Number.isInteger(v/size))&&x>=WORLD.minX&&x<=WORLD.maxX&&y>=WORLD.minY&&y<=WORLD.maxY&&z>=WORLD.minZ&&z<=WORLD.maxZ&&volume>0&&volume<=size**3+1e-8&&bottom>=0&&bottom<=size&&Math.abs(vx)<=12&&Math.abs(vz)<=12&&(frozen===0||frozen===1);
 }
 function dictionary(cells:readonly FluidCell[]):Map<string,FluidTuple>{if(cells.length>MAX_FLUID_CELLS)throw Error('水の表示数が上限を超えています');const map=new Map<string,FluidTuple>();for(const c of cells){const t=tuple(c);if(!valid(t)||map.has(key(t)))throw Error('水の基準状態が不正です');map.set(key(t),t);}return map;}
+// Half-cell coordinates within WORLD form a collision-free safe integer address.
+// Keep strings only at the wire boundary instead of allocating 8,192 keys per peer/frame.
+const xStride=(WORLD.maxX-WORLD.minX)*2+1,zStride=(WORLD.maxZ-WORLD.minZ)*2+1;
+const address=(x:number,y:number,z:number)=>((y-WORLD.minY)*2*zStride+(z-WORLD.minZ)*2)*xStride+(x-WORLD.minX)*2;
 export class FluidWireEncoder{
- private previous=new Map<string,FluidTuple>();private revision=0;
- reset(cells:readonly FluidCell[]):void{this.previous=dictionary(cells);this.revision=0;}
+ private previous=new Map<number,FluidTuple>();private revision=0;
+ reset(cells:readonly FluidCell[]):void{this.previous=new Map([...dictionary(cells).values()].map(t=>[address(t[0],t[1],t[2]),t]));this.revision=0;}
  encode(cells:readonly FluidCell[]):FluidDelta{
-  if(cells.length>MAX_FLUID_CELLS)throw Error('水の表示数が上限を超えています');const next=new Map<string,FluidTuple>(),changed:FluidTuple[]=[],removed:string[]=[];
-  for(const c of cells){const id=`${c.x},${c.y},${c.z}`,old=this.previous.get(id);if(next.has(id))throw Error('水の基準状態が不正です');
+  if(cells.length>MAX_FLUID_CELLS)throw Error('水の表示数が上限を超えています');const next=new Map<number,FluidTuple>(),changed:FluidTuple[]=[],removed:string[]=[];
+  for(const c of cells){const id=address(c.x,c.y,c.z),old=this.previous.get(id);if(next.has(id))throw Error('水の基準状態が不正です');
    if(old&&old[0]===c.x&&old[1]===c.y&&old[2]===c.z&&old[3]===(c.size??1)&&old[4]===c.volume&&old[5]===(c.bottom??0)&&old[6]===(c.vx??0)&&old[7]===(c.vz??0)&&old[8]===(c.frozen?1:0))next.set(id,old);
    else{const value=tuple(c);if(!valid(value))throw Error('水の基準状態が不正です');next.set(id,value);changed.push(value);}
   }
-  for(const id of this.previous.keys())if(!next.has(id))removed.push(id);const delta={base:this.revision,revision:this.revision+1,count:next.size,changed,removed};this.previous=next;this.revision++;return delta;
+  for(const [id,old] of this.previous)if(!next.has(id))removed.push(key(old));const delta={base:this.revision,revision:this.revision+1,count:next.size,changed,removed};this.previous=next;this.revision++;return delta;
  }
 }
 export class FluidWireDecoder{

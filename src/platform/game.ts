@@ -106,7 +106,7 @@ export function startGame() {
   const replicaBridge=new ReplicaBridge(message=>worker?.postMessage(message),acceptSnapshot);
   const post = (message: ClientMessage) => { if(message.type==='replica-state'){replicaBridge.offer(message.state,message.edits);return;} if(message.type==='init'||message.type==='replica-init'){replicaBridge.reset();loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
   const photo=document.createElement('button');photo.id='photo';const photoLabel=()=>{photo.textContent='風景をPNGで保存'+(preferences.hint('KeyP')?' ['+preferences.hint('KeyP')+']':'');};photoLabel();document.querySelector('#system-menu')!.addEventListener('click',photoLabel,{signal});document.querySelector('#accessibility-settings')!.addEventListener('keyup',photoLabel,{signal});document.querySelector('#system-panel')!.append(photo);photo.addEventListener('click',()=>{if(app.dataset.state!=='running'){notice('ワールドの準備ができてから写真を撮ってください');return;}photoNext=true;document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);},{signal});signal.addEventListener('abort',()=>photo.remove(),{once:true});
-  const network = networkUI(signal, post, notice,{savedRevision:revision=>persistence.sharedRevision(revision),loadPersonal:()=>persistence.load(),exported:save=>persistence.exportSave(save)});
+  const network = networkUI(signal, post, notice,{savedRevision:revision=>persistence.sharedRevision(revision),loadPersonal:()=>persistence.load(),exported:save=>persistence.exportSave(save),continueReplica:(state,edits)=>replicaBridge.continue(state,edits)});
   const send = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input);if (!network.forward(message)) post(message); };
   // Input must reach the authority on contact/release even if drawing is slow.
   // The short heartbeat also renews held input before the server's idle timeout.
@@ -238,7 +238,9 @@ export function startGame() {
       const loading=app.dataset.state!=='running';
       const renderDue=!menuOpen;pipeline.setResolution(preferences.resolution);if(menuOpen||loading)lastDraw=0;
       let uploaded=0;terrain.beginUploadFrame();
-      try{if(renderDue)uploaded=terrainQueue.flush(data=>terrain.update(data,renderer),id=>terrain.remove([id]));}catch(uploadError){console.error(uploadError);fail('地形のGPU転送に失敗しました。再読み込みしてください。');return;}
+      // Loading must consume bounded upload credits even with a menu open;
+      // otherwise a legitimate restart can never reach its near-ready fence.
+      try{if(renderDue||loading)uploaded=terrainQueue.flush(data=>terrain.update(data,renderer),id=>terrain.remove([id]));}catch(uploadError){console.error(uploadError);fail('地形のGPU転送に失敗しました。再読み込みしてください。');return;}
       // terrain.update already submits both LOD buffers through the 1px upload pass.
       // Never redraw the full shadowed world merely to release streaming credits.
       submittedMeshes+=uploaded;uploadMs+=terrain.stats.uploadSubmissionMs;acknowledgeMeshes(uploaded);

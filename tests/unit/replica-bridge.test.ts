@@ -44,3 +44,13 @@ it('resets authority acknowledgment and prediction sequencing on reconnect while
  bridge.applied({type:'replica-applied',epoch:3,requestId:current.requestId,tick:20,player:current.state.player});bridge.motion({type:'replica-motion',epoch:3,requestId:current.requestId,tick:20,sequence:3,player:{...current.state.player,x:2.1}});expect(published.at(-1)!.state.player.x).toBe(2.1);
  const after=published.length;bridge.motion({type:'replica-motion',epoch:3,requestId:current.requestId,tick:20,sequence:2,player:{...current.state.player,x:999}});bridge.motion({type:'replica-motion',epoch:3,requestId:old.requestId,tick:100,sequence:999,player:{...old.state.player,x:999}});expect(published).toHaveLength(after);
 });
+it('continues a verified world without a terrain epoch reset while retiring old worker replies and prediction',()=>{
+ const {bridge,sent,published}=setup();bridge.offer(state(100),[]);const old=sent[0];bridge.applied({type:'replica-applied',epoch:2,requestId:old.requestId,tick:100,player:old.state.player});
+ bridge.offer(state(101),[]);const stale=sent[1];bridge.continue({...state(102),ack:0},[]);const resumed=sent[2],before=published.length;
+ expect(resumed.resetPrediction).toBe(true);expect(resumed.requestId).toBeGreaterThan(stale.requestId);
+ bridge.applied({type:'replica-applied',epoch:2,requestId:stale.requestId,tick:101,player:{...stale.state.player,x:999}});bridge.motion({type:'replica-motion',epoch:2,requestId:old.requestId,tick:100,sequence:999,player:{...old.state.player,x:999}});expect(published).toHaveLength(before);
+ bridge.applied({type:'replica-applied',epoch:2,requestId:resumed.requestId,tick:102,player:resumed.state.player});bridge.motion({type:'replica-motion',epoch:2,requestId:resumed.requestId,tick:102,sequence:1,player:{...resumed.state.player,x:10.3}});expect(published.at(-1)!.state.player.x).toBe(10.3);
+});
+it('retains the pending prediction reset when a full baseline arrives before the initial terrain epoch',()=>{
+ const sent:ReplicaUpdate[]=[],bridge=new ReplicaBridge(message=>sent.push(message),()=>{});bridge.continue(state(10),[]);bridge.offer(state(11),[]);expect(sent).toHaveLength(0);bridge.beginEpoch(7);expect(sent).toHaveLength(1);expect(sent[0].state.tick).toBe(11);expect(sent[0].resetPrediction).toBe(true);
+});

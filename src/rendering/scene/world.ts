@@ -1,4 +1,5 @@
 import {createTrailRace} from '../game/trail-race';
+import {createPeerRenderProbe} from './peer-render-probe';
 import {createExpeditions} from '../game/expeditions';
 import {createCompanions} from '../game/companions';
 import {foodEffect} from '../../content/adventure-food';
@@ -18,6 +19,7 @@ import { WaterMeshingController } from '../water/controller';
 import type { Snapshot } from '../../simulation/protocol';
 export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
   const scene = new THREE.Scene();scene.userData.direct=direct;
+  const peerProbe=typeof location!=='undefined'&&new URLSearchParams(location.search).has('coopRenderProbe')?createPeerRenderProbe(renderer,scene):null;let renderedStateTick=0;
   scene.background = new THREE.Color(meadow.sky); scene.fog = new THREE.Fog(meadow.fog, 28, 61);
   const glow=new THREE.PointLight('#c5efbd',0,3.5,2);scene.add(glow);
   const race=createTrailRace(scene),skybound=createSkybound(scene),companions=createCompanions(scene),expeditions=createExpeditions(scene),landmarks=createLandmarks(scene);
@@ -67,17 +69,19 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
       });
     },
     update(state: Snapshot) {
+      renderedStateTick=state.tick;
       scene.userData.generator=state.adventure.generator;glow.intensity=foodEffect(state.adventure,'glow')?3:0;glow.position.set(state.player.x,state.player.y+1,state.player.z);
       race.update(state);skybound.update(state.adventure.skybound,state.player);companions.update(state);expeditions.update(state);
       waterTime.value = state.adventure.seconds; feedback.update(state);
       player.rotation.z=state.adventure.coop?.downedSeconds?-1.25:0;
       localAvatar.setPose({ ...state.adventure,crouching:!!state.player.crouching,riding:!!state.adventure.companions?.riding, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:state.adventure.meadows?state.adventure.meadows.gear.offhand==='towerShield':!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?Object.fromEntries(Object.entries(state.adventure.meadows.gear).filter(([,id])=>state.adventure.inventory[id]>0)):undefined, grounded: state.player.grounded });
-      for (const [id, view] of remotePlayers) if (!state.peers?.some(peer => peer.id === id)) { scene.remove(view.model.group); remotePlayers.delete(id); }
+      for (const [id, view] of remotePlayers) if (!state.peers?.some(peer => peer.id === id)) { peerProbe?.remove(id);scene.remove(view.model.group); remotePlayers.delete(id); }
       for (const peer of state.peers ?? []) {
         let view = remotePlayers.get(peer.id);
         if (!view) {
           const model = avatars.create(); model.group.position.set(peer.player.x, peer.player.y, peer.player.z);
           view = { model, target: model.group.position.clone(), heading: peer.player.heading }; remotePlayers.set(peer.id, view); scene.add(model.group);
+          peerProbe?.observe(peer.id,model.group,()=>renderedStateTick);
         }
         view.model.group.rotation.z=peer.appearance?.downed?-1.25:0;
         view.model.setPose({ ...peer.appearance,riding:state.adventure.companions?.creatures.some(c=>c.rider===peer.id), grounded: peer.player.grounded });
@@ -101,6 +105,7 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
       }
     },
     dispose() {
+      peerProbe?.dispose();
       race.dispose();companions.dispose();expeditions.dispose();landmarks.dispose();skybound.dispose();waterMesher.dispose();
       atmosphere.dispose();feedback.dispose();preview.dispose();bodies.dispose(); entities.dispose(); shadows.dispose(); scene.remove(player);
       for (const view of remotePlayers.values()) scene.remove(view.model.group); avatars.dispose();

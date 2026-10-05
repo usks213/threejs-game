@@ -120,6 +120,7 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
       invalidateTerrain(result.dirty); scheduleMesh();
       emit({ type: 'notice', message: result.message });
     } else if ((message.type === 'replica-state'||message.type==='replica-update') && sim && replica) {
+      if(message.type==='replica-update'&&message.resetPrediction){prediction=new Prediction(sim);input={x:0,z:0,jump:false};inputSequence=message.state.ack??0;}
       replicaState = message.state;
       const dirty = new Set<string>();
       for (const edit of message.edits.slice(sim.world.edits.length)) for (const id of sim.world.apply(edit)) dirty.add(id);

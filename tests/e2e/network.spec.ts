@@ -1,18 +1,20 @@
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import type {SkyboundSnapshot} from '../../src/game/skybound/types';
-import type {CoopServerPacket} from '../../src/networking/coop-protocol';
+import type {EditOperation} from '../../src/world/types';
+import type {PeerRenderSample} from '../../src/rendering/scene/peer-render-probe';
+import {COOP_PROTOCOL,type CoopServerPacket} from '../../src/networking/coop-protocol';
 // These contexts span tests. Keep their traces under this file's control,
 // including retries; the runner would otherwise start a second trace.
 test.use({trace:'off'});
 test.describe.serial('two real browsers',()=>{
  type Ack=Extract<CoopServerPacket,{type:'ack'}>;
- const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>}>();
+ const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>}>();
  let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',expectedEditCount=0,errors:string[]=[],failed=false,tracePaths:string[]=[];
  const stage=(name:string)=>console.log('COOP_BROWSER_PHASE',name);
  const running=(page:Page)=>expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
  const diagnostics=async(page:Page)=>{
   console.log('COOP_BROWSER_LOCATION',page.url());
-  for(const [selector,attribute]of [['#app','data-diagnostics'],['#app','data-aim'],['#app','data-combat'],['#app','data-skybound'],['#session-status','data-last-ack'],['#session-status','data-last-command']]as const)console.log('COOP_DIAGNOSTIC',attribute,await page.locator(selector).getAttribute(attribute,{timeout:1000}).catch(()=>null));
+  for(const [selector,attribute]of [['#app','data-diagnostics'],['#app','data-aim'],['#app','data-combat'],['#app','data-skybound'],['#app','data-streaming'],['#game','data-rendered-peers'],['#game','data-peer-render-error'],['#session-status','data-last-ack'],['#session-status','data-last-command']]as const)console.log('COOP_DIAGNOSTIC',attribute,await page.locator(selector).getAttribute(attribute,{timeout:1000}).catch(()=>null));
   console.log('COOP_NOTICE',await page.locator('#notice').textContent({timeout:1000}).catch(()=>null));
  };
  test.beforeAll(async({browser},info)=>{
@@ -22,12 +24,25 @@ test.describe.serial('two real browsers',()=>{
   [a,b]=await Promise.all(contexts.map(context=>context.newPage()));
   for(const page of[a,b]){
    page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
-   const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>()};wire.set(page,observed);
+   // Withhold one received real delta from the application when explicitly
+   // armed below. Keep the actual socket/endpoint and its outgoing bytes intact.
+   // This avoids routing resume capabilities through recorded Playwright calls.
+   await page.addInitScript(()=>{
+    const fault={skipNextDelta:false,skipped:0};(window as typeof window&{coopDeliveryFault?:typeof fault}).coopDeliveryFault=fault;
+    window.WebSocket=new Proxy(window.WebSocket,{construct(Target,args,newTarget){
+     const socket=Reflect.construct(Target,args,newTarget) as WebSocket;
+     socket.addEventListener('message',event=>{if(!fault.skipNextDelta)return;try{if(JSON.parse(String(event.data)).type==='delta'){fault.skipNextDelta=false;fault.skipped++;event.stopImmediatePropagation();}}catch{}},{capture:true});
+     return socket;
+    }});
+   });
+   const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>()};wire.set(page,observed);
    // Observe the actual transport before navigation, including reconnects. Keep
    // only action IDs/results; never retain or log handshake/resume capabilities.
    page.on('websocket',socket=>{
     socket.on('framereceived',frame=>{try{
      const packet=JSON.parse(String(frame.payload));
+     if(packet.type==='welcome')console.log('COOP_BASELINE',JSON.stringify({epoch:packet.epoch,tick:packet.state?.tick,ack:packet.state?.ack,edits:packet.state?.edits,playerId:packet.playerId}));
+     if(packet.type==='welcome'||packet.type==='frame'||packet.type==='delta')for(const edit of packet.edits??packet.save?.edits??[])observed.edits.set(edit.id,edit);
      if(packet.type==='ack'&&typeof packet.commandId==='string'&&typeof packet.accepted==='boolean'&&typeof packet.message==='string')observed.acks.set(packet.commandId,{type:'ack',commandId:packet.commandId,accepted:packet.accepted,message:packet.message});
      if(packet.type==='ack'||packet.type==='notice')console.log('COOP_SERVER_REPLY',JSON.stringify(packet));
     }catch{}});
@@ -39,10 +54,10 @@ test.describe.serial('two real browsers',()=>{
      }
     }catch{}});
    });
-   page.on('requestfailed',r=>console.log('COOP_REQUEST_FAILED',r.url().split('?')[0],r.failure()?.errorText));await page.goto('/',{waitUntil:'domcontentloaded',timeout:45000});await running(page);await page.locator('#session-menu').click();
+   page.on('requestfailed',r=>console.log('COOP_REQUEST_FAILED',r.url().split('?')[0],r.failure()?.errorText));await page.goto('/?coopRenderProbe=1',{waitUntil:'domcontentloaded',timeout:45000});await running(page);await page.locator('#session-menu').click();
   }
-  stage('create room');await a.locator('#session-host').click();await expect(a.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});code=await a.locator('#session-code').inputValue();
-  stage('join second browser');await b.locator('#session-code').fill(code);await b.locator('#session-join').click();await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});
+  stage('create room');await a.locator('#session-host').click();await expect(a.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await running(a);await expect(a.locator('#session-panel')).toBeVisible();code=await a.locator('#session-code').inputValue();
+  stage('join second browser');await b.locator('#session-code').fill(code);await b.locator('#session-join').click();await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await running(b);await expect(b.locator('#session-panel')).toBeVisible();
   identity=(await b.locator('#session-status').getAttribute('data-player'))!;expect(identity).not.toBe(await a.locator('#session-status').getAttribute('data-player'));
   // Both connections remain live; only one software-GPU view renders at a time.
   for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-players','2');await page.keyboard.press('Escape');await running(page);await page.locator('#session-menu').click();}
@@ -99,7 +114,16 @@ test.describe.serial('two real browsers',()=>{
   await command(creator,'#power-share','sky-share',partId+':on');
   for(const page of pages)await expect.poll(async()=>(await part(page))?.shared).toBe(true);
 
-  stage('same part concurrent grab');await Promise.all(pages.map(actionGap));
+  stage('real lost-delta recovery while powers stays open');
+  const epochs=await Promise.all(pages.map(page=>page.locator('#app').getAttribute('data-world-epoch'))),welcomes=await Promise.all(pages.map(async page=>Number(await page.locator('#session-status').getAttribute('data-welcome-count'))));
+  for(const page of pages)await page.evaluate(()=>{(window as typeof window&{coopDeliveryFault:{skipNextDelta:boolean}}).coopDeliveryFault.skipNextDelta=true;});
+  for(const [i,page]of pages.entries()){
+   await expect.poll(()=>page.evaluate(()=>(window as typeof window&{coopDeliveryFault:{skipped:number}}).coopDeliveryFault.skipped)).toBe(1);
+   await expect.poll(async()=>Number(await page.locator('#session-status').getAttribute('data-welcome-count'))).toBeGreaterThan(welcomes[i]);
+   await expect(page.locator('#session-status')).toHaveAttribute('data-welcome-mode','continued');await expect(page.locator('#app')).toHaveAttribute('data-world-epoch',epochs[i]!);await running(page);await expect(page.locator('#powers-panel')).toBeVisible();
+   await expect.poll(async()=>(await part(page))?.id).toBe(created.id);await page.locator('#power-part').selectOption(partId);
+  }
+  stage('same part concurrent grab after full resync');await Promise.all(pages.map(actionGap));
   for(const page of pages)await page.locator('#powers-panel [data-power=grab]').focus();
   const starts=pages.map(page=>wire.get(page)!.actions.length);
   await Promise.all(pages.map(page=>page.keyboard.press('Enter')));
@@ -140,19 +164,41 @@ test.describe.serial('two real browsers',()=>{
   for(const page of pages){await expect.poll(async()=>!!(await part(page))?.lease).toBe(false);await page.locator('#powers-close').click();await page.locator('#session-menu').click();}
   expect(errors).toEqual([]);stage('NET-A02 conflict movement expiry and reconnect verified');
  });
- test('move and observe each other through the public authority',async()=>{
-  test.setTimeout(45000);stage('move and observe');await b.keyboard.press('Escape');await running(b);const before=Number(await b.locator('#position').getAttribute('data-x'));
-  const peer=async()=>JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===identity);
-  // The parked observer receives authority snapshots without drawing. Stop the
-  // held key on that evidence so a slow active renderer cannot cause a long run.
-  await b.keyboard.down('KeyD');try{await expect.poll(async()=>(await peer())?.x??-999).toBeGreaterThan(before+.4);}finally{await b.keyboard.up('KeyD');}
-  await expect.poll(async()=>Number(await b.locator('#position').getAttribute('data-x'))).toBeGreaterThan(before+.4);
-  await expect.poll(async()=>Math.abs((await peer())?.heading??0)).toBeGreaterThan(.3);
-  const ground=(await peer()).y;await b.keyboard.press('Space');await expect.poll(async()=>(await peer())?.y??ground).toBeGreaterThan(ground+.15);
-  await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('movement verified');
+ test('move, turn and jump with mutually visible rendered avatars through the public authority',async({},info)=>{
+  test.setTimeout(120000);stage('NET-A01 actual peer pixels');
+  const rendered=async(page:Page)=>JSON.parse(await page.locator('#game').getAttribute('data-rendered-peers')??'[]') as PeerRenderSample[];
+  const evidence:unknown[]=[];
+  for(const [actor,observer,key,direction]of [[b,a,'KeyD',1],[a,b,'KeyA',-1]] as const){
+   const id=(await actor.locator('#session-status').getAttribute('data-player'))!;
+   const peer=async()=>JSON.parse(await observer.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===id) as {x:number;y:number;z:number;heading:number;grounded:boolean}|undefined;
+   for(const page of[actor,observer]){await page.keyboard.press('Escape');await running(page);}
+   const before=(await peer())!,start=await observer.evaluate(()=>performance.now());
+   await actor.keyboard.down(key);try{await expect.poll(async()=>direction*((await peer())!.x-before.x),{intervals:[50,100],timeout:15000}).toBeGreaterThan(.45);}finally{await actor.keyboard.up(key);}
+   // Park the moving client after release; the observing client draws the
+   // interpolated model and asynchronously checks actual depth-passing pixels.
+   await actor.locator('#session-menu').click();const moved=(await peer())!;
+   await expect.poll(async()=>await observer.locator('#game').getAttribute('data-peer-render-error')).toBeNull();
+   await expect.poll(async()=>(await rendered(observer)).some(p=>p.id===id&&p.at>start&&p.visible&&direction*(p.x-before.x)>.35&&Math.abs(Math.atan2(Math.sin(p.heading-moved.heading),Math.cos(p.heading-moved.heading)))<.25),{timeout:25000}).toBe(true);
+   await observer.screenshot({path:info.outputPath(`peer-${direction===1?'east':'west'}-visible.png`),timeout:60000,scale:'css',animations:'disabled'});
+   const ground=(await peer())!.y,jumpStart=await observer.evaluate(()=>performance.now());
+   // A missed short airborne render is retried as another ordinary grounded
+   // jump, never by changing world state or making a synthetic network action.
+   let airborne=false;
+   for(let attempt=0;attempt<3&&!airborne;attempt++){
+    await actor.locator('#session-close').click();await actor.keyboard.press('Space');
+    await expect.poll(async()=>(await peer())!.y,{intervals:[50,100]}).toBeGreaterThan(ground+.15);await actor.locator('#session-menu').click();
+    try{await expect.poll(async()=>(await rendered(observer)).some(p=>p.id===id&&p.at>jumpStart&&p.visible&&p.y>ground+.15),{intervals:[100,200],timeout:2500}).toBe(true);airborne=true;}catch{
+     await expect.poll(async()=>(await peer())!.grounded,{timeout:15000}).toBe(true);
+    }
+   }
+   expect(airborne,'The remote jump must produce visible canvas pixels, not only a received snapshot').toBe(true);
+   evidence.push({direction,authoritativeBefore:before,authoritativeMoved:moved,rendered:await rendered(observer)});
+   await observer.locator('#session-menu').click();
+  }
+  await info.attach('mutual-avatar-render-evidence.json',{body:JSON.stringify(evidence,null,2),contentType:'application/json'});expect(errors).toEqual([]);stage('mutual movement heading and airborne pixels verified');
  });
- test('commit a visible terrain edit and converge on both clients',async()=>{
-  test.setTimeout(90000);stage('visible terrain tool');await a.keyboard.press('Escape');await running(a);
+ test('commit a terrain edit and verify remote rendered surface and collision',async({},info)=>{
+  test.setTimeout(150000);stage('visible terrain tool');await a.keyboard.press('Escape');await running(a);
   // The initial camera aimed into the protected arrival/landmark cores. Walk
   // east using real input before digging; keep both clients on the same world.
   const creator=await a.locator('#session-status').getAttribute('data-player');
@@ -162,7 +208,30 @@ test.describe.serial('two real browsers',()=>{
   await a.mouse.move(400,150);await a.mouse.down({button:'middle'});await a.mouse.move(400,220,{steps:4});await a.mouse.up({button:'middle'});await expect(a.locator('#use-tool')).toBeEnabled();
   const priorEditCount=Number(await a.locator('#edit-count').getAttribute('data-count'));console.log('COOP_PRE_EDIT_AIM',await a.locator('#app').getAttribute('data-aim'));await a.locator('#use-tool').click();
   await expect.poll(async()=>Number(await a.locator('#edit-count').getAttribute('data-count')),{timeout:20000}).toBeGreaterThan(priorEditCount);expectedEditCount=Number(await a.locator('#edit-count').getAttribute('data-count'));await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount),{timeout:20000});
-  console.log('COOP_EDIT_ACK',await a.locator('#session-status').getAttribute('data-last-ack'));await a.locator('#session-menu').click();expect(errors).toEqual([]);stage('shared edit verified');
+  const edit=wire.get(a)!.edits.get(priorEditCount+1)!;expect(edit?.kind).toBe('dig');await expect.poll(()=>wire.get(b)!.edits.get(priorEditCount+1)).toEqual(edit);
+  console.log('COOP_EDIT_ACK',await a.locator('#session-status').getAttribute('data-last-ack'));await a.locator('#session-menu').click();
+  const peer=async()=>JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===identity) as {x:number;y:number;z:number;grounded:boolean};
+  await b.keyboard.press('Escape');await running(b);
+  // Walk B to the actual server-accepted excavation using ordinary controls.
+  // Receiving an edit count alone cannot prove either collision or rendering.
+  for(const axis of ['x','z'] as const){
+   const from=(await peer())[axis],to=edit.position[axis],direction=Math.sign(to-from);if(Math.abs(to-from)<.25)continue;
+   const key=axis==='x'?(direction>0?'KeyD':'KeyA'):(direction>0?'KeyS':'KeyW');
+   await b.keyboard.down(key);try{await expect.poll(async()=>direction*((await peer())[axis]-to),{intervals:[30,50,100],timeout:15000}).toBeGreaterThan(-.2);}finally{await b.keyboard.up(key);}
+  }
+  await expect.poll(async()=>Math.hypot((await peer()).x-edit.position.x,(await peer()).z-edit.position.z),{timeout:10000}).toBeLessThan(1.1);
+  await expect.poll(async()=>(await peer()).grounded,{timeout:15000}).toBe(true);
+  await expect.poll(async()=>(await peer()).y,{timeout:15000}).toBeLessThan(edit.position.y-.4);
+  const collided=await peer();await expect.poll(async()=>Number(await b.locator('#position').getAttribute('data-y'))).toBeLessThan(edit.position.y-.4);
+  // Looking steeply down makes the production renderer raycast the excavated
+  // surface that supports B. No CPU fixture or test-only ray is substituted.
+  await b.mouse.move(400,130);await b.mouse.down({button:'middle'});await b.mouse.move(400,300,{steps:4});await b.mouse.up({button:'middle'});
+  const renderedAim=async()=>JSON.parse(await b.locator('#app').getAttribute('data-aim')??'{}') as {target?:{x:number;y:number;z:number}};
+  await expect.poll(async()=>(await renderedAim()).target?.y??Infinity,{timeout:20000}).toBeLessThan(edit.position.y-.3);
+  const target=(await renderedAim()).target!;expect(Math.hypot(target.x-edit.position.x,target.z-edit.position.z)).toBeLessThan(2.3);
+  await b.screenshot({path:info.outputPath('remote-excavation-collision.png'),timeout:60000,scale:'css',animations:'disabled'});
+  await info.attach('terrain-render-collision-evidence.json',{body:JSON.stringify({edit,collided,renderedAim:await renderedAim(),streaming:JSON.parse(await b.locator('#app').getAttribute('data-streaming')??'{}')},null,2),contentType:'application/json'});
+  await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('shared edit rendered and collision verified');
  });
  test('reconnect, restore a late browser and continue after the creator leaves',async({browser})=>{
   test.setTimeout(180000);stage('disconnect and reconnect');await contexts[1].setOffline(true);
@@ -181,4 +250,60 @@ test.describe.serial('two real browsers',()=>{
   stage('creator leaves');await a.locator('#session-leave').click();await expect(b.locator('#session-status')).toHaveAttribute('data-players','1');const tick=Number(await b.locator('#session-status').getAttribute('data-tick'));await expect.poll(async()=>Number(await b.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThan(tick);
   await b.keyboard.press('Escape');await running(b);await b.screenshot({path:'test-results/coop-two-browser.png',timeout:60000,scale:'css',animations:'disabled'});expect(errors).toEqual([]);stage('reconnect and persistence verified');
  });
+});
+
+test('two real browsers acceptance: room error UI explains refusals and allows safe recovery',async({page},info)=>{
+ test.setTimeout(150000);page.setDefaultTimeout(20000);
+ type Fault='none'|'version'|'room'|'malformed';let fault:Fault='none',welcomes=0,connections=0;
+ const notices:{fault:Fault;message:string}[]=[],errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ // The game still talks to the real endpoint. Only the outgoing handshake is
+ // deliberately damaged, one clause at a time; server replies are untouched.
+ await page.routeWebSocket(/\/coop\/[a-f0-9]{48}$/,socket=>{
+  connections++;const selected=fault,server=socket.connectToServer();
+  socket.onMessage(message=>{
+   try{const packet=JSON.parse(String(message));if(packet.type==='hello'){
+    if(selected==='version')packet.protocol=-1;
+    if(selected==='room')packet.roomId=packet.roomId==='f'.repeat(48)?'e'.repeat(48):'f'.repeat(48);
+    if(selected==='malformed')packet.resumeKey='invalid';
+    server.send(JSON.stringify(packet));return;
+   }}catch{/* Unmodified non-JSON messages still exercise the real server. */}
+   server.send(message);
+  });
+  server.onMessage(message=>{try{const packet=JSON.parse(String(message));if(packet.type==='welcome')welcomes++;if(packet.type==='notice')notices.push({fault:selected,message:packet.message});}catch{}socket.send(message);});
+ });
+ await page.goto('/',{waitUntil:'domcontentloaded'});await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
+ const originalEdits=await page.locator('#edit-count').getAttribute('data-count');
+ await page.locator('#session-menu').click();await page.locator('#session-code').fill('invalid-code');await page.locator('#session-join').click();
+ await expect(page.locator('#notice')).toContainText('招待コードが不正');await expect(page.locator('#session-status')).toHaveAttribute('data-connection','closed');expect(connections).toBe(0);
+ const code=await page.evaluate(()=>Array.from(crypto.getRandomValues(new Uint8Array(24)),v=>v.toString(16).padStart(2,'0')).join(''));
+ await page.locator('#session-code').fill(code);await page.context().setOffline(true);
+ try{await page.locator('#session-join').click();await expect(page.locator('#session-status')).toContainText('再接続中');await page.locator('#session-leave').click();await expect(page.locator('#session-status')).toHaveAttribute('data-connection','closed');}
+ finally{await page.context().setOffline(false);}
+ await page.locator('#session-close').click();await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});await expect(page.locator('#edit-count')).toHaveAttribute('data-count',originalEdits!);expect(connections).toBe(0);
+ for(const selected of ['version','room','malformed'] as const){
+  fault=selected;await page.locator('#session-menu').click();await page.locator('#session-code').fill(code);await page.locator('#session-join').click();
+  if(selected==='room')await expect(page.locator('#notice')).toContainText('部屋と接続先が一致しません');
+  else{await expect(page.locator('#session-status')).toHaveAttribute('data-connection','closed',{timeout:25000});await expect(page.locator('#notice')).toContainText('接続情報またはゲームの版を確認');}
+  expect(welcomes).toBe(0);await expect(page.locator('#session-status')).not.toHaveAttribute('data-player',/.+/);
+  await page.locator('#session-leave').click();await page.locator('#session-close').click();await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
+ }
+ fault='none';
+ // Four real, idle WebSockets exercise the capacity refusal without booting
+ // four more GPU renderers. This is not a four-player performance result.
+ try{
+  await page.evaluate(async({room,protocol})=>{
+   const clients:WebSocket[]=[];(window as typeof window&{acceptancePeers?:WebSocket[]}).acceptancePeers=clients;
+   for(let i=0;i<4;i++)await new Promise<void>((resolve,reject)=>{
+    const url=new URL('/coop/'+room,location.href);url.protocol=url.protocol==='https:'?'wss:':'ws:';const socket=new WebSocket(url);clients.push(socket);
+    const timer=setTimeout(()=>reject(Error('Capacity client handshake timeout')),15000);
+    socket.onopen=()=>socket.send(JSON.stringify({type:'hello',protocol,roomId:room,resumeKey:Array.from(crypto.getRandomValues(new Uint8Array(32)),v=>v.toString(16).padStart(2,'0')).join('')}));
+    socket.onmessage=event=>{const packet=JSON.parse(String(event.data));if(packet.delivery)socket.send(JSON.stringify({type:'delivery',token:packet.delivery}));if(packet.type==='welcome'){clearTimeout(timer);resolve();}else if(packet.type==='notice'){clearTimeout(timer);reject(Error(packet.message));}};
+    socket.onerror=()=>{clearTimeout(timer);reject(Error('Capacity client connection failed'));};
+   });
+  },{room:code,protocol:COOP_PROTOCOL});
+  expect(welcomes).toBe(4);await page.locator('#session-menu').click();await page.locator('#session-code').fill(code);await page.locator('#session-join').click();await expect(page.locator('#notice')).toContainText('この部屋は4人まで');expect(welcomes).toBe(4);await expect(page.locator('#session-status')).not.toHaveAttribute('data-player',/.+/);await page.locator('#session-leave').click();
+ }finally{await page.evaluate(async()=>{const state=window as typeof window&{acceptancePeers?:WebSocket[]};await Promise.all((state.acceptancePeers??[]).map(socket=>new Promise<void>(resolve=>{if(socket.readyState===WebSocket.CLOSED){resolve();return;}socket.addEventListener('close',()=>resolve(),{once:true});socket.close();})));delete state.acceptancePeers;});}
+ await page.locator('#session-code').fill(code);await page.locator('#session-join').click();await expect(page.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});expect(welcomes).toBe(5);await expect(page.locator('#session-status')).toHaveAttribute('data-players','1');
+ await info.attach('room-refusal-and-recovery.json',{body:JSON.stringify({notices,welcomes,connections,invalidCodeRejectedBeforeConnection:true,offlineCancelled:true,capacityRefusalWithFourIdleSockets:true},null,2),contentType:'application/json'});
+ await page.locator('#session-close').click();await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});await page.screenshot({path:info.outputPath('room-recovered.png'),timeout:60000,scale:'css'});await page.locator('#session-menu').click();await page.locator('#session-leave').click();expect(errors).toEqual([]);
 });

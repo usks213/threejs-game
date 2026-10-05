@@ -1,3 +1,4 @@
+import {FixedStepClock} from '../../src/networking/fixed-step-clock';
 import {isSavedRevision} from '../../src/save/revision';
 import {COOP_PROTOCOL} from '../../src/networking/coop-protocol';
 import {validateCheckpoint} from '../../src/save/checkpoint';
@@ -36,8 +37,8 @@ export async function startCoopServer(port = 2568, directory?: string) {
    socket.on('close',()=>{sockets.delete(socket);room.disconnect(id);if(!room.readOnly)void persist(key,room).catch(failed);});
   }catch{if(!rooms.has(key))loads.delete(key);socket.close(1011,'Room load failed');}
  });
- const timer=setInterval(()=>{for(const room of rooms.values())if(room.size)room.step();},1000/30);
+ const timer=new FixedStepClock(()=>{for(const room of rooms.values())if(room.size)room.step();});timer.start();
  await new Promise<void>((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});
- return {rooms,port:(server.address() as {port:number}).port,async close(){clearInterval(timer);for(const [socket,value]of sockets){value.room.disconnect(value.id);socket.terminate();}await Promise.all([...rooms].filter(([,room])=>!room.readOnly).map(([key,room])=>persist(key,room)));await writes;await new Promise<void>(r=>ws.close(()=>r()));await new Promise<void>(r=>server.close(()=>r()));}};
+ return {rooms,timing:()=>timer.stats,port:(server.address() as {port:number}).port,async close(){timer.stop();for(const [socket,value]of sockets){value.room.disconnect(value.id);socket.terminate();}await Promise.all([...rooms].filter(([,room])=>!room.readOnly).map(([key,room])=>persist(key,room)));await writes;await new Promise<void>(r=>ws.close(()=>r()));await new Promise<void>(r=>server.close(()=>r()));}};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){const server=await startCoopServer(Number(process.env.COOP_PORT??2568),process.env.COOP_SAVE_DIRECTORY);console.log(`Coop authority listening on 127.0.0.1:${server.port}`);for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>{void server.close().then(()=>process.exit());});}

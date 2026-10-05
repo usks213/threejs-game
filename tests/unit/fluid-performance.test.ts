@@ -116,3 +116,14 @@ it('preserves obstacle masks at thin, axis-aligned, rotated, overlapping and neg
     expect(createHash('sha256').update(JSON.stringify({ occupied: [...mask.occupied], barriers: [...mask.barriers] })).digest('hex')).toBe(hashes[i]);
   }
 });
+it('selects the exact nearest visible subset before sorting, including dense ties and adversarial insertion orders',()=>{
+ for(const order of ['forward','reverse','alternating'] as const){const cells=new IndexedFluidCells(()=>{}),values:FluidCell[]=[];for(let x=-30;x<=30;x+=.5)for(let z=-20;z<=20;z+=.5)for(const y of [0,.5])values.push({x,y,z,volume:.1,size:.5});
+  if(order==='reverse')values.reverse();if(order==='alternating')values.sort((a,b)=>(a.x+a.z)%3-(b.x+b.z)%3);
+  for(const cell of values)cells.set(id(cell),cell);const removed=values[123];cells.delete(id(removed));cells.set(id(removed),removed);
+  for(const centers of [[{x:0,y:0,z:0}],[{x:8.25,y:1,z:-6.75}],[{x:-10,y:0,z:7},{x:12,y:0,z:-5}]])for(const limit of [1,64,2048,8192]){
+   const expected=[...cells.values()].filter(c=>distance(c,centers)<48**2).sort((a,b)=>distance(a,centers)-distance(b,centers)).slice(0,limit).map(id);
+   expect(cells.nearest(centers,limit,48).map(e=>e.id)).toEqual(expected);
+  }
+  expect(cells.size).toBe(values.length);
+ }
+});

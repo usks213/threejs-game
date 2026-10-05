@@ -4,7 +4,7 @@ export type SnapshotChange=[(string|number)[],0]|[(string|number)[],1,WireJson];
 export interface SnapshotDelta {base:number;revision:number;changes:SnapshotChange[]}
 export const SNAPSHOT_WIRE_LIMITS={bytes:4*1024*1024,changes:12000,depth:24,pathKey:128} as const;
 const utf8Bytes=(text:string)=>new TextEncoder().encode(text).byteLength;
-const safeKey=(key:string)=>key.length<=SNAPSHOT_WIRE_LIMITS.pathKey&&!['__proto__','prototype','constructor'].includes(key);
+const safeKey=(key:string)=>key.length<=SNAPSHOT_WIRE_LIMITS.pathKey&&key!=='__proto__'&&key!=='prototype'&&key!=='constructor';
 function normalized(value:unknown,size?:{bytes:number}):WireJson{
  const text=JSON.stringify(value,(key,v:unknown)=>{if(!safeKey(key)||typeof v==='number'&&!Number.isFinite(v))throw Error('状態の値が不正です');return v;});
  if(text===undefined)throw Error('状態の値が不正です');const bytes=utf8Bytes(text);if(bytes>SNAPSHOT_WIRE_LIMITS.bytes)throw Error('状態の通信量が上限を超えています');
@@ -15,16 +15,16 @@ function validateTree(value:WireJson,depth=0):void{
  if(value===null||typeof value==='boolean'||typeof value==='string')return;
  if(typeof value==='number'){if(!Number.isFinite(value))throw Error('状態の数値が不正です');return;}
  if(typeof value!=='object')throw Error('状態の値が不正です');
- for(const[key,child]of Object.entries(value)){if(!safeKey(key))throw Error('状態のキーが不正です');validateTree(child,depth+1);}
+ for(const key of Object.keys(value)){if(!safeKey(key))throw Error('状態のキーが不正です');validateTree((value as Record<string,WireJson>)[key],depth+1);}
 }
 function sameContainer(a:WireJson,b:WireJson):boolean{return a!==null&&b!==null&&typeof a==='object'&&typeof b==='object'&&Array.isArray(a)===Array.isArray(b);}
 function difference(previous:WireJson,next:WireJson,path:(string|number)[],out:SnapshotChange[]):void{
  if(previous===next)return;
- if(!sameContainer(previous,next)||Array.isArray(previous)&&Array.isArray(next)&&previous.length!==next.length){out.push([path,1,next]);return;}
- if(Array.isArray(previous)&&Array.isArray(next)){for(let i=0;i<next.length;i++)difference(previous[i],next[i],[...path,i],out);return;}
+ if(!sameContainer(previous,next)||Array.isArray(previous)&&Array.isArray(next)&&previous.length!==next.length){out.push([[...path],1,next]);return;}
+ if(Array.isArray(previous)&&Array.isArray(next)){for(let i=0;i<next.length;i++){path.push(i);difference(previous[i],next[i],path,out);path.pop();}return;}
  const a=previous as Record<string,WireJson>,b=next as Record<string,WireJson>;
  for(const key of Object.keys(a))if(!Object.hasOwn(b,key))out.push([[...path,key],0]);
- for(const key of Object.keys(b))if(!Object.hasOwn(a,key))out.push([[...path,key],1,b[key]]);else difference(a[key],b[key],[...path,key],out);
+ for(const key of Object.keys(b)){path.push(key);if(!Object.hasOwn(a,key))out.push([[...path],1,b[key]]);else difference(a[key],b[key],path,out);path.pop();}
 }
 export class SnapshotWireEncoder {
  private previous:WireJson|null=null;private revision=0;

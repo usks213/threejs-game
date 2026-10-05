@@ -61,7 +61,11 @@ export class CoopClient {
      if (message.protocol !== COOP_PROTOCOL || (this.playerId && message.playerId !== this.playerId)) throw new Error('接続先のゲームの版が違います');
      this.sessionInfo=message.session?validateSessionInfo(message.session,this.room,message.save,message.state):null;this.tickAnchor=message.state.tick??0;this.ackAnchor=message.state.ack??0;
      if(message.actionSequence!==undefined){if(!Number.isSafeInteger(message.actionSequence)||message.actionSequence<0)throw Error('操作連番が不正です');this.actionSequence=Math.max(this.actionSequence,message.actionSequence);this.sequencedActions=true;}
-     this.playerId = message.playerId; this.epoch = message.epoch; this.sequence = message.state.ack ?? 0; this.online = true; this.attempt = 0;
+     // An unsolicited full baseline can lag inputs already in flight. Reusing
+     // their numbers makes the authority discard fresh controls until catch-up.
+     const sameSession=this.playerId===message.playerId&&this.epoch===message.epoch;
+     this.sequence=sameSession?Math.max(this.sequence,message.state.ack??0):message.state.ack??0;
+     this.playerId = message.playerId; this.epoch = message.epoch; this.online = true; this.attempt = 0;
      this.packet(message); this.state('online');
      for (const [commandId, action] of this.pending) this.send({ type: 'action', commandId, message: action,clientTick:this.clientTick });for(const command of this.pendingAdmin.values())this.send({type:'room-admin',...command});
     } else if (message.type === 'frame') { if (this.online && message.epoch === this.epoch){this.lastWorld=Date.now();this.tickAnchor=message.state.tick;this.ackAnchor=message.state.ack??0;this.packet(message);} }

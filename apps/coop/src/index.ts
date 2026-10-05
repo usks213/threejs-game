@@ -1,3 +1,4 @@
+import {FixedStepClock} from '../../../src/networking/fixed-step-clock';
 import {COOP_BUILD_ID} from '../../../src/networking/coop-handshake';
 import {COOP_PROTOCOL} from '../../../src/networking/coop-protocol';
 import { authenticateCoopPacket } from '../../../src/networking/coop-identity';
@@ -9,7 +10,7 @@ interface Env { COOP_ROOMS: DurableObjectNamespace<CoopRoom>; ASSETS: Fetcher }
 export class CoopRoom extends DurableObject<Env> {
  private room: AuthorityRoom | null = null;
  private loading: Promise<AuthorityRoom> | null = null;
- private timer: ReturnType<typeof setInterval> | undefined;
+ private timer: FixedStepClock | undefined;
  private readonly saves = new CheckpointQueue(() => this.writeCheckpoint());
  private lastSave = 0;
  private recoveryNotice=false;
@@ -34,15 +35,15 @@ export class CoopRoom extends DurableObject<Env> {
    if (result.changed) this.ctx.waitUntil(this.persist().then(() => result.acknowledgment?.()).catch(() => this.persistenceFailed(room)));else result.acknowledgment?.();
    })().catch(()=>server.close(1008,'Invalid handshake')));
   });
-  const leave = () => { room.disconnect(id); if (!room.size) { if (this.timer !== undefined) clearInterval(this.timer); this.timer = undefined; } if(!room.readOnly)this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); };
+  const leave = () => { room.disconnect(id); if (!room.size&&this.room===room) { this.timer?.stop(); this.timer = undefined; } if(this.room===room&&!room.readOnly)this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); };
   server.addEventListener('close', leave); server.addEventListener('error', leave);
-  if (!this.timer) this.timer = setInterval(() => {
+  if (!this.timer) {this.timer = new FixedStepClock(() => {
    try { room.step(); if (Date.now() - this.lastSave > 30000) { this.lastSave = Date.now(); this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); } }
-   catch { room.notice('共有シミュレーションを停止しました。再接続してください'); if (this.timer !== undefined) clearInterval(this.timer); this.timer = undefined; }
-  }, 1000 / 30);
+   catch { room.notice('共有シミュレーションを停止しました。再接続してください'); this.timer?.stop(); this.timer = undefined; }
+  }, {onOverload:event=>console.warn(JSON.stringify({event:'coop-scheduler-overload',...event}))});this.timer.start();}
   return new Response(null, { status: 101, webSocket: client });
  }
- private persistenceFailed(room:AuthorityRoom):void{room.failPersistence();if(this.room===room){if(this.timer!==undefined)clearInterval(this.timer);this.timer=undefined;this.room=null;this.loading=null;}}
+ private persistenceFailed(room:AuthorityRoom):void{room.failPersistence();if(this.room===room){this.timer?.stop();this.timer=undefined;this.room=null;this.loading=null;}}
  private persist(): Promise<void> { return this.saves.request(); }
  private async writeCheckpoint(): Promise<void> {
   const room=this.room;if(!room||room.readOnly)return;const revision=await writeRoom(this.ctx.storage as unknown as RoomStorage,room.checkpoint());room.recordPersistedRevision(revision);

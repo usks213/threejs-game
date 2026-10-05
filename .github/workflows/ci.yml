@@ -259,3 +259,33 @@ jobs:
           path: |
             playwright-report/
             test-results/
+
+
+  public-coop-load:
+    # Bounded measurement only on the existing free preview; no load generator service.
+    if: github.event_name == 'pull_request'
+    needs: deploy-preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: preview-release
+      - name: Measure four actual preview clients for sixty seconds
+        run: E2E_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync('preview-release.json')).url") node --import tsx scripts/probe-public-coop-load.ts
+        env:
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-coop-load-evidence
+          path: test-results/public-coop-load.json
+          retention-days: 7

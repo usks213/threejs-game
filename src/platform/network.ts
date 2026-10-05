@@ -1,30 +1,36 @@
 import {roomManagementUI} from '../ui/room-management';
+import {canContinueReplica,replicaIdentity,type ReplicaIdentity} from './replica-continuation';
 import type { ClientMessage, Snapshot, WorkerMessage } from '../simulation/protocol';
 import type { WorldSave } from '../save/format';
 import type { EditOperation } from '../world/types';
 import { CoopClient, type ConnectionState } from '../networking/coop-client';
 import { dedicatedIdentity } from '../networking/identity';
-export function networkUI(signal: AbortSignal, post: (message: ClientMessage) => void, notice: (message: string) => void,options?:{savedRevision?:(revision:string|undefined)=>void;loadPersonal?:()=>Promise<WorldSave|null>;exported?:(save:WorldSave)=>void}) {
+export function networkUI(signal: AbortSignal, post: (message: ClientMessage) => void, notice: (message: string) => void,options?:{savedRevision?:(revision:string|undefined)=>void;loadPersonal?:()=>Promise<WorldSave|null>;exported?:(save:WorldSave)=>void;continueReplica?:(state:Snapshot,edits:EditOperation[])=>void}) {
  const panel = document.querySelector<HTMLElement>('#session-panel')!, status = document.querySelector<HTMLElement>('#session-status')!, token = document.querySelector<HTMLInputElement>('#session-code')!;
  let session: CoopClient | null = null, guest = false, sequence = 0, edits: EditOperation[] = [], generation = 0, lastTick = -1;
+ let identity:ReplicaIdentity|null=null;
  let dedicated: { send(type: string, value: unknown): void; leave(): Promise<unknown> } | null = null;
  const management=roomManagementUI(panel,signal,(operation,targetId)=>{if(!session?.admin(operation,targetId))management.acknowledged();});
  const updateManagement=()=>{const access=session?.roomAccess??null;management.update(access?{...access,pending:access.pending||!!session?.adminPending}:null,(status.dataset.connection??'closed') as ConnectionState,status.dataset.player);status.dataset.roomLocked=String(access?.locked??false);status.dataset.adminPending=String(access?.pending||session?.adminPending||false);status.dataset.readOnly=String(access?.readOnly??false);};
  const labels: Record<ConnectionState,string> = { connecting:'共有ワールドへ接続中…', syncing:'ワールドを同期中…', online:'協力プレイに参加中', reconnecting:'切断されました · 再接続中…', closed:'未接続' };
  const show = (state: ConnectionState) => { status.textContent = labels[state]; status.dataset.connection = state;updateManagement(); };
- const receiveState = (state: Snapshot, incoming: EditOperation[], base?: number) => {
+ const receiveState = (state: Snapshot, incoming: EditOperation[], base?: number,continued=false) => {
   if (state.tick < lastTick) return;
-  if (base === undefined) edits = incoming;
-  else if (base > edits.length || base < 0) { session?.resync(); return; }
-  else edits = [...edits.slice(0,base),...incoming];
-  if (edits.length !== state.edits) { session?.resync(); return; }
-  lastTick = state.tick; post({ type:'replica-state', state, edits });
+  if (base!==undefined&&(base>edits.length||base<0)) { session?.resync(); return; }
+  const next=base===undefined?incoming:[...edits.slice(0,base),...incoming];
+  if (next.length !== state.edits) { session?.resync(); return; }
+  edits=next;lastTick = state.tick;if(continued&&options?.continueReplica)options.continueReplica(state,edits);else post({ type:'replica-state', state, edits });
   status.dataset.players = String((state.peers?.length ?? 0) + 1); status.dataset.peers = JSON.stringify(state.peers?.map(p=>({id:p.id,...p.player}))??[]); status.dataset.tick = String(state.tick);
  };
- const welcome = (save: WorldSave, state: Snapshot) => { edits = save.edits; lastTick = -1; post({type:'replica-init',save}); receiveState(state,edits); show('online'); };
+ const welcome = (save: WorldSave, state: Snapshot,next:ReplicaIdentity|null=null) => {
+  const continued=!!options?.continueReplica&&!!next&&canContinueReplica(identity,next,lastTick,edits,save,state);
+  identity=next;status.dataset.welcomeMode=continued?'continued':'reinitialized';status.dataset.welcomeCount=String(Number(status.dataset.welcomeCount??0)+1);
+  if(!continued){lastTick=-1;post({type:'replica-init',save});}
+  receiveState(state,save.edits,undefined,continued);show('online');
+ };
  const close = (restore = true) => {
   const oldGuest = guest, operation = ++generation; session?.disconnect(); session = null;
-  if (dedicated) void dedicated.leave(); dedicated = null; guest = false; lastTick = -1; edits = [];
+  if (dedicated) void dedicated.leave(); dedicated = null; guest = false; lastTick = -1; edits = [];identity=null;
   show('closed');status.textContent='Single Player'; delete status.dataset.player; delete status.dataset.players;
   if (oldGuest && restore) void (options?.loadPersonal?options.loadPersonal():import('../save/storage').then(storage=>storage.loadWorld())).then(async save => { if (operation === generation && !guest && !signal.aborted) post({type:'init',save}); }).catch(error=>notice(String(error)));
  };
@@ -39,7 +45,7 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
    guest = true;sessionStorage.setItem('voxel-coop-last-room',token.value.trim());
    session = new CoopClient(token.value.trim(), packet => {
     if (operation !== generation) return;
-    if (packet.type === 'welcome') { options?.savedRevision?.(packet.persistedRevision);status.dataset.player = packet.playerId;if(packet.session){status.dataset.serverBuild=packet.session.buildId;status.dataset.worldVersion=String(packet.session.worldVersion);status.dataset.worldSeed=String(packet.session.worldSeed);} welcome(packet.save,packet.state); }
+    if (packet.type === 'welcome') { options?.savedRevision?.(packet.persistedRevision);status.dataset.player = packet.playerId;if(packet.session){status.dataset.serverBuild=packet.session.buildId;status.dataset.worldVersion=String(packet.session.worldVersion);status.dataset.worldSeed=String(packet.session.worldSeed);} welcome(packet.save,packet.state,replicaIdentity(packet.epoch,packet.playerId,packet.save)); }
     else if(packet.type==='persisted-revision'){status.dataset.savedRevision=packet.revision;options?.savedRevision?.(packet.revision);}
     else if(packet.type==='room-access')updateManagement();else if (packet.type === 'frame') receiveState(packet.state,packet.edits,packet.editBase);else if(packet.type==='ack'){status.dataset.lastAck=JSON.stringify(packet);if(packet.kind==='room-admin'){management.acknowledged();updateManagement();}}else if(packet.type==='export')options?.exported?.(packet.save);
    }, state => { if(operation===generation)show(state); }, notice);

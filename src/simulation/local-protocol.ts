@@ -1,6 +1,6 @@
 import type {ClientMessage,WorkerMessage,PlayerInput,PlayerState,Snapshot} from './protocol';
 /** Local worker transport only. Saves and multiplayer wire messages are unchanged. */
-export interface ReplicaUpdate {type:'replica-update';requestId:number;state:Snapshot;edits:import('../world/types').EditOperation[]}
+export interface ReplicaUpdate {type:'replica-update';requestId:number;state:Snapshot;edits:import('../world/types').EditOperation[];resetPrediction?:boolean}
 export interface ReplicaApplied {type:'replica-applied';requestId:number;epoch:number;tick:number;player:PlayerState}
 export interface ReplicaRejected {type:'replica-rejected';requestId:number;epoch:number;message:string}
 export interface ReplicaMotion {type:'replica-motion';requestId:number;epoch:number;tick:number;sequence:number;player:PlayerState}
