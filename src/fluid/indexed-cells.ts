@@ -33,6 +33,23 @@ function selectNearest(entries:IndexedCell[],limit:number):void {
   }
 }
 
+/** Monotone bins only partition the exact distances; values and ties are never
+ * quantized. Sorting each selected bin gives the same total order as one sort. */
+function bucketNearest(entries:IndexedCell[],limit:number,radiusSquared:number):IndexedCell[] {
+  const count=4096,bins:(IndexedCell[]|undefined)[]=new Array(count);
+  for(const entry of entries){
+    // Divide first to avoid an overflowing reciprocal for very small radii.
+    const bin=Math.min(count-1,Math.floor(entry.distance/radiusSquared*count));
+    (bins[bin]??= []).push(entry);
+  }
+  let written=0;
+  for(const bin of bins){
+    if(!bin)continue;if(bin.length>1)bin.sort(compare);
+    for(const entry of bin){entries[written++]=entry;if(written===limit){entries.length=written;return entries;}}
+  }
+  entries.length=written;return entries;
+}
+
 /** A Map-compatible index: external restore/clear/set/delete calls cannot leave stale buckets. */
 export class IndexedFluidCells extends Map<string, FluidCell> {
   private readonly buckets = new Map<string, Bucket>();
@@ -100,6 +117,7 @@ export class IndexedFluidCells extends Map<string, FluidCell> {
         entry.distance = distance(entry.cell, centers);
         if (entry.distance < radiusSquared) visible.push(entry);
       }
+      if(Number.isSafeInteger(limit)&&limit>=512&&visible.length>=2048&&Number.isFinite(radiusSquared)&&radiusSquared>0)return bucketNearest(visible,limit,radiusSquared);
       if(Number.isSafeInteger(limit)&&limit>0&&visible.length>limit+1024){selectNearest(visible,limit);visible.length=limit;visible.sort(compare);return visible;}
       visible.sort(compare); return visible.slice(0, limit);
     }

@@ -11,17 +11,29 @@ export function skyboundDensity(p:Vec3,surface:number):number {
  const cave=Math.max(Math.abs(p.y+7.5)-3,Math.abs(p.x)-920,Math.abs(p.z)-920);
  let d=Math.max(p.y-surface,-cave);
  const cx=Math.round(p.x/28)*28,cz=Math.round(p.z/28)*28;
- if(Math.hypot(cx,cz)>20){const pillar=Math.max(Math.hypot(p.x-cx,p.z-cz)-1.7,Math.abs(p.y+7.5)-4);d=Math.min(d,pillar);}
- for(const chasm of CHASMS){const hole=Math.max(Math.hypot(p.x-chasm.x,p.z-chasm.z)-chasm.radius,Math.abs(p.y+1)-10);d=Math.max(d,-hole);}
+ if(Math.hypot(cx,cz)>20){
+  const vertical=Math.abs(p.y+7.5)-4;
+  // A strict bound cannot affect min, including signed-zero ties. Non-finite
+  // column centers retain the original arithmetic/NaN behavior.
+  if(!(vertical>d)||!Number.isFinite(cx)||!Number.isFinite(cz)){const pillar=Math.max(Math.hypot(p.x-cx,p.z-cz)-1.7,vertical);d=Math.min(d,pillar);}
+ }
+ for(const chasm of CHASMS){
+  const dx=p.x-chasm.x,dz=p.z-chasm.z,vertical=Math.abs(p.y+1)-10;
+  const lower=Math.max(Math.max(Math.abs(dx),Math.abs(dz))-chasm.radius,vertical);
+  if(-lower<d)continue;
+  const hole=Math.max(Math.hypot(dx,dz)-chasm.radius,vertical);d=Math.max(d,-hole);
+ }
  // An ancient inclined causeway teaches vertical exploration before free flight.
  const rampTop=3+(8-p.z)*.58;
  const ramp=Math.max(Math.abs(p.x-10)-2,p.z-8,-18-p.z,p.y-rampTop,rampTop-1.2-p.y);
  const apronTop=3-(p.z-8)*.16,apron=Math.max(Math.abs(p.x-10)-2,p.z-20,8-p.z,p.y-apronTop,apronTop-.9-p.y);
  d=Math.min(d,ramp,apron);
  for(const island of SKY_ISLANDS){
+  const top=p.y-island.y,bottom=island.y-island.depth-p.y;
+  if(Math.max(top,bottom)>d)continue;
   const horizontal=Math.hypot(p.x-island.x,p.z-island.z), taper=Math.max(0,(island.y-p.y)/island.depth);
   // Flat tops and a tapering underside remain genuine 3D density, editable everywhere.
-  const shape=Math.max(horizontal-island.radius*(1-.65*Math.min(1,taper)),p.y-island.y,island.y-island.depth-p.y);
+  const shape=Math.max(horizontal-island.radius*(1-.65*Math.min(1,taper)),top,bottom);
   d=Math.min(d,shape);
  }
  return d;

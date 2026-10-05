@@ -92,7 +92,10 @@ test.describe.serial('two real browsers',()=>{
    await expect.poll(async()=>Number(await page.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThanOrEqual(tick+4);
   };
   const command=async(page:Page,control:string,action:string,id:string)=>{
-   await actionGap(page);const start=wire.get(page)!.actions.length;await page.locator(control).click();
+   await actionGap(page);await expect(page.locator('#session-status')).toHaveAttribute('data-connection','online');const start=wire.get(page)!.actions.length;await page.locator(control).click();
+   // A loss can start resync between actionability and the click. A retained
+   // preview means nothing was sent; reconfirm only that still-visible draft.
+   if(control.includes('preview-confirm')&&await page.locator('#power-preview').isVisible()){await expect(page.locator('#session-status')).toHaveAttribute('data-connection','online');await page.locator(control).click();}
    const ack=await nextAck(page,start,action,id);expect(ack,ack.message).toMatchObject({accepted:true});
   };
   // Spend only the winning player's actual shared pickup from the preceding
@@ -130,10 +133,14 @@ test.describe.serial('two real browsers',()=>{
   const holderIndex=replies.findIndex(reply=>reply.accepted),holder=pages[holderIndex],other=pages[1-holderIndex],holderId=playerIds[holderIndex]!,otherId=playerIds[1-holderIndex]!;
   expect(replies[1-holderIndex].message).toBe('別の冒険者が操作しています');await expect(other.locator('#notice')).toContainText(replies[1-holderIndex].message);
   for(const page of pages)await expect.poll(async()=>(await part(page))?.lease?.owner).toBe(holderId);
-  const before={...(await part(holder))!.position};await holder.locator('#powers-panel [data-power=up]').click();await expect(holder.locator('#power-preview')).toBeVisible();
+  const before={...(await part(holder))!.position};
+  // A loose box can settle beside the starting runestone. Move up and toward
+  // the players (+z at their unchanged heading), away from its protected core.
+  const holderPose=JSON.parse(await other.locator('#session-status').getAttribute('data-peers')??'[]').find((peer:{id:string;heading:number})=>peer.id===holderId) as {heading:number};expect(holderPose.heading).toBeCloseTo(0,6);
+  await holder.locator('#powers-panel [data-power=up]').click();await expect(holder.locator('#power-preview')).toBeVisible();await holder.locator('#powers-panel [data-power=forward]').click();
   for(const page of pages)expect((await part(page))!.position).toEqual(before);
   await command(holder,'#power-preview [data-power=preview-confirm]','sky-move',partId);
-  const moved={x:Math.round(before.x*8)/8,y:Math.round((before.y+.5)*8)/8,z:Math.round(before.z*8)/8};
+  const moved={x:Math.round((before.x+Math.sin(holderPose.heading)*.5)*8)/8,y:Math.round((before.y+.5)*8)/8,z:Math.round((before.z+Math.cos(holderPose.heading)*.5)*8)/8};
   for(const page of pages)await expect.poll(async()=>(await part(page))?.position).toEqual(moved);
   stage('shared block position converged');
 
@@ -189,10 +196,10 @@ test.describe.serial('two real browsers',()=>{
    const peer=async()=>JSON.parse(await observer.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===id) as {x:number;y:number;z:number;heading:number;grounded:boolean}|undefined;
    for(const page of[actor,observer]){await page.keyboard.press('Escape');await running(page);}
    const before=(await peer())!,start=await observer.evaluate(()=>performance.now());
-   await actor.keyboard.down(key);try{await expect.poll(async()=>direction*((await peer())!.x-before.x),{intervals:[50,100],timeout:15000}).toBeGreaterThan(.45);}finally{await actor.keyboard.up(key);}
+   await actor.bringToFront();await actor.keyboard.down(key);try{await expect.poll(async()=>direction*((await peer())!.x-before.x),{intervals:[50,100],timeout:15000}).toBeGreaterThan(.45);}finally{await actor.keyboard.up(key);}
    // Park the moving client after release; the observing client draws the
    // interpolated model and asynchronously checks actual depth-passing pixels.
-   await actor.locator('#session-menu').click();const moved=(await peer())!;
+   await actor.locator('#session-menu').click();await observer.bringToFront();const moved=(await peer())!;
    await expect.poll(async()=>await observer.locator('#game').getAttribute('data-peer-render-error')).toBeNull();
    await expect.poll(async()=>(await rendered(observer)).some(p=>p.id===id&&p.at>start&&p.visible&&direction*(p.x-before.x)>.35&&Math.abs(Math.atan2(Math.sin(p.heading-moved.heading),Math.cos(p.heading-moved.heading)))<.25),{timeout:25000}).toBe(true);
    await observer.screenshot({path:info.outputPath(`peer-${direction===1?'east':'west'}-visible.png`),timeout:60000,scale:'css',animations:'disabled'});
@@ -201,11 +208,14 @@ test.describe.serial('two real browsers',()=>{
    // jump, never by changing world state or making a synthetic network action.
    let airborne=false;
    for(let attempt=0;attempt<3&&!airborne;attempt++){
-    await actor.locator('#session-close').click();await actor.keyboard.press('Space');
-    await expect.poll(async()=>(await peer())!.y,{intervals:[50,100]}).toBeGreaterThan(ground+.15);await actor.locator('#session-menu').click();
+    await actor.bringToFront();await actor.locator('#session-close').click();await actor.keyboard.press('Space');
+    // Keep the observing view foreground during the short real jump; clicking
+    // the actor's menu first left its peer near 1fps in the recorded CI run.
+    await observer.bringToFront();
+    await expect.poll(async()=>(await peer())!.y,{intervals:[50,100]}).toBeGreaterThan(ground+.15);
     try{await expect.poll(async()=>(await rendered(observer)).some(p=>p.id===id&&p.at>jumpStart&&p.visible&&p.y>ground+.15),{intervals:[100,200],timeout:2500}).toBe(true);airborne=true;}catch{
      await expect.poll(async()=>(await peer())!.grounded,{timeout:15000}).toBe(true);
-    }
+    }finally{await actor.locator('#session-menu').click();await observer.bringToFront();}
    }
    expect(airborne,'The remote jump must produce visible canvas pixels, not only a received snapshot').toBe(true);
    evidence.push({direction,authoritativeBefore:before,authoritativeMoved:moved,rendered:await rendered(observer)});

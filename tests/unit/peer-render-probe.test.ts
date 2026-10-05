@@ -15,7 +15,7 @@ function fixture(supported=true){
 }
 it('records only completed GPU visibility results with the actual interpolated pose',()=>{
  const f=fixture();expect(f.samples()).toEqual([]);f.draw();expect(f.samples()).toEqual([]);expect(f.gl.beginQuery).toHaveBeenCalledTimes(1);expect(f.gl.endQuery).toHaveBeenCalledTimes(1);expect(f.render.mock.calls[0][3]).toMatchObject({colorWrite:false,depthWrite:false,depthTest:true});
- f.group.position.x=9;f.draw();expect(f.gl.beginQuery).toHaveBeenCalledTimes(1);f.result(true);f.draw();expect(f.samples()).toMatchObject([{id:'peer',tick:17,x:1,y:2,z:-5,heading:.7,visible:true}]);expect(f.gl.deleteQuery).toHaveBeenCalledTimes(1);f.probe.dispose();expect(f.gl.deleteQuery).toHaveBeenCalledTimes(2);expect(f.renderer.domElement.dataset.renderedPeers).toBeUndefined();
+ f.group.position.x=9;f.draw();expect(f.gl.beginQuery).toHaveBeenCalledTimes(2);f.result(true);f.draw();expect(f.samples()).toMatchObject([{id:'peer',tick:17,x:1,y:2,z:-5,heading:.7,visible:true},{id:'peer',tick:17,x:9,y:2,z:-5,heading:.7,visible:true}]);expect(f.gl.deleteQuery).toHaveBeenCalledTimes(2);f.probe.dispose();expect(f.gl.deleteQuery).toHaveBeenCalledTimes(3);expect(f.renderer.domElement.dataset.renderedPeers).toBeUndefined();
 });
 it('keeps an occluded draw negative and excludes offscreen render targets',()=>{
  const f=fixture();f.draw();f.result(false);f.draw();expect(f.samples()[0].visible).toBe(false);f.offscreen();f.draw();expect(f.gl.beginQuery).toHaveBeenCalledTimes(2);f.probe.remove('peer');expect(f.samples()).toEqual([]);f.draw();expect(f.gl.beginQuery).toHaveBeenCalledTimes(2);f.probe.dispose();
@@ -25,4 +25,10 @@ it('disposes queries and restores callbacks on context loss without claiming vis
 });
 it('reports unsupported queries explicitly instead of fabricating visible samples',()=>{
  const f=fixture(false);f.draw();expect(f.renderer.domElement.dataset.peerRenderError).toContain('unavailable');expect(f.samples()).toEqual([]);expect(f.render).not.toHaveBeenCalled();f.probe.dispose();
+});
+
+it('samples brief rendered airborne poses while older GPU queries remain pending, with a finite ring',()=>{
+ const f=fixture();f.draw();f.group.position.y=3;f.draw();f.group.position.y=2;for(let i=0;i<10;i++)f.draw();
+ expect(f.gl.beginQuery).toHaveBeenCalledTimes(8);expect(f.samples()).toEqual([]);expect(Number(f.renderer.domElement.dataset.peerRenderSkipped)).toBe(4);
+ f.result(true);f.draw();expect(f.samples()).toHaveLength(8);expect(f.samples().some(sample=>sample.visible&&sample.y===3)).toBe(true);expect(f.gl.deleteQuery).toHaveBeenCalledTimes(8);f.probe.dispose();expect(f.gl.deleteQuery).toHaveBeenCalledTimes(9);
 });

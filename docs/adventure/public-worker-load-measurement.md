@@ -30,3 +30,16 @@ CI artifact `public-coop-load-evidence` の `public-coop-load.json`。期待SHA�
 新規世界のローカル実4socketを60.063秒動かした観測は26.372tick/秒、受信31,412,860byte、各29pingのp95が約200〜222ms。schedulerは28回のrebase、8,168msの古い遅れを記録した。ただし同じNodeにserverと4decoderがあり、同じ作業環境で別のCPU profileも重なったため、独立したserver容量や最適化前後の比較には使わない。ゲームソースはローカル3f25f59で、公開Workerの結果ではない。
 
 CIの公開測定も同じpreview上の別部屋のbrowser QAと並行し得る。部屋ごとの4参加者は確認するが、同一isolate/共有基盤の他の負荷がゼロとは仮定しない。
+
+## 初回の公開4接続実測（22:39 UTC）
+
+[CI37383321716の実測artifact](https://github.com/usks213/threejs-game/actions/runs/37383321716/artifacts/11375788608)。専用公開commitは17d67fd1b6669e644ab2a8fda9a5db8a3b24a829。生のJSONを`docs/benchmarks/public-worker-load-2026-10-05.json`へ保持した。
+
+- asset/authorityのSHAとprotocol7、4独立player ID、全員3peerを照合。
+- 5秒warmup後に60.043秒観測。4接続とも完走し、予期せぬ切断/notice/復号失敗は0。
+- 実時間のauthority tickは26.781〜26.831Hz。目標30Hzに未達であり、`withinTwoPercentOfTarget`はfalse。
+- pingは各29件。p95は128.7〜137.7ms、最大163.8ms。
+- 測定中の全4接続合計33,462,578byte、約557,309byte/秒。handshake/warmupを含む全受信は47,170,390byte。
+- 各接続の完全baselineは最初の1回だけ。backendのpeak memoryは未取得。新規世界の短い実測を成熟保存/長時間/実機の合格へ拡大しない。
+
+同じcommitの公開2ブラウザは、このsocket検査より後へ進んだが、遅延/損失下の箱移動UIで失敗した。接続復旧と4人測定の成功は、そのUI受入の代わりにはならない。

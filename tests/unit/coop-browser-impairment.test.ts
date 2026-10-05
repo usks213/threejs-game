@@ -17,3 +17,10 @@ it('cancels delayed work on close, including credentials, and keeps disabled bas
  const {socket,received,fault}=setup();socket.send('{"type":"hello","resumeKey":"private"}');socket.receive({type:'welcome'});expect(fault.stats.queued).toBe(2);socket.close();vi.advanceTimersByTime(1000);expect(socket.sent).toEqual([]);expect(received).toEqual([]);expect(fault.stats.queued).toBe(0);expect(JSON.stringify(fault)).not.toContain('private');
  const other=new window.WebSocket('wss://game.example/coop/'+'b'.repeat(48)) as unknown as Socket;fault.enabled=false;other.send('unaltered');expect(other.sent).toEqual(['unaltered']);
 });
+
+it('preserves both FIFO directions for fractional-time bursts whose jitter deadlines coincide',()=>{
+ const {socket,received,fault}=setup();
+ for(let sequence=1;sequence<=40;sequence++){socket.send(JSON.stringify({type:'input',sequence,input:{x:1,z:0,jump:false}}));socket.receive({type:'notice',sequence});vi.advanceTimersByTime(.21);}
+ vi.advanceTimersByTime(250);const expected=Array.from({length:40},(_,i)=>i+1);
+ expect(socket.sent.map(text=>JSON.parse(text).sequence)).toEqual(expected);expect(received.map(packet=>(packet as {sequence:number}).sequence)).toEqual(expected);expect(fault.stats.queued).toBe(0);
+});

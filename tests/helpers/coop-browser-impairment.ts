@@ -19,18 +19,28 @@ export function installCoopBrowserImpairment():void {
  window.WebSocket=new Proxy(Native,{construct(Target,args,newTarget){
   const socket=Reflect.construct(Target,args,newTarget) as WebSocket;
   if(!/^\/coop\/[a-f0-9]{48}$/.test(new URL(String(args[0]),location.href).pathname))return socket;
-  const nativeSend=socket.send.bind(socket),forwarded=new WeakSet<Event>(),timers=new Set<ReturnType<typeof setTimeout>>(),gathers=new Map<string,string>(),pings:number[]=[];
-  let closed=false,outDue=0,inDue=0,outIndex=0,inIndex=0;
-  const queue=(direction:'incoming'|'outgoing',run:()=>void)=>{
-   const now=performance.now(),index=direction==='incoming'?++inIndex:++outIndex,delay=fault.enabled?75+(index%6)*5:0;
-   const previous=direction==='incoming'?inDue:outDue,due=Math.max(now+delay,previous);
-   if(direction==='incoming')inDue=due;else outDue=due;
-   if(due<=now){if(!closed)run();return;}
-   const measured=fault.enabled;stats.queued++;
-   const timer=setTimeout(()=>{timers.delete(timer);stats.queued--;if(closed)return;
-    if(measured){if(direction==='incoming'){stats.delayedIncoming++;remember(stats.incomingDelayMs,performance.now()-now);}else{stats.delayedOutgoing++;remember(stats.outgoingDelayMs,performance.now()-now);}}
-    run();
-   },Math.ceil(due-now));timers.add(timer);
+  const nativeSend=socket.send.bind(socket),forwarded=new WeakSet<Event>(),gathers=new Map<string,string>(),pings:number[]=[];
+  type Direction='incoming'|'outgoing';
+  type Pending={run:()=>void;at:number;due:number;measured:boolean};
+  const queues:Record<Direction,Pending[]>={incoming:[],outgoing:[]},timers:Partial<Record<Direction,ReturnType<typeof setTimeout>>>={};
+  let closed=false,outIndex=0,inIndex=0;
+  const arm=(direction:Direction)=>{
+   const pending=queues[direction];if(closed||timers[direction]!==undefined||!pending.length)return;
+   // Exactly one drain owns each direction. Independent equal-deadline timers
+   // can reorder after fractional timeout rounding, unlike a real WebSocket.
+   timers[direction]=setTimeout(()=>{delete timers[direction];
+    while(!closed&&pending.length&&pending[0].due<=performance.now()+.001){
+     const next=pending.shift()!;stats.queued--;
+     if(next.measured){if(direction==='incoming'){stats.delayedIncoming++;remember(stats.incomingDelayMs,performance.now()-next.at);}else{stats.delayedOutgoing++;remember(stats.outgoingDelayMs,performance.now()-next.at);}}
+     next.run();
+    }
+    arm(direction);
+   },Math.max(0,Math.ceil(pending[0].due-performance.now())));
+  };
+  const queue=(direction:Direction,run:()=>void)=>{
+   const now=performance.now(),index=direction==='incoming'?++inIndex:++outIndex,delay=fault.enabled?75+(index%6)*5:0,pending=queues[direction];
+   if(!delay&&!pending.length){if(!closed)run();return;}
+   const due=Math.max(now+delay,pending.at(-1)?.due??now);pending.push({run,at:now,due,measured:fault.enabled});stats.queued++;arm(direction);
   };
   socket.send=(data:Parameters<WebSocket['send']>[0])=>{
    if(socket.readyState!==Target.OPEN){nativeSend(data);return;}
@@ -50,7 +60,7 @@ export function installCoopBrowserImpairment():void {
    if(fault.enabled){stats.incoming++;
     if(packet?.type==='delta'){stats.receivedDeltas++;if(stats.receivedDeltas===50||stats.receivedDeltas===100){stats.droppedDeltas++;event.stopImmediatePropagation();return;}}
    }
-   if(!fault.enabled&&inDue<=performance.now())return;
+   if(!fault.enabled&&!queues.incoming.length)return;
    event.stopImmediatePropagation();
    queue('incoming',()=>{
     if(socket.readyState!==Target.OPEN)return;
@@ -63,7 +73,7 @@ export function installCoopBrowserImpairment():void {
     const delivered=new MessageEvent('message',{data:event.data,origin:event.origin,lastEventId:event.lastEventId});forwarded.add(delivered);socket.dispatchEvent(delivered);
    });
   },{capture:true});
-  socket.addEventListener('close',()=>{closed=true;for(const timer of timers){clearTimeout(timer);stats.queued--;}timers.clear();gathers.clear();pings.length=0;},{capture:true,once:true});
+  socket.addEventListener('close',()=>{closed=true;for(const direction of['incoming','outgoing'] as const){clearTimeout(timers[direction]);delete timers[direction];stats.queued-=queues[direction].length;queues[direction].length=0;}gathers.clear();pings.length=0;},{capture:true,once:true});
   return socket;
  }});
 }
