@@ -1,6 +1,16 @@
 import { GameSimulation } from '../../src/simulation/game-simulation';
 import { test,expect,type Page } from '@playwright/test';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 test.use({deviceScaleFactor:.5});
+const execFileAsync=promisify(execFile);
+async function nativeRelativeMouse(dx:number,dy:number){
+ if(process.platform!=='linux'||!process.env.DISPLAY)throw new Error('Native mouse verification requires headed Linux Chromium on an X11 display');
+ // xdotool calls XTestFakeRelativeMotionEvent here, not XSendEvent or CDP.
+ // Do not use --sync: Pointer Lock can recenter the cursor before its poll.
+ // https://github.com/jordansissel/xdotool/blob/v3.20160805.1/xdo.c
+ await execFileAsync('xdotool',['mousemove_relative','--',String(dx),String(dy)],{timeout:5000,maxBuffer:16384});
+}
 async function streamReport(page:Page){console.log('STREAMING',await page.locator('#app').getAttribute('data-streaming'));}
 async function ready(page:Page){await page.goto('/');try{await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect(page.locator('#error')).toBeHidden();}finally{await streamReport(page);}}
 async function ticks(page:Page,n=10){const tick=Number(await page.locator('#app').getAttribute('data-tick'));await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(tick+n);}
@@ -47,18 +57,37 @@ test('survival adventure previews, rotates and places the matching voxel buildin
 });
 test('desktop mouse locks the camera, rotates freely, attacks and holds guard',async({page},info)=>{
  test.skip(info.project.name!=='desktop-chromium','Desktop mouse controls');await ready(page);const sim=sparse();sim.adventure.state.inventory={club:1,shield:1};sim.adventure.state.equipment='club';sim.adventure.state.meadows!.gear.offhand='shield';await fixture(page,sim);
+ const nativeMouse=process.env.E2E_NATIVE_MOUSE==='1';
+ if(nativeMouse)expect(info.project.use.headless,'XTEST input must target headed Chromium').toBe(false);
  // Observe actual browser delivery. This never synthesizes events or modifies
  // the game's camera, and identifies a lost native move separately from yaw.
  await page.evaluate(()=>{
-  const app=document.querySelector<HTMLElement>('#app')!,events:unknown[]=[];
-  document.addEventListener('mousemove',event=>{events.push({x:event.clientX,y:event.clientY,dx:event.movementX,dy:event.movementY,buttons:event.buttons,locked:document.pointerLockElement?.id??'',trusted:event.isTrusted});if(events.length>16)events.shift();app.dataset.mouseLookEvents=JSON.stringify(events);},true);
+  const app=document.querySelector<HTMLElement>('#app')!,events:unknown[]=[];let sequence=0;
+  document.addEventListener('mousemove',event=>{events.push({sequence:++sequence,x:event.clientX,y:event.clientY,dx:event.movementX,dy:event.movementY,buttons:event.buttons,locked:document.pointerLockElement?.id??'',trusted:event.isTrusted});if(events.length>32)events.shift();app.dataset.mouseLookSequence=String(sequence);app.dataset.mouseLookEvents=JSON.stringify(events);},true);
  });
+ const mouseEvents=async()=>JSON.parse((await page.locator('#app').getAttribute('data-mouse-look-events'))??'[]') as {sequence:number;dx:number;dy:number;locked:string;trusted:boolean}[];
+ const nativeMove=async(dx:number,dy:number)=>{
+  const sequence=Number(await page.locator('#app').getAttribute('data-mouse-look-sequence')??0);
+  await nativeRelativeMouse(dx,dy);
+  await expect.poll(async()=>(await mouseEvents()).some(event=>event.sequence>sequence&&event.trusted&&event.locked==='game'&&event.dx*dx>0&&event.dy*dy>0),'XTEST must deliver a new trusted, locked relative-mouse event in the requested direction').toBe(true);
+ };
  try{
+  await page.bringToFront();
   await page.mouse.click(550,300);await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id)).toBe('game');
-  const before=Number(await page.locator('#app').getAttribute('data-camera-yaw'));await page.mouse.move(620,320,{steps:5});
+  const before=Number(await page.locator('#app').getAttribute('data-camera-yaw'));
+  if(nativeMouse)await nativeMove(70,20);else await page.mouse.move(620,320,{steps:5});
   await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-camera-yaw'))).not.toBe(before);
+  if(nativeMouse){
+   await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-camera-yaw'))).toBeLessThan(before);
+   const turned=Number(await page.locator('#app').getAttribute('data-camera-yaw'));
+   await nativeMove(-70,-20);await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-camera-yaw'))).toBeGreaterThan(turned);
+  }
   await page.mouse.down({button:'right'});await expect(page.locator('#adventure-hud')).toContainText('ガード');await page.mouse.up({button:'right'});await expect(page.locator('#guard')).toHaveAttribute('aria-pressed','false');await page.mouse.click(620,320);await expect(page.locator('#notice')).toContainText('攻撃');await page.keyboard.press('Tab');await expect(page.locator('#adventure-panel')).toBeVisible();await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id??'')).toBe('');
- }finally{console.log('MOUSE_LOOK_EVENTS',await page.locator('#app').getAttribute('data-mouse-look-events',{timeout:1000}).catch(()=>null));}
+ }finally{
+  const events=await page.locator('#app').getAttribute('data-mouse-look-events',{timeout:1000}).catch(()=>null);
+  console.log('MOUSE_LOOK_EVENTS',events);
+  await info.attach('mouse-look-input.json',{body:JSON.stringify({source:nativeMouse?'X11 XTEST relative motion via xdotool':'Playwright CDP mouse',note:'CI input emulation; not a real-device performance result. Clicks and keys use Playwright.',events:events?JSON.parse(events):[]},null,2),contentType:'application/json'});
+ }
 });
 test('renders equipped voxel characters and physical HDR graphics without shader errors',async({page},info)=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/THREE|WebGL|shader/i.test(m.text()))errors.push(m.text());});await page.goto('/?terrain=mesh&graphicsProbe=1');await expect(page.locator('#app')).toHaveAttribute('data-state','running');await ticks(page,10);const graphics=async()=>JSON.parse((await page.locator('#app').getAttribute('data-graphics'))!);await expect.poll(async()=>(await graphics()).stageSamples).toBeGreaterThan(0);const g=await graphics();expect(g.invalidPixels).toBe(0);expect(g.beautyEnergy).toBeGreaterThan(0);expect(g.features).toEqual(['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']);await page.setViewportSize({width:844,height:390});await page.screenshot({scale:'css',path:info.outputPath('voxel-hdr.png')});expect(errors).toEqual([]);
@@ -102,4 +131,3 @@ test('direct field terrain renders, moves, mines and preserves saves with compar
  }
  console.log('DIRECT_FIELD_COMPARISON',JSON.stringify(profiles));await info.attach('direct-field-comparison.json',{body:JSON.stringify(profiles,null,2),contentType:'application/json'});expect(errors).toEqual([]);
 });
-

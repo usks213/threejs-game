@@ -1,3 +1,4 @@
+import {CoopTimingSource} from '../../../src/networking/coop-timing';
 import {FixedStepClock} from '../../../src/networking/fixed-step-clock';
 import {COOP_BUILD_ID} from '../../../src/networking/coop-handshake';
 import {COOP_PROTOCOL} from '../../../src/networking/coop-protocol';
@@ -11,6 +12,7 @@ export class CoopRoom extends DurableObject<Env> {
  private room: AuthorityRoom | null = null;
  private loading: Promise<AuthorityRoom> | null = null;
  private timer: FixedStepClock | undefined;
+ private timing:CoopTimingSource|undefined;private timingRun=0;
  private readonly saves = new CheckpointQueue(() => this.writeCheckpoint());
  private lastSave = 0;
  private recoveryNotice=false;
@@ -26,7 +28,7 @@ export class CoopRoom extends DurableObject<Env> {
   try { room = await (this.loading ??= this.load(new URL(request.url).pathname.split('/').at(-1)!).catch(error => { this.loading = null; throw error; })); } catch { return new Response('Room save could not be loaded; it has not been reset.', { status: 503 }); }
   const [client, server] = Object.values(new WebSocketPair()), id = crypto.randomUUID();
   server.accept();
-  room.connect(id, { send: (packet,serialized) => { try { server.send(serialized??JSON.stringify(packet)); } catch { room.disconnect(id); } }, close: (code, reason) => server.close(code, reason) });
+  room.connect(id, { send: (packet,serialized) => { try { const timing=packet.type==='pong'&&this.room===room&&this.timer?this.timing?.sample(this.timer,room.authority.sim.tick):undefined;server.send(timing?JSON.stringify({...packet,timing}):serialized??JSON.stringify(packet)); } catch { room.disconnect(id); } }, close: (code, reason) => server.close(code, reason) });
   server.addEventListener('message', event => {
    this.ctx.waitUntil((async()=>{
    if (typeof event.data !== 'string') { server.close(1003, 'Text only'); return; }
@@ -37,8 +39,8 @@ export class CoopRoom extends DurableObject<Env> {
   });
   const leave = () => { room.disconnect(id); if (!room.size&&this.room===room) { this.timer?.stop(); this.timer = undefined; } if(this.room===room&&!room.readOnly)this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); };
   server.addEventListener('close', leave); server.addEventListener('error', leave);
-  if (!this.timer) {this.timer = new FixedStepClock(() => {
-   try { room.step(); if (Date.now() - this.lastSave > 30000) { this.lastSave = Date.now(); this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); } }
+  if (!this.timer) {const timing=this.timing=new CoopTimingSource(++this.timingRun);this.timer = new FixedStepClock(() => {
+   try { room.step();timing.stepCompleted(); if (Date.now() - this.lastSave > 30000) { this.lastSave = Date.now(); this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); } }
    catch { room.notice('共有シミュレーションを停止しました。再接続してください'); this.timer?.stop(); this.timer = undefined; }
   // Workers freeze performance.now() during synchronous JS; one step is the
   // enforceable per-callback bound, followed by a positive-timer I/O yield.

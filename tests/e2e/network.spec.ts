@@ -188,7 +188,7 @@ test.describe.serial('two real browsers',()=>{
   expect(errors).toEqual([]);stage('NET-A02 lease and NET-A09 impaired transport verified');
  });
  test('move, turn and jump with mutually visible rendered avatars through the public authority',async({},info)=>{
-  test.setTimeout(120000);stage('NET-A01 actual peer pixels');
+  test.setTimeout(180000);stage('NET-A01 actual peer pixels');
   const rendered=async(page:Page)=>JSON.parse(await page.locator('#game').getAttribute('data-rendered-peers')??'[]') as PeerRenderSample[];
   const evidence:unknown[]=[];
   for(const [actor,observer,key,direction]of [[b,a,'KeyD',1],[a,b,'KeyA',-1]] as const){
@@ -203,19 +203,30 @@ test.describe.serial('two real browsers',()=>{
    await expect.poll(async()=>await observer.locator('#game').getAttribute('data-peer-render-error')).toBeNull();
    await expect.poll(async()=>(await rendered(observer)).some(p=>p.id===id&&p.at>start&&p.visible&&direction*(p.x-before.x)>.35&&Math.abs(Math.atan2(Math.sin(p.heading-moved.heading),Math.cos(p.heading-moved.heading)))<.25),{timeout:25000}).toBe(true);
    await observer.screenshot({path:info.outputPath(`peer-${direction===1?'east':'west'}-visible.png`),timeout:60000,scale:'css',animations:'disabled'});
-   const ground=(await peer())!.y,jumpStart=await observer.evaluate(()=>performance.now());
-   // A missed short airborne render is retried as another ordinary grounded
-   // jump, never by changing world state or making a synthetic network action.
+   const ground=(await peer())!.y;
+   // Each attempt is an ordinary grounded jump. Park the actor with the normal
+   // Tab menu immediately after Space: a locator click waits two animation
+   // frames, and running both SwiftShader views missed the entire jump in CI.
+   // Authority input latches a received jump across the menu's idle release.
    let airborne=false;
    for(let attempt=0;attempt<3&&!airborne;attempt++){
-    await actor.bringToFront();await actor.locator('#session-close').click();await actor.keyboard.press('Space');
-    // Keep the observing view foreground during the short real jump; clicking
-    // the actor's menu first left its peer near 1fps in the recorded CI run.
-    await observer.bringToFront();
-    await expect.poll(async()=>(await peer())!.y,{intervals:[50,100]}).toBeGreaterThan(ground+.15);
-    try{await expect.poll(async()=>(await rendered(observer)).some(p=>p.id===id&&p.at>jumpStart&&p.visible&&p.y>ground+.15),{intervals:[100,200],timeout:2500}).toBe(true);airborne=true;}catch{
-     await expect.poll(async()=>(await peer())!.grounded,{timeout:15000}).toBe(true);
-    }finally{await actor.locator('#session-menu').click();await observer.bringToFront();}
+    const jumpStart=await observer.evaluate(()=>performance.now());let observedPeak=ground,landedAt:number|undefined;
+    try{
+     await actor.bringToFront();await actor.keyboard.press('Escape');await actor.keyboard.press('Space');await actor.keyboard.press('Tab');await observer.bringToFront();
+     await expect(actor.locator('#adventure-panel')).toBeVisible();
+     await expect.poll(async()=>{const y=(await peer())!.y;observedPeak=Math.max(observedPeak,y);return y;},{intervals:[50,100]}).toBeGreaterThan(ground+.15);
+     await expect.poll(async()=>{const state=(await peer())!;observedPeak=Math.max(observedPeak,state.y);return state.grounded;},{intervals:[50,100],timeout:15000}).toBe(true);
+     landedAt=await observer.evaluate(()=>performance.now());
+     // Visibility queries in the recorded software-GPU runs completed 7.55–10.16s
+     // after the actual color draw. Drain through a post-landing draw before
+     // calling this a missed airborne frame; FIFO collection retires all older
+     // queries first. A stalled/unsupported readout remains an explicit failure.
+     const visibleJump=(samples:PeerRenderSample[])=>samples.some(p=>p.id===id&&p.at>jumpStart&&p.visible&&p.y>ground+.15);
+     await expect.poll(async()=>{const samples=await rendered(observer);return visibleJump(samples)||samples.some(p=>p.id===id&&p.at>=landedAt!);},{message:'GPU visibility results complete through the real jump and landing',intervals:[100,200],timeout:15000}).toBe(true);
+     airborne=visibleJump(await rendered(observer));
+    }finally{
+     await info.attach(`peer-${direction===1?'east':'west'}-jump-${attempt+1}.json`,{body:JSON.stringify({ground,jumpStart,landedAt,observedPeak,airborne,rendered:await rendered(observer),diagnostics:JSON.parse(await observer.locator('#app').getAttribute('data-diagnostics')??'{}'),skippedQueries:await observer.locator('#game').getAttribute('data-peer-render-skipped')},null,2),contentType:'application/json'});
+    }
    }
    expect(airborne,'The remote jump must produce visible canvas pixels, not only a received snapshot').toBe(true);
    evidence.push({direction,authoritativeBefore:before,authoritativeMoved:moved,rendered:await rendered(observer)});

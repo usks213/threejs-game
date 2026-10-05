@@ -1,3 +1,4 @@
+import type {CoopTiming} from './coop-timing';
 import type {CoopHelloInfo,CoopSessionInfo} from './coop-handshake';
 import type {SnapshotDelta} from './snapshot-wire';
 import type {CompactFluidDelta} from './compact-fluid';
@@ -23,7 +24,7 @@ export type CoopServerPacket =
  | { type: 'welcome'; protocol: number;actionSequence?:number;persistedRevision?:string; session?:CoopSessionInfo;epoch: string; playerId: string; save: WorldSave; state: Snapshot }
  | { type: 'frame'; epoch: string; state: Snapshot; water?:FluidDelta; editBase: number; edits: EditOperation[] }
  | { type: 'ack'; kind?:'room-admin'; commandId: string; accepted: boolean; message: string }
- | { type: 'notice'; message: string } | { type: 'pong' };
+ | { type: 'notice'; message: string } | { type: 'pong';timing?:CoopTiming };
 
 /** Transport packets are decoded before reaching the simulation/UI. */
 export type CoopWireServerPacket=(Exclude<CoopServerPacket,{type:'frame'}>|{type:'delta';epoch:string;tick:number;state:SnapshotDelta;water:CompactFluidDelta;editBase:number;edits:EditOperation[]})&{delivery?:string};

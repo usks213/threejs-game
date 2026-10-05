@@ -43,3 +43,9 @@ CIの公開測定も同じpreview上の別部屋のbrowser QAと並行し得る�
 - 各接続の完全baselineは最初の1回だけ。backendのpeak memoryは未取得。新規世界の短い実測を成熟保存/長時間/実機の合格へ拡大しない。
 
 同じcommitの公開2ブラウザは、このsocket検査より後へ進んだが、遅延/損失下の箱移動UIで失敗した。接続復旧と4人測定の成功は、そのUI受入の代わりにはならない。
+
+## 763c7902の公開再測定（23:13 UTC）
+
+[CI37386732391のartifact](https://github.com/usks213/threejs-game/actions/runs/37386732391/artifacts/11379312185)。新しい密度/水選択版も4接続・60.033秒を失敗0で完走したが、26.835〜26.885Hzで引き続き30Hz未達。ping p95は148.7〜148.8ms、測定中33,460,971byte。生JSONは`public-worker-load-763c7902.json`。Nodeの短いCPU比較を公開での速度改善へ読み替えない。
+
+次の版では既存pongに任意のI/O時計とscheduler counterだけを追加し、失ったbacklogや実tickとの差を観測する。clockの進め方や入力条件は変えない。これもWorker CPU時間/peak memoryの取得ではない。
