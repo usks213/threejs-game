@@ -1,3 +1,4 @@
+import {inEntryClearing,mayEnterEncounterPosition} from './entry-clearing';
 import type {Adventure} from './adventure';
 import type {EnemyState} from './types';
 import type {Vec3} from '../world/types';
@@ -28,7 +29,7 @@ export function adventureSees(game:Adventure,from:Vec3,to:Vec3):boolean{
 function rotateToward(e:EnemyState,angle:number,amount:number):void{const old=e.heading??0,delta=Math.atan2(Math.sin(angle-old),Math.cos(angle-old));e.heading=old+Math.max(-amount,Math.min(amount,delta));}
 function move(game:Adventure,e:EnemyState,target:Vec3,speed:number,dt:number,flying=false,slide=true):boolean{
  const d=distance(e,target);if(d<.05)return true;const travel=Math.min(d,speed*dt),steps=Math.min(ENCOUNTER_LIMITS.moveSubsteps,Math.max(1,Math.ceil(travel/.16))),dx=(target.x-e.x)/d*travel/steps,dy=(target.y-e.y)/d*travel/steps,dz=(target.z-e.z)/d*travel/steps;let moved=false;
- for(let step=0;step<steps;step++){let accepted=false;for(const [x,z]of slide?[[dx,dz],[dx,0],[0,dz]]:[[dx,dz]]){if(Math.abs(x)+Math.abs(z)<1e-8&&!flying)continue;const next={x:e.x+x,y:e.y+(flying?dy:0),z:e.z+z};if(!flying){const supported=navigationGroundStep(game.sim,e,next.x,next.z);if(!supported)continue;next.y=supported.y;}if(!insideBounds(next,game.sim.world.bounds,1)||!siteClear(game.sim,next))continue;Object.assign(e,next);moved=true;accepted=true;break;}if(!accepted)break;}
+ for(let step=0;step<steps;step++){let accepted=false;for(const [x,z]of slide?[[dx,dz],[dx,0],[0,dz]]:[[dx,dz]]){if(Math.abs(x)+Math.abs(z)<1e-8&&!flying)continue;const next={x:e.x+x,y:e.y+(flying?dy:0),z:e.z+z};if(!flying){const supported=navigationGroundStep(game.sim,e,next.x,next.z);if(!supported)continue;next.y=supported.y;}if(!insideBounds(next,game.sim.world.bounds,1)||!mayEnterEncounterPosition(game.sim,e,next)||!siteClear(game.sim,next))continue;Object.assign(e,next);moved=true;accepted=true;break;}if(!accepted)break;}
  return moved;
 }
 /** Follow a cached local detour when direct movement is blocked. Every actual
@@ -53,10 +54,16 @@ export function stepAdventureEnemy(game:Adventure,e:EnemyState,dt:number):boolea
  if(e.health<=0){const home={x:e.homeX,y:e.homeY,z:e.homeZ};if(e.respawnAt!==undefined&&e.respawnAt<=game.state.seconds&&living.every(a=>distance(a.player,home)>18)&&siteClear(game.sim,home)){Object.assign(e,home);e.health=def.health*(1+(e.stars??0))*(1+(e.tier-1)*.4);e.cooldown=2;e.windup=0;e.attackReady={};e.attackKind='idle';delete e.respawnAt;lastSeen.delete(e);clearAdventureRoute(game.sim,e);}return true;}
  if((e.burn??0)>0){e.burn=Math.max(0,e.burn!-dt);game.hit(e,4.4*dt,'fire',false);if(e.health<=0)return true;}
  if((e.stagger??0)>0){e.stagger=Math.max(0,e.stagger!-dt);e.windup=0;e.attackKind='recover';return true;}
- const target=living.reduce((best,a)=>distance(a.player,e)<distance(best.player,e)?a:best),p=target.player,d=distance(p,e),visible=d<28&&adventureSees(game,e,p),ready=e.attackReady??={};
+ const threats=living.filter(a=>!inEntryClearing(game.sim,a.player));
+ if(!threats.length){
+  e.windup=0;e.alerted=0;e.attackKind='idle';lastSeen.delete(e);clearAdventureRoute(game.sim,e);
+  const home={x:e.homeX,y:e.homeY,z:e.homeZ};if(distance(e,home)>1)navigate(game,e,home,def.speed*.6,dt,e.definition==='veilray');
+  return true;
+ }
+ const target=threats.reduce((best,a)=>distance(a.player,e)<distance(best.player,e)?a:best),p=target.player,d=distance(p,e),visible=d<28&&adventureSees(game,e,p),ready=e.attackReady??={};
  e.slow=Math.max(0,e.slow-dt);e.cooldown=Math.max(0,e.cooldown-dt);e.alerted=visible?6:Math.max(0,(e.alerted??0)-dt);if(visible)lastSeen.set(e,{x:p.x,y:p.y,z:p.z});
  const water=game.sim.fluid.immersion(e,1.2),flow=game.sim.fluid.current(e);if(water>.05){move(game,e,{x:e.x+flow.x,y:e.y,z:e.z+flow.z},Math.min(3,Math.hypot(flow.x,flow.z))*water,dt,e.definition==='veilray');if(e.definition==='slime')e.health=Math.min(def.health*(1+(e.stars??0))*(1+(e.tier-1)*.4),e.health+dt*.8);}
- if(e.definition==='cinderunner'&&(ready.dashUntil??0)>game.state.seconds){const aim=e.attackYaw??0,moved=move(game,e,{x:e.x+Math.sin(aim)*2,y:e.y,z:e.z+Math.cos(aim)*2},8,dt,false,false);if(!moved)ready.dashUntil=0;if(!ready.dashHit)for(const actor of living)if(distance(actor.player,e)<1.4&&adventureSees(game,e,actor.player)){actor.adventure.hurtPlayer(def.damage,'fire',actor.player,e);ready.dashHit=1;break;}e.attackKind='dash';return true;}
+ if(e.definition==='cinderunner'&&(ready.dashUntil??0)>game.state.seconds){const aim=e.attackYaw??0,moved=move(game,e,{x:e.x+Math.sin(aim)*2,y:e.y,z:e.z+Math.cos(aim)*2},8,dt,false,false);if(!moved)ready.dashUntil=0;if(!ready.dashHit)for(const actor of threats)if(distance(actor.player,e)<1.4&&adventureSees(game,e,actor.player)){actor.adventure.hurtPlayer(def.damage,'fire',actor.player,e);ready.dashHit=1;break;}e.attackKind='dash';return true;}
  if(e.windup>0){e.windup=Math.max(0,e.windup-dt);if(e.windup>0)return true;
   if(e.definition==='cinderunner'){ready.dashUntil=game.state.seconds+.6;ready.dashHit=0;e.attackKind='dash';e.cooldown=3;return true;}
   if(visible){if(e.definition==='reedspitter'||e.definition==='veilray')shoot(game,e,p,def.damage,def.element);else if(d<def.reach+.6)target.adventure.hurtPlayer(def.damage,def.element,p,e);}

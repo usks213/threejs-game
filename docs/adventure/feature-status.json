@@ -18,7 +18,7 @@
       "coop-frame-decoder.test.ts"
     ],
     "remaining": "protocol6固定実2WS15分で全state/水/再接続/再起動/gap復帰と68%payload削減を確認。protocol7受領上限は実2WSで確認。公開2ブラウザの全段階、実Worker性能と長期運用は未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -35,7 +35,7 @@
       "network.spec.ts"
     ],
     "remaining": "公開2ブラウザの全段階合格、長時間・150ms遅延/損失。NET-03の物体競合はPOWER unitのみ",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -58,7 +58,7 @@
       "coop-client-liveness.test.ts"
     ],
     "remaining": "必須expectedRevision/expectedEpoch、再送の重複排除、150msアプリ層proxyとsnapshot欠損はローカル合格。公開2ブラウザの同時操作全受入は未合格",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -75,7 +75,7 @@
       "network.spec.ts"
     ],
     "remaining": "公開2ブラウザの全段階合格、長時間・150ms遅延/損失。NET-03の物体競合はPOWER unitのみ",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -98,7 +98,7 @@
       "room-management-ui.test.ts"
     ],
     "remaining": "管理者/参加ロック/既知復帰/退出/ban解除/確認UI、private建築・部品権限を実装。保存失敗停止/previous復旧でもban保持、実2WS再起動を検査。匿名IDを新規に作る相手は参加ロック併用。公開荒らし復旧/実UI受入は未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -116,7 +116,7 @@
       "adventure-depth-route.test.ts"
     ],
     "remaining": "実Session入力で開始→組立→地表灯→斜路→天抜け→空灯、別経路で東穴→翼→地下灯→天抜け帰還を合格。残り全島ルート/公開画面は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -131,7 +131,7 @@
       "skybound-terrain.test.ts"
     ],
     "remaining": "三層を実ブラウザで往復、LOD/境界の見た目、端末負荷",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -146,7 +146,7 @@
       "skybound-terrain.test.ts"
     ],
     "remaining": "三層を実ブラウザで往復、LOD/境界の見た目、端末負荷",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -162,7 +162,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "6環境の領域/温度/共有風/描画色を実装。原景の密度/造形、実ブラウザの識別しやすさは未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -178,7 +178,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "6環境の領域/温度/共有風/描画色を実装。原景の密度/造形、実ブラウザの識別しやすさは未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -194,7 +194,7 @@
       "fluid-obstacles.test.ts"
     ],
     "remaining": "新作6環境の独自設計、天候影響、保護地形と進行復旧",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -210,7 +210,7 @@
       "fluid-obstacles.test.ts"
     ],
     "remaining": "新作6環境の独自設計、天候影響、保護地形と進行復旧",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -227,7 +227,7 @@
       "adventure-route.test.ts"
     ],
     "remaining": "速度ベース着地ダメージ、登攀終端の安全な岸上がり、急降下入力を追加。公開実操作/斜面/水際の全受入は未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -242,7 +242,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -257,7 +257,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -272,7 +272,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -287,7 +287,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -303,7 +303,7 @@
       "companion-render.test.ts"
     ],
     "remaining": "独自生物の餌/追従/騎乗/安全降車/8部品牽引/保存を実装。経路探索mesh/泳ぎ/戦闘/繁殖は未実装、公開2人操作は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -318,7 +318,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -334,7 +334,7 @@
       "skybound-session.test.ts"
     ],
     "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -350,7 +350,7 @@
       "skybound-session.test.ts"
     ],
     "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -366,7 +366,7 @@
       "skybound-session.test.ts"
     ],
     "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -382,7 +382,7 @@
       "skybound-session.test.ts"
     ],
     "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -398,7 +398,7 @@
       "skybound-session.test.ts"
     ],
     "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -424,7 +424,7 @@
       "quaternion-water-obstacles.test.ts"
     ],
     "remaining": "姿勢付き船体の障害物/外側水面サンプラー/積載質量/放水の体積保存を検査。傾斜時の参照上限8,192を追加。角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -450,7 +450,7 @@
       "quaternion-water-obstacles.test.ts"
     ],
     "remaining": "姿勢付き船体の障害物/外側水面サンプラー/積載質量/放水の体積保存を検査。傾斜時の参照上限8,192を追加。角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -476,7 +476,7 @@
       "quaternion-water-obstacles.test.ts"
     ],
     "remaining": "姿勢付き船体の障害物/外側水面サンプラー/積載質量/放水の体積保存を検査。傾斜時の参照上限8,192を追加。角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -500,7 +500,7 @@
       "wheel-traction-integration.test.ts"
     ],
     "remaining": "角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -524,7 +524,7 @@
       "wheel-traction-integration.test.ts"
     ],
     "remaining": "角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -541,7 +541,7 @@
       "adventure-gear.test.ts"
     ],
     "remaining": "新世界の共有資源、鉄/晶石と料理素材を配置。採集stack/重量/共有拾得は検証済み。地域資源の分布拡張と交易通貨の供給が残る",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -555,7 +555,7 @@
       "adventure-food.test.ts"
     ],
     "remaining": "旅料理5種の素材消費・耐寒/耐熱/持久/発光/回復を実装。調理UIと共有受渡しの公開操作は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -581,7 +581,7 @@
       "equipment-lots-ui.test.ts"
     ],
     "remaining": "携帯工作/品質/修理/持ち物成長と、個体の品質・耐久・融合・受渡し・墓標・投擲保存をローカル検証。旧大量同種記録も保持。全装備種の増量、耐久警告の実視認性と公開操作受入は残る",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -605,7 +605,7 @@
       "equipment-websocket.test.ts"
     ],
     "remaining": "交易/私有と共有の倉庫/個体受渡し/設計名変更と確認付き削除をローカル検証。移動倉庫の装備metadata統合は次区切り、公開二人受渡しの全受入は残る",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -622,7 +622,7 @@
       "layer-combat.test.ts"
     ],
     "remaining": "3D距離/全遮蔽、薄壁projectile sweep、入力/状態権威、部位なしの近接/弓を実装。巻戻し補償は0ms、権威受信時判定。公開遅延の操作感は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -637,7 +637,7 @@
       "combat-feel.test.ts"
     ],
     "remaining": "5度/24m/遮蔽検査の個人照準補助と既存parry猶予。全世界slow motionは使わない。公開入力遅延下の操作感は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -655,7 +655,7 @@
       "adventure-navigation.test.ts"
     ],
     "remaining": "局所迂回を追加し、支持/壁回避/編集無効化/64敵の展開予算を検査。独自6敵の接近/盾側面/遠隔/予兆突進/浮遊、64処理予算、3D/地形建築樹木岩部品LOS、通貨/資源dropを実装検査。追加種と公開実戦バランスは残る",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -674,7 +674,7 @@
       "layer-support.test.ts"
     ],
     "remaining": "嵐心と3地域番人、固有条件弱点/方向予兆/共有報酬。独立破壊できるボス部位と公開実戦・調整は未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -689,7 +689,7 @@
       "coop-revive-clients.test.ts"
     ],
     "remaining": "公開2ブラウザの救助、遅延/切断時の画面受入",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -704,7 +704,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "4道標+最終敵は導入縦切り。多地域ダンジョン、試練各属性、NPC依頼、成長、図鑑、周回",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -719,7 +719,7 @@
       "adventure-trials.test.ts"
     ],
     "remaining": "7試練の公開実操作。複数地域の大規模ダンジョンは別未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -737,7 +737,7 @@
       "adventure-sites.test.ts"
     ],
     "remaining": "3地域×3部屋の建築拠点、輸送/救助/装置復旧、NPC/3番人を追加。現在の規模は有限の中型拠点で、原作規模の大規模ダンジョンではない。公開複数人完走と造形QAは残る",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -752,7 +752,7 @@
       "adventure-trials.test.ts"
     ],
     "remaining": "7試練の公開実操作。複数地域の大規模ダンジョンは別未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -767,7 +767,7 @@
       "beacon-travel.test.ts"
     ],
     "remaining": "共有拠点ごとに全員と後参加のHP/スタミナ/電池100→175/所持32→44枠が成長。安全到着/敵近接制限付き道標移動。移動式拠点の収納/寝床一体化は未実装",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -787,7 +787,7 @@
       "trail-race.test.ts"
     ],
     "remaining": "素材/装備検索図鑑、共有3Dピン、PNG写真、実Session入力で6門を完走できる競走と個人最高記録。装飾種/収集報酬拡充と実画面写真検証は残る",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -802,7 +802,7 @@
       "traversal-adventure.test.ts"
     ],
     "remaining": "最終敵討伐後の終幕文章と自由探索、確認付き新規世界/旧記録保護、任意競走。周回差分、公開物語完走は未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -817,7 +817,7 @@
       "network.spec.ts"
     ],
     "remaining": "4道標マップから層切替/検索/共有pin/図鑑へ拡張、モバイルlayoutの実測",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -835,7 +835,7 @@
       "field-guide.test.ts"
     ],
     "remaining": "三層map/共有pin32個/所有者削除/図鑑検索/依頼log/設計帳。公開実操作と全情報の並替えは未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -852,7 +852,7 @@
       "voxel-adventure.spec.ts"
     ],
     "remaining": "個別音量、照準/救助補助、文字拡大/揺れ低減、移動/攻撃/ガード/回避/救助/道具/数字8枠のキーボード再割当。実端末可読性/全操作受入は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -868,7 +868,7 @@
       "adventure-creature-models.test.ts"
     ],
     "remaining": "4独自通常敵・3番人の結合voxelモデル/LOD、遠近シルエットと予兆距離をNode幾何試験で検査。実際のGPU画像、陰影/距離音響/アニメの調整は未検証",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -883,7 +883,7 @@
       "skybound-terrain.test.ts"
     ],
     "remaining": "造形/音楽/距離音響、選択preview、属性/装置演出、実画面QA",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -899,7 +899,7 @@
       "spatial-sound.test.ts"
     ],
     "remaining": "独自合成音楽/環境/効果音、3D距離減衰/定位/層違いの減衰を追加。厳密遮蔽音響・実聴取/端末受入は未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -922,7 +922,7 @@
       "coop-authority.test.ts"
     ],
     "remaining": "2世代原子的保存/破損保護/個人export/import/共有の自分のexportは実装。公開再起動耐障害・復旧UI実操作、共有room管理importは未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -945,7 +945,7 @@
       "coop-authority.test.ts"
     ],
     "remaining": "2世代原子的保存/破損保護/個人export/import/共有の自分のexportは実装。公開再起動耐障害・復旧UI実操作、共有room管理importは未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   },
   {
@@ -968,7 +968,7 @@
       "coop-authority.test.ts"
     ],
     "remaining": "2世代原子的保存/破損保護/個人export/import/共有の自分のexportは実装。公開再起動耐障害・復旧UI実操作、共有room管理importは未完了",
-    "testedBuild": "ローカル第10統合・型/691テスト148ファイル/build合格。公開・ブラウザ受入は別途確認",
+    "testedBuild": "ローカル第11統合・型/709テスト152ファイル/build合格。097bfe1公開/第11ブラウザ受入は別",
     "evidence": []
   }
 ]

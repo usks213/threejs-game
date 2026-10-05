@@ -15,6 +15,8 @@ out vec4 fieldColor;
 #define gl_FragColor fieldColor
 uniform sampler3D fieldDensity;
 uniform vec3 fieldOrigin;
+uniform vec3 fieldBoundsMin;
+uniform vec3 fieldBoundsMax;
 uniform float fieldStep;
 uniform float fieldAdventure;
 uniform float fieldSize;
@@ -35,13 +37,12 @@ float densityAt(vec3 p) {
 }
 bool brickInterval(vec3 origin, vec3 direction, out float entry, out float exit) {
   entry = 0.0; exit = 1e7;
-  vec3 upper = fieldOrigin + vec3((fieldSize - 1.0) * fieldStep);
   for (int axis = 0; axis < 3; axis++) {
     if (abs(direction[axis]) < 1e-8) {
-      if (origin[axis] < fieldOrigin[axis] || origin[axis] > upper[axis]) return false;
+      if (origin[axis] < fieldBoundsMin[axis] || origin[axis] > fieldBoundsMax[axis]) return false;
     } else {
-      float a = (fieldOrigin[axis] - origin[axis]) / direction[axis];
-      float b = (upper[axis] - origin[axis]) / direction[axis];
+      float a = (fieldBoundsMin[axis] - origin[axis]) / direction[axis];
+      float b = (fieldBoundsMax[axis] - origin[axis]) / direction[axis];
       entry = max(entry, min(a, b)); exit = min(exit, max(a, b));
       if (exit < entry) return false;
     }

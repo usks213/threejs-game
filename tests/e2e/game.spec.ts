@@ -18,7 +18,22 @@ test('core landscape starts, moves with keyboard, keeps the landscape canvas acr
 test('two fingers move, sprint, crouch and jump together on a rotated phone, and water is always available',async({page},info)=>{
  test.skip(info.project.name==='desktop-chromium','Phone touch coordinates');await ready(page);const sim=sparse();await fixture(page,sim);await expect(page.locator('#position')).toHaveAttribute('data-grounded','true');
  const stick=await page.locator('#stick').boundingBox();if(!stick)throw Error('Touch controls missing');const session=await page.context().newCDPSession(page),left={x:stick.x+stick.width/2,y:stick.y+stick.height*.8,id:1};
- const second=async(id:string)=>{const box=await page.locator('#'+id).boundingBox();if(!box)throw Error(id+' missing');await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[left,{x:box.x+box.width/2,y:box.y+box.height/2,id:2}]});await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[left]});};
+ // Track real pointer delivery so a malformed CDP sequence cannot masquerade as a game regression.
+ await page.evaluate(()=>{
+  document.addEventListener('pointerdown',event=>{const button=(event.target as HTMLElement).closest('button');if(button)button.dataset.touchStarts=String(Number(button.dataset.touchStarts??0)+1);},true);
+  const stick=document.querySelector<HTMLElement>('#stick')!;
+  stick.addEventListener('pointerdown',event=>{stick.dataset.testPointer=String(event.pointerId);});
+  for(const type of ['pointerup','pointercancel'])stick.addEventListener(type,()=>{delete stick.dataset.testPointer;});
+ });
+ const second=async(id:string)=>{
+  const button=page.locator('#'+id),box=await button.boundingBox();if(!box)throw Error(id+' missing');
+  const starts=Number(await button.getAttribute('data-touch-starts')??0),right={x:box.x+box.width/2,y:box.y+box.height/2,id:2};
+  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[left,right]});
+  await expect(button).toHaveAttribute('data-touch-starts',String(starts+1));
+  // Chromium releases the IDs supplied to a nonempty touchEnd, not the omitted IDs.
+  await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[right]});
+  await expect(page.locator('#stick')).toHaveAttribute('data-test-pointer',/\d+/);
+ };
  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[left]});await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(.2);
  await second('sprint');await expect(page.locator('#sprint')).toHaveAttribute('aria-pressed','true');await second('sneak');await expect(page.locator('#sneak')).toHaveAttribute('aria-pressed','true');const before=Number(await page.locator('#position').getAttribute('data-x'));await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(before+.2);await second('sneak');
  await second('jump');await expect.poll(async()=>Number((await page.locator('#metrics').textContent())?.match(/ジャンプ ([\d.]+)m/)?.[1]??0)).toBeGreaterThan(.4);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});

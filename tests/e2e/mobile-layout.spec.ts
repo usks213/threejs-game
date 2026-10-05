@@ -33,6 +33,7 @@ async function setup(page:Page,size:{width:number;height:number},mode:Mode,inset
  await page.evaluate(({mode,content,hotbar})=>{
   const app=document.querySelector<HTMLElement>('#app')!;app.dataset.state='running';
   document.querySelector('#hotbar')!.innerHTML=hotbar;
+  document.querySelector('#journey')!.innerHTML='<span class=goal-kicker>JOURNEY</span><strong>落ち枝と石を拾おう</strong><small>木材5・石4 → 石斧。近づいて採集</small>';
   document.querySelector('#adventure-hud')!.innerHTML='<div class=region-line>はじまりの草原 · DAY12 18:45 雷雨</div><div class=vitals><div class="vital health"><span>HP125</span></div><div class="vital stamina"><span>スタミナ120</span></div></div><small>棍棒 · ガード · 食事 · 休息 · 雨除け · 暖かい · 濡れ · 雷鹿の加護</small><div class=food-hud><span>焼き肉</span><span>キノコ</span><span>木の実</span></div>';
   app.dataset.building=String(mode==='build');app.dataset.sandbox=String(mode==='sandbox');
   document.querySelector<HTMLElement>('#build-controls')!.hidden=mode!=='build'&&mode!=='sandbox';
@@ -113,9 +114,9 @@ test('core landscape mobile movement controls keep their place across pressed st
   }
   for(const id of ['adventure-panel','system-panel','session-panel']){
    await page.locator('#'+id).evaluate((el:HTMLElement)=>el.hidden=false);
-   await expect(page.locator('#sprint')).toBeHidden();await expect(page.locator('#sneak')).toBeHidden();
+   await expect(page.locator('#sprint')).toBeHidden();await expect(page.locator('#sneak')).toBeHidden();await expect(page.locator('#journey')).toBeHidden();
    await page.locator('#'+id).evaluate((el:HTMLElement)=>el.hidden=true);
-   await expect(page.locator('#sprint')).toBeVisible();await expect(page.locator('#sneak')).toBeVisible();
+   await expect(page.locator('#sprint')).toBeVisible();await expect(page.locator('#sneak')).toBeVisible();await expect(page.locator('#journey')).toBeVisible();
    expect(await page.locator('.movement-modes').boundingBox()).toEqual(before);
   }
   expect(await problems(page),`${size.width}×${size.height} restored`).toEqual([]);

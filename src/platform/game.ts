@@ -76,7 +76,7 @@ export function startGame() {
   app.dataset.terrainMode=direct?'direct-field':'surface-mesh';if(direct)renderer.shadowMap.enabled=false;
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, direct?110:80);
   const pipeline=createPipeline(renderer,world.scene,camera,world.atmosphere);
-  const readKeyboard = keyboardInput(signal,preferences.boundCode), touch = touchInput(document.querySelector('#stick')!, document.querySelector('#knob')!, signal), view = cameraInput(canvas, signal);preferences.bindView(view);
+  const readKeyboard = keyboardInput(signal,preferences.boundCode,()=>sendMotion()), touch = touchInput(document.querySelector('#stick')!, document.querySelector('#knob')!, signal), view = cameraInput(canvas, signal);preferences.bindView(view);
   let waterProbeStarted=false;const probeWater=direct&&new URLSearchParams(location.search).has('waterProbe');
   const input: Axis = { x: 0, z: 0 };
   const raycaster = new THREE.Raycaster(), center = new THREE.Vector2(0, 0), normal = new THREE.Vector3(), markerAxis = new THREE.Vector3(0, 0, 1);
@@ -99,10 +99,20 @@ export function startGame() {
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
-  const post = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input); if(message.type==='init'||message.type==='replica-init'){loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
+  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
   const photo=document.createElement('button');photo.id='photo';photo.textContent='風景をPNGで保存 [P]';document.querySelector('#system-panel')!.append(photo);photo.addEventListener('click',()=>{if(app.dataset.state!=='running'){notice('ワールドの準備ができてから写真を撮ってください');return;}photoNext=true;document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);},{signal});signal.addEventListener('abort',()=>photo.remove(),{once:true});
   const network = networkUI(signal, post, notice,{loadPersonal:()=>persistence.load(),exported:save=>persistence.exportSave(save)});
-  const send = (message: ClientMessage) => { if (!network.forward(message)) post(message); };
+  const send = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input);if (!network.forward(message)) post(message); };
+  // Input must reach the authority on contact/release even if drawing is slow.
+  // The short heartbeat also renews held input before the server's idle timeout.
+  const sendMotion=(forceIdle=false)=>{
+    if(stopped)return;
+    readKeyboard(input);if(touch.x||touch.z){input.x=touch.x;input.z=touch.z;}
+    if(forceIdle||document.hidden||app.dataset.state!=='running'||document.querySelector('[role=dialog]:not([hidden])')){input.x=0;input.z=0;jump=false;}
+    const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw);
+    send({type:'input',input:{x:input.x*cos+input.z*sin,z:input.z*cos-input.x*sin,jump}});jump=false;lastInput=performance.now();
+  };
+  const inputHeartbeat=setInterval(()=>sendMotion(),100);signal.addEventListener('abort',()=>clearInterval(inputHeartbeat),{once:true});
   const persistence = persistenceUI(send, signal, notice,{active:()=>network.guest,exportWorld:()=>network.exportWorld()});
   const resolveCamera = createCameraBoom((origin, direction, limit) => {
     obstruction.set(origin, direction); obstruction.far = limit;
@@ -154,7 +164,7 @@ export function startGame() {
   holdAction(document.querySelector<HTMLButtonElement>('#water-cast')!, pour, () => true, signal);
   const act = () => { if (!building && tool === 'water') pour(); else if (target && building) gameAction('build', building); else if (target) { if(tool==='dig'||tool==='add'){editedPoint.set(target.x,target.y,target.z);hasEditedPoint=true;} send({ type: 'action', tool, target,expectedRevision:state?.edits }); } else notice('近くの地面に照準を合わせてください'); };
   holdAction(use, act, () => !building && tool === 'water', signal);
-  actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { if(state&&!state.player.grounded&&state.adventure.inventory.glider)gameAction('glide');else jump=true; }, signal);
+  actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { if(state&&!state.player.grounded&&state.adventure.inventory.glider)gameAction('glide');else {jump=true;sendMotion();} }, signal);
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
   const interact=()=>{contextual=sampleReticle().interaction;if(!contextual){if(state?.adventure.meadows?.fishing||state?.adventure.equipment==='fishingRod')gameAction('fish');else if(state?.adventure.meadows?.riding)gameAction('interact');return;}const t=contextual;if(state?.adventure.generator===4&&t.id.startsWith('r:')){const id=Number(t.id.slice(2));if(SITES.some(s=>s.npc===id)){gameAction('site-talk',String(id));return;}if(GUIDES.some(g=>g.id===id)){gameAction('talk',String(id));return;}if(TRIALS.some(g=>g.id===id)){adventure.open('world');return;}}if(t.id==='fishing'){gameAction('fish');return;}if(t.id==='dismount'){gameAction('interact');return;}if(state?.adventure.equipment==='hammer'&&t.id.startsWith('b:')&&!t.panel){gameAction('repairBuilding',t.id.slice(2));return;}if(t.panel){adventure.openContext(t.panel,t.id);mouse.unlock();}send({type:'game-action',action:'interact',id:t.id,target:t.point,aim:{...reticleAim}});};
   actionInput(interactButton,interact,signal);actionInput(document.querySelector<HTMLButtonElement>('#dismantle')!,()=>{if(contextual?.id.startsWith('b:'))gameAction('remove',contextual.id.slice(2));},signal);
@@ -162,14 +172,14 @@ export function startGame() {
   document.querySelector('#hotbar')!.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLElement>('[data-quick]');if(b)quick(Number(b.dataset.quick));},{signal});
   const mouse=mouseActions(canvas,signal,()=>building||app.dataset.sandbox==='true'?act():gameAction('attack'),held=>{if(building||app.dataset.sandbox==='true'){if(held)document.querySelector<HTMLButtonElement>('#build-cancel')!.click();}else gameAction('guard',held?'on':'off');});
   const sprint=(held:boolean)=>{if(state?.adventure.meadows)gameAction('sprint',held?'on':'off');};
-  const releaseActions=()=>{jump=false;gameAction('guard','off');sprint(false);};
+  const releaseActions=()=>{jump=false;readKeyboard.clear();sendMotion(true);gameAction('guard','off');sprint(false);};
   window.addEventListener('blur',releaseActions,{signal});window.addEventListener('resize',releaseActions,{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseActions();},{signal});
   window.addEventListener('keydown',e=>{
     if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
     if(preferences.boundCode(e.code)==='Escape'){if(document.querySelector('#recovery-panel:not([hidden])')){e.preventDefault();return;}mouse.unlock();gameAction('guard','off');sprint(false);if(building||app.dataset.sandbox==='true')document.querySelector<HTMLButtonElement>('#build-cancel')!.click();document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
     if(preferences.boundCode(e.code)==='Tab'){e.preventDefault();if(!e.repeat){const panel=document.querySelector<HTMLElement>('#adventure-panel')!;if(panel.hidden){adventure.open('bag');mouse.unlock();}else panel.hidden=true;}return;}
     if(e.repeat||document.querySelector('[role=dialog]:not([hidden])'))return;
-    if(preferences.boundCode(e.code)==='Space'){e.preventDefault();if(state&&!state.player.grounded&&state.adventure.inventory.glider)gameAction('glide');else jump=true;}
+    if(preferences.boundCode(e.code)==='Space'){e.preventDefault();if(state&&!state.player.grounded&&state.adventure.inventory.glider)gameAction('glide');else {jump=true;sendMotion();}}
     if(preferences.boundCode(e.code)==='KeyJ')gameAction('attack');if(preferences.boundCode(e.code)==='KeyK')gameAction('guard','on');
     if(preferences.boundCode(e.code)==='KeyG')gameAction('glide');if(preferences.boundCode(e.code)==='KeyV')gameAction('glide','dive');if(preferences.boundCode(e.code)==='KeyP')photo.click();if(preferences.boundCode(e.code)==='KeyT')gameAction('climb');if(preferences.boundCode(e.code)==='KeyQ')document.querySelector<HTMLButtonElement>('#powers-menu')?.click();
     if(preferences.boundCode(e.code)==='KeyE')interact();if(preferences.boundCode(e.code)==='KeyB'){adventure.open('build');mouse.unlock();}
@@ -212,7 +222,7 @@ export function startGame() {
   } catch { fail('このブラウザで地形Workerを起動できませんでした。ChromeまたはSafariを更新してください。'); }
   const frameTimings=new FrameTimings();
   let renderedLastFrame=false,lastDraw=0;let previous = performance.now(), fpsStarted = previous, frames = 0, fps = 0, lastShadow=0;
-  document.addEventListener('visibilitychange', () => { previous = performance.now(); if(document.hidden)send({type:'save'}); post({ type: 'pause', paused: document.hidden }); }, { signal });
+  document.addEventListener('visibilitychange', () => { previous = performance.now(); lastDraw=0; renderedLastFrame=false; if(document.hidden)send({type:'save'}); post({ type: 'pause', paused: document.hidden }); }, { signal });
   const position = document.querySelector<HTMLElement>('#position')!;
   const animate = (now: number) => {
     if (stopped) return;
@@ -229,9 +239,7 @@ export function startGame() {
       submittedMeshes+=uploaded;uploadMs+=terrain.stats.uploadSubmissionMs;acknowledgeMeshes(uploaded);
       if(now-streamLog>200){app.dataset.streaming=JSON.stringify({epoch:terrainEpoch,elapsedMs:now-loadingStarted,receivedMeshes,submittedMeshes,uploadMs,nearReadyMs,readyPending,fencePending:terrainQueue.hasPending(readyFence),queue:terrainQueue.size,draws});streamLog=now;}
       if(readyPending&&state&&!terrainQueue.hasPending(readyFence)){readyPending=false;status.textContent='プレイ中';app.dataset.state='running';send({type:'save'});}
-      readKeyboard(input); if (touch.x || touch.z) { input.x = touch.x; input.z = touch.z; }
-      if(menuOpen){input.x=0;input.z=0;jump=false;}
-      if (now - lastInput > 30) { const sin = Math.sin(view.yaw), cos = Math.cos(view.yaw); send({ type: 'input', input: { x: input.x * cos + input.z * sin, z: input.z * cos - input.x * sin, jump } }); jump = false; lastInput = now; }
+      if(now-lastInput>30)sendMotion();
       if(camera.fov!==preferences.fov){camera.fov=preferences.fov;camera.updateProjectionMatrix();}world.setReducedMotion(preferences.reducedMotion);world.selectPart(powers.selectedPart);if(state&&dirtyWorld&&!menuOpen&&!loading){const t=performance.now();world.update(state);sound.update(state);dirtyWorld=false;frameTimings.record('worldUpdate',performance.now()-t);}
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
       if(!menuOpen)world.interpolate(dt);
@@ -265,9 +273,11 @@ export function startGame() {
       }
       const grassStart=performance.now();if(!menuOpen){terrain.updateDetails(world.player.position,now/1000);world.faceCamera(camera);}frameTimings.record('grassUpdate',performance.now()-grassStart);
       if(now-lastShadow>120){renderer.shadowMap.needsUpdate=true;lastShadow=now;}
-      try { if(renderDue&&state&&!loading){const renderStart=performance.now();
+      try { if(renderDue&&state&&!loading){
+        if(lastDraw>0&&now-lastDraw<10000)pipeline.observeFrame(now-lastDraw);
+        const renderStart=performance.now();
         world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}if(direct){world.atmosphere.prepareDirect();renderer.setRenderTarget(null);renderer.render(world.scene,camera);if(probeWater&&!waterProbeStarted&&world.atmosphere.stats.shUpdates>0&&world.waterSurface.geometry.drawRange.count>0){waterProbeStarted=true;void probeWaterLighting(renderer,world.scene,world.waterSurface).then(result=>app.dataset.waterProbe=JSON.stringify(result)).catch(error=>app.dataset.waterProbe=JSON.stringify({error:String(error)}));}}else pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);
-        if(lastDraw>0&&now-lastDraw<10000)pipeline.observeFrame(now-lastDraw);if(photoNext){photoNext=false;try{canvas.toBlob(blob=>{if(!blob||signal.aborted){if(!signal.aborted)notice('写真を書き出せませんでした');return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='skybound-photo-'+Date.now()+'.png';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('風景写真を端末へ保存しました。自動で共有はしていません');},'image/png');}catch{notice('この端末では写真を書き出せませんでした');}}draws++;frames++;renderedLastFrame=true;lastDraw=now;frameTimings.record('renderWall',performance.now()-renderStart);
+        if(photoNext){photoNext=false;try{canvas.toBlob(blob=>{if(!blob||signal.aborted){if(!signal.aborted)notice('写真を書き出せませんでした');return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='skybound-photo-'+Date.now()+'.png';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('風景写真を端末へ保存しました。自動で共有はしていません');},'image/png');}catch{notice('この端末では写真を書き出せませんでした');}}draws++;frames++;renderedLastFrame=true;lastDraw=now;frameTimings.record('renderWall',performance.now()-renderStart);
       } } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {

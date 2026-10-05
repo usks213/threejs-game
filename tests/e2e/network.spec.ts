@@ -1,15 +1,18 @@
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
+// These contexts span tests. Keep their traces under this file's control,
+// including retries; the runner would otherwise start a second trace.
+test.use({trace:'off'});
 test.describe.serial('two real browsers',()=>{
- let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',expectedEditCount=0,errors:string[]=[],failed=false;
+ let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',expectedEditCount=0,errors:string[]=[],failed=false,tracePaths:string[]=[];
  const stage=(name:string)=>console.log('COOP_BROWSER_PHASE',name);
  const running=(page:Page)=>expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
  const diagnostics=async(page:Page)=>{
   console.log('COOP_BROWSER_LOCATION',page.url());
-  for(const [selector,attribute]of [['#app','data-diagnostics'],['#app','data-aim'],['#session-status','data-last-ack'],['#session-status','data-last-command']]as const)console.log('COOP_DIAGNOSTIC',attribute,await page.locator(selector).getAttribute(attribute,{timeout:1000}).catch(()=>null));
+  for(const [selector,attribute]of [['#app','data-diagnostics'],['#app','data-aim'],['#app','data-combat'],['#session-status','data-last-ack'],['#session-status','data-last-command']]as const)console.log('COOP_DIAGNOSTIC',attribute,await page.locator(selector).getAttribute(attribute,{timeout:1000}).catch(()=>null));
   console.log('COOP_NOTICE',await page.locator('#notice').textContent({timeout:1000}).catch(()=>null));
  };
- test.beforeAll(async({browser})=>{
-  test.setTimeout(180000);stage('startup and room join');errors=[];try{
+ test.beforeAll(async({browser},info)=>{
+  test.setTimeout(180000);stage('startup and room join');errors=[];failed=false;tracePaths=[0,1].map(i=>info.outputPath(`coop-browser-${i}.zip`));try{
   contexts=await Promise.all([0,1].map(()=>browser.newContext({viewport:{width:640,height:360},deviceScaleFactor:.5})));
   await Promise.all(contexts.map(context=>context.tracing.start({screenshots:true,snapshots:true,sources:true})));
   [a,b]=await Promise.all(contexts.map(context=>context.newPage()));
@@ -18,20 +21,11 @@ test.describe.serial('two real browsers',()=>{
   stage('join second browser');await b.locator('#session-code').fill(code);await b.locator('#session-join').click();await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});
   identity=(await b.locator('#session-status').getAttribute('data-player'))!;expect(identity).not.toBe(await a.locator('#session-status').getAttribute('data-player'));
   // Both connections remain live; only one software-GPU view renders at a time.
-  for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-players','2');await page.keyboard.press('Escape');await running(page);if(page===a)await a.locator('#session-menu').click();}
+  for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-players','2');await page.keyboard.press('Escape');await running(page);await page.locator('#session-menu').click();}
   stage('two browsers ready');}catch(error){failed=true;throw error;}
  });
  test.afterEach(async({},info)=>{if(info.status!==info.expectedStatus){failed=true;for(const page of[a,b].filter(Boolean))await diagnostics(page);}});
- test.afterAll(async()=>{await Promise.allSettled(contexts.map((c,i)=>Promise.race([c.tracing.stop(failed?{path:`test-results/coop-browser-${i}.zip`}:undefined),new Promise<void>(r=>setTimeout(r,5000))])));await Promise.allSettled(contexts.map(c=>Promise.race([c.close(),new Promise<void>(r=>setTimeout(r,5000))])));});
- test('move and observe each other through the public authority',async()=>{
-  test.setTimeout(45000);stage('move and observe');const before=Number(await b.locator('#position').getAttribute('data-x'));
-  await b.keyboard.down('KeyD');try{await expect.poll(async()=>Number(await b.locator('#position').getAttribute('data-x'))).toBeGreaterThan(before+.4);}finally{await b.keyboard.up('KeyD');}
-  await expect.poll(async()=>{const peers=JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]');return peers.find((p:{id:string})=>p.id===identity)?.x??-999;}).toBeGreaterThan(before+.4);
-  const peer=async()=>JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===identity);
-  await expect.poll(async()=>Math.abs((await peer())?.heading??0)).toBeGreaterThan(.3);
-  const ground=(await peer()).y;await b.keyboard.press('Space');await expect.poll(async()=>(await peer())?.y??ground).toBeGreaterThan(ground+.15);
-  await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('movement verified');
- });
+ test.afterAll(async()=>{await Promise.allSettled(contexts.map((c,i)=>Promise.race([c.tracing.stop(failed?{path:tracePaths[i]}:undefined),new Promise<void>(r=>setTimeout(r,5000))])));await Promise.allSettled(contexts.map(c=>Promise.race([c.close(),new Promise<void>(r=>setTimeout(r,5000))])));});
  test('resolve a simultaneous shared supply pickup without duplicating inventory',async()=>{
   test.setTimeout(90000);stage('shared pickup conflict');
   for(const page of[a,b]){await page.keyboard.press('Escape');await page.locator('#adventure-menu').click();await page.locator('[data-tab=bag]').click();await expect(page.locator('[data-drop-kind=wood]')).toBeVisible();}
@@ -42,6 +36,17 @@ test.describe.serial('two real browsers',()=>{
   await expect(a.locator('[data-drop-kind=wood]')).toHaveCount(0);await expect(b.locator('[data-drop-kind=wood]')).toHaveCount(0);
   for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-last-command',new RegExp('gather'));await page.keyboard.press('Escape');await page.locator('#session-menu').click();}
   stage('single transfer verified');
+ });
+ test('move and observe each other through the public authority',async()=>{
+  test.setTimeout(45000);stage('move and observe');await b.keyboard.press('Escape');await running(b);const before=Number(await b.locator('#position').getAttribute('data-x'));
+  const peer=async()=>JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===identity);
+  // The parked observer receives authority snapshots without drawing. Stop the
+  // held key on that evidence so a slow active renderer cannot cause a long run.
+  await b.keyboard.down('KeyD');try{await expect.poll(async()=>(await peer())?.x??-999).toBeGreaterThan(before+.4);}finally{await b.keyboard.up('KeyD');}
+  await expect.poll(async()=>Number(await b.locator('#position').getAttribute('data-x'))).toBeGreaterThan(before+.4);
+  await expect.poll(async()=>Math.abs((await peer())?.heading??0)).toBeGreaterThan(.3);
+  const ground=(await peer()).y;await b.keyboard.press('Space');await expect.poll(async()=>(await peer())?.y??ground).toBeGreaterThan(ground+.15);
+  await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('movement verified');
  });
  test('commit a visible terrain edit and converge on both clients',async()=>{
   test.setTimeout(90000);stage('visible terrain tool');await a.keyboard.press('Escape');await a.locator('#adventure-menu').click();await a.locator('[data-tab=build]').click();await a.locator('[data-game-action=tool][data-id=dig]').click();
