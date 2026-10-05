@@ -10,6 +10,12 @@ describe('ordinary campaign sentry perception',()=>{
   sim.look(0,.18);expect(sim.target()?.hit.cell.object).toBe('door');sim.action('interact',idle);expect(sim.arena.objects.get('door')?.open).toBe(true);sim.tick(1/30,idle);expect(sim.enemyAwareness(sim.enemies[0])).toBe('alert');
   for(let i=0;i<20;i++)sim.tick(1/30,idle);expect(sim.enemyAwareness(sim.enemies[0])).toBe('chase');expect(sim.enemies[0].position.z).toBeGreaterThan(-6);
  });
+ it('can engage the entrance sentry from z1.6 without waking the ten-meter warden',()=>{
+  const sim=new CoreSimulation(true,false,true),idle={x:0,z:0,sprint:false,block:false,water:false};sim.player.position={x:0,y:.25,z:3.2};for(let i=0;i<60;i++)sim.tick(1/60,idle);sim.look(0,.18);sim.action('interact',idle);expect(sim.arena.objects.get('door')?.open).toBe(true);
+  for(let i=0;i<38;i++)sim.tick(1/60,{...idle,z:1});for(let i=0;i<24;i++)sim.tick(1/60,idle);expect(sim.player.position.z).toBeGreaterThan(1.3);expect(sim.player.position.z).toBeLessThan(1.9);
+  let attack=false;for(let i=0;i<360;i++){sim.tick(1/60,{...idle,block:true});attack ||=sim.enemies[0].phase!=='idle';expect(sim.enemyAwareness(sim.enemies[1])).toBe('idle');}
+  expect(attack).toBe(true);expect(sim.player.hp).toBeGreaterThan(0);expect(sim.enemies[1].position.z).toBe(-9);
+ });
  it('shares real SDF occlusion and becomes alert only after a doorway opens',()=>{
   const field=new VoxelField(.25);field.box({x:-2,y:0,z:0},{x:2,y:3,z:.4},3,'wall');const state=createGuardAwareness(home);
   for(let i=0;i<20;i++)updateGuardAwareness(state,home,target,true,field,.1);expect(state.mode).toBe('idle');expect(state.visible).toBe(false);

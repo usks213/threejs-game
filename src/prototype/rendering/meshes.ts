@@ -99,10 +99,15 @@ export class WorldMeshes {
  get stats(){let geometryBytes=0,triangles=0;for(const mesh of this.chunks.values()){const g=mesh.geometry;for(const a of Object.values(g.attributes))geometryBytes+=a.array.byteLength;geometryBytes+=g.index?.array.byteLength??0;triangles+=(g.index?.count??g.getAttribute('position').count)/3;}return{residentChunks:this.chunks.size,geometryBytes,triangles,bucketScans:this.bucketScans,lastBuiltChunks:this.lastBuiltChunks,provider:this.residency?.stats??null};}
  dispose(){this.residency?.dispose();for(const id of this.chunks.keys())this.remove(id);this.buckets.clear();this.emptyChunks.clear();this.cachedRevision=-1;this.material.dispose();}
 }
-/** Reconstruct the fluid free-surface distance band from conserved 0.125m volume cells. */
-export function waterGeometry(w:VoxelWater){
- const f=new VoxelField(w.size),s=w.size,heights=new Float32Array(w.nx*w.nz);heights.fill(-Infinity);
+/** Exact input to the displayed fluid SDF, including its original Float32 rounding. */
+export function waterSurfaceHeights(w:VoxelWater,heights=new Float32Array(w.nx*w.nz)){
+ const s=w.size;heights.fill(-Infinity);
  for(let z=0;z<w.nz;z++)for(let x=0;x<w.nx;x++)for(let y=w.ny-1;y>=0;y--){const i=w.index(x,y,z);if(!w.blocked[i]&&w.volume[i]>.03){heights[x+w.nx*z]=w.origin.y+(y+w.volume[i])*s;break;}}
+ return heights;
+}
+/** Reconstruct the fluid free-surface distance band from conserved 0.125m volume cells. */
+export function waterGeometry(w:VoxelWater,heights=waterSurfaceHeights(w)){
+ const f=new VoxelField(w.size),s=w.size;
  // The free surface uses a signed distance to the height and domain boundaries; empty columns stay empty.
  for(let z=-1;z<=w.nz;z++)for(let x=-1;x<=w.nx;x++){const xx=Math.max(0,Math.min(w.nx-1,x)),zz=Math.max(0,Math.min(w.nz-1,z)),h=heights[xx+w.nx*zz];if(!Number.isFinite(h))continue;
   for(let y=-1;y<=Math.ceil((h-w.origin.y)/s)+1;y++){const px=w.origin.x+(x+.5)*s,py=w.origin.y+(y+.5)*s,pz=w.origin.z+(z+.5)*s,d=Math.max(py-h,w.origin.y-py,w.origin.x-px,px-(w.origin.x+w.nx*s),w.origin.z-pz,pz-(w.origin.z+w.nz*s),-w.solids.distance({x:px,y:py,z:pz}));

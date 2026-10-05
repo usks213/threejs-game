@@ -29,3 +29,23 @@ describe('timer-driven guest heartbeat still obeys freshness and pause boundarie
  it('retains the exact three-second frame freshness limit and never sends stale held input',()=>{const {sim,session,access}=setup(),date=vi.spyOn(Date,'now');date.mockReturnValue(10000);const client={online:true,sendInput:vi.fn(()=>true)};Object.assign(access,{roleValue:'guest',ready:true,lastFrameAt:10000,client});const held={x:1,z:0,sprint:true,block:true,water:false};date.mockReturnValue(12999);session.tick(.1,held,true);expect(session.online).toBe(true);expect(client.sendInput).toHaveBeenCalledOnce();expect(session.diagnostics()).toMatchObject({sentInputs:1,frameAgeMs:2999});date.mockReturnValue(13000);session.tick(.1,held,true);expect(session.online).toBe(false);expect(client.sendInput).toHaveBeenCalledOnce();expect(sim.player.position.x).toBe(0);date.mockRestore();});
  it('sends neutral input when paused/hidden instead of queuing held movement',()=>{const {session,access}=setup(),date=vi.spyOn(Date,'now').mockReturnValue(10000),client={online:true,sendInput:vi.fn(()=>true)};Object.assign(access,{roleValue:'guest',ready:true,lastFrameAt:10000,client});session.tick(.1,{x:1,z:1,sprint:true,block:true,water:false},false);expect(client.sendInput).toHaveBeenCalledWith(expect.objectContaining({x:0,z:0,block:false,sprint:false}));date.mockRestore();});
 });
+
+describe('guest action rejection is a pre-send boundary, never a queue',()=>{
+ it.each(['stale','syncing','offline'])('does not send or replay a build action rejected while %s',reason=>{
+  const {sim,hooks,session,access}=setup(),date=vi.spyOn(Date,'now').mockReturnValue(13000),client={online:reason!=='offline',guestRequest:vi.fn(()=> 'request'),sendInput:vi.fn(()=>true)};
+  try{
+   Object.assign(access,{roleValue:'guest',guestBuild:true,ready:reason!=='syncing',lastFrameAt:reason==='stale'?10000:13000,client});
+   expect(session.action('build')).toBe(true);expect(hooks.notice).toHaveBeenLastCalledWith('同期が完了するまで操作を待っています');expect(client.guestRequest).not.toHaveBeenCalled();expect(sim.buildMode).toBe(false);
+   Object.assign(access,{ready:true,lastFrameAt:13000});client.online=true;
+   session.tick(.1,{x:0,z:0,sprint:false,block:false,water:false},true);
+   expect(session.online).toBe(true);expect(client.guestRequest).not.toHaveBeenCalled();expect(sim.buildMode).toBe(false);
+   // Only a new, explicit action after fresh state can send; the guest still
+   // does not mutate locally and waits for the host's authoritative response.
+   session.action('build');expect(client.guestRequest).toHaveBeenCalledExactlyOnceWith({action:'build',payload:{kind:'action',action:'build'}});expect(sim.buildMode).toBe(false);
+  }finally{date.mockRestore();}
+ });
+ it('still requires permission after freshness recovers',()=>{
+  const {hooks,session,access}=setup(),date=vi.spyOn(Date,'now').mockReturnValue(13000),client={online:true,guestRequest:vi.fn()};
+  try{Object.assign(access,{roleValue:'guest',guestBuild:false,ready:true,lastFrameAt:13000,client});session.action('build');expect(hooks.notice).toHaveBeenLastCalledWith('この操作は周辺世界を変えるため、ホストの許可が必要です');expect(client.guestRequest).not.toHaveBeenCalled();}finally{date.mockRestore();}
+ });
+});

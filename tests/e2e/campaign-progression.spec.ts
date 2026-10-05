@@ -17,8 +17,9 @@ test('campaign first chapter through normal keyboard or touch play: rescue, gear
    await controls.walkTo(2.5,5.3);await controls.walkTo(-3.5,5.3);await controls.interact('hearth',{x:-3,y:.9,z:4});await expect.poll(async()=>(await read(page)).campaign.flameTier).toBe(1);await checkpoint('01-hearth-materials');
   });
   await test.step('Enter the crypt and physically rescue the artisan',async()=>{
-   await controls.action('#tool-switch','Digit1');await controls.walkTo(0,5.3);await controls.walkTo(0,3.2);await controls.interact('door',{x:0,y:1.4,z:1});
-   // Lure from outside at z3.2: entering z0 also aggroes the 10m-range warden.
+   await controls.action('#tool-switch','Digit1');await controls.walkTo(0,5.3);await controls.walkTo(0,3.2);await controls.interact('door',{x:0,y:1.4,z:1});await controls.walkTo(0,1.6);
+   // Lure from the doorway at z1.6: entering z0 also aggroes the 10m-range warden.
+   // Do not wait far outside for a full chase on a slow-rendering device.
    // Clear the entrance guard before turning away toward the artisan. The trace
    // showed an unguarded rescue approach taking fatal hits during the turn.
    if((await read(page)).enemies[0].hp>0)await controls.fight(0);await controls.healFromInventory();

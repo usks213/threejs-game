@@ -1,5 +1,18 @@
 # Survival wave browser acceptance
 
+## Published 1cf73b73: terminal CI
+
+Run: https://github.com/usks213/threejs-game/actions/runs/37309390739
+
+Exact preview SHA `1cf73b73d2687c4599f021619f95d0c4cc0c8ef2` and relay protocol 4 were verified at 2026-10-05 12:34:52 UTC (deploy job 111764289460, release artifact 11345353641). GitHub passed 998 tests in 120 files, typecheck and build. All 33 jobs finished: 22 succeeded, 10 failed, one production-only job was skipped. Browser-only totals: 20 succeeded, 10 failed.
+
+New positive evidence includes the complete Android first chapter (normal gathering, rescue, equipment, grapple/glide, warden and ridge), Android vault, desktop input/codex/settings/UI, and desktop finite soil plus western resident cases. Android chapter evidence: artifact 11346219704. Save/file transfer and invitation/west migration passed on both browser projects. Physical devices remain unverified.
+
+Remaining failures are desktop streamed/short campaign/first chapter/equipment/vault/watermill, Android baseline multitouch/soil/watermill, and cooperation. Trace findings: a multitouch test struck and broke the door before trying to open it; movement drivers accepted a signed waypoint crossing even after overshoot; delayed coarse look key release left a large correction at the fine rate; the unprepared watermill route died against the warden; the cooperative build key received a synchronous pre-send synchronization refusal. Local driver corrections retain actual input, survival/resource/precision assertions, no-queue semantics and original time limits. They are not public browser passes. The desktop first chapter also spent only about five simulation seconds in a 90-second guard wait; a closer safe engagement point now has a Core regression keeping the warden unaware.
+
+## Previous published f05ccbe
+
+
 Published checkpoint: `f05ccbe7337d0df2fb51f0d3d1b0bf6835c64523`.
 GitHub Actions run: https://github.com/usks213/threejs-game/actions/runs/37303399135
 Preview release artifact verified the exact commit and relay protocol 3. Unit/integration verification passed 939 tests; typecheck and production build passed.

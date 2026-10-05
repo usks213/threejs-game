@@ -164,7 +164,7 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | S02 | 再開 | 実装あり・Core検証済 | campaign-session.ts; checkpoint.ts; campaign-file-transfer.ts; tests/unit/campaign-file-transfer.test.ts | 全構成要素を隔離検証して復元。ファイル選択と確定を分離し、検証済み不変バイトの証明を再利用。未知形式/破損/改ざん/容量不足では原本保持。旧形式の同期検証は数秒止まり得る |
 | S03 | バージョン移行 | 部分実装・ブラウザ受入待ち | src/save/campaign-migration.ts; western-campaign-migration.ts; campaign-store-selection.ts; tests/unit/*campaign*save*.test.ts | 明示opt-inのv2→v3→v4、原本/専用アーカイブ保持・未来版拒否・22俳優/地形台帳の原子検証。変更済み地形と新内容が衝突する場合は移行拒否。実ブラウザでの受入は次の対象SHAで確認待ち |
 | S04 | バックアップ | 実装あり・ブラウザ受入待ち | src/save/checkpoint.ts; tests/unit/checkpoint-archives.test.ts; tests/e2e/campaign-save-history.spec.ts | 自動保存と別の不変履歴、復元前退避、日時/容量/保存先表示、確認/取消。破損/容量/衝突時は停止、32履歴を自動削除しない。重点86試験通過、実メニュー受入未実行 |
-| S05 | 保存容量 | 部分実装・ブラウザ受入待ち | src/save/checkpoint.ts; campaign-store-selection.ts; tests/unit/checkpoint-archives.test.ts | 書込失敗/破損時に元データ保持、履歴容量表示と32件上限。検証済みJSONの端末書出し/確認付き取込を追加。自動削除は行わず、32履歴上限の手動整理は未実装 |
+| S05 | 保存容量 | 実装あり・ブラウザ受入待ち | src/save/checkpoint.ts; src/prototype/archive-cleanup-view.ts; tests/unit/checkpoint-cleanup.test.ts; tests/e2e/campaign-save-history-cleanup.spec.ts; docs/save-history-cleanup-acceptance.md | 32件/容量表示、選択履歴のJSON書出し→端末確認→明示的完全削除。現行/復旧/最新履歴と移行原本を保護。中断・書込失敗は復旧記録で保持し自動削除しない。完全な容量枯渇で復旧記録を書けない場合は安全停止。ブラウザ実行は未検証 |
 | S06 | 世界リセット | 実装あり・ブラウザ受入待ち | src/save/checkpoint.ts; src/save/campaign-startup.ts; app.ts; tests/unit/checkpoint-archives.test.ts; campaign-startup.test.ts | 新規前に検証済みの現行/回復保存を不変保管。招待プレビューは永続保存へ一切アクセスせずゲストの新規/復元を禁止。型・重点試験通過、PC/Android実行は次の対象SHAで確認待ち |
 | M01 | ネットワーク範囲 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
 | M02 | 接続 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
@@ -173,7 +173,7 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | M05 | 権限 | 部分実装 | src/prototype/network/{protocol,relay-room,coop-client,game-session,game-frame}.ts; core/companion.ts; tests/unit/{campaign-network,companion,game-session-authority}.test.ts | 実体2人・同一移動/戦闘・共有持物/進行・差分同期・切断停止を統合。専用常時サーバー/個人キャラ分離は未実装。公開2ブラウザ受入待ち |
 | M06 | 会話/安全 | 部分実装 | prototype/network/coop-client.ts; tests/unit/campaign-network.test.ts | 文字チャット/ミュートのUIを接続。公開2ブラウザ検査待ち。音声なし |
 | M07 | 共有 | 未実装 | network/game-session.ts | 招待による一時的な協力のみ。保存世界の常時公開/所有権移転/公開取消は別設計が必要で、公開用データ送信機能は実装していない |
-| Q01 | 新規プレイ | 部分検証 | tests/unit/campaign-normal-play.test.ts; tests/e2e/campaign-progression.spec.ts | 元の開始状態から通常Core操作だけで採集→炉→救出→装備→ボス→鉤縄/滑空→炉2→尾根→保存再開PASS、HP/素材/座標付与なし。これは描画/キータッチの証明ではない。実ブラウザ全章受入は未完 |
+| Q01 | 新規プレイ | Android第一章検証済・全体は部分検証 | tests/unit/campaign-normal-play.test.ts; tests/e2e/campaign-progression.spec.ts; docs/survival-wave-browser-status.md | 公開1cf73b73でAndroid相当の実タッチ採集→炉→救出→装備→鉤縄/滑空→番人→尾根→保存再開PASS（CI37309390739、artifact11346219704）。PC経路は未合格、全7地域の実ブラウザ完走は未完。素材/HP/座標付与なし。 |
 | Q02 | 進行網 | Core通し検証済・ブラウザ未 | tests/unit/campaign-regional-play.test.ts; helpers/normal-campaign-player.ts | 元の開始状態から7地域の印、9討伐報酬、有限補給/修理/強化、湖の泳ぎ帰還、保存一致がPASS。座標/HP/素材の付与なし。既知の地形に対する自動操作者のCore整合性証明で、人間の操作難度/PC・タッチ試験は別 |
 | Q03 | 3系統 | Core通し検証済・ブラウザ未 | tests/unit/campaign-combat-builds-normal.test.ts; campaign-normal-play.test.ts | 初期空所持から近接/旅弓/灯木の杖を生産操作で制作・装備、入口番兵→職人→中核番人撃破。弓は有限矢の物理命中、杖は濡れ/雷の間隔と回復予算を使用。PC/タッチによる3系統受入は未実施 |
 | Q04 | 失敗系 | 部分検証 | tests/unit/save.test.ts; campaign.test.ts; homestead.test.ts; building-tools.test.ts; campaign-runtime.test.ts | 単体/統合の失敗・原子性・保存検査あり。ブラウザで同等操作を検証待ち |
@@ -182,11 +182,13 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | Q07 | 最終到達 | Core通し検証済・ブラウザ未 | tests/unit/campaign-regional-play.test.ts; western-normal-play.test.ts | 七つの灯の最終守護者と報酬、追加西方の坑道/開閉機/2本道/帰還路を通常Core操作で到達。公開ブラウザの最終到達・見た目・操作性は未検証 |
 | Q08 | 長時間 | Core10分検証済・ブラウザ未 | tests/unit/campaign-soak.test.ts; docs/performance-soak.md | 生産経路で初章後に探索/制作取消/収納/元素56回を継続、600秒=18,000 tick、28周、5保存復元、死亡0。イベント/粒子/素材と64ブロック3MiBキャッシュ上限を検査。実時間/ブラウザ/GPU/実機の長時間受入は未完 |
 | Q09 | 性能 | 部分検証 | tests/unit/world-streaming.test.ts; world-bootstrap.test.ts; bootstrap-performance.test.ts | CPU初期生成/near-first測定あり。実機FPS・長時間歩行の公開計測は未完 |
-| Q10 | 技術 | 部分検証 | tests/unit/*.test.ts; package.json | 担当者の局所type/unit/build成功記録あり。全統合後の最終SHA CI/E2Eは未完 |
-| Q11 | ブラウザー | Not implemented / unverified | — | Audit and implement |
-| Q12 | 公開確認 | 部分検証 | 3eb279af deployment job111693190536; preview-release artifact11335461632 | 公開SHA/ヘルス一致確認済み。全チェックリスト受入後の最終版確認は未完 |
-| Q13 | 見た目比較 | Not implemented / unverified | — | Audit and implement |
+| Q10 | 技術 | 公開SHAの型/全単体統合は成功・E2E未完 | CI37309390739; docs/survival-wave-browser-status.md | 公開1cf73b73でGitHub998/998件・120ファイル、型とbuild成功。ブラウザ20ジョブ成功/10失敗。未公開の履歴整理と経路/描画修正は別候補として再検証する。 |
+| Q11 | ブラウザー | 部分検証 | tests/e2e/*.spec.ts; docs/survival-wave-browser-status.md | 実PC/Android相当Chromiumで画面・操作・例外を確認。公開1cfで入力/図鑑/UI/保存/移行、Android第一章/封庫、PC盛土/住人など成功。10ジョブ失敗が残り、iPhone/Android実機と全ネットワーク/長時間受入は未完。 |
+| Q12 | 公開確認 | 配信照合済・全受入未完 | 1cf73b73 deploy job111764289460; preview-release artifact11345353641 | 2026-10-05 12:34:52 UTC、公開SHAとprotocol4ヘルス一致を確認。全チェックリストと全ブラウザ受入後の最終版確認は未完。 |
+| Q13 | 見た目比較 | 未検証 | docs/survival-wave-browser-status.md | 第一章完了/住人会話などの実画面は取得・確認済み。同一開始点/森林/拠点/戦闘/ボスを揃えた改善前後比較は未実施。 |
 | Q14 | 残課題 | 追跡中 | docs/implementation-checklist.md | 全171IDを保持し未実装/簡易/未検証を明示。最終公開結果に合わせ更新 |
+
+Save-history cleanup checkpoint (2026-10-05): S05 now has explicit selected-snapshot export, device-file acknowledgement and permanent deletion, protected active/backup/newest/migration originals, and bounded interruption recovery. All 1,033 local tests across 122 files, strict typecheck and build pass; 4 PC/Android cleanup/invitation cases are discovered only. Actual browser acceptance for this change remains pending. [Scope and evidence](save-history-cleanup-acceptance.md).
 
 Equipment/tool checkpoint details and explicit limitations: [equipment tools acceptance](equipment-tools-acceptance.md).
 

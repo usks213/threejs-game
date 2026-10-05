@@ -70,6 +70,10 @@ export class PlayerControls {
     // of simulation time on a medium .5-rad turn. A coarse stop near .1 rad
     // leaves room for one frame of overshoot before the precision correction.
     const sign=Math.sign(remaining),fine=precise||Math.abs(remaining)<.16,key=axis==='yaw'?(sign>0?'Home':'End'):(sign>0?'PageUp':'PageDown');
+    // A delayed key-up can overshoot by far more than the fine window. Use
+    // bounded real coarse taps for that correction; do not hold 0.04x fine
+    // input through a large turn on a blocked software-rendering event loop.
+    if(precise&&Math.abs(remaining)>.3){await this.page.keyboard.press(key,{delay:50});continue;}
     try{if(fine)await this.page.keyboard.down('ShiftLeft');await this.page.keyboard.down(key);await expect.poll(async()=>sign*await error(axis),{timeout:90000,intervals:[50,100]}).toBeLessThan(fine?.012:.1);}
     finally{await this.page.keyboard.up(key);if(fine)await this.page.keyboard.up('ShiftLeft');}
     // A delayed key-up may overshoot the fine window. Once the coarse pass
@@ -80,6 +84,17 @@ export class PlayerControls {
   }
  }
  async walkTo(x:number,z:number){
+  // A signed projection detects crossing the waypoint, not actually arriving.
+  // Genuine release latency/inertia can carry us beyond it, especially on CI.
+  // Re-aim from the settled position and correct with normal input before the
+  // next route segment; never treat a wall-adjacent overshoot as arrival.
+  for(let attempt=0;attempt<5;attempt++){
+   const p=await motion(this.page);if(Math.hypot(x-p.position.x,z-p.position.z)<.18)return;
+   await this.walkSegment(x,z);
+  }
+  const p=await motion(this.page);expect(Math.hypot(x-p.position.x,z-p.position.z),'Normal movement must settle at the requested waypoint').toBeLessThan(.18);
+ }
+ private async walkSegment(x:number,z:number){
   const before=await motion(this.page);if(Math.hypot(x-before.position.x,z-before.position.z)<.18)return;
   await this.aim({x,y:before.position.y+1.52,z});
   // Momentum may carry the player while aiming. Measure the walking segment
@@ -88,9 +103,9 @@ export class PlayerControls {
   let movementFailed=false;try{
    if(this.mobile){const box=await this.page.locator('#move-pad').boundingBox();expect(box).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:box!.x+box!.width/2,y:box!.y+10}]});this.liveTouch=true;}
    else await this.page.keyboard.down('KeyW');
-   await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(.18);
+   await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(Math.min(.4,length*.5));
   }catch(error){movementFailed=true;throw error;}finally{try{if(this.mobile)await this.endTouch();else await this.page.keyboard.up('KeyW');}catch(error){if(!movementFailed)throw error;}}
-  const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[50,100]}).toBeGreaterThan(seconds+.15);
+  const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[50,100]}).toBeGreaterThan(seconds+.3);
  }
  async gather(material:number,minimum:number,points:Point[],object:string){
   for(let i=0;i<20&&(await read(this.page)).inventory[material]<minimum;i++){
@@ -157,7 +172,7 @@ export class PlayerControls {
     await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return ['recover','stagger','dead'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
    }finally{await this.shield(false);}
    if((await motion(this.page)).enemies[index].hp<=0)break;
-   await this.action('[data-action="attack"]','KeyT');await expect.poll(async()=>(await motion(this.page)).phase,{intervals:[50,100]}).not.toBe('idle');await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Counter-attack recovery must preserve life').toBeGreaterThan(0);return state.phase;},{timeout:60000,intervals:[100]}).toBe('idle');
+   const attack=await observeAttack(this.page);try{await this.action('[data-action="attack"]','KeyT');await expect.poll(()=>attack.read()).not.toBeNull();}finally{await attack.dispose();}await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Counter-attack recovery must preserve life').toBeGreaterThan(0);return state.phase;},{timeout:60000,intervals:[100]}).toBe('idle');
   }
   expect((await read(this.page)).enemies[index].hp,`Enemy ${index} must be defeated through guarded, aimed attacks`).toBeLessThanOrEqual(0);
  }

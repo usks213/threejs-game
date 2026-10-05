@@ -35,9 +35,11 @@ test('landscape first-person input, aimed door, attack and HDR render',async({pa
  }else{
   const session=await page.context().newCDPSession(page),r=(await page.locator('#move-pad').boundingBox())!,attack=(await page.locator('[data-action=attack]').boundingBox())!,cx=r.x+r.width/2,cy=r.y+r.height/2;
   const finger={x:cx,y:cy-30,id:1};await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.6);
+  // A sword can genuinely break this destructible door. Verify its opening
+  // while intact, then exercise the simultaneous move/look/attack gesture.
+  await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect(page.locator('#game')).toHaveAttribute('data-target','door');await page.locator('[data-action=interact]').tap();await expect.poll(async()=>(await probe(page)).door).toBe(true);await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});
   const yaw=(await probe(page)).yaw,look={x:560,y:160,id:2};await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger,look]});await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[finger,{...look,x:570}]});await expect.poll(async()=>(await probe(page)).yaw).not.toBe(yaw);
-  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger,{...look,x:570},{x:attack.x+attack.width/2,y:attack.y+attack.height/2,id:3}]});await expect.poll(async()=>(await probe(page)).phase).not.toBe('idle');await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await expect(page.locator('#game')).toHaveAttribute('data-target','door');await page.locator('[data-action=interact]').tap();await expect.poll(async()=>(await probe(page)).door).toBe(true);
+  const observedAttack=await observeAttack(page);try{await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger,{...look,x:570},{x:attack.x+attack.width/2,y:attack.y+attack.height/2,id:3}]});await expect.poll(()=>observedAttack.read()).not.toBeNull();}finally{await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await observedAttack.dispose();}
   // Blur releases all held pointers; resuming must not keep the stick moving.
   await page.locator('#menu-toggle').tap();const stopped=(await probe(page)).position.z;await expect(page.locator('#menu')).toBeVisible();await page.locator('#start').tap();await expect.poll(async()=>(await probe(page)).seconds).toBeGreaterThan(.5);expect((await probe(page)).position.z).toBeCloseTo(stopped,1);
  }

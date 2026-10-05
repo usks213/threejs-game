@@ -11,8 +11,12 @@ export type CheckpointFileExport={ok:true;raw:string;filename:string;sizeBytes:n
 export interface CheckpointArchiveMetadata {
  id:string;scope:string;savedAt:number;archivedAt:number;sizeBytes:number;reason:'new-game'|'restore'|'import';
 }
-export type CheckpointArchives={ok:true;entries:CheckpointArchiveMetadata[]}|{ok:false;error:string};
+export type CheckpointArchives={ok:true;entries:CheckpointArchiveMetadata[];cleanupProtection?:Record<string,string>;cleanupPending?:string}|{ok:false;error:string};
 export type CheckpointArchiveMetadataRead={ok:true;entry:CheckpointArchiveMetadata}|{ok:false;error:string};
+export interface PreparedArchiveCleanup {readonly id:string;readonly savedAt:number;readonly sizeBytes:number}
+export type ArchiveCleanupPreparation={ok:true;prepared:PreparedArchiveCleanup;entry:CheckpointArchiveMetadata;raw:string;filename:string}|{ok:false;error:string};
+interface CleanupProof {history:Extract<ArchiveHistory,{ok:true}>;archive:ValidArchive;primary:string|null;backup:string|null}
+interface CleanupJournal {id:string;before:string;after:string;archive:ValidArchive;raw:string}
 interface Envelope {format:'voxel-campaign';version:1;savedAt:number;payload:string;checksum:string}
 interface ArchiveEntry extends CheckpointArchiveMetadata {checksum:string}
 interface ArchiveIndex {format:'voxel-campaign-archives';version:1;scope:string;payload:string;checksum:string}
@@ -32,8 +36,9 @@ const metadata=({checksum:_,...entry}:ArchiveEntry):CheckpointArchiveMetadata=>(
 /** v1 is the first persisted format. Unknown versions are never silently downgraded.
  * A checksum detects accidental corruption; it is deliberately not anti-cheat/security. */
 export class CheckpointStore<T> {
- readonly backupKey:string;readonly corruptKey:string;readonly archiveIndexKey:string;readonly archivePrefix:string;
- constructor(private readonly storage:SaveStorage,readonly key:string,private readonly validate:(value:unknown)=>value is T){this.backupKey=key+':backup';this.corruptKey=key+':corrupt';this.archiveIndexKey=key+':archives';this.archivePrefix=key+':archive:';}
+ readonly backupKey:string;readonly corruptKey:string;readonly archiveIndexKey:string;readonly archivePrefix:string;readonly cleanupKey:string;
+ private readonly cleanupProofs=new WeakMap<PreparedArchiveCleanup,CleanupProof>();
+ constructor(private readonly storage:SaveStorage,readonly key:string,private readonly validate:(value:unknown)=>value is T){this.backupKey=key+':backup';this.corruptKey=key+':corrupt';this.archiveIndexKey=key+':archives';this.archivePrefix=key+':archive:';this.cleanupKey=key+':archive-cleanup';}
  private decode(raw:string):CheckpointRead<T>{
   if(raw.length>MAX_SAVE_LENGTH)return {status:'invalid',error:'保存データが大きすぎます'};
   try{const e:unknown=JSON.parse(raw);if(!record(e)||e.format!=='voxel-campaign'||!integer(e.version,1))return {status:'invalid',error:'保存形式が不正です'};
@@ -57,9 +62,9 @@ export class CheckpointStore<T> {
  /** Explicit recovery retains the corrupt original for diagnosis rather than erasing it. */
  recoverBackup():CheckpointWrite {try{const backup=this.storage.getItem(this.backupKey);if(backup===null||this.decode(backup).status!=='loaded')return {ok:false,error:'有効なバックアップがありません'};const current=this.storage.getItem(this.key);if(current!==null){if(this.decode(current).status==='unsupported')return {ok:false,error:'新しい版の保存データは上書きできません'};this.storage.setItem(this.corruptKey,current);if(this.storage.getItem(this.corruptKey)!==current)return {ok:false,error:'元データを保護できません'};}this.storage.setItem(this.key,backup);return this.storage.getItem(this.key)===backup?{ok:true}:{ok:false,error:'復元結果を確認できません'};}catch{return {ok:false,error:'バックアップを復元できません'};}}
  /** Reads only this store's validated index and listed records, never unrelated storage. */
- private history():ArchiveHistory {
+ private history(indexOverride?:string,allowMissingId?:string):ArchiveHistory {
   try{
-   const indexRaw=this.storage.getItem(this.archiveIndexKey);if(indexRaw===null)return {ok:true,entries:[],indexRaw};
+   const indexRaw=indexOverride??this.storage.getItem(this.archiveIndexKey);if(indexRaw===null)return {ok:true,entries:[],indexRaw};
    if(indexRaw.length>MAX_INDEX_LENGTH)return {ok:false,error:'旅の履歴一覧が大きすぎます。元の保存は変更していません'};
    const index:unknown=JSON.parse(indexRaw);
    if(!record(index)||index.format!=='voxel-campaign-archives'||index.version!==1||index.scope!==this.key||typeof index.payload!=='string'||typeof index.checksum!=='string'||checksum(index.payload)!==index.checksum)return {ok:false,error:'旅の履歴一覧を検証できません。元の保存は変更していません'};
@@ -68,14 +73,85 @@ export class CheckpointStore<T> {
    for(const value of parsed){
     if(!record(value)||!text(value.id,40)||!/^([0-9a-z]+)-[0-9a-f]{8}$/.test(value.id)||ids.has(value.id)||value.scope!==this.key||!integer(value.savedAt)||!integer(value.archivedAt)||!integer(value.sizeBytes,1,MAX_SAVE_LENGTH*3)||typeof value.checksum!=='string'||!/^[0-9a-f]{8}$/.test(value.checksum)||(value.reason!=='new-game'&&value.reason!=='restore'&&value.reason!=='import'))return {ok:false,error:'旅の履歴情報が不正です。元の保存は変更していません'};
     const entry=value as unknown as ArchiveEntry,raw=this.storage.getItem(this.archivePrefix+entry.id);
-    if(raw===null||raw.length>MAX_SAVE_LENGTH||entry.id!==`${entry.savedAt.toString(36)}-${entry.checksum}`||checksum(raw)!==entry.checksum||archiveSize(raw)!==entry.sizeBytes)return {ok:false,error:'旅の履歴データが欠けているか破損しています。元の保存は変更していません'};
+    if(entry.id!==`${entry.savedAt.toString(36)}-${entry.checksum}`)return {ok:false,error:'旅の履歴IDを検証できません。元の保存は変更していません'};
+    if(raw===null&&entry.id===allowMissingId){ids.add(entry.id);entries.push({entry,raw:''});continue;}
+    if(raw===null||raw.length>MAX_SAVE_LENGTH||checksum(raw)!==entry.checksum||archiveSize(raw)!==entry.sizeBytes)return {ok:false,error:'旅の履歴データが欠けているか破損しています。元の保存は変更していません'};
     const saved=this.decode(raw);if(saved.status!=='loaded'||saved.savedAt!==entry.savedAt)return {ok:false,error:'旅の履歴の保存内容を検証できません。元の保存は変更していません'};
     ids.add(entry.id);entries.push({entry,raw});
    }
    return {ok:true,entries,indexRaw};
   }catch{return {ok:false,error:'旅の履歴を読み取れません。ブラウザの保存設定を確認してください'};}
  }
- listArchives():CheckpointArchives {const history=this.history();return history.ok?{ok:true,entries:history.entries.map(({entry})=>metadata(entry)).sort((a,b)=>b.archivedAt-a.archivedAt)}:history;}
+ listArchives():CheckpointArchives {
+  try{const history=this.history();if(!history.ok)return history;const primary=this.storage.getItem(this.key),backup=this.storage.getItem(this.backupKey),pending=this.cleanupJournal();if(!pending.ok)return pending;
+   return {ok:true,entries:history.entries.map(archive=>metadata(archive.entry)).sort((a,b)=>b.archivedAt-a.archivedAt),cleanupProtection:this.cleanupProtections(history,primary,backup),...(pending.journal?{cleanupPending:'中断した履歴整理があります。確認・復旧するまで別の整理・新規開始・履歴復元はできません。'}:{})};
+  }catch{return {ok:false,error:'旅の履歴を読み取れません。元の保存は変更していません'};}
+ }
+ /** Cleanup protects active/rotating originals and the newest saved snapshot. Migration
+  * originals live outside archivePrefix and are never enumerated or changed here. */
+ private cleanupProtections(history:Extract<ArchiveHistory,{ok:true}>,primary:string|null,backup:string|null):Record<string,string> {
+  const newest=history.entries.reduce<ValidArchive|undefined>((latest,value)=>!latest||value.entry.savedAt>=latest.entry.savedAt?value:latest,undefined);
+  // Validate the possibly large primary once, not once per history row.
+  const invalidPrimary=primary!==null&&this.decode(primary).status!=='loaded';
+  return Object.fromEntries(history.entries.flatMap(archive=>{
+   const reason=archive.raw===primary?'現在の保存を保護':archive.raw===backup?'復旧用バックアップを保護':archive.entry.id===newest?.entry.id?'最新の履歴を保護':invalidPrimary?'元の保存の復旧が必要':undefined;
+   return reason?[[archive.entry.id,reason]]:[];
+  }));
+ }
+ private archiveIndex(entries:ArchiveEntry[]):string {const payload=JSON.stringify(entries);return JSON.stringify({format:'voxel-campaign-archives',version:1,scope:this.key,payload,checksum:checksum(payload)} satisfies ArchiveIndex);}
+ /** A bounded metadata-only journal retains the exact previous index, never another
+  * full save. Reading it never deletes anything, including after a browser interruption. */
+ private cleanupJournal():{ok:true;journal:CleanupJournal|null}|{ok:false;error:string} {
+  try{const raw=this.storage.getItem(this.cleanupKey);if(raw===null)return {ok:true,journal:null};if(raw.length>131072)throw Error('size');const envelope:unknown=JSON.parse(raw);
+   if(!record(envelope)||envelope.format!=='voxel-campaign-cleanup'||envelope.version!==1||envelope.scope!==this.key||typeof envelope.payload!=='string'||checksum(envelope.payload)!==envelope.checksum)throw Error('envelope');
+   const value:unknown=JSON.parse(envelope.payload);if(!record(value)||typeof value.id!=='string'||typeof value.before!=='string')throw Error('payload');
+   const before=this.history(value.before,value.id);if(!before.ok)throw Error('history');const archive=before.entries.find(item=>item.entry.id===value.id);if(!archive)throw Error('id');
+   const after=this.archiveIndex(before.entries.filter(item=>item.entry.id!==value.id).map(item=>item.entry)),index=this.storage.getItem(this.archiveIndexKey);
+   if(index!==value.before&&index!==after||index===value.before&&!archive.raw)throw Error('conflict');
+   return {ok:true,journal:{id:value.id,before:value.before,after,archive,raw}};
+  }catch{return {ok:false,error:'中断した履歴整理を検証できません。原本を保持しています。保存領域を手動で消さないでください'};}
+ }
+ private cleanupIdle():CheckpointWrite {try{return this.storage.getItem(this.cleanupKey)===null?{ok:true}:{ok:false,error:'中断した履歴整理を先に確認・復旧してください。元の保存は変更していません'};}catch{return {ok:false,error:'保存領域にアクセスできません'};}}
+ prepareArchiveCleanup(id:string):ArchiveCleanupPreparation {
+  try{const idle=this.cleanupIdle();if(!idle.ok)return idle;const history=this.history();if(!history.ok)return history;const archive=history.entries.find(value=>value.entry.id===id);if(!archive)return {ok:false,error:'選んだ旅の履歴が見つかりません'};
+   const primary=this.storage.getItem(this.key),backup=this.storage.getItem(this.backupKey),protectedReason=this.cleanupProtections(history,primary,backup)[id];if(protectedReason)return {ok:false,error:protectedReason+'。この履歴は整理できません'};
+   const exported=this.exportFile(id);if(!exported.ok)return exported;const prepared=Object.freeze({id,savedAt:archive.entry.savedAt,sizeBytes:archive.entry.sizeBytes});this.cleanupProofs.set(prepared,{history,archive,primary,backup});return {ok:true,prepared,entry:metadata(archive.entry),raw:archive.raw,filename:exported.filename};
+  }catch{return {ok:false,error:'履歴整理の準備を確認できません。保存は変更していません'};}
+ }
+ cancelArchiveCleanup(prepared:PreparedArchiveCleanup):void {this.cleanupProofs.delete(prepared);}
+ /** Caller must obtain explicit permanent-deletion confirmation for this exact exported
+  * snapshot. Proofs are store-bound, read-only until commit, single-use and stale-safe. */
+ commitArchiveCleanup(prepared:PreparedArchiveCleanup):CheckpointWrite {
+  const proof=this.cleanupProofs.get(prepared);this.cleanupProofs.delete(prepared);if(!proof)return {ok:false,error:'履歴整理を選び直して確認してください'};
+  const {history,archive,primary,backup}=proof,recordKey=this.archivePrefix+archive.entry.id;
+  const after=this.archiveIndex(history.entries.filter(value=>value.entry.id!==archive.entry.id).map(value=>value.entry));
+  const payload=JSON.stringify({id:archive.entry.id,before:history.indexRaw}),journal=JSON.stringify({format:'voxel-campaign-cleanup',version:1,scope:this.key,payload,checksum:checksum(payload)});
+  const unchanged=()=>this.storage.getItem(this.key)===primary&&this.storage.getItem(this.backupKey)===backup&&this.storage.getItem(this.archiveIndexKey)===history.indexRaw&&this.storage.getItem(recordKey)===archive.raw;
+  try{const idle=this.cleanupIdle();if(!idle.ok)return idle;if(!unchanged())return {ok:false,error:'確認中に保存・履歴が更新されました。書き出しからやり直してください'};
+   const current=this.history();if(!current.ok)return current;const protection=this.cleanupProtections(current,primary,backup)[archive.entry.id];if(protection)return {ok:false,error:protection};
+   if(journal.length>131072)throw Error('journal size');this.storage.setItem(this.cleanupKey,journal);if(this.storage.getItem(this.cleanupKey)!==journal)throw Error('journal write');
+   if(!unchanged())throw Error('concurrent save');this.storage.setItem(this.archiveIndexKey,after);if(this.storage.getItem(this.archiveIndexKey)!==after)throw Error('index write');
+   // Recheck originals immediately before the sole irreversible step.
+   if(this.storage.getItem(this.key)!==primary||this.storage.getItem(this.backupKey)!==backup||this.storage.getItem(this.archiveIndexKey)!==after||this.storage.getItem(recordKey)!==archive.raw||this.storage.getItem(this.cleanupKey)!==journal)throw Error('concurrent save');
+   this.storage.removeItem(recordKey);if(this.storage.getItem(recordKey)!==null)throw Error('record removal');
+   this.storage.removeItem(this.cleanupKey);if(this.storage.getItem(this.cleanupKey)!==null)throw Error('journal removal');return {ok:true};
+  }catch{
+   // Never overwrite a concurrent index or recreate an already deleted snapshot. If
+   // rollback itself fails, the persisted journal supports explicit recovery on reopen.
+   try{if(this.storage.getItem(recordKey)===archive.raw&&this.storage.getItem(this.cleanupKey)===journal){const index=this.storage.getItem(this.archiveIndexKey);if(index===after)this.storage.setItem(this.archiveIndexKey,history.indexRaw!);if(this.storage.getItem(this.archiveIndexKey)===history.indexRaw)this.storage.removeItem(this.cleanupKey);}}catch{/* Keep the journal and immutable record for recovery. */}
+   return {ok:false,error:'履歴整理を完了確認できません。現在の保存・移行用原本は保持しています。中断表示があれば確認・復旧してください'};
+  }
+ }
+ /** Explicit recovery only restores an interrupted index or clears a completed receipt.
+  * It never removes an archive record and never resumes permanent deletion on its own. */
+ recoverArchiveCleanup():CheckpointWrite {
+  try{const result=this.cleanupJournal();if(!result.ok)return result;if(!result.journal)return {ok:true};const journal=result.journal;
+   if(this.storage.getItem(this.cleanupKey)!==journal.raw)return {ok:false,error:'整理状態が更新されました。再確認してください'};
+   if(journal.archive.raw&&this.storage.getItem(this.archiveIndexKey)===journal.after){this.storage.setItem(this.archiveIndexKey,journal.before);if(this.storage.getItem(this.archiveIndexKey)!==journal.before)throw Error('rollback');}
+   const verified=this.history();if(!verified.ok)return verified;
+   this.storage.removeItem(this.cleanupKey);return this.storage.getItem(this.cleanupKey)===null?{ok:true}:{ok:false,error:'整理の復旧結果を確認できません'};
+  }catch{return {ok:false,error:'整理を復旧できません。現在の保存と復旧情報は保持しています。空き容量と保存設定を確認してください'};}
+ }
  readArchiveMetadata(id:string):CheckpointArchiveMetadataRead {const history=this.history();if(!history.ok)return history;const found=history.entries.find(value=>value.entry.id===id);return found?{ok:true,entry:metadata(found.entry)}:{ok:false,error:'選んだ旅の履歴が見つかりません'};}
  /** No writes, normalization, migration, executable markup or filename-derived paths. */
  inspectImport(raw:string):CheckpointImportInspection<T> {
@@ -110,7 +186,7 @@ export class CheckpointStore<T> {
   try{if(!preflight(candidate.data))return {ok:false,error:'保存ファイルの世界・地形・進行を検証できません。元の保存は変更していません'};}
   catch{return {ok:false,error:'保存ファイルの内容を検証できません。元の保存は変更していません'};}
   try{
-   const history=this.history();if(!history.ok)return history;
+   const idle=this.cleanupIdle();if(!idle.ok)return idle;const history=this.history();if(!history.ok)return history;
    const previous=this.storage.getItem(this.key),backup=this.storage.getItem(this.backupKey);
    if(previous!==null&&this.decode(previous).status!=='loaded')return {ok:false,error:'既存の保存が破損しているか別の版・世界です。原本を保護するため取り込みを中止しました。対応する版で復元してください'};
    if(previous===raw)return {ok:true};
@@ -141,7 +217,7 @@ export class CheckpointStore<T> {
    return this.storage.getItem(this.key)===raw&&this.decode(raw).status==='loaded'?{ok:true}:{ok:false,error:'取り込み結果を確認できません。元の旅は履歴に保管しています'};
   }catch{return {ok:false,error:'保存ファイルを取り込めません。空き容量と保存設定を確認してください。元の保存・履歴は削除していません'};}
  }
- /** Content-addressed records are never replaced or deleted. A checksum collision is an error. */
+ /** Content-addressed records are never replaced or automatically deleted. A checksum collision is an error. */
  private archive(raw:string,reason:ArchiveEntry['reason'],history:Extract<ArchiveHistory,{ok:true}>):CheckpointWrite {
   const saved=this.decode(raw);if(saved.status!=='loaded')return {ok:false,error:'有効な保存だけを旅の履歴へ保管できます'};
   const hash=checksum(raw),id=`${saved.savedAt.toString(36)}-${hash}`,existing=history.entries.find(value=>value.entry.id===id);
@@ -172,7 +248,7 @@ export class CheckpointStore<T> {
  }
  /** Caller obtains confirmation first. Immutable history survives all later autosaves. */
  reset():CheckpointWrite {
-  try{const history=this.history();if(!history.ok)return history;const previous=this.storage.getItem(this.key);
+  try{const idle=this.cleanupIdle();if(!idle.ok)return idle;const history=this.history();if(!history.ok)return history;const previous=this.storage.getItem(this.key);
    if(previous!==null){const preserved=this.preserveCurrent(previous,'new-game',history);if(!preserved.ok)return preserved;}
    if(this.storage.getItem(this.key)!==previous)return {ok:false,error:'別の画面で保存が更新されました。新規開始を中止しました'};
    this.storage.removeItem(this.key);return this.storage.getItem(this.key)===null?{ok:true}:{ok:false,error:'新規開始の準備ができません'};
@@ -180,7 +256,7 @@ export class CheckpointStore<T> {
  }
  /** Caller obtains confirmation first. The replaced world is archived before restoring. */
  restore(id:string):CheckpointWrite {
-  try{const history=this.history();if(!history.ok)return history;const archive=history.entries.find(value=>value.entry.id===id);if(!archive)return {ok:false,error:'選んだ旅の履歴が見つかりません'};
+  try{const idle=this.cleanupIdle();if(!idle.ok)return idle;const history=this.history();if(!history.ok)return history;const archive=history.entries.find(value=>value.entry.id===id);if(!archive)return {ok:false,error:'選んだ旅の履歴が見つかりません'};
    const previous=this.storage.getItem(this.key);if(previous===archive.raw)return {ok:true};
    if(previous!==null){if(this.decode(previous).status==='unsupported')return {ok:false,error:'新しい版の保存データは上書きできません'};const preserved=this.preserveCurrent(previous,'restore',history);if(!preserved.ok)return preserved;}
    if(this.storage.getItem(this.key)!==previous)return {ok:false,error:'別の画面で保存が更新されました。復元を中止しました'};

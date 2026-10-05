@@ -37,6 +37,9 @@ async function previewSaveControls(page:Page){
  await expect(page.locator('[data-archive-id]')).toHaveCount(0);
  await expect(page.getByRole('group',{name:'新しい旅の確認'})).toHaveCount(0);
  await expect(page.getByRole('group',{name:'旅の復元の確認'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'書き出して履歴整理を確認',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('group',{name:'履歴の完全削除の確認'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'中断した整理を確認・復旧',exact:true})).toHaveCount(0);
 }
 
 test('an unjoined western invitation preserves existing solo saves and returns to their preferences',async({page,context,isMobile},testInfo)=>{
