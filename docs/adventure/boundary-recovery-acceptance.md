@@ -11,5 +11,5 @@
 
 - `charged-attack.test.ts`, `charge-input.test.ts`, `adventure-sites.test.ts`: 18 tests passed.
 - `adventure-boss-rewards.test.ts`: 5 tests passed: normal exact-once payout, one-free-slot atomic failure/restart/participant export/retry, site-boss full capacity recovery, allocator failure recovery, malformed save rejection.
-- Typecheck passed. Browser verification of this patch is pending publication/CI.
+- Typecheck and production build passed. CI684a276b: 823/824 passed; an existing 105-tick light/thaw/water test exceeded its default five-second runner budget. Its gameplay steps/assertions are unchanged; an explicit 15-second wall budget passes all11 site tests locally. Dedicated deployment and browser verification remain pending the corrected CI.
 - The capacity tests deliberately construct full worlds and are boundary tests, not claims of a human-played route or practical 100,000-object performance.
