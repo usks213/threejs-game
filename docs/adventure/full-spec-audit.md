@@ -102,7 +102,7 @@
 - U4: `ui/sound-captions.ts` が着地/着水・敵予告・衝突/爆発をsnapshotから字幕化。設定でON/OFFでき、音量やautoplayとは独立する。新規音声台詞は要求しない。
 - A1: `ambience.ts` に権威tickのgrounded遷移による着地/着水音を追加。同tickの再受信では鳴らさない。
 - S1: 個人/共有とも保存完了generationを表示し、全文をtitle/data属性へ保持する経路を追加。未確認のときは世代未確認と表示する（`save/revision.ts`、`ui/persistence.ts`）。
-- C1: 固定強攻撃に加え、権威時刻1.5秒で蓄積し解放する溜め攻撃、最大1.5倍、HUD割合、被弾/変更/取消/6秒expiryを追加。`charged-attack.test.ts` は同tickのSessionAuthority解放/取消を含む4試験合格の報告あり。一般4tick間隔制限で短押し解除が拒否される端点も修正し、攻撃の回復制約は維持する。
+- C1: 固定強攻撃に加え、権威時刻1.5秒で蓄積し解放する溜め攻撃、最大1.5倍、HUD割合、被弾/変更/取消/離脱による解除（保持中の時間切れは撤廃）を追加。`charged-attack.test.ts` は同tickのSessionAuthority解放/取消を含む4試験合格の報告あり。一般4tick間隔制限で短押し解除が拒否される端点も修正し、攻撃の回復制約は維持する。
 
 ## PHYS-03: 現行属性のルールと優先順
 

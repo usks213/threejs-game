@@ -1,3 +1,4 @@
+import {completeAdventureBoss,flushPendingBossRewards} from './combat/boss-rewards';
 import {characterHeight} from '../physics/character-shape';
 import {AdventureProgression,PROGRESSION_ACTIONS,decorationUnlocked,type ProgressionAction} from './adventure-progression';
 import {bossMeleeContact,ensureBossParts,damageBossPart,bossPartMovementScale,bossPartAttack} from './combat/boss-parts';
@@ -152,7 +153,7 @@ export class Adventure {
   if (enemy.health <= 0) {
    if(this.sites.onBossDefeated(enemy))return;
    if(dropAdventureEnemyLoot(this,enemy))return;
-   if(enemy.definition==='stormcore'){dropItem(this,'star',4,enemy);dropItem(this,'crystal',6,enemy);if(!this.state.defeated.includes(enemy.definition))this.state.defeated.push(enemy.definition);return;}
+   if(enemy.definition==='stormcore'){completeAdventureBoss(this,enemy);return;}
    if (!enemy.boss) enemy.respawnAt = this.state.seconds + 120;
    if(this.state.meadows){if(enemy.boss){dropItem(this,'hardAntler',3,enemy);dropItem(this,'stormTrophy',1,enemy);if(!this.state.defeated.includes(enemy.definition))this.state.defeated.push(enemy.definition);}else this.meadowRules.loot(enemy.definition,enemy.stars??0,enemy);return;}
    this.grant('fang', enemy.boss ? 8 : 1); this.grant('resin', enemy.boss ? 5 : 1);
@@ -206,6 +207,7 @@ export class Adventure {
   }
  }
  private clearCombat(): void {
+  this.charging=undefined;
   this.swing=null;this.buffered=null;this.combo=0;this.comboUntil=0;this.attack=0;this.dodge=0;this.cast=0;this.guarding=false;this.guardAim=null;this.parryTime=0;this.staminaRecovery=0;this.traversal.stop();this.fallPeak=null;
  }
  private finalizeDeath(player: Vec3): void {
@@ -410,7 +412,7 @@ export class Adventure {
   if(this.sim.world.generator===4){this.race.step(dt);this.progression.step(dt);}
   const recoveryBefore=Math.max(this.staminaRecovery,this.attack,this.dodge),dodgeDt=Math.min(dt,this.dodge);
   this.staminaRecovery=Math.max(0,this.staminaRecovery-dt);
-  const s = this.state, p = this.sim.player; s.seconds += dt;if(this.charging&&(s.health<=0||s.equipment!==this.charging.weapon||s.seconds-this.charging.started>6))this.charging=undefined;this.parryTime=Math.max(0,this.parryTime-dt);
+  const s = this.state, p = this.sim.player; s.seconds += dt;if(this.charging&&(s.health<=0||s.equipment!==this.charging.weapon))this.charging=undefined;this.parryTime=Math.max(0,this.parryTime-dt);
   if(this.swing){
    const swing=this.swing,before=swing.motion.elapsed;
    swing.motion.elapsed=Math.min(swing.motion.duration,before+dt);
@@ -444,6 +446,7 @@ export class Adventure {
   return nearest;
  }
  step(dt: number): void {
+  if(this.sim.world.generator===4&&this.sim.tick%30===0)flushPendingBossRewards(this);
   if (this.sim.targets.length) for (const target of this.sim.targets) this.populate(target.player); else this.populate();
   if(this.sim.world.generator===4)advanceAdventureWater(this.sim,this.state);else advanceMeadowWater(this.sim,this.state);
   stepDrops(this, dt);
@@ -534,7 +537,7 @@ export class Adventure {
  snapshot(): AdventureSnapshot {
   this.refreshGrowth();this.gear.assertProjection();
   const s = this.state, p = this.sim.player, biome = biomeAt(p.x, p.z), boss = BOSSES.find(b => b.id === biome.boss)!;
-  return { ...s,chargeProgress:this.chargeProgress,progression:s.progression?structuredClone(s.progression):undefined,progressionView:this.sim.world.generator===4?this.progression.snapshot():undefined,gearItems:s.gearItems?structuredClone(s.gearItems):undefined,graveGear:s.graveGear?structuredClone(s.graveGear):undefined,gearFlights:undefined,raceTarget:s.race?.run?raceGates(this.sim)[s.race.run.next]:undefined,exploration:undefined,explorationStatus:explorationStatus(s),sharedPins:this.sim.sharedPins.map(p=>({...p,position:{...p.position}})),companions:this.sim.companions.snapshot(this.owner), ...(this.sim.world.generator===4?{expeditions:this.sites.snapshot(),dialogue:this.sites.dialogue??this.trials.dialogue,journey:this.trials.snapshot()}:{}), ...(this.sim.world.generator===4?{coop:{downedSeconds:s.downed??0,reviving:this.helping,beingRevived:this.receivingHelp}}:{}), traversal:this.traversal.snapshot(), skybound: this.sim.skybound.snapshot(this.owner), inventory: { ...s.inventory }, resources: s.resources.filter(n => distance(p, n) < 65 || this.sim.world.generator===4&&(n.id>=810001&&n.id<=810004||n.id>=825001&&n.id<=825007||n.id>=830001&&n.id<=830003)).map(n => ({ ...n })), enemies: s.enemies.filter(e => distance(p, e) < 65).map(e => ({ ...e,attackReady:e.attackReady?{...e.attackReady}:undefined,bossParts:e.bossParts?structuredClone(e.bossParts):undefined })), buildings: s.buildings.filter(b => distance(p, b) < 65).map(b => ({ ...b, gearItems:this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?undefined:b.gearItems?structuredClone(b.gearItems):undefined, contents: this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?{}:{ ...b.contents },cooking:this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?[]:b.cooking })), environment: this.sim.world.generator===4?adventureEnvironment(s.seconds,p):s.meadows&&s.enemies.some(e=>e.boss&&e.health>0)?{...environmentAt(s.seconds,1),daylight:.08,weather:'cloud'}:environmentAt(s.seconds, s.meadows?1:biome.tier), generator: this.sim.world.generator, biome: s.meadows?'verdant':biome.id, objective: this.sim.world.generator===4?adventureObjective(s):s.meadows ? (s.meadows.offered?'雷鹿の加護を得た。角のつるはしで次の旅へ':'草原を探索し、住まいと食事を整えて雷角の主に挑む') : s.defeated.length === 5 ? '五つの地域を攻略しました' : `探索 → 素材を集める → 作業台・装備 → 祭壇で${boss.name}を召喚`, projectiles: this.projectiles.map(v => ({ ...v })), guarding: this.guarding, dodging: this.dodge > 0, attack: this.attack, attackMotion: this.attackMotion, wet: this.sim.fluid.immersion(p, 1.45) > 0.1 };
+  return { ...s,pendingBossRewards:s.enemies.filter(e=>e.rewardPending).length,chargeProgress:this.chargeProgress,progression:s.progression?structuredClone(s.progression):undefined,progressionView:this.sim.world.generator===4?this.progression.snapshot():undefined,gearItems:s.gearItems?structuredClone(s.gearItems):undefined,graveGear:s.graveGear?structuredClone(s.graveGear):undefined,gearFlights:undefined,raceTarget:s.race?.run?raceGates(this.sim)[s.race.run.next]:undefined,exploration:undefined,explorationStatus:explorationStatus(s),sharedPins:this.sim.sharedPins.map(p=>({...p,position:{...p.position}})),companions:this.sim.companions.snapshot(this.owner), ...(this.sim.world.generator===4?{expeditions:this.sites.snapshot(),dialogue:this.sites.dialogue??this.trials.dialogue,journey:this.trials.snapshot()}:{}), ...(this.sim.world.generator===4?{coop:{downedSeconds:s.downed??0,reviving:this.helping,beingRevived:this.receivingHelp}}:{}), traversal:this.traversal.snapshot(), skybound: this.sim.skybound.snapshot(this.owner), inventory: { ...s.inventory }, resources: s.resources.filter(n => distance(p, n) < 65 || this.sim.world.generator===4&&(n.id>=810001&&n.id<=810004||n.id>=825001&&n.id<=825007||n.id>=830001&&n.id<=830003)).map(n => ({ ...n })), enemies: s.enemies.filter(e => distance(p, e) < 65).map(e => ({ ...e,attackReady:e.attackReady?{...e.attackReady}:undefined,bossParts:e.bossParts?structuredClone(e.bossParts):undefined })), buildings: s.buildings.filter(b => distance(p, b) < 65).map(b => ({ ...b, gearItems:this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?undefined:b.gearItems?structuredClone(b.gearItems):undefined, contents: this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?{}:{ ...b.contents },cooking:this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?[]:b.cooking })), environment: this.sim.world.generator===4?adventureEnvironment(s.seconds,p):s.meadows&&s.enemies.some(e=>e.boss&&e.health>0)?{...environmentAt(s.seconds,1),daylight:.08,weather:'cloud'}:environmentAt(s.seconds, s.meadows?1:biome.tier), generator: this.sim.world.generator, biome: s.meadows?'verdant':biome.id, objective: this.sim.world.generator===4?adventureObjective(s):s.meadows ? (s.meadows.offered?'雷鹿の加護を得た。角のつるはしで次の旅へ':'草原を探索し、住まいと食事を整えて雷角の主に挑む') : s.defeated.length === 5 ? '五つの地域を攻略しました' : `探索 → 素材を集める → 作業台・装備 → 祭壇で${boss.name}を召喚`, projectiles: this.projectiles.map(v => ({ ...v })), guarding: this.guarding, dodging: this.dodge > 0, attack: this.attack, attackMotion: this.attackMotion, wet: this.sim.fluid.immersion(p, 1.45) > 0.1 };
  }
  static personalSave(state: AdventureSave): AdventureSave {
   // Exclude shared graphs before cloning, not after duplicating the world per member.

@@ -1,3 +1,4 @@
+import {hasAdventureBossReward} from '../content/adventure-boss-rewards';
 import {validateProgression} from '../game/progression-state';
 import {validateBossParts} from '../game/combat/boss-parts';
 import {GEAR_LIMITS} from '../game/equipment/items';
@@ -53,6 +54,7 @@ export function validateAdventure(raw: AdventureSave): AdventureSave {
  for(const g of s.meadows?.graves??[])if(!insideBounds(g,WORLD,1)||!items(g.items))throw new Error('墓の状態が不正です');
  for(const o of [...s.resources,...s.buildings])if(o.removed&&(!Array.isArray(o.removed)||o.removed.length>100000||new Set(o.removed).size!==o.removed.length||o.removed.some(key=>typeof key!=='string'||!/^[-0-9]+,[-0-9]+,[-0-9]+$/.test(key))))throw new Error('Voxelの破壊記録が不正です');
  for(const n of s.resources)if(n.drop!==undefined&&(typeof n.drop!=='boolean'||n.velocity&&(!finiteVec(n.velocity)||Math.hypot(n.velocity.x,n.velocity.y,n.velocity.z)>30)))throw new Error('ドロップの状態が不正です');
+ for(const enemy of s.enemies)if(enemy.rewardPending!==undefined&&(typeof enemy.rewardPending!=='boolean'||enemy.rewardPending&&(!enemy.boss||enemy.health>0||!hasAdventureBossReward(enemy.definition)||!s.defeated.includes(enemy.definition))))throw Error('戦利品の保護記録が不正です');
  const copy = structuredClone(s);validateAdventureGear(copy);if(s.siteWorld)copy.siteWorld=validateSiteWorld(s.siteWorld);
  // Earlier versions saved the last windup tick just below zero.
  for (const enemy of copy.enemies){enemy.windup = Math.max(0, enemy.windup);}if(s.exploration)copy.exploration=validateExploration(s.exploration);

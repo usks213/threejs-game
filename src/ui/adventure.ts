@@ -62,7 +62,7 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
  let lastHealth:number|undefined,hurtTimer:ReturnType<typeof setTimeout>|undefined;
  signal.addEventListener('abort',()=>clearTimeout(hurtTimer),{once:true});
  return {open,openContext(next:string,id:string){chestId=id.startsWith('b:')?Number(id.slice(2)):undefined;open(next);},update(s:AdventureSnapshot,p:{x:number;y?:number;z:number},yaw=0){
-  const traversalText=[traversalStatus(s.traversal),s.chargeProgress!==undefined?'溜め '+Math.round(s.chargeProgress*100)+'% · 放して攻撃':''].filter(Boolean).join(' · ');traversalWarning.hidden=!traversalText;if(traversalWarning.textContent!==traversalText)traversalWarning.textContent=traversalText;
+  const traversalText=[traversalStatus(s.traversal),s.pendingBossRewards?'戦利品を保護中。地面の品物を拾って空きを作ってください。':'',s.chargeProgress!==undefined?'溜め '+Math.round(s.chargeProgress*100)+'% · 放して攻撃':''].filter(Boolean).join(' · ');traversalWarning.hidden=!traversalText;if(traversalWarning.textContent!==traversalText)traversalWarning.textContent=traversalText;
   latest=s;guideTab.hidden=s.generator!==4;marketTab.hidden=s.generator!==4;player={...p,y:p.y??0};const weather:Record<string,string>={clear:'晴れ',cloud:'曇り',rain:'雨',storm:'雷雨',snow:'雪',fog:'霧',magic:'魔力嵐'},biome=BIOMES.find(b=>b.id===s.biome)!;
   const energyText=deviceEnergy(s.skybound,player);
   const bar=(kind:string,label:string,value:number,max:number)=>`<div class="vital ${kind}" aria-label="${label} ${Math.ceil(value)}"><span class="vital-fill" style="width:${Math.max(0,Math.min(100,value/max*100))}%"></span><span>${label} ${Math.ceil(value)}</span></div>`;

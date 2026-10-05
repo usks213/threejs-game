@@ -1,3 +1,4 @@
+import {completeAdventureBoss} from './combat/boss-rewards';
 import {REGIONAL_RECORDS} from '../content/adventure-chapters';
 import {newRegionalProgression} from './progression-state';
 import type {Adventure} from './adventure';
@@ -98,6 +99,6 @@ export class AdventureSites {
  release(owner:string):void{if(this.game.state.siteWorld?.rescue?.following===owner)this.game.state.siteWorld.rescue.following=undefined;}
  private spawnBoss(id:number):void{const site=this.site(id),s=this.game.state;if(s.defeated.includes(site.boss)||s.enemies.some(e=>e.definition===site.boss))return;const o=this.origin(id),boss=SITE_BOSSES.find(b=>b.id===site.boss)!;s.enemies.push({id:this.game.sim.allocateEntityId(),definition:boss.id,tier:1,x:o.x+7,y:this.game.sim.groundAt(o.x+7,o.z,o.y),z:o.z,homeX:o.x+7,homeZ:o.z,health:boss.health,cooldown:3,windup:0,slow:0,boss:true});}
  finalReady():boolean{return !this.game.state.siteWorld||this.world().storyMode==='side'||this.world().completed.length===3;}
- onBossDefeated(enemy:EnemyState):boolean{if(!SITE_BOSSES.some(b=>b.id===enemy.definition))return false;if(!this.game.state.defeated.includes(enemy.definition)){this.game.state.defeated.push(enemy.definition);dropItem(this.game,'crystal',2,enemy);}return true;}
+ onBossDefeated(enemy:EnemyState):boolean{if(!SITE_BOSSES.some(b=>b.id===enemy.definition))return false;return completeAdventureBoss(this.game,enemy);}
  bossMultiplier(enemy:EnemyState,element:string,source?:Vec3):number|undefined{if(!SITE_BOSSES.some(b=>b.id===enemy.definition))return undefined;const sim=this.game.sim;if(enemy.definition==='loadwarden')return sim.skybound.state.parts.some(p=>p.mass>=12&&distance(p.position,enemy)<3)?1.7:element==='impact'?1.4:.7;if(enemy.definition==='echowarden')return sim.fluid.immersion(enemy,1.5)>.05||element==='fire'?1.5:.75;return (source?.y??this.game.sim.player.y)>enemy.y+1||element==='frost'?1.6:.8;}
 }
