@@ -5,6 +5,8 @@ import type {CoopServerPacket} from '../../src/networking/coop-protocol';
 // including retries; the runner would otherwise start a second trace.
 test.use({trace:'off'});
 test.describe.serial('two real browsers',()=>{
+ type Ack=Extract<CoopServerPacket,{type:'ack'}>;
+ const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>}>();
  let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',expectedEditCount=0,errors:string[]=[],failed=false,tracePaths:string[]=[];
  const stage=(name:string)=>console.log('COOP_BROWSER_PHASE',name);
  const running=(page:Page)=>expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
@@ -14,11 +16,31 @@ test.describe.serial('two real browsers',()=>{
   console.log('COOP_NOTICE',await page.locator('#notice').textContent({timeout:1000}).catch(()=>null));
  };
  test.beforeAll(async({browser},info)=>{
-  test.setTimeout(180000);stage('startup and room join');errors=[];failed=false;tracePaths=[0,1].map(i=>info.outputPath(`coop-browser-${i}.zip`));try{
+  test.setTimeout(180000);stage('startup and room join');errors=[];failed=false;wire.clear();tracePaths=[0,1].map(i=>info.outputPath(`coop-browser-${i}.zip`));try{
   contexts=await Promise.all([0,1].map(()=>browser.newContext({viewport:{width:640,height:360},deviceScaleFactor:.5})));
   await Promise.all(contexts.map(context=>context.tracing.start({screenshots:true,snapshots:true,sources:true})));
   [a,b]=await Promise.all(contexts.map(context=>context.newPage()));
-  for(const page of[a,b]){page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));page.on('websocket',socket=>{socket.on('framereceived',frame=>{try{const packet=JSON.parse(String(frame.payload));if(packet.type==='ack'||packet.type==='notice')console.log('COOP_SERVER_REPLY',JSON.stringify(packet));}catch{}});socket.on('framesent',frame=>{try{const packet=JSON.parse(String(frame.payload));if(packet.type==='action')console.log('COOP_UI_ACTION',JSON.stringify(packet.message));}catch{}});});page.on('requestfailed',r=>console.log('COOP_REQUEST_FAILED',r.url().split('?')[0],r.failure()?.errorText));await page.goto('/',{waitUntil:'domcontentloaded',timeout:45000});await running(page);await page.locator('#session-menu').click();}
+  for(const page of[a,b]){
+   page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
+   const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>()};wire.set(page,observed);
+   // Observe the actual transport before navigation, including reconnects. Keep
+   // only action IDs/results; never retain or log handshake/resume capabilities.
+   page.on('websocket',socket=>{
+    socket.on('framereceived',frame=>{try{
+     const packet=JSON.parse(String(frame.payload));
+     if(packet.type==='ack'&&typeof packet.commandId==='string'&&typeof packet.accepted==='boolean'&&typeof packet.message==='string')observed.acks.set(packet.commandId,{type:'ack',commandId:packet.commandId,accepted:packet.accepted,message:packet.message});
+     if(packet.type==='ack'||packet.type==='notice')console.log('COOP_SERVER_REPLY',JSON.stringify(packet));
+    }catch{}});
+    socket.on('framesent',frame=>{try{
+     const packet=JSON.parse(String(frame.payload));
+     if(packet.type==='action'){
+      if(typeof packet.commandId==='string'&&packet.message?.type==='game-action'&&typeof packet.message.action==='string')observed.actions.push({commandId:packet.commandId,action:packet.message.action,id:packet.message.id});
+      console.log('COOP_UI_ACTION',JSON.stringify(packet.message));
+     }
+    }catch{}});
+   });
+   page.on('requestfailed',r=>console.log('COOP_REQUEST_FAILED',r.url().split('?')[0],r.failure()?.errorText));await page.goto('/',{waitUntil:'domcontentloaded',timeout:45000});await running(page);await page.locator('#session-menu').click();
+  }
   stage('create room');await a.locator('#session-host').click();await expect(a.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});code=await a.locator('#session-code').inputValue();
   stage('join second browser');await b.locator('#session-code').fill(code);await b.locator('#session-join').click();await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});
   identity=(await b.locator('#session-status').getAttribute('data-player'))!;expect(identity).not.toBe(await a.locator('#session-status').getAttribute('data-player'));
@@ -43,20 +65,22 @@ test.describe.serial('two real browsers',()=>{
   test.setTimeout(180000);stage('NET-A02 shared creative block');
   const pages=[a,b],playerIds=await Promise.all(pages.map(page=>page.locator('#session-status').getAttribute('data-player')));
   const sky=async(page:Page)=>JSON.parse(await page.locator('#app').getAttribute('data-skybound')??'null') as SkyboundSnapshot|null;
-  type Ack=Extract<CoopServerPacket,{type:'ack'}>;
-  const lastAck=async(page:Page)=>JSON.parse(await page.locator('#session-status').getAttribute('data-last-ack')??'null') as Ack|null;
-  const nextAck=async(page:Page,previous:Ack|null)=>{
-   await expect.poll(async()=>{const ack=await lastAck(page);return !!ack&&ack.commandId!==previous?.commandId;},{timeout:30000}).toBe(true);
-   return (await lastAck(page))!;
+  const nextAck=async(page:Page,start:number,action:string,id:string)=>{
+   const observed=wire.get(page)!,sent=()=>observed.actions.slice(start).find(command=>command.action===action&&command.id===id);
+   await expect.poll(()=>sent()?.commandId,{message:`The UI sends ${action} for ${id}`,timeout:20000}).toBeTruthy();
+   const commandId=sent()!.commandId;
+   // Menu/blur release commands can receive delayed ACKs. Only this exact
+   // outgoing action's ACK is evidence, even if another ACK arrives afterward.
+   await expect.poll(()=>observed.acks.has(commandId),{message:`Authority acknowledges ${action} for ${id}`,timeout:30000}).toBe(true);
+   return observed.acks.get(commandId)!;
   };
   const actionGap=async(page:Page)=>{
    const tick=Number(await page.locator('#session-status').getAttribute('data-tick'));
    await expect.poll(async()=>Number(await page.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThanOrEqual(tick+4);
   };
   const command=async(page:Page,control:string,action:string,id:string)=>{
-   await actionGap(page);const previous=await lastAck(page);await page.locator(control).click();
-   await expect.poll(async()=>JSON.parse(await page.locator('#session-status').getAttribute('data-last-command')??'null')).toMatchObject({type:'game-action',action,id});
-   const ack=await nextAck(page,previous);expect(ack,ack.message).toMatchObject({accepted:true});
+   await actionGap(page);const start=wire.get(page)!.actions.length;await page.locator(control).click();
+   const ack=await nextAck(page,start,action,id);expect(ack,ack.message).toMatchObject({accepted:true});
   };
   // Spend only the winning player's actual shared pickup from the preceding
   // case. No save import, world-state injection or synthetic game actions.
@@ -75,14 +99,15 @@ test.describe.serial('two real browsers',()=>{
   await command(creator,'#power-share','sky-share',partId+':on');
   for(const page of pages)await expect.poll(async()=>(await part(page))?.shared).toBe(true);
 
-  stage('same part concurrent grab');await Promise.all(pages.map(actionGap));const previous=await Promise.all(pages.map(lastAck));
+  stage('same part concurrent grab');await Promise.all(pages.map(actionGap));
   for(const page of pages)await page.locator('#powers-panel [data-power=grab]').focus();
+  const starts=pages.map(page=>wire.get(page)!.actions.length);
   await Promise.all(pages.map(page=>page.keyboard.press('Enter')));
-  const replies=await Promise.all(pages.map((page,i)=>nextAck(page,previous[i])));
+  const replies=await Promise.all(pages.map((page,i)=>nextAck(page,starts[i],'sky-grab',partId)));
   expect(replies.map(reply=>reply.accepted).sort()).toEqual([false,true]);
   const holderIndex=replies.findIndex(reply=>reply.accepted),holder=pages[holderIndex],other=pages[1-holderIndex],holderId=playerIds[holderIndex]!,otherId=playerIds[1-holderIndex]!;
   expect(replies[1-holderIndex].message).toBe('別の冒険者が操作しています');await expect(other.locator('#notice')).toContainText(replies[1-holderIndex].message);
-  for(const page of pages){expect(JSON.parse(await page.locator('#session-status').getAttribute('data-last-command')??'null')).toMatchObject({action:'sky-grab',id:partId});await expect.poll(async()=>(await part(page))?.lease?.owner).toBe(holderId);}
+  for(const page of pages)await expect.poll(async()=>(await part(page))?.lease?.owner).toBe(holderId);
   const before={...(await part(holder))!.position};await holder.locator('#powers-panel [data-power=up]').click();await expect(holder.locator('#power-preview')).toBeVisible();
   for(const page of pages)expect((await part(page))!.position).toEqual(before);
   await command(holder,'#power-preview [data-power=preview-confirm]','sky-move',partId);
@@ -140,7 +165,16 @@ test.describe.serial('two real browsers',()=>{
   console.log('COOP_EDIT_ACK',await a.locator('#session-status').getAttribute('data-last-ack'));await a.locator('#session-menu').click();expect(errors).toEqual([]);stage('shared edit verified');
  });
  test('reconnect, restore a late browser and continue after the creator leaves',async({browser})=>{
-  test.setTimeout(180000);stage('disconnect and reconnect');await contexts[1].setOffline(true);await expect(b.locator('#session-status')).toHaveAttribute('data-connection','reconnecting',{timeout:25000});await contexts[1].setOffline(false);
+  test.setTimeout(180000);stage('disconnect and reconnect');await contexts[1].setOffline(true);
+  try{
+   await expect(b.locator('#session-status')).toHaveAttribute('data-connection','reconnecting',{timeout:25000});
+   stage('NET-A05 terrain edit while second browser is offline');const before=expectedEditCount;
+   // A retains the real dig tool and clear camera position from the preceding
+   // case. Deepen that visible excavation while B cannot receive any frames.
+   await a.keyboard.press('Escape');await running(a);await expect(a.locator('#use-tool')).toBeEnabled();await a.locator('#use-tool').click();
+   await expect.poll(async()=>Number(await a.locator('#edit-count').getAttribute('data-count')),{timeout:20000}).toBeGreaterThan(before);
+   expectedEditCount=Number(await a.locator('#edit-count').getAttribute('data-count'));await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(before));await a.locator('#session-menu').click();
+  }finally{await contexts[1].setOffline(false);}
   await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:45000});await expect(b.locator('#session-status')).toHaveAttribute('data-player',identity);await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount));
   stage('fresh late join');const lateContext=await browser.newContext({viewport:{width:640,height:360},deviceScaleFactor:.5});
   try{const late=await lateContext.newPage();late.setDefaultTimeout(20000);await late.goto('/#join='+code,{waitUntil:'domcontentloaded',timeout:45000});await late.locator('#session-join').click();await expect(late.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await expect(late.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount),{timeout:30000});await late.locator('#session-leave').click();}finally{await Promise.race([lateContext.close(),new Promise<void>(r=>setTimeout(r,5000))]);}

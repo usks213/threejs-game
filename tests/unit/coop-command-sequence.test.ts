@@ -3,7 +3,8 @@ import {AuthorityRoom} from '../../src/networking/authority-room';
 import {COOP_PROTOCOL,type CoopWireServerPacket} from '../../src/networking/coop-protocol';
 import {validateCheckpoint} from '../../src/save/checkpoint';
 const player='f'.repeat(64);
-function connect(room:AuthorityRoom){const out:CoopWireServerPacket[]=[];room.connect('c',{send:p=>out.push(p),close(){}});room.receive('c',JSON.stringify({type:'hello',protocol:COOP_PROTOCOL}),player).acknowledgment?.();return out;}
+// Receipt policy needs the room clock, not 300 unrelated terrain/fluid frames.
+function connect(room:AuthorityRoom){room.authority.step=()=>{room.authority.sim.tick++;};const out:CoopWireServerPacket[]=[];room.connect('c',{send:p=>out.push(p),close(){}});room.receive('c',JSON.stringify({type:'hello',protocol:COOP_PROTOCOL}),player).acknowledgment?.();return out;}
 function command(room:AuthorityRoom,id:string){room.step();return room.receive('c',JSON.stringify({type:'action',commandId:id,message:{type:'game-action',action:'sprint'}}));}
 it('rejects expired sequenced effects after 256 later commands and durable restart',()=>{
  const room=new AuthorityRoom(null,'one');connect(room);let calls=0;room.authority.action=()=>{calls++;return {message:'ok',dirty:[]};};
