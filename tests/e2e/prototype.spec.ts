@@ -23,7 +23,7 @@ async function lockedButton(page:Page,state:'down'|'up',button:'left'|'right'='l
 }
 test('landscape first-person input, aimed door, attack and HDR render',async({page,isMobile})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
- await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await expect(page.locator('#error')).toBeHidden();await page.locator('#start').click();await expect(page.locator('#menu')).toBeHidden();await expect(page.locator('#game')).toHaveAttribute('data-running','true');
+ await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await expect(page.locator('#error')).toBeHidden();await expect(page.locator('#start')).toBeInViewport({ratio:1});await page.locator('#start').click();await expect(page.locator('#menu')).toBeHidden();await expect(page.locator('#game')).toHaveAttribute('data-running','true');
  expect((await probe(page)).door).toBe(false);
  if(!isMobile){await expect.poll(()=>page.evaluate(()=>!!document.pointerLockElement)).toBe(true);await page.keyboard.down('KeyW');await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.6);await page.keyboard.up('KeyW');await expect(page.locator('#game')).toHaveAttribute('data-target','door');await page.keyboard.press('KeyE');await expect.poll(async()=>(await probe(page)).door).toBe(true);
   const yaw=(await probe(page)).yaw;

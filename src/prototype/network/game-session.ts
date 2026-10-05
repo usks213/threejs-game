@@ -12,15 +12,44 @@ export interface RoomSessionHooks {settings():CampaignSettings;save():boolean;mo
 const actions:readonly Action[]=['attack','heavy','dodge','jump','interact','heal','tool','sword','chisel','element-next','cast','recipe-next','build','special','dismantle'];
 const editingActions=new Set<Action>(['build','dismantle','cast']);
 const wrapAngle=(n:number)=>Math.atan2(Math.sin(n),Math.cos(n));
+const healthRequestTimeout=5000,healthRetryMinimum=1000,healthRetryMaximum=15000;
 /** Explicit two-person shared expedition. Host owns all simulation and save writes. */
 export class CampaignRoomSession {
  private client:CampaignCoopClient|null=null;private room:string|null=null;private available=false;private roleValue:RoomRole|null=null;private message='協力サービスを確認中';private ready=false;private guestBuild=false;private muted=false;private players=0;private chat:{from:string;text:string}[]=[];private publishAt=0;private pendingPublish:Promise<boolean>|null=null;private commands=Promise.resolve();private disposed=false;private lastFrameAt=0;private hostFrameAt=0;private generation=0;private connectionGeneration=0;private latestFrame:GameFrame|null=null;
+ private pendingProbe:Promise<void>|null=null;private probeController:AbortController|null=null;private probeRetry:ReturnType<typeof setTimeout>|null=null;private probeRetryDelay=healthRetryMinimum;
  remoteActor:ActorFrame|null=null;
  constructor(private readonly sim:CoreSimulation,private readonly hooks:RoomSessionHooks,private readonly endpoint=location.origin){}
  get role(){return this.roleValue;}
  get online(){return !!this.client?.online&&(this.roleValue!=='guest'||this.ready&&Date.now()-this.lastFrameAt<3000);}
  get hostRunning(){return this.roleValue==='host'&&!!this.client?.online;}
- async probe(){try{const r=await fetch(new URL('/campaign-room/health',this.endpoint),{cache:'no-store',signal:AbortSignal.timeout(5000)});const health:unknown=await r.json();this.available=r.ok&&record(health)&&health.service==='pr4-campaign-room'&&health.protocol===CAMPAIGN_PROTOCOL&&health.enabled===true;this.message=this.available?'未接続。招待した相手と二人で同じ旅を進めます':record(health)&&health.enabled===true&&health.protocol!==CAMPAIGN_PROTOCOL?'協力プレイの版が変わりました。両方のページを再読み込みしてください':'この公開版では協力プレイの準備中です';}catch{this.available=false;this.message='この公開版では協力プレイの準備中です';}}
+ probe():Promise<void>{
+  if(this.disposed||this.client)return Promise.resolve();
+  if(this.pendingProbe)return this.pendingProbe;
+  if(this.probeRetry!==null){clearTimeout(this.probeRetry);this.probeRetry=null;}
+  const controller=new AbortController();this.probeController=controller;
+  const pending=this.probeHealth(controller).then(retry=>{
+   if(this.disposed||this.probeController!==controller)return;
+   this.pendingProbe=null;this.probeController=null;
+   if(retry&&!this.client){const delay=this.probeRetryDelay;this.probeRetryDelay=Math.min(delay*2,healthRetryMaximum);this.probeRetry=setTimeout(()=>{this.probeRetry=null;void this.probe();},delay);}
+   else this.probeRetryDelay=healthRetryMinimum;
+  });this.pendingProbe=pending;return pending;
+ }
+ private async probeHealth(controller:AbortController):Promise<boolean>{
+  // Startup work or a transient outage must not disable invitations forever.
+  // The probe only reads public health; joining and save access stay explicit.
+  const timeout=setTimeout(()=>controller.abort(),healthRequestTimeout);
+  try{
+   const r=await fetch(new URL('/campaign-room/health',this.endpoint),{cache:'no-store',signal:controller.signal});const health:unknown=await r.json();
+   if(this.disposed||this.probeController!==controller||this.client)return false;
+   if(controller.signal.aborted||!r.ok)throw new Error('Room health unavailable');
+   this.available=record(health)&&health.service==='pr4-campaign-room'&&health.protocol===CAMPAIGN_PROTOCOL&&health.enabled===true;
+   this.message=this.available?'未接続。招待した相手と二人で同じ旅を進めます':record(health)&&health.enabled===true&&health.protocol!==CAMPAIGN_PROTOCOL?'協力プレイの版が変わりました。両方のページを再読み込みしてください':'この公開版では協力プレイの準備中です';
+   return false;
+  }catch{
+   if(this.disposed||this.probeController!==controller||this.client)return false;
+   this.available=false;this.message='協力サービスへの接続を確認中です。自動で再試行します';return true;
+  }finally{clearTimeout(timeout);}
+ }
  private inviteURL(){if(!this.room)return null;const url=new URL(inviteFragment(this.room),this.endpoint);if(this.sim.streamedWorld)url.searchParams.set('streaming','1');if(this.sim.westernContent)url.searchParams.set('expedition','west');return url.href;}
  snapshot():CooperationSnapshot{return {enabled:this.available&&this.sim.worldReady,status:this.sim.worldReady?this.message:'地域を展開中。完了すると協力を選べます',role:this.roleValue,invite:this.inviteURL(),guestBuild:this.guestBuild,muted:this.muted,players:this.players,messages:this.chat.map(v=>({...v})),canJoin:!!roomFromFragment(location.hash),guestPreview:!!this.hooks.guestPreview};}
  async command(id:CooperationAction,text=''){
@@ -76,5 +105,5 @@ export class CampaignRoomSession {
   void publishing.finally(()=>{if(this.pendingPublish===publishing)this.pendingPublish=null;});return publishing;
  }
  leave(){this.generation++;this.commands=Promise.resolve();this.pendingPublish=null;const guest=this.roleValue==='guest'||!!this.hooks.guestPreview;this.client?.disconnect();this.client=null;this.roleValue=null;this.room=null;this.ready=false;this.latestFrame=null;this.remoteActor=null;this.players=0;this.guestBuild=false;this.sim.disableCompanion();this.hooks.mode(null);this.message='共有ルームから退出しました';if(guest){history.replaceState(null,'',soloCampaignURL(location.href));location.reload();}else this.hooks.save();}
- dispose(){this.generation++;this.commands=Promise.resolve();this.disposed=true;this.client?.disconnect();this.client=null;this.remoteActor=null;}
+ dispose(){this.generation++;this.commands=Promise.resolve();this.disposed=true;if(this.probeRetry!==null)clearTimeout(this.probeRetry);this.probeRetry=null;this.probeController?.abort();this.probeController=null;this.pendingProbe=null;this.client?.disconnect();this.client=null;this.remoteActor=null;}
 }

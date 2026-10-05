@@ -1,7 +1,7 @@
 import {test,expect,type Page,type Locator,type TestInfo} from '@playwright/test';
 import {PlayerControls,read,choosePerformance,gatherAndLightHearth,type CampaignProbe} from './helpers/campaign-controls';
 const activate=(locator:Locator,mobile:boolean)=>mobile?locator.tap():locator.click();
-async function ready(page:Page){await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await expect.poll(async()=>(await read(page)).worldReady,{timeout:120000}).toBe(true);expect((await read(page)).restoreFailure).toBeNull();}
+async function ready(page:Page){await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await expect.poll(async()=>(await read(page)).worldReady,{timeout:120000}).toBe(true);const state=await read(page);expect(state.restoreFailure).toBeNull();await expect(page.locator('#start'),state.saveStatus).toBeEnabled();}
 async function open(page:Page,mobile:boolean,url:string){await page.goto(url);await ready(page);await choosePerformance(page,mobile);}
 async function play(page:Page,mobile:boolean){await activate(page.locator('#start'),mobile);await expect(page.locator('#game')).toHaveAttribute('data-running','true');const controls=new PlayerControls(page,mobile);await controls.initialize();return controls;}
 async function save(page:Page,mobile:boolean){await activate(page.getByRole('button',{name:'今すぐ保存',exact:true}),mobile);await expect.poll(async()=>(await read(page)).saveStatus).toContain('保存済み');}
@@ -29,12 +29,13 @@ test('streamed campaign opt-in preserves a played legacy world, archives exact b
  const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));await open(page,isMobile,'/?test=1');const pristine=await read(page);expect(pristine.streamedWorld).toBe(false);
  const controls=await play(page,isMobile);let saved:CampaignProbe;
  try{await gatherAndLightHearth(page,controls);await controls.menu('settings');await save(page,isMobile);saved=await read(page);expect(saved.worldSamples).not.toEqual(pristine.worldSamples);}finally{await controls.dispose();}
- const source=await storage(page);expect(source.legacy).not.toBeNull();expect(source.v3).toBeNull();expect(source.archives).toEqual([]);expect(JSON.parse(JSON.parse(source.legacy!).payload).world).toBe('campaign-v2');
+ const source=await storage(page);expect(source.legacy).not.toBeNull();expect(source.v3).toBeNull();expect(source.archives).toEqual([]);const legacySave=JSON.parse(JSON.parse(source.legacy!).payload);expect(legacySave.world).toBe('campaign-v2');
+ await testInfo.attach('legacy-migration-source',{body:JSON.stringify({baseline:legacySave.field.baseline,inventory:legacySave.survival.inventory,saveStatus:saved!.saveStatus}),contentType:'application/json'});
  // Keep the source tab paused: unloading it legitimately writes another checkpoint.
  // A second real tab in the same profile isolates migration's byte-preservation claim.
  const migrated=await context.newPage();migrated.on('pageerror',error=>errors.push(String(error)));
  await open(migrated,isMobile,'/?test=1&streaming=1');const after=await read(migrated);expect(after.streamedWorld).toBe(true);sameGameplay(after,saved!);
- const first=await storage(migrated);expect(first.legacy).toBe(source.legacy);expect(first.selector).toBe('campaign-v3');expect(first.archives).toHaveLength(1);expect(first.archives[0].raw).toBe(source.legacy);expect(JSON.parse(JSON.parse(first.v3!).payload).world).toBe('campaign-v3');
+ const first=await storage(migrated);expect(first.legacy).toBe(source.legacy);expect(first.selector).toBe('campaign-v3');expect(first.archives).toHaveLength(1);expect(first.archives[0].raw).toBe(source.legacy);const migratedSave=JSON.parse(JSON.parse(first.v3!).payload);expect(migratedSave.world).toBe('campaign-v3');expect(migratedSave.environment).toEqual(legacySave.environment);expect(migratedSave.fishing).toEqual(legacySave.fishing);
  await providerEvidence(migrated,testInfo,'migrated-provider');
  await activate(migrated.locator('#restart'),isMobile);await save(migrated,isMobile);await migrated.reload();await ready(migrated);sameGameplay(await read(migrated),saved!);
  let current=await storage(migrated);expect(current.legacy).toBe(source.legacy);expect(current.archives).toEqual(first.archives);await providerEvidence(migrated,testInfo,'migrated-provider-reloaded');

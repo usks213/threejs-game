@@ -51,3 +51,9 @@ button:disabled{opacity:.4;cursor:default}
 .campaign-mode #inventory span{color:#f0e4c9!important}
 
 .controller-help{margin:10px 0;border:1px solid #b3b99b55;border-radius:4px;background:#101b22}.controller-help summary{min-height:48px;padding:13px 12px;cursor:pointer;font-size:12px;color:#f0e1bf}.controller-help summary span{margin-left:8px;font-size:11px;color:#b6c8bf}.controller-help p{padding:0 12px 10px;font-size:12px;line-height:1.8;color:#e3dfd1}.controller-help summary:focus-visible{outline:2px solid #dfb578;outline-offset:-2px}.menu-card:has(.controller-help){max-height:100%;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;padding:2px}
+
+/* Keep the primary action above the scrollable control reference. */
+#menu .start{margin:4px 0 8px}
+/* Trial HUD must remain readable against bright sky as well as dark stone. */
+body:not(.campaign-mode) .values,body:not(.campaign-mode) #objective,body:not(.campaign-mode) #inventory,body:not(.campaign-mode) #recipe-cost{background:#101b22ed;border-radius:3px;padding:3px 6px;color:#fff3d9;text-shadow:none}
+body:not(.campaign-mode) .values{width:max-content;max-width:100%}

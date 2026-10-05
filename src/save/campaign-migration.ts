@@ -1,5 +1,5 @@
 import {isCampaignSave,type CampaignSave} from '../prototype/campaign-session';
-import {LEGACY_CAMPAIGN_V2_BASELINE,CAMPAIGN_SAMPLE_MANIFEST,createCampaignSamplePrototype} from '../prototype/core/campaign-sample-provider';
+import {CAMPAIGN_SAMPLE_MANIFEST,createCampaignSamplePrototype} from '../prototype/core/campaign-sample-provider';
 import {StreamedCampaignField,type StreamedVoxelState} from '../prototype/core/streamed-campaign-field';
 import type {DeterministicSampleProvider} from '../prototype/core/sample-provider';
 import {VoxelField,key,type SampleState} from '../prototype/core/voxel';
@@ -9,14 +9,16 @@ import {EntityElements} from '../prototype/core/entity-elements';
 import {VoxelWater} from '../prototype/core/water';
 import {CampaignSystem} from '../prototype/core/campaign';
 import {HomesteadSystem} from '../prototype/core/homestead';
+import {FishingSystem,createFishingState} from '../prototype/core/fishing';
 import type {SaveStorage} from './checkpoint';
 import {record,integer,number,text,checksum} from './validation';
+import {certifyLegacyCampaignBaseline,certifiedLegacyArchiveBaseline} from './campaign-migration-certification';
 
 export type StreamedCampaignSave=Omit<CampaignSave,'world'|'field'>&{world:'campaign-v3';field:StreamedVoxelState};
 /** Conversion is deliberately separate from restoreState. A matching human-readable
- * manifest name alone is insufficient: only this certified legacy fingerprint is mapped. */
+ * manifest name alone is insufficient: the legacy baseline must be certified first. */
 export function migrateLegacyCampaignField(value:unknown,provider:DeterministicSampleProvider):StreamedVoxelState|null {
- if(provider.manifestId!==CAMPAIGN_SAMPLE_MANIFEST||provider.size!==.25||!record(value)||value.version!==1||value.baseline!==LEGACY_CAMPAIGN_V2_BASELINE||value.size!==provider.size||value.suppressed!==undefined||!Array.isArray(value.base)||!Array.isArray(value.removedBase)||!Array.isArray(value.layers)||!Array.isArray(value.order)||value.layers.length!==value.order.length||value.layers.length>1024)return null;
+ if(provider.manifestId!==CAMPAIGN_SAMPLE_MANIFEST||provider.size!==.25||!record(value)||value.version!==1||value.size!==provider.size||value.suppressed!==undefined||!Array.isArray(value.base)||!Array.isArray(value.removedBase)||!Array.isArray(value.layers)||!Array.isArray(value.order)||value.layers.length!==value.order.length||value.layers.length>1024||!certifyLegacyCampaignBaseline(value.baseline,provider))return null;
  const order:string[]=[];for(const id of value.order){if(!text(id)||order.includes(id))return null;order.push(id);}
  let count=0;
  const decode=(cells:unknown[],removed:unknown[],layer:string):{cells:SampleState[];removed:string[]}|null=>{
@@ -43,8 +45,9 @@ export function prepareLegacyCampaignMigration(value:unknown,prototype:Pick<Retu
  const field=migrateLegacyCampaignField(source.field,prototype.provider);if(!field)return null;
  const empty=new VoxelField(),survival=new SurvivalSystem(empty),elements=new ElementSystem(empty,new VoxelWater(empty)),campaign=new CampaignSystem(survival.inventory),home=new HomesteadSystem(survival.inventory,campaign.state.items);
  if(!survival.restoreState(source.survival)||!elements.restoreState(source.elements)||!campaign.restore(source.campaign)||!home.restore(source.home))return null;
+ if(!new FishingSystem(campaign,empty,()=>null).restore(source.fishing??createFishingState()))return null;
  for(const state of source.entities)if(!new EntityElements().restoreState(state))return null;
- return {version:source.version,world:'campaign-v3',seconds:source.seconds,worldHour:source.worldHour,worldDay:source.worldDay,cold:source.cold,player:source.player,field,survival:source.survival,elements:source.elements,entities:source.entities,enemies:source.enemies,objects:source.objects,campaign:source.campaign,home:source.home,water:source.water,settings:source.settings,...(source.partyCompanion===undefined?{}:{partyCompanion:source.partyCompanion})};
+ return {...source,world:'campaign-v3',field};
 }
 export const migrationBackupKey=(sourceKey:string)=>`${sourceKey}:migration:campaign-samples-v1:c1602605`;
 export type MigrationBackupResult={ok:true;key:string;alreadyPresent:boolean}|{ok:false;reason:'missing'|'invalid-source'|'conflict'|'storage'|'verification'|'source-changed'};
@@ -54,7 +57,7 @@ export type MigrationBackupResult={ok:true;key:string;alreadyPresent:boolean}|{o
 export function preserveLegacyMigrationBackup(storage:SaveStorage,sourceKey:string,archiveKey=migrationBackupKey(sourceKey),expectedSource?:string):MigrationBackupResult {
  try{const raw=storage.getItem(sourceKey);if(raw===null)return {ok:false,reason:'missing'};if(expectedSource!==undefined&&raw!==expectedSource)return {ok:false,reason:'source-changed'};if(raw.length>12000000)return {ok:false,reason:'invalid-source'};
   let envelope:unknown,source:unknown;try{envelope=JSON.parse(raw);if(!record(envelope)||envelope.format!=='voxel-campaign'||envelope.version!==1||!integer(envelope.savedAt)||typeof envelope.payload!=='string'||typeof envelope.checksum!=='string'||checksum(envelope.payload)!==envelope.checksum)return {ok:false,reason:'invalid-source'};source=JSON.parse(envelope.payload);}catch{return {ok:false,reason:'invalid-source'};}
-  if(!isCampaignSave(source)||source.world!=='campaign-v2'||source.field.baseline!==LEGACY_CAMPAIGN_V2_BASELINE)return {ok:false,reason:'invalid-source'};
+  if(!isCampaignSave(source)||source.world!=='campaign-v2'||!certifiedLegacyArchiveBaseline(source.field.baseline))return {ok:false,reason:'invalid-source'};
   const key=archiveKey,previous=storage.getItem(key);if(previous!==null){if(previous!==raw)return {ok:false,reason:'conflict'};return storage.getItem(sourceKey)===raw?{ok:true,key,alreadyPresent:true}:{ok:false,reason:'source-changed'};}
   storage.setItem(key,raw);if(storage.getItem(key)!==raw)return {ok:false,reason:'verification'};if(storage.getItem(sourceKey)!==raw)return {ok:false,reason:'source-changed'};return {ok:true,key,alreadyPresent:false};
  }catch{return {ok:false,reason:'storage'};}

@@ -7,7 +7,7 @@ test('campaign first chapter through normal keyboard or touch play: rescue, gear
  expect((await read(page)).campaign.flameTier).toBe(0);expect((await read(page)).inventory[4]).toBe(0);
  await choosePerformance(page,isMobile);
  if(isMobile)await page.locator('#start').tap();else await page.locator('#start').click();await expect(page.locator('#game')).toHaveAttribute('data-running','true');const controls=new PlayerControls(page,isMobile);await controls.initialize();
- const checkpoint=async(name:string)=>{const p=await read(page);expect(p.hp).toBeGreaterThan(0);expect(p.campaign.deaths).toBe(0);await testInfo.attach(name,{body:JSON.stringify({position:p.position,inventory:p.inventory,campaign:p.campaign},null,2),contentType:'application/json'});};
+ const checkpoint=async(name:string)=>{const p=await read(page);expect(p.hp).toBeGreaterThan(0);expect(p.campaign.deaths).toBe(0);await testInfo.attach(name,{body:JSON.stringify({position:p.position,hp:p.hp,stamina:p.stamina,enemies:p.enemies.map((enemy,index)=>({index,...enemy,distance:Math.hypot(enemy.position.x-p.position.x,enemy.position.z-p.position.z)})),inventory:p.inventory,campaign:p.campaign},null,2),contentType:'application/json'});};
  try{
   await test.step('Harvest a real material budget and establish the hearth',async()=>{
    await controls.walkTo(-.55,6.15);await controls.action('#tool-switch','Digit2');await controls.gather(4,24,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95},{x:-2.2,y:.58,z:6.25},{x:-2.2,y:.58,z:6.95}],'sample-wood');
@@ -28,11 +28,20 @@ test('campaign first chapter through normal keyboard or touch play: rescue, gear
   await test.step('Craft and equip travel gear through the actual menus',async()=>{
    await controls.menu('crafting');for(const id of ['iron-blade','hide-coat','grapple','glider','bandage','bandage','berry-meal'])await controls.row(id,'craft');
    await controls.activate('[data-tab="inventory"]');for(const id of ['iron-blade','hide-coat','grapple','glider'])await controls.row(id,'equip');await controls.row('berry-meal','consume');
+   // Food raises the HP ceiling without healing. The rescue trace returned with
+   // 24 HP and a pursuing warden; spend only the two crafted bandages here,
+   // while the inventory is already open, before attempting a combat turn.
+   for(let used=0;used<2;used++){
+    const before=await read(page);if(before.hp>=70)break;
+    expect(before.campaign.items.bandage,'Rescue recovery must use an owned bandage').toBeGreaterThan(0);await controls.row('bandage','consume');
+    await expect.poll(async()=>(await read(page)).hp).toBe(before.hp+25);expect((await read(page)).campaign.items.bandage).toBe(before.campaign.items.bandage-1);
+   }
+   expect((await read(page)).hp,'Recover before resuming near the pursuing warden').toBeGreaterThanOrEqual(70);
    const c=(await read(page)).campaign;expect(c.equipment).toMatchObject({weapon:'iron-blade',armor:'hide-coat',grapple:'grapple',glider:'glider'});expect(c.completed).toContain('traverse');await controls.resume();await checkpoint('03-crafted-equipped');
   });
   await test.step('Fight pursuing crypt guards using shield and counter-attacks',async()=>{
-   await controls.walkTo(0,5.3);await controls.walkTo(0,3.2);
    // Both original guards can pursue the rescue. Fight where they actually are;
+   // do not turn through extra crypt waypoints with the warden already in reach.
    // no teleport, HP edits, action calls, or forced reward grants are used.
    for(const i of [0,1]){const p=await read(page),e=p.enemies[i];if(e.hp>0&&Math.hypot(e.position.x-p.position.x,e.position.z-p.position.z)<8)await controls.fight(i);}
    await checkpoint('04-crypt-threats');

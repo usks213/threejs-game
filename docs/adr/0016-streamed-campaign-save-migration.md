@@ -61,3 +61,26 @@ doors, layer order, hidden/positive-band samples, signatures, inventories and lo
 conservation, provider-cache eviction, live door operation after migration, grapple repair,
 unknown fingerprints, malformed atomic rejection, and a write-once archive surviving rotating
 autosaves and storage failure. Provider tests separately certify full authored-sample parity.
+
+## Runtime-specific legacy certification (2026-10-05)
+
+Browser CI found the same authored primitives fingerprinted as `campaign-v2:6e774767`
+while Node authoring yields `campaign-v2:c1602605`. Legacy fingerprints include
+unrounded Float64 transcendental results, so a different JS engine may have a
+different final-bit result. The old guard correctly refused the conversion before
+writing either an archive or v3 save; its empty preview was not a committed reset.
+
+An unfamiliar, well-formed v2 fingerprint is now accepted only during explicit
+migration after independently authoring the current runtime's pristine world and
+matching that exact fingerprint. Every layer's sample, material and ownership must
+match the destination provider; a complete bounded-chunk count also proves there
+are no extra provider samples in former empty space. The completed proof is cached
+per provider. Archive validation reuses only a successfully certified fingerprint.
+The known certified Node path remains unchanged. Unknown/future layouts still fail
+closed. Normal v3 startup does not run this temporary full-world certification.
+
+Migration preserves validated optional player-exposure and fishing state, including
+fishing ownership checks, instead of reconstructing an incomplete DTO. All existing
+checksum, geometry, component validation, atomic archive and separate-key rules apply.
+This adds one-time CPU/memory work to a cross-runtime opt-in conversion; actual mobile
+device performance remains unverified. CI must still recheck the real Chromium source.

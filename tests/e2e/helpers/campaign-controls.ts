@@ -51,11 +51,19 @@ export class PlayerControls {
   // synthesize Pointer Lock's raw relative motion, so this is labeled separately.
   const error=async(axis:'yaw'|'pitch')=>{const p=await read(this.page);expect(p.hp,'Keyboard aiming must not continue after combat death').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z;return axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch;};
   for(const axis of ['yaw','pitch'] as const){
+   let precise=false;
    for(let attempt=0;attempt<12;attempt++){
     const remaining=await error(axis);if(Math.abs(remaining)<.015)break;
-    const sign=Math.sign(remaining),fine=Math.abs(remaining)<.5,key=axis==='yaw'?(sign>0?'Home':'End'):(sign>0?'PageUp':'PageDown');
-    try{if(fine)await this.page.keyboard.down('ShiftLeft');await this.page.keyboard.down(key);await expect.poll(async()=>sign*await error(axis),{timeout:90000,intervals:[50,100]}).toBeLessThan(fine?.012:.3);}
+    // Coarse look advances at most .14 rad per frame; reserve the .0056-rad
+    // Shift steps for the last .16 rad, rather than spending up to 9 seconds
+    // of simulation time on a medium .5-rad turn. A coarse stop near .1 rad
+    // leaves room for one frame of overshoot before the precision correction.
+    const sign=Math.sign(remaining),fine=precise||Math.abs(remaining)<.16,key=axis==='yaw'?(sign>0?'Home':'End'):(sign>0?'PageUp':'PageDown');
+    try{if(fine)await this.page.keyboard.down('ShiftLeft');await this.page.keyboard.down(key);await expect.poll(async()=>sign*await error(axis),{timeout:90000,intervals:[50,100]}).toBeLessThan(fine?.012:.1);}
     finally{await this.page.keyboard.up(key);if(fine)await this.page.keyboard.up('ShiftLeft');}
+    // A delayed key-up may overshoot the fine window. Once the coarse pass
+    // finishes, correct in fine mode instead of oscillating with coarse turns.
+    precise=true;
    }
    expect(Math.abs(await error(axis)),`Actual keyboard look must reach requested ${axis}`).toBeLessThan(.035);
   }
@@ -100,7 +108,17 @@ export class PlayerControls {
    await expect.poll(async()=>{const p=await read(this.page);expect(p.hp,'Stamina recovery must remain on safe terrain').toBeGreaterThan(0);return p.seconds;},{timeout:60000}).toBeGreaterThan(start+2.6);
   }finally{if(this.mobile)await this.endTouch();else await this.page.keyboard.up(key);}
  }
- async healFromInventory(){const p=await read(this.page);if(p.hp>=70)return;if(!(p.campaign.items.bandage>0)){if(this.usedFlask)return;this.usedFlask=true;await this.action('#heal','KeyQ');await expect.poll(async()=>(await read(this.page)).phase).toBe('heal');await expect.poll(async()=>(await read(this.page)).phase,{timeout:60000}).toBe('idle');expect((await read(this.page)).hp,'The starting flask must actually heal').toBeGreaterThan(p.hp);return;}await this.menu('inventory');await this.row('bandage','consume');await expect.poll(async()=>(await read(this.page)).hp).toBeGreaterThan(p.hp);await this.resume();}
+ async healFromInventory(){
+  const p=await read(this.page);if(p.hp>=70)return;
+  if(!(p.campaign.items.bandage>0)){
+   // Drinking takes 1.6 seconds and an enemy hit interrupts it. Defer the
+   // single starting flask until normal movement/combat has opened space;
+   // nearby enemies keep the driver on its shield-and-counter route instead.
+   if(this.usedFlask||p.enemies.some(e=>e.hp>0&&Math.hypot(e.position.x-p.position.x,e.position.z-p.position.z)<4))return;
+   this.usedFlask=true;await this.action('#heal','KeyQ');await expect.poll(async()=>(await read(this.page)).phase).toBe('heal');await expect.poll(async()=>(await read(this.page)).phase,{timeout:60000}).toBe('idle');expect((await read(this.page)).hp,'The starting flask must actually heal').toBeGreaterThan(p.hp);return;
+  }
+  await this.menu('inventory');await this.row('bandage','consume');await expect.poll(async()=>(await read(this.page)).hp).toBeGreaterThan(p.hp);await this.resume();
+ }
  async fight(index:number){
   for(let strikes=0;strikes<18&&(await read(this.page)).enemies[index].hp>0;strikes++){
    await this.healFromInventory();let p=await read(this.page);expect(p.hp,'Combat must preserve a living player').toBeGreaterThan(0);const enemy=p.enemies[index];

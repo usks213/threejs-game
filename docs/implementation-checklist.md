@@ -10,6 +10,8 @@ Acceptance update (2026-10-04 23:32 UTC): [47b698 CI](https://github.com/usks213
 
 Acceptance update (2026-10-05): physical animal movement, player wet/fire/shock exposure, metal armor reactions, traversal rendering, portable verified saves and protocol-2 compatibility are integrated. Normal-Core seven-region, western-road and specialist routes now walk around the animal yard and berry beds using ordinary controls; all three focused routes pass without granting resources or changing collision rules. Typecheck/build and discovery of all 54 browser test cases pass. Final aggregate and exact-commit PC/Android/browser deployment verification are tracked separately; all 171 original rows remain, and full parity is not claimed.
 
+Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8e21033d1d83ad`, [CI37287775537](https://github.com/usks213/threejs-game/actions/runs/37287775537). GitHub 780/780 tests, typecheck and build passed; deploy job111693190536 verified the exact preview commit and protocol-2 relay health. Browser save history/file transfer passed on PC/Android; input/duel/motion and elemental cases also passed. Invitation/co-op availability, legacy-to-streamed conversion, a standard-preset water-visibility assertion, and authored long-play routes exposed failures. The following patch addresses their concrete causes and retains browser acceptance as pending until its own run. The legacy conversion failure protected the original save before writes.
+
 | ID | Requirement | Status | Implementation/evidence | Remaining |
 |---|---|---|---|---|
 | F01 | ゲーム開始と再開 | 実装あり・実操作未検証 | src/prototype/campaign-ui.ts; input.ts; app.ts; tests/unit/prototype-input.test.ts | 新規/続き/取消/入力解放を実ブラウザで通す |
@@ -180,6 +182,6 @@ Acceptance update (2026-10-05): physical animal movement, player wet/fire/shock 
 | Q09 | 性能 | 部分検証 | tests/unit/world-streaming.test.ts; world-bootstrap.test.ts; bootstrap-performance.test.ts | CPU初期生成/near-first測定あり。実機FPS・長時間歩行の公開計測は未完 |
 | Q10 | 技術 | 部分検証 | tests/unit/*.test.ts; package.json | 担当者の局所type/unit/build成功記録あり。全統合後の最終SHA CI/E2Eは未完 |
 | Q11 | ブラウザー | Not implemented / unverified | — | Audit and implement |
-| Q12 | 公開確認 | 部分検証 | 40a2d1 deployment job111553585248; preview-release artifact11317359953 | 公開SHA/ヘルス一致確認済み。全チェックリスト受入後の最終版確認は未完 |
+| Q12 | 公開確認 | 部分検証 | 3eb279af deployment job111693190536; preview-release artifact11335461632 | 公開SHA/ヘルス一致確認済み。全チェックリスト受入後の最終版確認は未完 |
 | Q13 | 見た目比較 | Not implemented / unverified | — | Audit and implement |
 | Q14 | 残課題 | 追跡中 | docs/implementation-checklist.md | 全171IDを保持し未実装/簡易/未検証を明示。最終公開結果に合わせ更新 |
