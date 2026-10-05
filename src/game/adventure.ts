@@ -1,3 +1,7 @@
+import {characterHeight} from '../physics/character-shape';
+import {AdventureProgression,PROGRESSION_ACTIONS,decorationUnlocked,type ProgressionAction} from './adventure-progression';
+import {bossMeleeContact,ensureBossParts,damageBossPart,bossPartMovementScale,bossPartAttack} from './combat/boss-parts';
+import {sweptEnemyContact} from './combat/enemy-contact';
 import {preflightGearThrow,throwGear,updateGearFlight,landGearFlight,recoverGearFlights} from './equipment/flights';
 import {EquipmentInventory} from './equipment/inventory';
 import {isEquipment} from './equipment/items';
@@ -53,6 +57,7 @@ export class Adventure {
  readonly gear=new EquipmentInventory(this);
  freshEquipment=false;
  readonly race=new TrailRace(this);
+ readonly progression=new AdventureProgression(this);
  readonly traversal = new Traversal(this);
  readonly trials = new AdventureTrials(this);
  readonly sites=new AdventureSites(this);
@@ -63,6 +68,8 @@ export class Adventure {
  helping: CoopSnapshot['reviving'];
  receivingHelp: CoopSnapshot['beingRevived'];
  private swing:{motion:AttackProfile;damage:number;reach:number;aim:Vec3;heading:number;weapon:string;element:'physical'|'fire'|'frost';resolved:Set<number>;voxelResolved:boolean}|null=null;
+ private charging:{started:number;weapon:string}|undefined;
+ get chargeProgress(){return this.charging?Math.min(1,Math.max(0,(this.state.seconds-this.charging.started)/1.5)):undefined;}
  private combo=0; private comboWeapon=''; private comboUntil=0;
  get attackMotion():AttackMotion|undefined {
   if(!this.swing)return undefined;
@@ -128,13 +135,17 @@ export class Adventure {
   if(!this.guarding){this.parryTime=.2;this.combo=0;this.comboUntil=0;}
   this.guarding=true;
  }
- hit(enemy: EnemyState, damage: number, element: string, byWeapon=true,source?:Vec3): void {
+ hit(enemy: EnemyState, damage: number, element: string, byWeapon=true,source?:Vec3,contact?:Vec3): void {
   if(enemy.health<=0)return;
   const def = ENEMIES.find(d => d.id === enemy.definition);
   if(byWeapon&&this.state.meadows)damage*=1+(this.state.meadows.skills[this.state.equipment]??0)*.005;
   if(this.state.meadows&&enemy.stagger)damage*=2;if(this.state.meadows&&element==='fire'&&enemy.definition.startsWith('grey'))damage*=2;
   damage*=adventureGuardMultiplier(this,enemy,element,source??(byWeapon?this.sim.player:undefined));
-  damage*=this.sites.bossMultiplier(enemy,element)??1;
+  const actor=(byWeapon?undefined:source)??this.sim.targets.find(t=>t.adventure.owner===this.owner)?.player??this.sim.player;
+  damage*=damageBossPart(enemy,damage,element,this.state.seconds,contact,actor);
+  if(enemy.bossParts&&(enemy.stagger??0)>0)this.charges.delete(enemy.id);
+  damage*=this.sites.bossMultiplier(enemy,element,actor)??1;
+  if(enemy.definition!=='stormcore'&&(enemy.bossParts?.exposedUntil??0)>this.state.seconds)damage*=1.5;
   if(enemy.definition==='stormcore')damage*=stormcoreMultiplier(this.state.seconds,enemy.attackReady?.exposed,element);
   enemy.health -= damage * (def?.resistance === element ? 0.65 : 1);
   enemy.slow = Math.max(enemy.slow, element === 'frost' ? 3 : 0.25);
@@ -152,12 +163,12 @@ export class Adventure {
   const p=this.sim.player,s=this.state,origin={x:p.x,y:p.y+ATTACK_ORIGIN_HEIGHT,z:p.z};
   for(const e of s.enemies){
    if(e.health<=0||swing.resolved.has(e.id))continue;
-   const contact=meleeContact(p,e,swing.aim,swing.reach,swing.motion,meleeBody(e.definition,e.boss),swing.heading);
+   const contact=bossMeleeContact(e,p,swing.aim,swing.reach,swing.heading)??meleeContact(p,e,swing.aim,swing.reach,swing.motion,meleeBody(e.definition,e.boss),swing.heading);
    if(!contact)continue;
    // A wall hit cannot become an enemy hit later in this same swing after its voxels are carved.
    swing.resolved.add(e.id);
    if(!clearMeleeContact(s,origin,contact,point=>this.sim.world.density(point)))continue;
-   this.hit(e,swing.damage*(s.meadows&&!e.alerted?(swing.weapon==='flintKnife'?10:3):1),swing.element);e.alerted=10;
+   this.hit(e,swing.damage*(s.meadows&&!e.alerted?(swing.weapon==='flintKnife'?10:3):1),swing.element,true,p,contact);e.alerted=10;
    {
     const strong=swing.motion.heavy||swing.damage>=25||swing.motion.combo===3;
     if(strong){e.windup=0;e.cooldown=Math.max(e.cooldown,swing.motion.heavy?.7:.45);}
@@ -173,7 +184,7 @@ export class Adventure {
  }
  hurtPlayer(amount: number, element: string, player = this.sim.player, source?:Vec3): void {
   if (this.hurt > 0 || (this.dodge>.16&&this.dodge<.46) || this.state.health <= 0) return;
-  this.gear.ensure();if(this.state.meadows)for(const[slot,kind]of Object.entries(this.state.meadows.gear)){if(slot==='offhand'||this.gear.selected(kind)?.durability===undefined)continue;try{this.gear.prepareUse(kind);}catch{delete this.state.meadows.gear[slot];}}
+  this.charging=undefined;this.gear.ensure();if(this.state.meadows)for(const[slot,kind]of Object.entries(this.state.meadows.gear)){if(slot==='offhand'||this.gear.selected(kind)?.durability===undefined)continue;try{this.gear.prepareUse(kind);}catch{delete this.state.meadows.gear[slot];}}
   const held=this.state.meadows?.gear.offhand;let shield=held?(this.state.inventory[held]?held:''):this.state.inventory.towerShield?'towerShield':this.state.inventory.shield?'shield':'';
   const facing=!source||((source.x-player.x)*Math.sin(player.heading)+(source.z-player.z)*Math.cos(player.heading))>=0;
   if(this.guarding&&shield&&source&&facing&&(!this.state.meadows||this.state.meadows.durability[shield]!==0)){try{this.gear.prepareUse(shield);}catch{shield='';}}
@@ -216,14 +227,19 @@ export class Adventure {
  action(action: GameAction, id = '', target?: Vec3, aim: Vec3 = { x: 0, y: 0, z: -1 }): { dirty: string[]; message: string } {
   this.refreshGrowth();this.gear.assertProjection();
   const p = this.sim.player, s = this.state, ground = target ?? { x: p.x + aim.x * 2.5, y: p.y, z: p.z + aim.z * 2.5 };
+  if(action==='charge-cancel'){this.charging=undefined;return {dirty:[],message:''};}
   if (s.health <= 0) throw new Error('復活を待ってください');
+  if(action==='charge-start'){if(this.attack>0||this.dodge>0)throw Error('動作の回復を待ってください');if(WEAPONS[s.equipment]?.ranged)throw Error('溜め攻撃は近接武器で使います');this.charging??={started:s.seconds,weapon:s.equipment};return {dirty:[],message:'溜め中 · 放して攻撃'};}
+  if(action==='charge-release'){const charge=this.charging,progress=this.chargeProgress;this.charging=undefined;if(!charge||charge.weapon!==s.equipment||this.attack>0||this.dodge>0)return {dirty:[],message:'溜めを解除しました'};const result=this.action('heavy','',target,aim);if(this.swing)this.swing.damage*=1+.5*(progress??0);return {...result,message:'溜め攻撃 '+Math.round((progress??0)*100)+'%'};}
+  if(['attack','heavy','dodge','guard','equip','drop','store','sky-store','travel','return'].includes(action))this.charging=undefined;
   const transferSelection=action==='store'?(id.split('|')[1]??id):action==='sky-store'?id.split(':').slice(1).join(':').replace(/^gear-(\d+):/,'gear:$1:'):id,transferParts=transferSelection.split(':'),transferKind=transferParts[0]==='gear'?s.gearItems?.lots.find(l=>l.id===Number(transferParts[1]))?.kind:transferParts[0];
   if((this.attack>0||this.dodge>0)&&((action==='drop'||action==='store'||action==='sky-store')&&transferKind===s.equipment&&(transferParts[0]!=='gear'||this.gear.selected(s.equipment)?.id===Number(transferParts[1]))||(action==='sky-fuse'||action==='sky-unfuse')&&id.split(':')[0]===s.equipment||['repair','upgrade'].includes(action)&&(!id||id===s.equipment)))throw Error('動作の回復を待ってください');
 
   if(action==='equip'&&id.startsWith('gear:')){if(!/^gear:\d+$/.test(id))throw Error('装備を選び直してください');if(this.attack>0||this.dodge>0)throw Error('動作の回復を待ってください');const kind=this.gear.select(Number(id.slice(5)));return {dirty:[],message:`${ITEM_NAMES[kind]}の個体を選びました`};}
+  if(PROGRESSION_ACTIONS.includes(action as ProgressionAction))return {dirty:[],message:this.progression.action(action as ProgressionAction,id)};
   if(action==='race'){if(this.sim.world.generator!==4)throw Error('この世界には競走がありません');return {dirty:[],message:this.race.action(id)};}
   if(SITE_ACTIONS.includes(action as SiteAction)){this.trials.dialogue=undefined;return this.sites.action(action as SiteAction,id);}
-  if(action==='dialogue'&&id.startsWith('site-'))return {dirty:[],message:this.sites.choose(id)};
+  if(action==='dialogue'&&(id.startsWith('site-')||id.startsWith('chronicle-')))return {dirty:[],message:this.sites.choose(id)};
   if(action==='dialogue'&&id==='bye')this.sites.close();if(action==='talk')this.sites.close();
   if(action==='talk'||action==='dialogue'||action==='trial'||action==='trial-reset'){const message=action==='talk'?this.trials.talk(id):action==='dialogue'?this.trials.choose(id):action==='trial'?this.trials.complete(id):this.trials.reset(id);return {dirty:[],message};}
   if(action==='map-pin-share'||action==='map-pin-remove')return sharedPinAction(this.sim,this.owner,action,id);
@@ -236,6 +252,7 @@ export class Adventure {
   if (SKY_ACTIONS.includes(action as SkyAction)) {
    const result = this.sim.skybound.action(this.owner, action as SkyAction, id, target, aim, skyContext(this.sim));
    if (result.exit) {if(action==='sky-ascend')this.trials.recordAscend({...p},result.exit);Object.assign(p, result.exit, {vy: 0, grounded: true});}
+   if(action==='sky-glue')this.progression.record('assemble');
    for (const drop of result.drops ?? []) dropItem(this, drop.id, drop.count, drop.point);
    return {dirty: [], message: result.message};
   }
@@ -251,7 +268,7 @@ export class Adventure {
   if(this.sim.world.generator===4&&action==='travel')return {dirty:[],message:beaconTravel(this,id)};
   if(this.sim.world.generator===4&&(action==='trade'||action==='sell'))return {dirty:[],message:marketTrade(this,action==='sell'?'sell:'+id:id)};
   if(this.sim.world.generator===4&&['craft','repair','upgrade'].includes(action)){if(action==='craft'){const meal=craftAdventureMeal(this,id);if(meal)return {dirty:[],message:meal};}return {dirty:[],message:craftTrailGear(this,action as 'craft'|'repair'|'upgrade',id)};}
-  if(this.sim.world.generator===4&&action==='gather'){const result=adventureBeacon(this,id);if(result)return result;}
+  if(this.sim.world.generator===4&&action==='gather'){const message=this.progression.inspect(id);if(message)return {dirty:[],message};const result=adventureBeacon(this,id);if(result)return result;}
   if(s.meadows){const result=this.meadowRules.action(action,id,ground);if(result)return result;}
   if(action==='drop'){const kind=dropOwnedItem(this,id,{x:p.x+Math.sin(p.heading),y:p.y+.4,z:p.z+Math.cos(p.heading)});return {dirty:[],message:`${ITEM_NAMES[kind]}を地面に置きました`};}
   if (action === 'gather') {
@@ -328,6 +345,7 @@ export class Adventure {
    return { dirty, message: spell.name };
   }
   if (action === 'build') {
+   if(this.sim.world.generator===4&&!decorationUnlocked(s,id))throw Error('地域の記録を集めて装飾を解放してください');
    let def = BUILDINGS.find(b => b.id === id);if(def&&s.meadows)def=meadowBuilding(def); if (!def || distance(p, ground) > 7) throw new Error('近くに設置してください');
    const {x,y,z}=ground;if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z)||Math.abs(y-p.y)>7)throw new Error('近くに設置してください');
    const issue=placementIssue(def,p,{x,y,z},s.buildings,s.inventory,Math.atan2(aim.x,aim.z));if(issue)throw new Error(issue);
@@ -377,7 +395,7 @@ export class Adventure {
    const pose=buildingPose(b);
    const cos = Math.cos(pose.rotation), sin = Math.sin(pose.rotation), dx = p.x - pose.x, dz = p.z - pose.z, x = dx * cos - dz * sin, z = dx * sin + dz * cos;
    const cellTop=footSurface(buildingVoxels(b.definition),voxelLocal(p,pose,pose.rotation),previousY-b.y,b.removed);if(cellTop!==null&&p.vy<=0&&p.y<=b.y+cellTop+.15&&previousY>=b.y+cellTop-.45){p.y=b.y+cellTop;p.vy=0;p.grounded=true;continue;}
-   if(!touchesBuildingVoxels(b,p.x,p.y,p.z))continue;
+   if(!touchesBuildingVoxels(b,p.x,p.y,p.z,.3,characterHeight(p)))continue;
    const bounds=voxelBounds(buildingVoxels(b.definition)),minX=bounds.min.x-.3,maxX=bounds.max.x+.3,minZ=bounds.min.z-.3,maxZ=bounds.max.z+.3;
    const shifts=[{x:minX-x,z:0},{x:maxX-x,z:0},{x:0,z:minZ-z},{x:0,z:maxZ-z}];
    const shift=shifts.reduce((best,next)=>Math.abs(next.x)+Math.abs(next.z)<Math.abs(best.x)+Math.abs(best.z)?next:best);
@@ -385,14 +403,14 @@ export class Adventure {
   }
   this.sim.skybound.collidePlayer(p, previousY);
   for (const n of this.state.resources) if (((!this.state.meadows&&n.kind === 'wood')||TREE_KINDS.has(n.kind)) && n.ready <= this.state.seconds && Math.abs(p.y - n.y) < 3) {
-   if(n.removed?.length&&!bodyTouchesVoxels(treeVoxels(n.kind,n.id),voxelLocal(p,n),n.removed))continue;const d = distance(p, n); if (d < 0.47) { const dx = p.x - n.x, dz = p.z - n.z; p.x = n.x + (d ? dx / d : 1) * 0.47; p.z = n.z + (d ? dz / d : 0) * 0.47; }
+   if(n.removed?.length&&!bodyTouchesVoxels(treeVoxels(n.kind,n.id),voxelLocal(p,n),n.removed,characterHeight(p)))continue;const d = distance(p, n); if (d < 0.47) { const dx = p.x - n.x, dz = p.z - n.z; p.x = n.x + (d ? dx / d : 1) * 0.47; p.z = n.z + (d ? dz / d : 0) * 0.47; }
   }
  }
  stepPersonal(dt: number): void {
-  if(this.sim.world.generator===4)this.race.step(dt);
+  if(this.sim.world.generator===4){this.race.step(dt);this.progression.step(dt);}
   const recoveryBefore=Math.max(this.staminaRecovery,this.attack,this.dodge),dodgeDt=Math.min(dt,this.dodge);
   this.staminaRecovery=Math.max(0,this.staminaRecovery-dt);
-  const s = this.state, p = this.sim.player; s.seconds += dt;this.parryTime=Math.max(0,this.parryTime-dt);
+  const s = this.state, p = this.sim.player; s.seconds += dt;if(this.charging&&(s.health<=0||s.equipment!==this.charging.weapon||s.seconds-this.charging.started>6))this.charging=undefined;this.parryTime=Math.max(0,this.parryTime-dt);
   if(this.swing){
    const swing=this.swing,before=swing.motion.elapsed;
    swing.motion.elapsed=Math.min(swing.motion.duration,before+dt);
@@ -438,18 +456,20 @@ export class Adventure {
    const p = target.player,previousEnemy={x:e.x,y:e.y,z:e.z};
    if (e.health <= 0 && !e.boss && e.respawnAt && e.respawnAt <= s.seconds) { const def = ENEMIES.find(d => d.id === e.definition)!; e.health = def.health * (1 + (e.stars??0)) * (1 + (e.tier - 1) * 0.4); e.x = e.homeX; e.z = e.homeZ; e.cooldown = 3; }
    if (e.health <= 0 || this.combatDistance(p, e) > 45) continue;
+   ensureBossParts(e);
    if((e.burn??0)>0){e.burn=Math.max(0,e.burn!-dt);this.hit(e,dt*4.4,'fire');if(e.health<=0)continue;}
-   if(s.meadows&&(e.stagger??0)>0){e.stagger=Math.max(0,e.stagger!-dt);e.windup=0;continue;}
+   if((s.meadows||e.bossParts)&&(e.stagger??0)>0){e.stagger=Math.max(0,e.stagger!-dt);e.windup=0;continue;}
    if((e.attackReady?.healing??0)>s.seconds)e.health=Math.min(ENEMIES.find(n=>n.id===e.definition)!.health*(1+(e.stars??0)),e.health+5*dt);
    if(s.meadows&&e.boss&&e.definition==='stormstag'){stepStag(this,e,dt);continue;}
    const def = e.boss ? BOSSES.find(d => d.id === e.definition)! : ENEMIES.find(d => d.id === e.definition)!;
-   const d = this.combatDistance(p, e), reach = e.boss ? 3.3 : (def as typeof ENEMIES[number]).reach, speed = e.boss ? (e.health < def.health / 2 ? 2.3 : 1.4) : (def as typeof ENEMIES[number]).speed;
+   const d = this.combatDistance(p, e), reach = e.boss ? 3.3 : (def as typeof ENEMIES[number]).reach, speed = e.boss ? (e.health < def.health / 2 ? 2.3 : 1.4)*bossPartMovementScale(e) : (def as typeof ENEMIES[number]).speed;
    e.slow = Math.max(0, e.slow - dt); e.cooldown -= dt;
    const detected=!s.meadows||senseActor(this,e,target.adventure,p,dt);
    if(s.meadows&&!detected&&!e.windup)wander(this,e,speed,dt);
    const passive=def.damage===0||(e.tame??0)>=1;
    const fire=['boar','deer','greyling','greydwarf'].includes(e.definition)&&s.buildings.find(b=>b.definition==='fire'&&(b.fuel??0)>0&&!b.open&&distance(b,e)<6);
    if(s.meadows&&(passive||fire)){if((detected&&d<16&&passive&&(e.tame??0)<1&&sees(this.sim,e,p))||fire){const threat=fire||p,away=Math.max(.1,distance(e,threat));e.x+=(e.x-threat.x)/away*speed*dt;e.z+=(e.z-threat.z)/away*speed*dt;}const wet=this.sim.fluid.immersion(e,1),current=this.sim.fluid.current(e,1);e.x+=current.x*wet*dt;e.z+=current.z*wet*dt;if(e.definition==='gull')e.y+=(this.sim.groundAt(e.x,e.z)+(detected?3:0)-e.y)*Math.min(1,dt*2);else{e.y=this.sim.world.generator===4?Math.max(this.sim.groundAt(e.x,e.z,e.y),e.y-9*dt):this.sim.groundAt(e.x,e.z);reconcileCreature(this.sim,e,previousEnemy);}continue;}
+   if(e.bossParts&&!e.windup&&!this.charges.has(e.id))e.heading=Math.atan2(p.x-e.x,p.z-e.z);
    if (detected&&d < (e.boss ? 25 : environmentAt(s.seconds).daylight < 0.2 ? 15 : 10) && d > reach) { e.x += (p.x - e.x) / d * speed * dt * (e.slow ? 0.4 : 1); e.z += (p.z - e.z) / d * speed * dt * (e.slow ? 0.4 : 1); }
    const water = this.sim.fluid.immersion(e, e.boss ? 2.4 : 1.2), flow = this.sim.fluid.current(e, e.boss ? 2.4 : 1.2);
    if (water > 0) {
@@ -462,9 +482,9 @@ export class Adventure {
    if(s.meadows&&!passive&&detected){if(strikeBarrier(this,e,p))continue;shamanMagic(this,e,dt);}
    if(e.definition==='draugrArcher'){archerAttack(this,e,p,dt);continue;}
    if (e.boss) {
-    const ability = bossAttack(e.definition, e.health < def.health / 2, e.attackKind), charge = this.charges.get(e.id);
+    const ability = bossPartAttack(e,bossAttack(e.definition, e.health < def.health / 2, e.attackKind)), charge = this.charges.get(e.id);
     if (charge) {
-     const length=Math.hypot(charge.x,charge.z); e.x+=charge.x/Math.max(length,0.01)*12*dt; e.z+=charge.z/Math.max(length,0.01)*12*dt; charge.seconds-=dt;if(this.sim.world.generator===4)reconcileCreature(this.sim,e,previousEnemy);
+     const length=Math.hypot(charge.x,charge.z); e.x+=charge.x/Math.max(length,0.01)*12*dt*bossPartMovementScale(e); e.z+=charge.z/Math.max(length,0.01)*12*dt*bossPartMovementScale(e); charge.seconds-=dt;if(this.sim.world.generator===4)reconcileCreature(this.sim,e,previousEnemy);
      for(const actor of this.sim.targets.length?this.sim.targets:[{player:this.sim.player,adventure:this}])if(this.combatDistance(actor.player,e)<2.6&&(this.sim.world.generator!==4||sees(this.sim,e,actor.player)))actor.adventure.hurtPlayer(def.damage,def.element,actor.player);
      if(charge.seconds<=0)this.charges.delete(e.id);
     } else if (e.windup > 0) {
@@ -480,10 +500,10 @@ export class Adventure {
       } else for(const actor of this.sim.targets.length?this.sim.targets:[{player:this.sim.player,adventure:this}])if(this.combatDistance(actor.player,e)<ability.radius&&(this.sim.world.generator!==4||sees(this.sim,e,actor.player))) {
        actor.adventure.hurtPlayer(def.damage,def.element,actor.player); actor.adventure.state.chill=2;
       }
-      if(e.definition==='stormcore'){e.attackReady??={};e.attackReady.exposed=s.seconds+STORMCORE.exposedSeconds;}
+      if(e.definition==='stormcore'){e.attackReady??={};e.attackReady.exposed=Math.max(e.attackReady.exposed??0,s.seconds+STORMCORE.exposedSeconds);}
       e.cooldown=ability.cooldown;
      }
-    } else if (d < 25 && e.cooldown <= 0) { if(['loadwarden','echowarden','sailwarden'].includes(e.definition))e.attackYaw=Math.atan2(p.x-e.x,p.z-e.z);if(e.definition==='stormcore'){e.attackKind=d>8?'prism':Math.floor(s.seconds/6)%2?'rush':'pulse';e.attackYaw=Math.atan2(p.x-e.x,p.z-e.z);}if(e.definition==='stormstag')e.attackKind=d>7?'beam':Math.floor(s.seconds/5)%2?'stomp':'antler';e.windup = bossAttack(e.definition,false,e.attackKind).windup; }
+    } else if (d < 25 && e.cooldown <= 0) { if(['loadwarden','echowarden','sailwarden'].includes(e.definition))e.attackYaw=Math.atan2(p.x-e.x,p.z-e.z);if(e.definition==='stormcore'){e.attackKind=d>8?'prism':Math.floor(s.seconds/6)%2?'rush':'pulse';e.attackYaw=Math.atan2(p.x-e.x,p.z-e.z);}if(e.definition==='stormstag')e.attackKind=d>7?'beam':Math.floor(s.seconds/5)%2?'stomp':'antler';e.heading=e.attackYaw??e.heading;e.windup = bossAttack(e.definition,false,e.attackKind).windup; }
     continue;
    }
    if (e.windup > 0) { e.windup = Math.max(0, e.windup - dt); if (e.windup <= 0) { if (d < reach + 0.8&&(this.sim.world.generator!==4||sees(this.sim,e,p))) target.adventure.hurtPlayer(def.damage * (1+(e.stars??0)*.5) * (e.boss ? 1 : 1 + (e.tier - 1) * 0.35), def.element, p,e); e.cooldown = e.boss && e.health < def.health / 2 ? 1.2 : 2; } }
@@ -491,11 +511,11 @@ export class Adventure {
   }
   for (let i = this.projectiles.length - 1; i >= 0; i--) {
    const shot = this.projectiles[i],previousShot={x:shot.x,y:shot.y,z:shot.z}; shot.life -= dt;shot.vy-=(shot.gravity??0)*dt; shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.z += shot.vz * dt;
-   if(this.sim.world.generator===4&&!clearMeleeContact(s,previousShot,shot,point=>this.sim.world.density(point))){Object.assign(shot,previousShot);shot.life=0;}
    const hostile = shot.owner?.startsWith('enemy:');
+   const contact = shot.life>0&&!hostile ? sweptEnemyContact(s.enemies,previousShot,shot,shot.radius) : undefined;
+   if(this.sim.world.generator===4&&!clearMeleeContact(s,previousShot,contact?.point??shot,point=>this.sim.world.density(point))){Object.assign(shot,previousShot);shot.life=0;}
    if(hostile&&shot.life>0) for(const actor of this.sim.targets.length?this.sim.targets:[{player:this.sim.player,adventure:this}])if(Math.hypot(actor.player.x-shot.x,actor.player.y+0.7-shot.y,actor.player.z-shot.z)<shot.radius+0.6){actor.adventure.hurtPlayer(shot.damage,shot.element,actor.player);shot.life=0;}
-   const enemy = shot.life>0&&!hostile && s.enemies.find(e => e.health > 0 && Math.hypot(e.x - shot.x, e.y + (e.boss ? 1.7 : 0.6) - shot.y, e.z - shot.z) < shot.radius + (e.boss ? 1.8 : 0.7));
-   if (enemy) { const owner = this.sim.targets.find(t => t.adventure.owner === shot.owner)?.adventure ?? this; owner.hit(enemy, shot.damage, shot.element,true,previousShot);if(shot.burn)enemy.burn=shot.burn;enemy.alerted=10; shot.life = 0; }
+   if (contact&&shot.life>0) { const enemy=contact.enemy,owner = this.sim.targets.find(t => t.adventure.owner === shot.owner)?.adventure ?? this; owner.hit(enemy, shot.damage, shot.element,true,previousShot,contact.point);Object.assign(shot,contact.point);if(shot.burn)enemy.burn=shot.burn;enemy.alerted=10; shot.life = 0; }
    if (shot.element === 'frost' && (this.sim.fluid.immersion(shot, 0.3) > 0 || this.sim.world.density(shot) <= 0)) { this.sim.fluid.freeze(shot, 3); shot.life = 0; }
    if(shot.gearFlight!==undefined)updateGearFlight(this,shot);
    if (shot.life <= 0 || this.sim.world.density(shot) <= 0) {if(shot.gearFlight!==undefined)landGearFlight(this,shot.gearFlight);else if(shot.recover)s.resources.push({id:this.sim.allocateEntityId(),kind:shot.recover,x:shot.x,y:this.sim.groundAt(shot.x,shot.z,shot.y),z:shot.z,amount:1,ready:0});this.projectiles.splice(i, 1);}
@@ -514,7 +534,7 @@ export class Adventure {
  snapshot(): AdventureSnapshot {
   this.refreshGrowth();this.gear.assertProjection();
   const s = this.state, p = this.sim.player, biome = biomeAt(p.x, p.z), boss = BOSSES.find(b => b.id === biome.boss)!;
-  return { ...s,gearItems:s.gearItems?structuredClone(s.gearItems):undefined,graveGear:s.graveGear?structuredClone(s.graveGear):undefined,gearFlights:undefined,raceTarget:s.race?.run?raceGates(this.sim)[s.race.run.next]:undefined,exploration:undefined,explorationStatus:explorationStatus(s),sharedPins:this.sim.sharedPins.map(p=>({...p,position:{...p.position}})),companions:this.sim.companions.snapshot(this.owner), ...(this.sim.world.generator===4?{expeditions:this.sites.snapshot(),dialogue:this.sites.dialogue??this.trials.dialogue,journey:this.trials.snapshot()}:{}), ...(this.sim.world.generator===4?{coop:{downedSeconds:s.downed??0,reviving:this.helping,beingRevived:this.receivingHelp}}:{}), traversal:this.traversal.snapshot(), skybound: this.sim.skybound.snapshot(this.owner), inventory: { ...s.inventory }, resources: s.resources.filter(n => distance(p, n) < 65 || this.sim.world.generator===4&&(n.id>=810001&&n.id<=810004||n.id>=825001&&n.id<=825007||n.id>=830001&&n.id<=830003)).map(n => ({ ...n })), enemies: s.enemies.filter(e => distance(p, e) < 65).map(e => ({ ...e })), buildings: s.buildings.filter(b => distance(p, b) < 65).map(b => ({ ...b, gearItems:this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?undefined:b.gearItems?structuredClone(b.gearItems):undefined, contents: this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?{}:{ ...b.contents },cooking:this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?[]:b.cooking })), environment: this.sim.world.generator===4?adventureEnvironment(s.seconds,p):s.meadows&&s.enemies.some(e=>e.boss&&e.health>0)?{...environmentAt(s.seconds,1),daylight:.08,weather:'cloud'}:environmentAt(s.seconds, s.meadows?1:biome.tier), generator: this.sim.world.generator, biome: s.meadows?'verdant':biome.id, objective: this.sim.world.generator===4?adventureObjective(s):s.meadows ? (s.meadows.offered?'雷鹿の加護を得た。角のつるはしで次の旅へ':'草原を探索し、住まいと食事を整えて雷角の主に挑む') : s.defeated.length === 5 ? '五つの地域を攻略しました' : `探索 → 素材を集める → 作業台・装備 → 祭壇で${boss.name}を召喚`, projectiles: this.projectiles.map(v => ({ ...v })), guarding: this.guarding, dodging: this.dodge > 0, attack: this.attack, attackMotion: this.attackMotion, wet: this.sim.fluid.immersion(p, 1.45) > 0.1 };
+  return { ...s,chargeProgress:this.chargeProgress,progression:s.progression?structuredClone(s.progression):undefined,progressionView:this.sim.world.generator===4?this.progression.snapshot():undefined,gearItems:s.gearItems?structuredClone(s.gearItems):undefined,graveGear:s.graveGear?structuredClone(s.graveGear):undefined,gearFlights:undefined,raceTarget:s.race?.run?raceGates(this.sim)[s.race.run.next]:undefined,exploration:undefined,explorationStatus:explorationStatus(s),sharedPins:this.sim.sharedPins.map(p=>({...p,position:{...p.position}})),companions:this.sim.companions.snapshot(this.owner), ...(this.sim.world.generator===4?{expeditions:this.sites.snapshot(),dialogue:this.sites.dialogue??this.trials.dialogue,journey:this.trials.snapshot()}:{}), ...(this.sim.world.generator===4?{coop:{downedSeconds:s.downed??0,reviving:this.helping,beingRevived:this.receivingHelp}}:{}), traversal:this.traversal.snapshot(), skybound: this.sim.skybound.snapshot(this.owner), inventory: { ...s.inventory }, resources: s.resources.filter(n => distance(p, n) < 65 || this.sim.world.generator===4&&(n.id>=810001&&n.id<=810004||n.id>=825001&&n.id<=825007||n.id>=830001&&n.id<=830003)).map(n => ({ ...n })), enemies: s.enemies.filter(e => distance(p, e) < 65).map(e => ({ ...e,attackReady:e.attackReady?{...e.attackReady}:undefined,bossParts:e.bossParts?structuredClone(e.bossParts):undefined })), buildings: s.buildings.filter(b => distance(p, b) < 65).map(b => ({ ...b, gearItems:this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?undefined:b.gearItems?structuredClone(b.gearItems):undefined, contents: this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?{}:{ ...b.contents },cooking:this.sim.world.generator===4&&b.creator&&b.creator!==this.owner&&!b.shared?[]:b.cooking })), environment: this.sim.world.generator===4?adventureEnvironment(s.seconds,p):s.meadows&&s.enemies.some(e=>e.boss&&e.health>0)?{...environmentAt(s.seconds,1),daylight:.08,weather:'cloud'}:environmentAt(s.seconds, s.meadows?1:biome.tier), generator: this.sim.world.generator, biome: s.meadows?'verdant':biome.id, objective: this.sim.world.generator===4?adventureObjective(s):s.meadows ? (s.meadows.offered?'雷鹿の加護を得た。角のつるはしで次の旅へ':'草原を探索し、住まいと食事を整えて雷角の主に挑む') : s.defeated.length === 5 ? '五つの地域を攻略しました' : `探索 → 素材を集める → 作業台・装備 → 祭壇で${boss.name}を召喚`, projectiles: this.projectiles.map(v => ({ ...v })), guarding: this.guarding, dodging: this.dodge > 0, attack: this.attack, attackMotion: this.attackMotion, wet: this.sim.fluid.immersion(p, 1.45) > 0.1 };
  }
  static personalSave(state: AdventureSave): AdventureSave {
   // Exclude shared graphs before cloning, not after duplicating the world per member.

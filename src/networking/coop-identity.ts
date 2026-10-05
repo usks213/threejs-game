@@ -1,3 +1,4 @@
+import {helloInfo} from './coop-handshake';
 import { COOP_PROTOCOL } from './coop-protocol';
 /** Resume capabilities travel in the WebSocket body only, never URLs/logs/saves. */
 export interface AuthenticatedCoopPacket {text:string;playerId?:string}
@@ -9,5 +10,5 @@ export async function authenticateCoopPacket(text:string):Promise<AuthenticatedC
  if(typeof packet.resumeKey!=='string'||!/^[a-f0-9]{64}$/.test(packet.resumeKey))throw Error('復帰情報が不正です');
  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(packet.resumeKey));
  const playerId=Array.from(new Uint8Array(digest),n=>n.toString(16).padStart(2,'0')).join('');
- return {text:JSON.stringify({type:'hello',protocol:COOP_PROTOCOL}),playerId};
+ return {text:JSON.stringify({type:'hello',protocol:COOP_PROTOCOL,...helloInfo(packet)}),playerId};
 }

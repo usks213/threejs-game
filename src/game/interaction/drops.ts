@@ -51,9 +51,9 @@ export function pickupItem(game:Adventure,id:number):number{
  if(!node||!Number.isSafeInteger(node.amount)||node.amount<=0)throw Error('品物はもうありません');
  const player=game.sim.player;if(!finitePoint(node)||Math.hypot(node.x-player.x,node.y-player.y,node.z-player.z)>3.5)throw Error('品物に近づいてください');
  const state=game.state,count=carryAmount(state.inventory,node.kind,node.amount,state.meadows);if(!count)throw Error('持ち物に空きがありません');
- if(isEquipment(node.kind)){game.gear.receive(node,count);return count;}
+ if(isEquipment(node.kind)){game.gear.receive(node,count);game.progression.record('pickup');return count;}
  state.inventory[node.kind]=(state.inventory[node.kind]??0)+count;node.amount-=count;if(!node.amount)state.resources=state.resources.filter(r=>r!==node);
- if(state.meadows){if(!state.meadows.discovered.includes(node.kind))state.meadows.discovered.push(node.kind);reconcileSlots(state.meadows,state.inventory);}return count;
+ if(state.meadows){if(!state.meadows.discovered.includes(node.kind))state.meadows.discovered.push(node.kind);reconcileSlots(state.meadows,state.inventory);}game.progression.record('pickup');return count;
 }
 /** Called before deleting a building; all contents and salvage become drops or nothing changes. */
 export function releaseBuildingItems(game:Adventure,building:BuildingState,salvage:Record<string,number>):void{

@@ -1,3 +1,4 @@
+import {SkyContactCursor} from '../game/skybound/contact-events';
 import {spatialSound} from './spatial';
 import { creatureVoices } from './creatures';
 import type { Snapshot } from '../simulation/protocol';
@@ -7,11 +8,13 @@ export function ambience(context:AudioContext,output:AudioNode,musicOutput:Audio
  for(let i=0;i<data.length;i++){previous=previous*.97+(Math.random()*2-1)*.03;data[i]=previous;}
  const wind=context.createBufferSource(),filter=context.createBiquadFilter(),gain=context.createGain();wind.buffer=buffer;wind.loop=true;filter.type='lowpass';filter.frequency.value=450;gain.gain.value=.2;wind.connect(filter);filter.connect(gain);gain.connect(output);wind.start();
  const voices=creatureVoices(context,output);
- const tells=new Map<number,boolean>();
- let nextBird=0,nextNote=0,lastStep=0,lastX=0,lastZ=0,phrase=0;
+ const tells=new Map<number,boolean>();const contacts=new SkyContactCursor();
+ let nextBird=0,nextNote=0,lastStep=0,lastX=0,lastZ=0,phrase=0,lastGrounded:boolean|undefined,landingTick=-1;
  const tone=(frequency:number,length:number,volume:number,type:OscillatorType='sine',slide=frequency,destination:AudioNode=output)=>{const o=context.createOscillator(),g=context.createGain(),t=context.currentTime;o.type=type;o.frequency.setValueAtTime(frequency,t);o.frequency.exponentialRampToValueAtTime(Math.max(20,slide),t+length);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(volume,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+length);o.connect(g);g.connect(destination);o.start();o.stop(t+length+.02);o.onended=()=>{o.disconnect();g.disconnect();};};
  return {update(s:Snapshot){
   if(context.state!=='running')return;voices.update(s);const t=context.currentTime,e=s.adventure.environment,boss=s.adventure.enemies.some(e=>e.boss&&e.health>0&&Math.hypot(e.x-s.player.x,e.y-s.player.y,e.z-s.player.z)<30);
+  if(s.tick>landingTick||s.tick<landingTick){if(s.tick>landingTick&&lastGrounded===false&&s.player.grounded)tone(s.adventure.wet?180:95,.14,.04,'triangle',45,effectsOutput);lastGrounded=s.player.grounded;landingTick=s.tick;}
+  for(const event of contacts.take(s.adventure.skybound?.contactEvents,s.tick)){const mix=spatialSound(s.player,event.position,s.player.heading,event.kind==='explosion'?32:18);if(mix.gain>0)tone(event.kind==='explosion'?75:event.material==='metal'?410:event.material==='stone'?125:220,event.kind==='explosion'?.35:.12,Math.min(.06,.01+event.strength*.005)*mix.gain,event.material==='metal'?'sine':'triangle',event.kind==='explosion'?35:75,effectsOutput);}
   const depth=s.adventure.generator===4&&s.player.y<-3,sky=s.adventure.generator===4&&s.player.y>17;
   filter.frequency.setTargetAtTime(depth?180:sky?800:e.weather==='rain'||e.weather==='storm'?2200:450,t,.5);gain.gain.setTargetAtTime(depth?.13:sky?.34:e.weather==='storm'?.7:.23,t,.5);
   for(const enemy of s.adventure.enemies){const mix=spatialSound(s.player,enemy,s.player.heading,25),active=enemy.windup>0;if(active&&!tells.get(enemy.id)&&mix.gain>0)tone(enemy.boss?65:enemy.definition==='boar'?140:220,enemy.boss?1.2:.18,(enemy.boss?.08:.025)*mix.gain,'sawtooth',enemy.boss?180:70,effectsOutput);tells.set(enemy.id,active);}

@@ -31,3 +31,10 @@ it('atomically keeps prior access when quota fails before commit',async()=>{
 it('does not mistake a deleted compact access record for a legacy unmanaged room',async()=>{
  const {initialRoomAccess}=await import('../../src/networking/room-access');const storage=new Storage();await writeRoom(storage,{...save(),access:initialRoomAccess(false)});storage.data.delete('room-access');await expect(readRoom(storage)).rejects.toThrow('欠落');
 });
+
+it('returns only durable manifest generations and retains the prior revision on write failure or recovery',async()=>{
+ const storage=new Storage(),first=await writeRoom(storage,save());expect((await readRoom(storage)).revision).toBe(first);expect(first).toBe((await storage.get<{generation:string}>('room-current'))!.generation);storage.fail=true;await expect(writeRoom(storage,save())).rejects.toThrow('quota');storage.fail=false;expect((await readRoom(storage)).revision).toBe(first);const second=await writeRoom(storage,save());expect(second).not.toBe(first);storage.data.set(`checkpoint:${second}:0`,'corrupt');const recovered=await readRoom(storage);expect(recovered.recovered).toBe(true);expect(recovered.revision).toBe(first);expect((await storage.get<{generation:string}>('room-current'))!.generation).toBe(first);
+});
+it('does not manufacture a room generation before the first commit and returns the migration commit generation',async()=>{
+ const storage=new Storage();expect((await readRoom(storage)).revision).toBeUndefined();storage.data.set('segments',1);storage.data.set('world:0',JSON.stringify(save()));const migrated=await readRoom(storage);expect(migrated.revision).toBe((await storage.get<{generation:string}>('room-current'))!.generation);
+});

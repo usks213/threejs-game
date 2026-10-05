@@ -1,7 +1,7 @@
 [
   {
     "id": "NET-01",
-    "status": "実装済み・公開受入中",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/networking/authority-room.ts",
       "apps/coop/src/index.ts",
@@ -17,13 +17,14 @@
       "coop-slow-reader.test.ts",
       "coop-frame-decoder.test.ts"
     ],
-    "remaining": "protocol6固定実2WS15分で全state/水/再接続/再起動/gap復帰と68%payload削減を確認。protocol7受領上限は実2WSで確認。公開2ブラウザの全段階、実Worker性能と長期運用は未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "実endpointと永続保存の最終版受入。4人上限は4人品質保証とは区別。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "NET-02",
-    "status": "実装済み・公開受入中",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/networking/authority-room.ts",
       "apps/coop/src/index.ts",
@@ -34,13 +35,14 @@
       "session-real-clients.test.ts",
       "network.spec.ts"
     ],
-    "remaining": "公開2ブラウザの全段階合格、長時間・150ms遅延/損失。NET-03の物体競合はPOWER unitのみ",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "単調操作番号と永続high-waterを追加。N1参照。最終統合/再起動試験。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "NET-03",
-    "status": "実装済み・公開受入中",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/networking/authority-room.ts",
       "apps/coop/src/index.ts",
@@ -57,13 +59,14 @@
       "fluid-wire.test.ts",
       "coop-client-liveness.test.ts"
     ],
-    "remaining": "必須expectedRevision/expectedEpoch、再送の重複排除、150msアプリ層proxyとsnapshot欠損はローカル合格。公開2ブラウザの同時操作全受入は未合格",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "transaction/lease/revision、窓外の重複拒否を実装。公開同時操作受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "NET-04",
-    "status": "実装済み・公開受入中",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/networking/authority-room.ts",
       "apps/coop/src/index.ts",
@@ -74,13 +77,14 @@
       "session-real-clients.test.ts",
       "network.spec.ts"
     ],
-    "remaining": "公開2ブラウザの全段階合格、長時間・150ms遅延/損失。NET-03の物体競合はPOWER unitのみ",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "最終版の全員切断/停止復帰、初期状態と復旧状態の表示確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "NET-05",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/networking/coop-identity.ts",
       "src/simulation/session.ts",
@@ -97,13 +101,14 @@
       "room-access-clients.test.ts",
       "room-management-ui.test.ts"
     ],
-    "remaining": "管理者/参加ロック/既知復帰/退出/ban解除/確認UI、private建築・部品権限を実装。保存失敗停止/previous復旧でもban保持、実2WS再起動を検査。匿名IDを新規に作る相手は参加ロック併用。公開荒らし復旧/実UI受入は未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "新規記録/練習人形の保護と銘板位置分離を追加。N2参照。公開荒らし受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "WORLD-01",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/world/skybound-terrain.ts",
       "src/world/density.ts",
@@ -115,13 +120,14 @@
       "layer-support.test.ts",
       "adventure-depth-route.test.ts"
     ],
-    "remaining": "実Session入力で開始→組立→地表灯→斜路→天抜け→空灯、別経路で東穴→翼→地下灯→天抜け帰還を合格。残り全島ルート/公開画面は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "三層の実入力ルートがある。最終版の公開往復受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "WORLD-02",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/world/skybound-terrain.ts",
       "src/world/density.ts",
@@ -130,13 +136,14 @@
     "tests": [
       "skybound-terrain.test.ts"
     ],
-    "remaining": "三層を実ブラウザで往復、LOD/境界の見た目、端末負荷",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "同じ密度/編集を衝突・描画へ使用。境界の実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "WORLD-03",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/world/skybound-terrain.ts",
       "src/world/density.ts",
@@ -145,13 +152,14 @@
     "tests": [
       "skybound-terrain.test.ts"
     ],
-    "remaining": "三層を実ブラウザで往復、LOD/境界の見た目、端末負荷",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "LOD/準備待ちあり。権威の密度は描画streamingに依存せず、未描画だから衝突が消える方式ではない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "WORLD-04",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/environment/adventure.ts",
       "src/rendering/voxel/field-shader.ts",
@@ -161,13 +169,14 @@
       "adventure-environment.test.ts",
       "traversal-adventure.test.ts"
     ],
-    "remaining": "6環境の領域/温度/共有風/描画色を実装。原景の密度/造形、実ブラウザの識別しやすさは未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "六環境と層別造形。遠景シルエットの実画面QA。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "WORLD-05",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/environment/adventure.ts",
       "src/rendering/voxel/field-shader.ts",
@@ -177,13 +186,14 @@
       "adventure-environment.test.ts",
       "traversal-adventure.test.ts"
     ],
-    "remaining": "6環境の領域/温度/共有風/描画色を実装。原景の密度/造形、実ブラウザの識別しやすさは未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "共有時刻による風/天候。草の描画揺れと力学上の風は別。下記説明参照。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "WORLD-06",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/world/skybound-terrain.ts",
       "src/environment/time.ts",
@@ -193,13 +203,14 @@
       "skybound-terrain.test.ts",
       "fluid-obstacles.test.ts"
     ],
-    "remaining": "新作6環境の独自設計、天候影響、保護地形と進行復旧",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "水/浮力/洞窟/灯具/鉱物は存在。本書に現行水モデルを明記。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "WORLD-07",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/world/skybound-terrain.ts",
       "src/environment/time.ts",
@@ -209,13 +220,14 @@
       "skybound-terrain.test.ts",
       "fluid-obstacles.test.ts"
     ],
-    "remaining": "新作6環境の独自設計、天候影響、保護地形と進行復旧",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "保護/貸出品復旧/安全帰還あり。新規記録の保護はNET-05のN2。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "MOVE-01",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/traversal.ts",
       "src/physics/character.ts",
@@ -226,13 +238,14 @@
       "landing.test.ts",
       "adventure-route.test.ts"
     ],
-    "remaining": "速度ベース着地ダメージ、登攀終端の安全な岸上がり、急降下入力を追加。公開実操作/斜面/水際の全受入は未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "実際の低いcapsule/姿勢、天井を検査した立上がり、個人/遠隔表示を追加。optional姿勢保存bit/旧記録読込/個人遠隔の分離を追加。最終受入は別。M1。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "MOVE-02",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/traversal.ts",
       "src/physics/character.ts",
@@ -241,13 +254,14 @@
     "tests": [
       "traversal-adventure.test.ts"
     ],
-    "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "材質/濡れ、掴まり、警告、滑落、乗越えを追加。最終統合/遅延受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "MOVE-03",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/traversal.ts",
       "src/physics/character.ts",
@@ -256,13 +270,14 @@
     "tests": [
       "traversal-adventure.test.ts"
     ],
-    "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "翼、上昇風、専用急降下あり。公開操作感。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "MOVE-04",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/traversal.ts",
       "src/physics/character.ts",
@@ -271,13 +286,14 @@
     "tests": [
       "traversal-adventure.test.ts"
     ],
-    "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "浮遊/岸上がり/息の警告状態あり。HUD連携と公開2人水面確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "MOVE-05",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/traversal.ts",
       "src/physics/character.ts",
@@ -286,13 +302,14 @@
     "tests": [
       "traversal-adventure.test.ts"
     ],
-    "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "席に加えて立った乗員を床の並進/回転へ追従。実Sessionと公開遠隔表示の受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "MOVE-06",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/companions.ts",
       "src/ui/companions.ts",
@@ -302,13 +319,14 @@
       "companions.test.ts",
       "companion-render.test.ts"
     ],
-    "remaining": "独自生物の餌/追従/騎乗/安全降車/8部品牽引/保存を実装。経路探索mesh/泳ぎ/戦闘/繁殖は未実装、公開2人操作は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "餌3回による仲間化、呼ぶ/追従、騎乗、牽引、安全降車。繁殖等は追加要件にしない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "MOVE-07",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/traversal.ts",
       "src/physics/character.ts",
@@ -317,13 +335,14 @@
     "tests": [
       "traversal-adventure.test.ts"
     ],
-    "remaining": "公開実操作、登攀角/泳ぎの体験、共有乗り物、camera全モード",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "遮蔽補正、照準/建築preview、感度/反転/FOV/揺れ軽減。各場面の公開受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "POWER-01",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound",
       "src/ui/powers.ts",
@@ -333,13 +352,14 @@
       "skybound.test.ts",
       "skybound-session.test.ts"
     ],
-    "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "輪郭/lease/材質質量/移動回転/格子接着preview。新UIの実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "POWER-02",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound",
       "src/ui/powers.ts",
@@ -349,13 +369,14 @@
       "skybound.test.ts",
       "skybound-session.test.ts"
     ],
-    "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "武器/盾に加えて矢の合成、効果/消費/解除preview。実装統合受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "POWER-03",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound",
       "src/ui/powers.ts",
@@ -365,13 +386,14 @@
       "skybound.test.ts",
       "skybound-session.test.ts"
     ],
-    "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "4秒履歴、lease/epoch固定、接着変更で履歴無効化。保存/クエストを巻き戻さない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "POWER-04",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound",
       "src/ui/powers.ts",
@@ -381,13 +403,14 @@
       "skybound.test.ts",
       "skybound-session.test.ts"
     ],
-    "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "支持/頭上/人/保護/再確認。出口を塞ぐ公開試験。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "POWER-05",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound",
       "src/ui/powers.ts",
@@ -397,13 +420,14 @@
       "skybound.test.ts",
       "skybound-session.test.ts"
     ],
-    "remaining": "公開2人操作、全UI組合せ、見た目のghost/selection改善",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "グラフ保存/再建/費用/配置/部品数検証。外部コード入力なし。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "PHYS-01",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound/powers.ts",
       "src/game/skybound/rigid.ts",
@@ -423,13 +447,14 @@
       "skybound-water-coupling.test.ts",
       "quaternion-water-obstacles.test.ts"
     ],
-    "remaining": "姿勢付き船体の障害物/外側水面サンプラー/積載質量/放水の体積保存を検査。傾斜時の参照上限8,192を追加。角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "新作の保持構造物を質量に応じて投げるsky-throwを追加。P1参照。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "PHYS-02",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound/powers.ts",
       "src/game/skybound/rigid.ts",
@@ -449,13 +474,14 @@
       "skybound-water-coupling.test.ts",
       "quaternion-water-obstacles.test.ts"
     ],
-    "remaining": "姿勢付き船体の障害物/外側水面サンプラー/積載質量/放水の体積保存を検査。傾斜時の参照上限8,192を追加。角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "指定9部品、単一構造の権威、電力。汎用車軸solverは必須にしない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "PHYS-03",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound/powers.ts",
       "src/game/skybound/rigid.ts",
@@ -475,13 +501,14 @@
       "skybound-water-coupling.test.ts",
       "quaternion-water-obstacles.test.ts"
     ],
-    "remaining": "姿勢付き船体の障害物/外側水面サンプラー/積載質量/放水の体積保存を検査。傾斜時の参照上限8,192を追加。角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "火/水/氷/導電/風/爆発を実装。下記の優先順と上限を確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "PHYS-04",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound/powers.ts",
       "src/game/skybound/rigid.ts",
@@ -499,13 +526,14 @@
       "wheel-traction.test.ts",
       "wheel-traction-integration.test.ts"
     ],
-    "remaining": "角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "現行30Hz/64創作部品/16部品構造/4秒。Node測定は実機性能ではない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "PHYS-05",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/skybound/powers.ts",
       "src/game/skybound/rigid.ts",
@@ -523,13 +551,14 @@
       "wheel-traction.test.ts",
       "wheel-traction-integration.test.ts"
     ],
-    "remaining": "角慣性/転倒/安全降車/姿勢復帰/sleepに加え、所有権条件付き接触伝達、全境界/OBB/capsule guard、9点浮力・torque、給電+接地+driver必須の車輪駆動を実装。完全連成/回転sweep/車軸/サスペンション/厳密流体連成は未実装。公開/実機負荷は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "sleep/一度きり接触表示と、返却drop準備後の原子的解体。P2参照。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "ITEM-01",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/meadows",
       "src/content/catalog.ts",
@@ -540,13 +569,14 @@
       "core-action.test.ts",
       "adventure-gear.test.ts"
     ],
-    "remaining": "新世界の共有資源、鉄/晶石と料理素材を配置。採集stack/重量/共有拾得は検証済み。地域資源の分布拡張と交易通貨の供給が残る",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "地域素材/鉱物/食材/通貨dropと売却/stackあり。旧「通貨供給なし」は失効。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "ITEM-02",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/content/adventure-food.ts",
       "src/game/meadows/rules.ts"
@@ -554,13 +584,14 @@
     "tests": [
       "adventure-food.test.ts"
     ],
-    "remaining": "旅料理5種の素材消費・耐寒/耐熱/持久/発光/回復を実装。調理UIと共有受渡しの公開操作は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "5料理効果/3枠/残時間処理に加えHUDへ残秒表示を追加。実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "ITEM-03",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/meadows",
       "src/content/catalog.ts",
@@ -580,13 +611,14 @@
       "equipment-websocket.test.ts",
       "equipment-lots-ui.test.ts"
     ],
-    "remaining": "携帯工作/品質/修理/持ち物成長と、個体の品質・耐久・融合・受渡し・墓標・投擲保存をローカル検証。旧大量同種記録も保持。全装備種の増量、耐久警告の実視認性と公開操作受入は残る",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "個体耐久/破損/修理/強化比較/所持拡張あり。追加装備数そのものを未完了にしない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "ITEM-04",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/meadows",
       "src/content/catalog.ts",
@@ -604,13 +636,14 @@
       "blueprint-management.test.ts",
       "equipment-websocket.test.ts"
     ],
-    "remaining": "交易/私有と共有の倉庫/個体受渡し/設計名変更と確認付き削除をローカル検証。移動倉庫の装備metadata統合は次区切り、公開二人受渡しの全受入は残る",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "交易/固定・移動倉庫/装備metadata受渡し/設計管理あり。公開切断受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "COMBAT-01",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/adventure.ts",
       "src/game/combat",
@@ -621,13 +654,14 @@
       "combat-feel.test.ts",
       "layer-combat.test.ts"
     ],
-    "remaining": "3D距離/全遮蔽、薄壁projectile sweep、入力/状態権威、部位なしの近接/弓を実装。巻戻し補償は0ms、権威受信時判定。公開遅延の操作感は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "近接/射撃/防御/回避/parryに加え権威時刻の長押し溜め/解放を追加。C1と最終Session統合確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "COMBAT-02",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/combat/aim-assist.ts",
       "src/ui/accessibility.ts"
@@ -636,13 +670,14 @@
       "aim-assist.test.ts",
       "combat-feel.test.ts"
     ],
-    "remaining": "5度/24m/遮蔽検査の個人照準補助と既存parry猶予。全世界slow motionは使わない。公開入力遅延下の操作感は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "個人照準補助、既存parry猶予。世界slow motionは使わない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "COMBAT-03",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/adventure.ts",
       "src/game/combat",
@@ -654,13 +689,14 @@
       "combat-feel.test.ts",
       "adventure-navigation.test.ts"
     ],
-    "remaining": "局所迂回を追加し、支持/壁回避/編集無効化/64敵の展開予算を検査。独自6敵の接近/盾側面/遠隔/予兆突進/浮遊、64処理予算、3D/地形建築樹木岩部品LOS、通貨/資源dropを実装検査。追加種と公開実戦バランスは残る",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "各敵役割/環境反応/群れの呼応と包囲/局所再経路。全世界navmeshは必須ではない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "COMBAT-04",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/adventure.ts",
       "src/game/combat",
@@ -673,13 +709,14 @@
       "stormcore.test.ts",
       "layer-support.test.ts"
     ],
-    "remaining": "嵐心と3地域番人、固有条件弱点/方向予兆/共有報酬。独立破壊できるボス部位と公開実戦・調整は未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "4大型敵の独立部位/移動・射撃弱体化/高所・装置攻略/共有予兆。公開実戦受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "COMBAT-05",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/game/coop-revive.ts",
       "src/ui/coop.ts"
@@ -688,13 +725,14 @@
       "coop-revive.test.ts",
       "coop-revive-clients.test.ts"
     ],
-    "remaining": "公開2ブラウザの救助、遅延/切断時の画面受入",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "救助/安全復活/途中参加/共有報酬。公開切断/人数減少時受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "QUEST-01",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/content/adventure-world.ts",
       "src/game/journey.ts",
@@ -703,13 +741,14 @@
     "tests": [
       "traversal-adventure.test.ts"
     ],
-    "remaining": "4道標+最終敵は導入縦切り。多地域ダンジョン、試練各属性、NPC依頼、成長、図鑑、周回",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "出発地で順序付き実地導入と単独救助練習を追加。全工程を実入力で通す受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "QUEST-02",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/content/adventure-trials.ts",
       "src/ui/dialogue.ts",
@@ -718,13 +757,14 @@
     "tests": [
       "adventure-trials.test.ts"
     ],
-    "remaining": "7試練の公開実操作。複数地域の大規模ダンジョンは別未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "七属性の試練と代替解。公開実操作。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "QUEST-03",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/content/adventure-world.ts",
       "src/game/journey.ts",
@@ -736,13 +776,14 @@
       "traversal-adventure.test.ts",
       "adventure-sites.test.ts"
     ],
-    "remaining": "3地域×3部屋の建築拠点、輸送/救助/装置復旧、NPC/3番人を追加。現在の規模は有限の中型拠点で、原作規模の大規模ダンジョンではない。公開複数人完走と造形QAは残る",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "三地域に元3室＋別棟3室/高所書架、NPC/輸送救助復旧/大型敵。到達可能性・長さの公開QA。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "QUEST-04",
-    "status": "実装済み・ローカル検証",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/content/adventure-trials.ts",
       "src/ui/dialogue.ts",
@@ -751,13 +792,14 @@
     "tests": [
       "adventure-trials.test.ts"
     ],
-    "remaining": "7試練の公開実操作。複数地域の大規模ダンジョンは別未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "個人記録/共有設備と報酬を分離し一度だけ記録。公開同時完了。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "QUEST-05",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/content/adventure-trials.ts"
     ],
@@ -766,13 +808,14 @@
       "adventure-growth.test.ts",
       "beacon-travel.test.ts"
     ],
-    "remaining": "共有拠点ごとに全員と後参加のHP/スタミナ/電池100→175/所持32→44枠が成長。安全到着/敵近接制限付き道標移動。移動式拠点の収納/寝床一体化は未実装",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "HP/スタミナ/電池容量/所持枠成長、後参加catch-up、道標/移動拠点。旧移動拠点未実装は失効。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "QUEST-06",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/content/adventure-world.ts",
       "src/game/journey.ts",
@@ -786,13 +829,14 @@
       "shared-pins.test.ts",
       "trail-race.test.ts"
     ],
-    "remaining": "素材/装備検索図鑑、共有3Dピン、PNG写真、実Session入力で6門を完走できる競走と個人最高記録。装飾種/収集報酬拡充と実画面写真検証は残る",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "図鑑/九記録/個人共有ピン/踏査/写真/競走/4装飾。公開写真と操作受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "QUEST-07",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/content/adventure-world.ts",
       "src/game/journey.ts",
@@ -801,13 +845,14 @@
     "tests": [
       "traversal-adventure.test.ts"
     ],
-    "remaining": "最終敵討伐後の終幕文章と自由探索、確認付き新規世界/旧記録保護、任意競走。周回差分、公開物語完走は未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "終幕/後日依頼/明示確認つき次周と新規世界/旧記録保全。公開完走と失敗復旧受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "UX-01",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/ui/powers.ts",
       "src/ui/adventure.ts",
@@ -816,13 +861,14 @@
     "tests": [
       "network.spec.ts"
     ],
-    "remaining": "4道標マップから層切替/検索/共有pin/図鑑へ拡張、モバイルlayoutの実測",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "電力/食事残秒/泳ぎ警告と入力再割当対応表記を追加。モバイル可読性受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "UX-02",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/ui/adventure-map.ts",
       "src/ui/powers.ts",
@@ -834,13 +880,14 @@
       "shared-pins.test.ts",
       "field-guide.test.ts"
     ],
-    "remaining": "三層map/共有pin32個/所有者削除/図鑑検索/依頼log/設計帳。公開実操作と全情報の並替えは未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "層/ピン/依頼/recipe/設計/通知あり。検索並替え追加の最終版統合・focus保持受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "UX-03",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/ui/accessibility.ts",
       "src/input/keyboard/keyboard.ts",
@@ -851,13 +898,14 @@
       "resolution.test.ts",
       "voxel-adventure.spec.ts"
     ],
-    "remaining": "個別音量、照準/救助補助、文字拡大/揺れ低減、移動/攻撃/ガード/回避/救助/道具/数字8枠のキーボード再割当。実端末可読性/全操作受入は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "無音/自動再生不可でも働くsnapshot駆動音字幕と保存設定を追加。実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "AV-01",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/rendering/game/skybound.ts",
       "src/rendering/game/landmarks.ts",
@@ -867,13 +915,14 @@
       "skybound-terrain.test.ts",
       "adventure-creature-models.test.ts"
     ],
-    "remaining": "4独自通常敵・3番人の結合voxelモデル/LOD、遠近シルエットと予兆距離をNode幾何試験で検査。実際のGPU画像、陰影/距離音響/アニメの調整は未検証",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "独自voxel造形。水の小波/粒子/草の例外を下記に明示。実GPUで顔・手足・道具を確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "AV-02",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/rendering/game/skybound.ts",
       "src/rendering/game/landmarks.ts",
@@ -882,13 +931,14 @@
     "tests": [
       "skybound-terrain.test.ts"
     ],
-    "remaining": "造形/音楽/距離音響、選択preview、属性/装置演出、実画面QA",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "層色/霧/昼夜/雲/天候/草揺れ/独自音、着地遷移音あり。実聴取受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "AV-03",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/rendering/game/skybound.ts",
       "src/rendering/game/landmarks.ts",
@@ -898,13 +948,14 @@
       "skybound-terrain.test.ts",
       "spatial-sound.test.ts"
     ],
-    "remaining": "独自合成音楽/環境/効果音、3D距離減衰/定位/層違いの減衰を追加。厳密遮蔽音響・実聴取/端末受入は未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "輪郭/ghost/接着点/攻撃予兆、lease所有者と残秒あり。実画面で識別性を確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "SAVE-01",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/save/repository.ts",
       "src/save/storage.ts",
@@ -921,13 +972,14 @@
       "session-member-save.test.ts",
       "coop-authority.test.ts"
     ],
-    "remaining": "2世代原子的保存/破損保護/個人export/import/共有の自分のexportは実装。公開再起動耐障害・復旧UI実操作、共有room管理importは未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "専用namespace/世代保全/破損検出/export/import。共有room管理importは原仕様必須へ追加しない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "SAVE-02",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/save/repository.ts",
       "src/save/storage.ts",
@@ -944,13 +996,14 @@
       "session-member-save.test.ts",
       "coop-authority.test.ts"
     ],
-    "remaining": "2世代原子的保存/破損保護/個人export/import/共有の自分のexportは実装。公開再起動耐障害・復旧UI実操作、共有room管理importは未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "個人と共有の保存完了generation表示を追加。保存失敗時/切断時の実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   },
   {
     "id": "SAVE-03",
-    "status": "部分実装",
+    "status": "実装済み・公開受入待ち",
     "code": [
       "src/save/repository.ts",
       "src/save/storage.ts",
@@ -967,8 +1020,9 @@
       "session-member-save.test.ts",
       "coop-authority.test.ts"
     ],
-    "remaining": "2世代原子的保存/破損保護/個人export/import/共有の自分のexportは実装。公開再起動耐障害・復旧UI実操作、共有room管理importは未完了",
-    "testedBuild": "ローカル第12統合・型/715テスト153ファイル/build合格。3645d252公開/第12ブラウザ受入は別",
-    "evidence": []
+    "remaining": "個人/共有保存を分離。下記の終了時挙動と公開全員切断受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "第13統合: 型/build合格。全814試験中812初回合格、登攀入力の旧fixture2件を修正し関連20試験合格。最終commitのCI全試験/公開受入は待ち。",
+    "evidence": [],
+    "audit": "docs/adventure/full-spec-audit.md"
   }
 ]

@@ -1,3 +1,5 @@
+import {chargeInput} from '../input/charge';
+import {soundCaptionUI} from '../ui/sound-captions';
 import {ReplicaBridge} from './replica-bridge';
 import {SITES} from '../content/adventure-sites';
 import {rescueUI} from '../ui/expeditions';
@@ -51,7 +53,7 @@ export function startGame() {
   const controller = new AbortController(), { signal } = controller;
   const canvas = document.querySelector<HTMLCanvasElement>('#game')!, app = document.querySelector<HTMLElement>('#app')!;
   const status = document.querySelector<HTMLElement>('#status')!, error = document.querySelector<HTMLElement>('#error')!;
-  configureLandscape(app,signal);gameShell(signal);const preferences=accessibilityUI(signal);const diagnostics=liveDiagnostics(app,signal);
+  configureLandscape(app,signal);gameShell(signal);const preferences=accessibilityUI(signal);const diagnostics=liveDiagnostics(app,signal);const captions=soundCaptionUI(signal,()=>preferences.soundCaptions);
   const sound = gameSound(signal);sound.setMix(preferences.audioMix);for(const id of['music-volume','environment-volume','effects-volume'])document.querySelector('#'+id)!.addEventListener('input',()=>sound.setMix(preferences.audioMix),{signal});sound.setVolume(Number(document.querySelector<HTMLInputElement>('#sound-volume')!.value));document.querySelector<HTMLInputElement>('#sound-volume')!.addEventListener('input',e=>sound.setVolume(Number((e.target as HTMLInputElement).value)),{signal});
   document.querySelector('#sound-toggle')!.addEventListener('click', () => { document.querySelector('#sound-toggle')!.textContent = sound.toggle() ? '音 OFF' : '音 ON'; }, { signal });
   let noticeTimer: ReturnType<typeof setTimeout> | undefined, lastNotice = 0;
@@ -103,8 +105,8 @@ export function startGame() {
   const acceptSnapshot=(next:Snapshot,motionOnly=false)=>{diagnostics.snapshot();state=next;if(!motionOnly)dirtyWorld=true;if(first){world.player.position.set(next.player.x,next.player.y,next.player.z);first=false;}};
   const replicaBridge=new ReplicaBridge(message=>worker?.postMessage(message),acceptSnapshot);
   const post = (message: ClientMessage) => { if(message.type==='replica-state'){replicaBridge.offer(message.state,message.edits);return;} if(message.type==='init'||message.type==='replica-init'){replicaBridge.reset();loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
-  const photo=document.createElement('button');photo.id='photo';photo.textContent='風景をPNGで保存 [P]';document.querySelector('#system-panel')!.append(photo);photo.addEventListener('click',()=>{if(app.dataset.state!=='running'){notice('ワールドの準備ができてから写真を撮ってください');return;}photoNext=true;document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);},{signal});signal.addEventListener('abort',()=>photo.remove(),{once:true});
-  const network = networkUI(signal, post, notice,{loadPersonal:()=>persistence.load(),exported:save=>persistence.exportSave(save)});
+  const photo=document.createElement('button');photo.id='photo';const photoLabel=()=>{photo.textContent='風景をPNGで保存'+(preferences.hint('KeyP')?' ['+preferences.hint('KeyP')+']':'');};photoLabel();document.querySelector('#system-menu')!.addEventListener('click',photoLabel,{signal});document.querySelector('#accessibility-settings')!.addEventListener('keyup',photoLabel,{signal});document.querySelector('#system-panel')!.append(photo);photo.addEventListener('click',()=>{if(app.dataset.state!=='running'){notice('ワールドの準備ができてから写真を撮ってください');return;}photoNext=true;document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);},{signal});signal.addEventListener('abort',()=>photo.remove(),{once:true});
+  const network = networkUI(signal, post, notice,{savedRevision:revision=>persistence.sharedRevision(revision),loadPersonal:()=>persistence.load(),exported:save=>persistence.exportSave(save)});
   const send = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input);if (!network.forward(message)) post(message); };
   // Input must reach the authority on contact/release even if drawing is slow.
   // The short heartbeat also renews held input before the server's idle timeout.
@@ -145,15 +147,15 @@ export function startGame() {
     if(action==='dodge'&&(input.x||input.z)){const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw),length=Math.hypot(input.x,input.z);aim={x:(input.x*cos+input.z*sin)/length,y:0,z:(input.z*cos-input.x*sin)/length};}
     send({type:'game-action',action,id,target:action==='build'?placement??undefined:(action==='repairBuilding'||action==='remove')&&contextual?.id==='b:'+id?contextual.point:target??undefined,aim});
   };
-  const powers=powersUI(signal,(action,id,point,rotation)=>{sampleReticle();const guarded=['sky-store','sky-take','sky-camp','sky-move','sky-glue','sky-unglue','sky-recall','sky-salvage','sky-toggle','sky-charge','sky-ride','sky-share','sky-upright'].includes(action);const expectedEpoch=guarded?state?.adventure.skybound?.parts.find(p=>p.id===Number(id?.split(':')[0]))?.epoch:undefined;send({type:'game-action',expectedEpoch,action,id,target:point??target??undefined,aim:rotation===undefined?{...reticleAim}:{x:Math.sin(rotation),y:0,z:Math.cos(rotation)}});});
+  const powers=powersUI(signal,(action,id,point,rotation)=>{sampleReticle();const guarded=['sky-store','sky-take','sky-camp','sky-move','sky-glue','sky-unglue','sky-recall','sky-salvage','sky-toggle','sky-charge','sky-ride','sky-share','sky-upright','sky-throw'].includes(action);const expectedEpoch=guarded?state?.adventure.skybound?.parts.find(p=>p.id===Number(id?.split(':')[0]))?.epoch:undefined;send({type:'game-action',expectedEpoch,action,id,target:point??target??undefined,aim:rotation===undefined?{...reticleAim}:{x:Math.sin(rotation),y:0,z:Math.cos(rotation)}});});
   const rescue=rescueUI(signal,()=>gameAction('site-rescue','850002'));
   const companions=companionsUI(signal,(kind,id)=>gameAction(kind,id),()=>powers.selectedPart);
   const glide=document.createElement('button');glide.id='traverse-glide';glide.className='hud-button';glide.textContent='翼';glide.setAttribute('aria-label','翼を開閉');app.append(glide);actionInput(glide,()=>gameAction('glide'),signal);signal.addEventListener('abort',()=>glide.remove(),{once:true});
   const dive=document.createElement('button');dive.id='dive';dive.textContent='急降下 [V]';document.querySelector('#combat-extra')!.append(dive);actionInput(dive,()=>gameAction('glide','dive'),signal);signal.addEventListener('abort',()=>dive.remove(),{once:true});
   const dialogue=dialogueUI(signal,id=>gameAction('dialogue',id));
-  const coop=coopUI(signal,id=>gameAction('revive',id),()=>preferences.holdAssist,code=>preferences.boundCode(code));
-  const adventure = adventureUI(signal, gameAction, id => { building=id;app.dataset.sandbox='false';app.dataset.building='true';buildHeight=0;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; });
-  for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='guard'){button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);gameAction('guard','on');},{signal});for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>gameAction('guard','off'),{signal});}else if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
+  const coop=coopUI(signal,id=>gameAction('revive',id),()=>preferences.holdAssist,code=>preferences.boundCode(code),preferences.hint);
+  const adventure = adventureUI(signal, gameAction, id => { building=id;app.dataset.sandbox='false';app.dataset.building='true';buildHeight=0;buildRotation=Math.round((view.yaw+Math.PI)/(Math.PI/2))*Math.PI/2;buildControls.hidden=false;use.textContent='設置'; },preferences.hint);
+  for (const id of ['gather', 'attack', 'heavy', 'guard', 'dodge'] as const) { const button=document.querySelector<HTMLButtonElement>('#'+id)!; if(id==='guard'){button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);gameAction('guard','on');},{signal});for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>gameAction('guard','off'),{signal});}else if(id==='heavy')chargeInput(button,()=>gameAction('charge-start'),()=>gameAction('charge-release'),()=>gameAction('charge-cancel'),signal);else if(id==='attack')holdAction(button,()=>{if(!state||state.adventure.attack<=0)gameAction(id);},()=>true,signal);else actionInput(button,()=>gameAction(id),signal); }
   for(const id of ['sprint','sneak'] as const)actionInput(document.querySelector<HTMLButtonElement>('#'+id)!,()=>gameAction(id),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#quick-eat')!,()=>gameAction('eat'),signal);
   actionInput(document.querySelector<HTMLButtonElement>('#cast')!, () => gameAction(state?.adventure.meadows?'interact':'spell', spell), signal);
@@ -175,7 +177,7 @@ export function startGame() {
   document.querySelector('#hotbar')!.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLElement>('[data-quick]');if(b)quick(Number(b.dataset.quick));},{signal});
   const mouse=mouseActions(canvas,signal,()=>building||app.dataset.sandbox==='true'?act():gameAction('attack'),held=>{if(building||app.dataset.sandbox==='true'){if(held)document.querySelector<HTMLButtonElement>('#build-cancel')!.click();}else gameAction('guard',held?'on':'off');});
   const sprint=(held:boolean)=>{if(state?.adventure.meadows)gameAction('sprint',held?'on':'off');};
-  const releaseActions=()=>{jump=false;readKeyboard.clear();sendMotion(true);gameAction('guard','off');sprint(false);};
+  const releaseActions=()=>{gameAction('charge-cancel');jump=false;readKeyboard.clear();sendMotion(true);gameAction('guard','off');sprint(false);};
   window.addEventListener('blur',releaseActions,{signal});window.addEventListener('resize',releaseActions,{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseActions();},{signal});
   window.addEventListener('keydown',e=>{
     if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
@@ -186,12 +188,12 @@ export function startGame() {
     if(preferences.boundCode(e.code)==='KeyJ')gameAction('attack');if(preferences.boundCode(e.code)==='KeyK')gameAction('guard','on');
     if(preferences.boundCode(e.code)==='KeyG')gameAction('glide');if(preferences.boundCode(e.code)==='KeyV')gameAction('glide','dive');if(preferences.boundCode(e.code)==='KeyP')photo.click();if(preferences.boundCode(e.code)==='KeyT')gameAction('climb');if(preferences.boundCode(e.code)==='KeyQ')document.querySelector<HTMLButtonElement>('#powers-menu')?.click();
     if(preferences.boundCode(e.code)==='KeyE')interact();if(preferences.boundCode(e.code)==='KeyB'){adventure.open('build');mouse.unlock();}
-    if(preferences.boundCode(e.code)==='KeyX'&&state?.adventure.equipment==='hammer'&&contextual?.id.startsWith('b:'))gameAction('remove',contextual.id.slice(2));if(preferences.boundCode(e.code)==='KeyF')pour();if(preferences.boundCode(e.code)==='KeyR'){if(building)buildRotation+=Math.PI/2;else gameAction('heavy');}
+    if(preferences.boundCode(e.code)==='KeyX'&&state?.adventure.equipment==='hammer'&&contextual?.id.startsWith('b:'))gameAction('remove',contextual.id.slice(2));if(preferences.boundCode(e.code)==='KeyF')pour();if(preferences.boundCode(e.code)==='KeyR'){if(building)buildRotation+=Math.PI/2;else gameAction('charge-start');}
     if(preferences.boundCode(e.code)==='ControlLeft'||preferences.boundCode(e.code)==='KeyC')gameAction('dodge');
     if(preferences.boundCode(e.code)==='ShiftLeft'||preferences.boundCode(e.code)==='ShiftRight')sprint(true);
     if(/^Digit[1-8]$/.test(preferences.boundCode(e.code)))quick(Number(preferences.boundCode(e.code).slice(-1))-1);
   },{signal});
-  window.addEventListener('keyup',e=>{if(preferences.boundCode(e.code)==='KeyK')gameAction('guard','off');if(preferences.boundCode(e.code)==='ShiftLeft'||preferences.boundCode(e.code)==='ShiftRight')sprint(false);},{signal});
+  window.addEventListener('keyup',e=>{if(preferences.boundCode(e.code)==='KeyR')gameAction('charge-release');if(preferences.boundCode(e.code)==='KeyK')gameAction('guard','off');if(preferences.boundCode(e.code)==='ShiftLeft'||preferences.boundCode(e.code)==='ShiftRight')sprint(false);},{signal});
   document.querySelectorAll('[role=dialog]').forEach(p=>{const observer=new MutationObserver(()=>{if(!(p as HTMLElement).hidden){mouse.unlock();releaseActions();}});observer.observe(p,{attributes:true,attributeFilter:['hidden']});signal.addEventListener('abort',()=>observer.disconnect(),{once:true});});
   document.querySelector('#reset')!.addEventListener('click', () => send({ type: 'reset-player' }), { signal });
   const resize = () => { target = null; const size=viewportSize(),v=landscapeSize(size.width,size.height);camera.aspect = v.width / Math.max(1,v.height); camera.updateProjectionMatrix(); pipeline.resize(v.width,v.height); };
@@ -243,7 +245,7 @@ export function startGame() {
       if(now-streamLog>200){app.dataset.streaming=JSON.stringify({epoch:terrainEpoch,elapsedMs:now-loadingStarted,receivedMeshes,submittedMeshes,uploadMs,nearReadyMs,readyPending,fencePending:terrainQueue.hasPending(readyFence),queue:terrainQueue.size,draws});streamLog=now;}
       if(readyPending&&state&&!terrainQueue.hasPending(readyFence)){readyPending=false;status.textContent='プレイ中';app.dataset.state='running';send({type:'save'});}
       if(now-lastInput>30)sendMotion();
-      if(camera.fov!==preferences.fov){camera.fov=preferences.fov;camera.updateProjectionMatrix();}world.setReducedMotion(preferences.reducedMotion);world.selectPart(powers.selectedPart);if(state&&dirtyWorld&&!menuOpen&&!loading){const t=performance.now();world.update(state);sound.update(state);dirtyWorld=false;frameTimings.record('worldUpdate',performance.now()-t);}
+      if(camera.fov!==preferences.fov){camera.fov=preferences.fov;camera.updateProjectionMatrix();}world.setReducedMotion(preferences.reducedMotion);world.selectPart(powers.selectedPart,powers.preview);if(state&&dirtyWorld&&!menuOpen&&!loading){const t=performance.now();world.update(state);sound.update(state);captions.update(state);dirtyWorld=false;frameTimings.record('worldUpdate',performance.now()-t);}
       if (state) { const p = state.player, alpha = 1 - Math.exp(-18 * dt); world.player.position.lerp(focus.set(p.x, p.y, p.z), alpha); world.player.rotation.y = p.heading; }
       if(!menuOpen)world.interpolate(dt);
       orbitPose(world.player.position, view.yaw, view.pitch, focus, orbit, camera.up);

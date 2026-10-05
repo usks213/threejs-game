@@ -200,7 +200,7 @@ function solve(contact: Contact): boolean {
  * The impulse stage conserves pair momentum. Later terrain guards/damping can dissipate it.
  * No rotating CCD, face clipping, friction, restitution, stacking or world-level conservation guarantee.
  */
-export function transferAssemblyContacts(assemblies: readonly ContactAssembly[], dt: number): AssemblyContactStats {
+export function transferAssemblyContacts(assemblies: readonly ContactAssembly[], dt: number,onContact?:(part:SkyPart,point:Vec3,speed:number)=>void): AssemblyContactStats {
   const stats: AssemblyContactStats = { bodyPairs: 0, boxPairs: 0, contacts: 0, impulses: 0, woken: 0 };
   if (!Number.isFinite(dt) || dt <= 0 || assemblies.length > SKY_LIMITS.parts) return stats;
   const count = assemblies.reduce((sum, a) => sum + a.parts.length, 0);
@@ -222,7 +222,7 @@ export function transferAssemblyContacts(assemblies: readonly ContactAssembly[],
     }
   }
   stats.contacts = contacts.length;
-  for (let iteration = 0; iteration < ASSEMBLY_CONTACT_BUDGET.iterations; iteration++) for (const contact of contacts) if (solve(contact)) stats.impulses++;
+  for (let iteration = 0; iteration < ASSEMBLY_CONTACT_BUDGET.iterations; iteration++) for (const contact of contacts) if (solve(contact)) {stats.impulses++;if(iteration===0)onContact?.(contact.a.parts[0],contact.point,length(subtract(contact.a.parts[0].velocity,contact.a.linear)));}
   for (const body of bodies) if (body.changed) {
     for (const part of body.parts) {
       if (part.sleeping) stats.woken++;

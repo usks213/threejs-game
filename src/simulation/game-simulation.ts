@@ -1,3 +1,4 @@
+import {characterHeight} from '../physics/character-shape';
 import {migrateCampGear} from '../game/equipment/camp';
 import {recoverGearFlights} from '../game/equipment/flights';
 import {maximumGearId,maximumCampGearId} from '../game/equipment/validation';
@@ -83,7 +84,7 @@ export class GameSimulation {
     const length = Math.max(1, Math.hypot(ix, iz));
     const riding=this.companions.drive('host',input,this.player)||this.skybound.drive('host',input,this.player),traversal=this.adventure.traversal.beforeMove(input,dt);
     const wasGrounded=this.player.grounded,impactVy=this.player.vy;
-    const immersion = this.fluid.immersion(this.player, 1.45), speed = traversal.speed * movementSpeed(this.adventure,!!(ix||iz),immersion,dt);
+    const immersion = this.fluid.immersion(this.player, characterHeight(this.player)), speed = traversal.speed * movementSpeed(this.adventure,!!(ix||iz),immersion,dt);
     const flow = this.fluid.current(this.player);
     const dx = (traversal.wind?.x??0)*dt+ix / length * speed * dt + flow.x * Math.min(1, immersion * 3) * dt, dz = (traversal.wind?.z??0)*dt+iz / length * speed * dt + flow.z * Math.min(1, immersion * 3) * dt;
     const p = this.player;
@@ -137,7 +138,7 @@ export class GameSimulation {
       const cost=this.world.generator===4&&tool==='add'?5:0;if(cost&&(this.adventure.state.inventory.stone??0)<cost)throw Error('地形を盛るには石が5個必要です');
       const before=this.terrainHistory.begin();const dirty = this.changeTerrain(tool,target,1.7);if(cost)this.adventure.state.inventory.stone-=cost;
       for (const body of this.bodies) body.sleeping = false;
-      this.adventure.support();if(this.world.generator===4)this.terrainHistory.record(actorId,before,target,cost);
+      this.adventure.support();if(this.world.generator===4){this.terrainHistory.record(actorId,before,target,cost);if(tool==='dig')this.adventure.progression.record('mine');}
       return { dirty, message: tool === 'dig' ? '地面を掘りました' : '地面を盛りました' };
     }
     if (tool !== 'rock') throw new Error('未知の操作です');
@@ -187,6 +188,6 @@ export class GameSimulation {
     // Persistence needs every cell, but not the derived terrain floors used by rendering.
     // Keep the existing velocity precision without sampling the whole explored ocean.
     const fluids = Array.from(this.fluid.cells.values(), c => ({ x: c.x, y: c.y, z: c.z, size: c.size, volume: c.volume, vx: Math.round((c.vx ?? 0) * 1000) / 1000 || 0, vz: Math.round((c.vz ?? 0) * 1000) / 1000 || 0 }));
-    return { version: 2,nextEntityId:this.nextEntity,sharedPins:this.sharedPins.map(p=>({...p,position:{...p.position}})), companions:this.companions.save(),skybound: this.skybound.save(), adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids, bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
+    return { version: 2,nextEntityId:this.nextEntity,sharedPins:this.sharedPins.map(p=>({...p,position:{...p.position}})), companions:this.companions.save(),skybound: this.skybound.save(), adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z,...(this.player.crouching?{crouching:true}:{}) }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids, bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }
 }

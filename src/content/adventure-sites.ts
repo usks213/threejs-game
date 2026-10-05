@@ -34,3 +34,17 @@ export function sitePieces(site:number,x:number,y:number,z:number):Omit<Building
 }
 export const SITE_ROOMS=[{id:0,name:'受け渡し室',x:-2.5,z:0},{id:1,name:'記録室',x:2.5,z:-2},{id:2,name:'機関室',x:2.5,z:2}] as const;
 export const SITE_ROUTES={front:[{x:0,z:5},{x:0,z:3},{x:0,z:1},{x:2,z:1},{x:2,z:-1},{x:2,z:-2}],side:[{x:-6,z:1},{x:-4,z:1},{x:-2,z:1},{x:0,z:1},{x:2,z:1},{x:2,z:-1}]} as const;
+/** A branching archive annex. The west gallery, open mechanism hall and raised east
+ * archive can be reached via doors, climbing, the exterior stair or player construction. */
+export function siteAnnexPieces(site:number,x:number,y:number,z:number):Omit<BuildingState,'id'>[]{
+ const pieces:Omit<BuildingState,'id'>[]=[];
+ const add=(definition:string,dx:number,dy:number,dz:number,rotation=0)=>pieces.push({site,definition,x:x+dx,y:y+dy,z:z+dz,rotation,support:8,contents:{},salvage:{},health:100,shared:true});
+ for(const dx of [-4,-2,0,2,4])for(const dz of [-7,-9])add('foundation',dx,-.2,dz);
+ for(const dx of [-4,-2,0,2,4])add('wall',dx,.15,-10);
+ for(const dx of [-2,2])add('wall',dx,.15,-6);
+ for(const dx of [-5,5])add('wall',dx,.15,-9,Math.PI/2);
+ for(const dx of [-1.5,1.5])add('wall',dx,.15,-9,Math.PI/2);
+ for(const dx of [2,4])for(const dz of [-7.5,-9.5])add('floor',dx,2.15,dz);
+ add('stairs',4,.15,-5.2,Math.PI);return pieces;
+}
+export const ANNEX_ROOMS=[{id:3,name:'往来の回廊',x:-3,z:-8,y:0},{id:4,name:'選択の機関室',x:0,z:-8,y:0},{id:5,name:'帰還の書架',x:3,z:-8,y:2.25}] as const;

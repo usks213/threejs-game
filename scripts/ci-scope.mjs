@@ -31,7 +31,7 @@ if (changed(/^src\/(game\/|content\/|ui\/)/)) patterns.add('survival adventure')
 if (changed(/^src\/rendering\//)) patterns.add('renders equipped');
 if(changed(/^src\/(world\/field-data|rendering\/voxel\/field-|platform\/live-diagnostics)/))patterns.add('direct field terrain');
 if(changed(/^tests\/unit\/water-meshing\.test\.ts$/))patterns.add('direct field terrain');
-if(game)patterns.add('voxel adventure');
+if(game){patterns.add('voxel adventure');patterns.add('tutorial and collection rewards');}
 const outputs = { game: manual || game, checks, signaling, network, host, browser: patterns.size > 0, browser_grep: [...patterns].join('|') };
 for (const [key, value] of Object.entries(outputs)) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
 console.log(JSON.stringify({ changedFiles: paths.length, ...outputs }));

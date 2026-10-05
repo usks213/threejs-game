@@ -21,7 +21,7 @@ it('glides with authoritative stamina drain, catches wind, and cannot start with
 it('climbs only a reachable wall, drains stamina and releases on exhaustion',()=>{
  const sim=new GameSimulation();sim.fluid.restore([]);const game=sim.adventure;
  Object.assign(sim.player,{x:0,y:3,z:8,grounded:false,heading:Math.PI});sim.world.density=p=>p.z<7.5?-1:1;
- game.action('climb','on',undefined,forward);const y=sim.player.y;expect(game.traversal.beforeMove({x:0,z:0,jump:false},.1).handled).toBe(true);expect(sim.player.y).toBeGreaterThan(y);
+ game.action('climb','on',undefined,forward);const y=sim.player.y;expect(game.traversal.beforeMove({x:0,z:-1,jump:false},.1).handled).toBe(true);expect(sim.player.y).toBeGreaterThan(y);
  game.state.stamina=0;game.traversal.beforeMove({x:0,z:0,jump:false},.1);expect(game.traversal.climbing).toBe(false);
 });
 it('requires the shared construction demonstration before activating the first beacon',()=>{

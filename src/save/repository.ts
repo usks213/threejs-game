@@ -1,3 +1,4 @@
+import {isSavedRevision} from './revision';
 import { validateSave } from './format';
 import type { WorldSave } from './format';
 import { partitionWorld, encodeChunk, decodeChunk } from './chunks';
@@ -16,6 +17,8 @@ function references(raw:unknown):string[]{return object(raw)&&Array.isArray(raw.
 /** Storage logic separated from IndexedDB so failed atomic commits can be fault-tested. */
 export class SaveRepository {
  private writable=false;
+ private committedRevision:string|undefined;
+ get persistedRevision():string|undefined{return this.committedRevision;}
  private head:unknown;
  private previous:unknown;
  private recovery:WorldSave|undefined;
@@ -35,11 +38,11 @@ export class SaveRepository {
  }
  load():Promise<WorldLoadResult>{return this.queue(()=>this.loadNow());}
  private async loadNow():Promise<WorldLoadResult>{
-  this.writable=false;this.recovery=undefined;
+  this.writable=false;this.recovery=undefined;this.committedRevision=undefined;
   try{
    const records=await this.store.read('worlds',[CURRENT,PREVIOUS]);this.head=records.get(CURRENT);this.previous=records.get(PREVIOUS);
    if(this.head===undefined&&this.previous===undefined){this.writable=true;return {status:'empty'};}
-   try{const save=await this.decode(this.head);this.writable=true;return {status:'loaded',save};}catch(error){
+   try{const save=await this.decode(this.head);this.writable=true;this.committedRevision=object(this.head)&&this.head.storageVersion===3&&isSavedRevision(this.head.revision)?this.head.revision:undefined;return {status:'loaded',save};}catch(error){
     try{const save=await this.decode(this.previous);this.recovery=save;return {status:'recoverable',save:structuredClone(save),message:'最新の保存を読めません。直前の正常な保存を復旧できます。選ぶまで自動保存は停止しています'};}catch{return {status:'blocked',message:'保存を読めません。元データを保護して自動保存を止めました。ファイル読込または明示的な新規開始を選んでください: '+String(error)};}
    }
   }catch(error){return {status:'blocked',message:'保存領域にアクセスできません。自動保存は停止しています: '+String(error)};}
@@ -58,10 +61,10 @@ export class SaveRepository {
   const archive=protect?await this.archive():[],previous=this.writable?(this.head??this.previous):this.previous;
   const keep=new Set([...keys,...references(previous)]),allKeys=await this.store.keys('chunks');
   await this.store.commit({expectedHead:headToken(this.head),worlds:[...archive,[CURRENT,manifest],...(previous!==undefined?[[PREVIOUS,previous] as [string,unknown]]:[])],chunks,deleteChunks:allKeys.filter(key=>!keep.has(key))});
-  this.head=manifest;this.previous=previous;this.writable=true;this.recovery=undefined;return valid;
+  this.head=manifest;this.previous=previous;this.committedRevision=manifest.revision;this.writable=true;this.recovery=undefined;return valid;
  }
  save(save:WorldSave):Promise<void>{const snapshot=structuredClone(save);return this.queue(async()=>{if(!this.writable)throw new SaveProtectionError('元の保存を保護中です。復旧・新規開始・ファイル読込を先に選んでください');await this.replace(snapshot,false);});}
  restorePrevious():Promise<WorldSave>{return this.queue(async()=>{if(!this.recovery)throw new SaveProtectionError('正常な復旧用保存がありません');return this.replace(this.recovery,true);});}
- startNew():Promise<void>{return this.queue(async()=>{const archive=await this.archive(),previous=this.writable?(this.head??this.previous):this.previous;await this.store.commit({expectedHead:headToken(this.head),worlds:[...archive,...(previous!==undefined?[[PREVIOUS,previous] as [string,unknown]]:[])],chunks:[],deleteWorlds:[CURRENT]});this.head=undefined;this.previous=previous;this.writable=true;this.recovery=undefined;});}
+ startNew():Promise<void>{return this.queue(async()=>{const archive=await this.archive(),previous=this.writable?(this.head??this.previous):this.previous;await this.store.commit({expectedHead:headToken(this.head),worlds:[...archive,...(previous!==undefined?[[PREVIOUS,previous] as [string,unknown]]:[])],chunks:[],deleteWorlds:[CURRENT]});this.head=undefined;this.previous=previous;this.committedRevision=undefined;this.writable=true;this.recovery=undefined;});}
  async import(save:WorldSave):Promise<WorldSave>{const valid=validateSave(save);return this.queue(()=>this.replace(valid,true));}
 }

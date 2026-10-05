@@ -1,3 +1,4 @@
+import type {CoopHelloInfo,CoopSessionInfo} from './coop-handshake';
 import type {SnapshotDelta} from './snapshot-wire';
 import type {CompactFluidDelta} from './compact-fluid';
 import type {FluidDelta} from './fluid-wire';
@@ -11,14 +12,15 @@ export type CoopAction = Extract<ClientMessage, { type: 'action' | 'game-action'
 export type CoopClientPacket =
  | ({type:'room-admin'} & RoomAdminCommand)
  | {type:'delivery';token:string}
- | { type: 'hello'; protocol: number; resumeKey: string }
- | { type: 'input'; input: PlayerInput; sequence: number }
- | { type: 'action'; commandId: string; message: CoopAction }
+ | ({ type: 'hello'; protocol: number; resumeKey: string } & CoopHelloInfo)
+ | { type: 'input'; input: PlayerInput; sequence: number;clientTick?:number }
+ | { type: 'action'; commandId: string; message: CoopAction;clientTick?:number }
  | { type: 'export'; requestId:string } | { type: 'resync' } | { type: 'ping' };
 export type CoopServerPacket =
+ | {type:'persisted-revision';revision:string}
  | {type:'room-access';access:RoomAccessView}
  | {type:'export';requestId:string;save:WorldSave}
- | { type: 'welcome'; protocol: number; epoch: string; playerId: string; save: WorldSave; state: Snapshot }
+ | { type: 'welcome'; protocol: number;actionSequence?:number;persistedRevision?:string; session?:CoopSessionInfo;epoch: string; playerId: string; save: WorldSave; state: Snapshot }
  | { type: 'frame'; epoch: string; state: Snapshot; water?:FluidDelta; editBase: number; edits: EditOperation[] }
  | { type: 'ack'; kind?:'room-admin'; commandId: string; accepted: boolean; message: string }
  | { type: 'notice'; message: string } | { type: 'pong' };

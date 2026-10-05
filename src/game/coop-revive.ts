@@ -40,7 +40,7 @@ export class ReviveCoordinator {
    const helper = actors.get(id), target = actors.get(hold.target);
    if (!helper || !target || helper.adventure.damageRevision !== hold.damageRevision || sim.tick - helper.lastInputTick > 15 || !this.valid(helper, target, sim)) { this.holds.delete(id); continue; }
    hold.seconds += dt;
-   if (hold.seconds + 1e-8 >= REVIVE_SECONDS) { target.adventure.revive(); this.holds.delete(id); }
+   if (hold.seconds + 1e-8 >= REVIVE_SECONDS) { target.adventure.revive();helper.adventure.progression.record('revive');target.adventure.progression.record('revive'); this.holds.delete(id); }
   }
   this.publish(actors);
  }

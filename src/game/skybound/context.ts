@@ -1,3 +1,4 @@
+import {planItemDrops,commitItemDrops} from '../interaction/drops';
 import {createHullWaterSampler} from './hull-water';
 import {canCarry} from '../meadows/inventory';
 import {foodEffect} from '../../content/adventure-food';
@@ -5,7 +6,7 @@ import { adventureEnvironment } from '../../environment/adventure';
 import { protectedVolumes, intersectsProtection } from './protection';
 import type { GameSimulation } from '../../simulation/game-simulation';
 import { TREE_KINDS } from '../../content/meadows/data';
-import { buildingPose, buildingVoxels, localPoint, occupied, treeVoxels } from '../voxel/model';
+import { buildingPose, buildingVoxels, localPoint, occupied, treeVoxels, voxelKey } from '../voxel/model';
 import type { VoxelModel } from '../voxel/model';
 import type { Vec3 } from '../../world/types';
 import type { SkyContext } from './types';
@@ -31,7 +32,7 @@ export function skyContext(sim: GameSimulation): SkyContext {
    return (colliders.get(key(point)) ?? []).some(collider => occupied(collider.model, localPoint(point, collider.position, collider.rotation), collider.removed));
  };
  const hullWaterFraction=createHullWaterSampler(sim.fluid,solid);
- return {prepareEquipmentTransfer:(direction,items,gearItems,selection)=>sim.adventure.gear.prepareStorage(direction,items,gearItems,selection),hullWaterFraction,canReceiveItem:(id,count)=>canCarry(sim.adventure.state.inventory,id,count,sim.adventure.state.meadows),canRest:sim.player.grounded&&sim.adventure.attack<=0&&sim.adventure.dodge<=0&&!sim.adventure.traversal.climbing&&!sim.adventure.traversal.gliding&&!sim.skybound.isRiding(sim.adventure.owner)&&!sim.companions?.isRiding(sim.adventure.owner)&&!sim.adventure.state.meadows?.riding,unsafeCamp:point=>{const s=sim.adventure.state,temperature=adventureEnvironment(s.seconds,point).temperature??20;return s.enemies.some(e=>e.health>0&&Math.hypot(e.x-point.x,e.y-point.y,e.z-point.z)<12)||sim.skybound.state.parts.some(p=>(p.burning??0)>0&&Math.hypot(p.position.x-point.x,p.position.y-point.y,p.position.z-point.z)<3)||temperature<0&&!foodEffect(s,'warmth')||temperature>38&&!foodEffect(s,'cooling');},energyCapacity:100+25*Math.min(3,sim.adventure.state.siteWorld?.completed.length??0),tick: sim.tick, bounds: sim.world.bounds, player: sim.player, inventory: sim.adventure.state.inventory,
+ return {prepareDrops:drops=>{const game=sim.adventure,ids=sim.reserveEntityIds(drops.reduce((n,d)=>n+Math.ceil(d.count/100)+1,0));let resources=game.state.resources;for(const drop of drops)resources=planItemDrops(game,drop.id,drop.count,drop.point,ids.allocate,undefined,resources);return()=>{ids.commit();commitItemDrops(game,resources);};},prepareEquipmentTransfer:(direction,items,gearItems,selection)=>sim.adventure.gear.prepareStorage(direction,items,gearItems,selection),hullWaterFraction,canReceiveItem:(id,count)=>canCarry(sim.adventure.state.inventory,id,count,sim.adventure.state.meadows),canRest:sim.player.grounded&&sim.adventure.attack<=0&&sim.adventure.dodge<=0&&!sim.adventure.traversal.climbing&&!sim.adventure.traversal.gliding&&!sim.skybound.isRiding(sim.adventure.owner)&&!sim.companions?.isRiding(sim.adventure.owner)&&!sim.adventure.state.meadows?.riding,unsafeCamp:point=>{const s=sim.adventure.state,temperature=adventureEnvironment(s.seconds,point).temperature??20;return s.enemies.some(e=>e.health>0&&Math.hypot(e.x-point.x,e.y-point.y,e.z-point.z)<12)||sim.skybound.state.parts.some(p=>(p.burning??0)>0&&Math.hypot(p.position.x-point.x,p.position.y-point.y,p.position.z-point.z)<3)||temperature<0&&!foodEffect(s,'warmth')||temperature>38&&!foodEffect(s,'cooling');},energyCapacity:100+25*Math.min(3,sim.adventure.state.siteWorld?.completed.length??0),tick: sim.tick, bounds: sim.world.bounds, player: sim.player, inventory: sim.adventure.state.inventory,
   actors: (sim.targets.length ? sim.targets : [{player: sim.player, adventure: sim.adventure}]).map(actor => ({id: actor.adventure.owner, position: actor.player})),
   occupied: point => sim.bodies.some(body => Math.hypot(point.x - body.position.x, point.y - body.position.y, point.z - body.position.z) < body.radius),
   protected: point => intersectsProtection(point,0,protections),
@@ -41,6 +42,7 @@ export function skyContext(sim: GameSimulation): SkyContext {
   current: point => ({...sim.fluid.current(point),y:0}),
   immersion: point => sim.fluid.immersion(point, 1),
   waterFraction:(point,height)=>sim.fluid.immersion(point,height),
+  material:point=>{if(sim.world.density(point)<=0)return 'stone';colliders??=build();for(const collider of colliders.get(key(point))??[]){const p=localPoint(point,collider.position,collider.rotation),id=voxelKey(Math.floor(p.x/collider.model.size),Math.floor(p.y/collider.model.size),Math.floor(p.z/collider.model.size)),cell=collider.model.cells.get(id);if(cell&&!collider.removed.has(id))return cell.material==='stone'?'stone':cell.material==='metal'?'metal':'wood';}return undefined;},
   solid,
  };
 }

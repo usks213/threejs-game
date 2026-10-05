@@ -27,3 +27,6 @@ export function saveWorld(save:WorldSave):Promise<void>{return repository.save(s
 export function restorePreviousWorld():Promise<WorldSave>{return repository.restorePrevious();}
 export function startNewWorld():Promise<void>{return repository.startNew();}
 export function importWorld(save:WorldSave):Promise<WorldSave>{return repository.import(save);}
+
+/** Last verified load or completed IndexedDB commit; undefined for legacy/unwritten worlds. */
+export function savedWorldRevision():string|undefined{return repository.persistedRevision;}

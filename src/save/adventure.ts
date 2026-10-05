@@ -1,3 +1,5 @@
+import {validateProgression} from '../game/progression-state';
+import {validateBossParts} from '../game/combat/boss-parts';
 import {GEAR_LIMITS} from '../game/equipment/items';
 import {validateAdventureGear} from '../game/equipment/validation';
 import {validateRace} from '../game/trail-race';
@@ -16,6 +18,7 @@ export function validateAdventure(raw: AdventureSave): AdventureSave {
  if(s.siteWorld)validateSiteWorld(s.siteWorld);if(s.siteJournal&&!validSiteJournal(s.siteJournal))throw new Error('探索記録が不正です');
  if(s.trialWorld){const t=s.trialWorld,ids=(v:unknown):v is number[]=>Array.isArray(v)&&v.length<=7&&new Set(v).size===v.length&&v.every(n=>Number.isInteger(n)&&n>=825001&&n<=825007);if(t.version!==1||!ids(t.completed)||!ids(t.evidence)||!t.epochs||typeof t.epochs!=='object'||Array.isArray(t.epochs)||Object.keys(t.epochs).length>7||Object.entries(t.epochs).some(([id,n])=>!/^82500[1-7]$/.test(id)||!Number.isSafeInteger(n)||n<0||n>1000000))throw new Error('試練の保存が不正です');}
  if(s.trialJournal&&(!Array.isArray(s.trialJournal)||s.trialJournal.length>7||new Set(s.trialJournal).size!==s.trialJournal.length||s.trialJournal.some(n=>!Number.isInteger(n)||n<825001||n>825007)))throw new Error('依頼帳が不正です');
+ if(s.progression)s.progression=validateProgression(s.progression);
  if(s.race){s.race=validateRace(s.race);if(s.race.run&&s.race.run.started>s.seconds)throw Error('競走の開始時刻が不正です');}
  if (s.downed !== undefined && (!finite(s.downed,20) || s.downed <= 0 || s.health !== 0)) throw new Error('救助待ち保存が不正です');
  if (!Array.isArray(s.defeated) || s.defeated.length > BOSSES.length || new Set(s.defeated).size !== s.defeated.length || s.defeated.some(id => !BOSSES.some(b => b.id === id))) throw new Error('攻略データが不正です');
@@ -24,6 +27,7 @@ export function validateAdventure(raw: AdventureSave): AdventureSave {
  for (const n of s.resources) if (!Object.hasOwn(ITEM_NAMES,n.kind) || !finite(n.amount, n.gearItems!==undefined?GEAR_LIMITS.count:100) || !finite(n.ready, 1e10)) throw new Error('資源データが不正です');
  for(const n of s.resources){if(n.swimming&&![n.swimming.homeX,n.swimming.homeZ,n.swimming.heading].every(Number.isFinite))throw new Error('魚の状態が不正です');if(n.growth&&(!['beech','birch','oak'].includes(n.growth.kind)||!finite(n.growth.remaining,8001)))throw new Error('苗木の状態が不正です');if(n.health!==undefined&&!Number.isFinite(n.health))throw new Error('資源の体力が不正です');if(n.spawnTimer!==undefined&&!Number.isFinite(n.spawnTimer))throw new Error('巣の時間が不正です');}
  for(const n of s.resources)if(n.log){const l=n.log;if(!finite(l.length,5)||!finite(l.fall,3)||!Number.isFinite(l.heading)||!Array.isArray(l.hits)||!['wood','finewood'].includes(l.wood)||[l.a,l.b].some(b=>!b||!insideBounds(b.position,WORLD,0)||!finiteVec(b.velocity)))throw new Error('倒木の状態が不正です');}
+ for(const e of s.enemies)validateBossParts(e);
  for(const e of s.enemies)if(e.homeY!==undefined&&(!Number.isFinite(e.homeY)||e.homeY<WORLD.minY||e.homeY>WORLD.maxY))throw new Error('敵の帰還高度が不正です');
  for (const e of s.enemies) if (!(e.boss ? BOSSES : ENEMIES).some(d => d.id === e.definition) || !Number.isInteger(e.tier) || e.tier < 1 || e.tier > BIOMES.length || !Number.isFinite(e.health) || Math.abs(e.health) > 10000 || (!Number.isFinite(e.windup) || e.windup < -1 / 30 || e.windup > 10) || !finite(e.slow, 10) || !Number.isFinite(e.cooldown) || Math.abs(e.cooldown) > 1e10 || !finiteVec({ x: e.homeX, y: 0, z: e.homeZ })) throw new Error('敵データが不正です');
  for (const b of s.buildings) if (!BUILDINGS.some(d => d.id === b.definition) || !finite(b.support, 10) || !Number.isFinite(b.rotation) || !items(b.contents)) throw new Error('建築データが不正です');

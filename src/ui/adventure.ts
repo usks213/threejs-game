@@ -1,3 +1,6 @@
+import {deviceEnergy} from './device-energy';
+import {catalogTools} from './catalog-filter';
+import {traversalStatus} from './traversal-warning';
 import {equipmentWarnings} from './equipment-warning';
 import {marketPanel} from '../content/adventure-market';
 import {trailCraftPanel} from './trail-craft';
@@ -13,7 +16,7 @@ import { BIOMES, BOSSES, BUILDINGS, ITEM_NAMES, RECIPES, SPELLS, WEAPONS } from 
 import type { AdventureSnapshot, GameAction } from '../game/types';
 import { journeyGoal } from '../game/journey';
 import { itemIcon } from './icons/item';
-export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:string)=>void,selectBuilding:(id:string)=>void){
+export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:string)=>void,selectBuilding:(id:string)=>void,hint:(code:string)=>string=code=>code.replace(/^Key/,'')){
  const hud=document.querySelector<HTMLElement>('#adventure-hud')!,panel=document.querySelector<HTMLElement>('#adventure-panel')!,content=document.querySelector<HTMLElement>('#adventure-content')!,goal=document.querySelector<HTMLButtonElement>('#journey')!;
  let chestId:number|undefined;let selectedSlot=0,moveFrom:number|null=null,mapRange=80,lastMarkup='';
  let latest:AdventureSnapshot|null=null,tab='bag',signature='',player={x:0,y:0,z:0},goalTab='craft';
@@ -26,14 +29,17 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
  const marketTab=document.createElement('button');marketTab.dataset.tab='market';marketTab.textContent='交易';panel.querySelector('nav')!.append(marketTab);signal.addEventListener('abort',()=>marketTab.remove(),{once:true});
  const raceStatus=document.createElement('div');raceStatus.id='race-status';raceStatus.hidden=true;raceStatus.setAttribute('role','timer');document.querySelector('#app')!.append(raceStatus);signal.addEventListener('abort',()=>raceStatus.remove(),{once:true});
  const gearWarning=document.createElement('button');gearWarning.id='gear-warning';gearWarning.type='button';gearWarning.hidden=true;gearWarning.setAttribute('aria-live','polite');gearWarning.addEventListener('click',()=>open('craft'),{signal});document.querySelector('#app')!.append(gearWarning);signal.addEventListener('abort',()=>gearWarning.remove(),{once:true});
+ const catalog=catalogTools(panel,content,signal);
+ const traversalWarning=document.createElement('p');traversalWarning.id='traversal-warning';traversalWarning.hidden=true;traversalWarning.setAttribute('role','status');traversalWarning.setAttribute('aria-live','polite');document.querySelector('#app')!.append(traversalWarning);signal.addEventListener('abort',()=>traversalWarning.remove(),{once:true});
  let mapLayer:MapLayer='all';
- function render(){
+ function render(){renderContent();catalog.refresh(tab,latest?.generator===4);}
+ function renderContent(){
   const s=latest;if(!s||panel.hidden)return;if(document.activeElement instanceof HTMLInputElement&&content.contains(document.activeElement))return;
   const next=tab+selectedSlot+':'+moveFrom+':'+mapRange+JSON.stringify([chestId,s.buildings.map(b=>[b.id,b.contents,b.creator,b.shared,b.gearItems?.revision]),s.inventory,s.gearItems?.revision,s.equipment,s.unlocked,s.defeated,station(),s.meadows?[Math.floor(s.seconds),s.meadows.slots,s.meadows.gear,s.meadows.quality]:0]);if(next===signature)return;signature=next;
   for(const b of panel.querySelectorAll<HTMLButtonElement>('[data-tab]'))b.setAttribute('aria-selected',String(b.dataset.tab===tab));
   if(s.generator===4&&tab==='market'){const markup=marketPanel(s);if(markup!==lastMarkup){content.innerHTML=markup;lastMarkup=markup;}return;}
   if(s.generator===4&&tab==='guide'){const markup=fieldGuide(s);if(markup!==lastMarkup){content.innerHTML=markup;lastMarkup=markup;}return;}
-  if(s.generator===4&&tab==='world'){const markup=adventureMap(s,player,mapLayer,mapRange);if(markup!==lastMarkup){content.innerHTML=markup;lastMarkup=markup;}return;}
+  if(s.generator===4&&tab==='world'){const markup=adventureMap(s,player,mapLayer,mapRange,hint);if(markup!==lastMarkup){content.innerHTML=markup;lastMarkup=markup;}return;}
   if(s.generator===4&&tab==='craft'){const markup=trailCraftPanel(s);if(markup!==lastMarkup){content.innerHTML=markup;lastMarkup=markup;}return;}
   if(s.meadows){const markup=(s.generator===4&&tab==='bag'?nearbySupplies(s,player):'')+(s.generator===4&&tab==='build'?buildingAccessPanel(s,player,document.querySelector<HTMLElement>('#session-status')?.dataset.player??'host'):'')+meadowPanel(s,player,tab,selectedSlot,moveFrom!==null,mapRange,chestId);if(markup!==lastMarkup){content.innerHTML=markup;lastMarkup=markup;}return;}
   if(tab==='bag')content.innerHTML=`<div class="panel-intro"><span>装備：${ITEM_NAMES[s.equipment]??'素手'}</span><span>${s.inventory.armor?'革鎧を装備':'防具なし'}</span></div><div class="inventory-grid">${Object.entries(s.inventory).filter(([,n])=>n>0).map(([id,n])=>`<div class="item-slot ${s.equipment===id?'equipped':''}">${itemIcon(id)}<strong>${ITEM_NAMES[id]}</strong> <span>×${n}</span>${WEAPONS[id]?btn(s.equipment===id?'装備中':'装備する','equip',id,s.equipment===id):''}</div>`).join('')}</div><div class="panel-actions">${btn('食べる','eat','',!(s.inventory.berry||s.inventory.stew))}${btn('箱へ預ける／取り出す','chest')}</div><p class="muted">食事で体力が回復し、しばらく自然回復が続きます。倒れた時は墓標から素材を回収できます。</p>`;
@@ -45,7 +51,6 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
  document.querySelector('#adventure-menu')!.addEventListener('click',()=>{if(panel.hidden)open();else panel.hidden=true;},{signal});
  document.querySelector('#adventure-close')!.addEventListener('click',()=>panel.hidden=true,{signal});
  goal.addEventListener('click',()=>open(goalTab),{signal});
- content.addEventListener('input',event=>{const input=event.target as HTMLInputElement;if(input.id==='guide-search'){const query=input.value.trim().toLocaleLowerCase('ja');for(const card of content.querySelectorAll<HTMLElement>('[data-guide-name]'))card.hidden=!(card.dataset.guideName??'').toLocaleLowerCase('ja').includes(query);}},{signal});
  panel.addEventListener('click',event=>{const b=(event.target as HTMLElement).closest<HTMLButtonElement>('button');if(!b)return;
  if(b.dataset.slot!==undefined){const index=Number(b.dataset.slot);if(moveFrom!==null){action('move',moveFrom+':'+index);moveFrom=null;}selectedSlot=index;signature='';render();return;}
  if(b.hasAttribute('data-layout-move')){moveFrom=selectedSlot;signature='';render();return;}
@@ -57,9 +62,11 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
  let lastHealth:number|undefined,hurtTimer:ReturnType<typeof setTimeout>|undefined;
  signal.addEventListener('abort',()=>clearTimeout(hurtTimer),{once:true});
  return {open,openContext(next:string,id:string){chestId=id.startsWith('b:')?Number(id.slice(2)):undefined;open(next);},update(s:AdventureSnapshot,p:{x:number;y?:number;z:number},yaw=0){
+  const traversalText=[traversalStatus(s.traversal),s.chargeProgress!==undefined?'溜め '+Math.round(s.chargeProgress*100)+'% · 放して攻撃':''].filter(Boolean).join(' · ');traversalWarning.hidden=!traversalText;if(traversalWarning.textContent!==traversalText)traversalWarning.textContent=traversalText;
   latest=s;guideTab.hidden=s.generator!==4;marketTab.hidden=s.generator!==4;player={...p,y:p.y??0};const weather:Record<string,string>={clear:'晴れ',cloud:'曇り',rain:'雨',storm:'雷雨',snow:'雪',fog:'霧',magic:'魔力嵐'},biome=BIOMES.find(b=>b.id===s.biome)!;
+  const energyText=deviceEnergy(s.skybound,player);
   const bar=(kind:string,label:string,value:number,max:number)=>`<div class="vital ${kind}" aria-label="${label} ${Math.ceil(value)}"><span class="vital-fill" style="width:${Math.max(0,Math.min(100,value/max*100))}%"></span><span>${label} ${Math.ceil(value)}</span></div>`;
-  hud.innerHTML=`<div class="region-line">${s.generator===4?(s.environment.region??{sky:'漂う台地',surface:'風原',depths:'灯の洞海'}[skyboundLayer(player.y)]):biome.name} · DAY ${s.environment.day} <b>${Math.floor(s.environment.hour).toString().padStart(2,'0')}:${Math.floor(s.environment.hour%1*60).toString().padStart(2,'0')}</b> ${weather[s.environment.weather]}${s.generator===4?` / ${Math.round(s.environment.temperature??20)}℃`:""}</div><div class="vitals">${bar('health','HP',s.health,foodStats(s).health)}${bar('stamina','スタミナ',s.stamina,foodStats(s).stamina)}${s.meadows?'':bar('mana','魔力',s.mana,70)}</div><small>${ITEM_NAMES[s.equipment]??'素手'}${s.guarding?' · ガード':''}${s.food>0?' · 食事':''}${s.rested>0?' · 休息':''}${s.wet?' · 水中':''}${s.meadows?' · '+meadowStatus(s):''}</small>${s.meadows?'<div class=food-hud>'+Array.from({length:3},(_,i)=>{const f=s.meadows!.foods[i];return '<span>'+ (f?ITEM_NAMES[f.id]:'空腹')+'</span>';}).join('')+'</div>':''}`;
+  hud.innerHTML=`<div class="region-line">${s.generator===4?(s.environment.region??{sky:'漂う台地',surface:'風原',depths:'灯の洞海'}[skyboundLayer(player.y)]):biome.name} · DAY ${s.environment.day} <b>${Math.floor(s.environment.hour).toString().padStart(2,'0')}:${Math.floor(s.environment.hour%1*60).toString().padStart(2,'0')}</b> ${weather[s.environment.weather]}${s.generator===4?` / ${Math.round(s.environment.temperature??20)}℃`:""}</div><div class="vitals">${bar('health','HP',s.health,foodStats(s).health)}${bar('stamina','スタミナ',s.stamina,foodStats(s).stamina)}${s.meadows?'':bar('mana','魔力',s.mana,70)}</div><small>${ITEM_NAMES[s.equipment]??'素手'}${s.guarding?' · ガード':''}${energyText?' · '+energyText:''}${s.food>0?' · 食事':''}${s.rested>0?' · 休息':''}${s.wet?' · 水中':''}${s.meadows?' · '+meadowStatus(s):''}</small>${s.meadows?'<div class=food-hud>'+Array.from({length:3},(_,i)=>{const f=s.meadows!.foods[i];return '<span>'+ (f?'<b>'+ITEM_NAMES[f.id]+'</b><small>'+Math.ceil(f.remaining)+'秒</small>':'空腹')+'</span>';}).join('')+'</div>':''}`;
   const warning=equipmentWarnings(s)[0];gearWarning.hidden=!warning;const warningText=warning?.text??'';if(gearWarning.textContent!==warningText)gearWarning.textContent=warningText;gearWarning.dataset.broken=String(warning?.broken??false);
   raceStatus.hidden=!s.race?.run;raceStatus.textContent=s.race?.run?`便り競走 · 門${s.race.run.next+1}/6 · 残り${Math.max(0,90-s.seconds+s.race.run.started).toFixed(1)}秒`:'';
   const mission=journeyGoal(s,player);goalTab=mission.tab;

@@ -71,7 +71,7 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
       race.update(state);skybound.update(state.adventure.skybound,state.player);companions.update(state);expeditions.update(state);
       waterTime.value = state.adventure.seconds; feedback.update(state);
       player.rotation.z=state.adventure.coop?.downedSeconds?-1.25:0;
-      localAvatar.setPose({ ...state.adventure,riding:!!state.adventure.companions?.riding, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:state.adventure.meadows?state.adventure.meadows.gear.offhand==='towerShield':!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?Object.fromEntries(Object.entries(state.adventure.meadows.gear).filter(([,id])=>state.adventure.inventory[id]>0)):undefined, grounded: state.player.grounded });
+      localAvatar.setPose({ ...state.adventure,crouching:!!state.player.crouching,riding:!!state.adventure.companions?.riding, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:state.adventure.meadows?state.adventure.meadows.gear.offhand==='towerShield':!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?Object.fromEntries(Object.entries(state.adventure.meadows.gear).filter(([,id])=>state.adventure.inventory[id]>0)):undefined, grounded: state.player.grounded });
       for (const [id, view] of remotePlayers) if (!state.peers?.some(peer => peer.id === id)) { scene.remove(view.model.group); remotePlayers.delete(id); }
       for (const peer of state.peers ?? []) {
         let view = remotePlayers.get(peer.id);

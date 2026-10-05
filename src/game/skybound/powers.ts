@@ -1,3 +1,4 @@
+import {deckPassengers,passengersClear,carryPassengers} from './platform';
 import type {EquipmentFusionBridge} from '../equipment/items';
 import {CAMP_LIMITS, assertCampRange, campAccess, campArrival, hasCargo, storageView, transferCargo} from './camp';
 import {wheelSupports,wheelDriveWrench,WHEEL_TRACTION_LIMITS} from './wheel-traction';
@@ -9,7 +10,7 @@ import { global as partWorld, local as partLocal, orientation, yawQuaternion, in
 import type { Vec3 } from '../../world/types';
 import { finiteVec, insideBounds } from '../../world/types';
 import { localPoint, worldPoint } from '../voxel/model';
-import type { AscendPreview, SkyAction, SkyboundSave, SkyboundSnapshot, SkyContext, SkyFusion, SkyLease, SkyMaterial, SkyPart, SkyPartKind, SkyEffect, SkyElement, SkyTrialTemplate } from './types';
+import type { AscendPreview, SkyAction, SkyboundSave, SkyboundSnapshot, SkyContext, SkyFusion, SkyLease, SkyMaterial, SkyPart, SkyPartKind, SkyEffect, SkyElement, SkyTrialTemplate, SkyContactEvent } from './types';
 import { ENVIRONMENT_LIMITS, MATERIAL_ITEM, MATERIAL_MASS, PART_COST, PART_HALF, SKY_LIMITS } from './types';
 import { validateSkybound } from './validation';
 
@@ -45,6 +46,10 @@ export class SkyboundPowers {
  private readonly powered = new Set<number>();
  private readonly emissionTicks = new Map<number, number>();
  private readonly shortTicks = new Map<number, number>();
+ private readonly contactEvents:SkyContactEvent[]=[];
+ private readonly contactTicks=new Map<number,number>();
+ private readonly contactEpoch=crypto.randomUUID();
+ private contactSequence=0;
  private effectSequence = 0;
  private effectTick = -1;
  private effectsIssued = 0;
@@ -68,7 +73,7 @@ export class SkyboundPowers {
 
  snapshot(owner: string): SkyboundSnapshot {
   const seat = this.riders.get(owner), riding = seat !== undefined ? {seat, driver: this.driver(this.group(seat)) === owner} : undefined;
-  return structuredClone({storage: storageView(this.state, owner), camp: this.state.camps?.[owner] ? {bed: this.state.camps[owner]} : undefined, physics:{...this.metrics}, riding, parts: this.state.parts.map(p => ({...p, lease: this.leases.get(p.id), powered: this.powered.has(p.id), lightRadius: p.kind === 'lamp' && this.powered.has(p.id) ? 4 : 0, recalling: [...this.recalls.values()].some(r => r.ids.includes(p.id))})), blueprints: this.state.blueprints.filter(p => p.owner === owner), fusions: this.equipmentBridges.get(owner)?.list()??(Object.hasOwn(this.state.fusions,owner)?this.state.fusions[owner]:[]), ascendPreview: this.previews.get(owner)});
+  return structuredClone({contactEvents:this.contactEvents,storage: storageView(this.state, owner), camp: this.state.camps?.[owner] ? {bed: this.state.camps[owner]} : undefined, physics:{...this.metrics}, riding, parts: this.state.parts.map(p => ({...p, lease: this.leases.get(p.id), powered: this.powered.has(p.id), lightRadius: p.kind === 'lamp' && this.powered.has(p.id) ? 4 : 0, recalling: [...this.recalls.values()].some(r => r.ids.includes(p.id))})), blueprints: this.state.blueprints.filter(p => p.owner === owner), fusions: this.equipmentBridges.get(owner)?.list()??(Object.hasOwn(this.state.fusions,owner)?this.state.fusions[owner]:[]), ascendPreview: this.previews.get(owner)});
  }
  private part(id: number): SkyPart { const part = this.state.parts.find(p => p.id === id); if (!part) throw new Error('創作部品が見つかりません'); return part; }
  private group(id: number): SkyPart[] {
@@ -125,7 +130,7 @@ export class SkyboundPowers {
    const p=partWorld(local,part);
    if(!insideBounds(p,context.bounds,.01)||context.solid(p)||context.occupied?.(p)||context.protected?.(p))return false;
   }
-  if(checkActors)for(const actor of context.actors.filter(a=>!ignore.has(this.riders.get(a.id)??-1)))if(skyPartOverlapsCapsule(part,actor.position,.3,1.7))return false;
+  if(checkActors)for(const actor of context.actors.filter(a=>!ignore.has(this.riders.get(a.id)??-1)))if(skyPartOverlapsCapsule(part,actor.position,.3,(actor.position as Vec3&{crouching?:boolean}).crouching?1:1.7))return false;
   return true;
  }
  private requireClear(parts: SkyPart[], context: SkyContext, ignored = new Set(parts.map(p => p.id))): void {
@@ -165,6 +170,10 @@ export class SkyboundPowers {
   }
   if (action === 'sky-fuse' || action === 'sky-unfuse') {
    const [equipment, material] = id.split(':');
+   if(action==='sky-fuse'&&equipment==='woodArrow'&&material==='resin'){
+    if(!Number.isSafeInteger(context.inventory.fireArrow??0)||(context.inventory.fireArrow??0)>=1e9||context.canReceiveItem?.('fireArrow',1)===false)throw Error('火の矢を受け取る持ち物の空きが必要です');
+    this.spend({woodArrow:1,resin:1},context.inventory);context.inventory.fireArrow=(context.inventory.fireArrow??0)+1;return{message:'木の矢1本と樹脂1個を合成し、火の矢1本を作りました。発射で消費します'};
+   }
    if (!fuseEquipment.has(equipment) || !(context.inventory[equipment] > 0)) throw new Error('持っている武器か盾を選んでください');
    const bridge=this.equipmentBridges.get(owner),list=bridge?.list()??this.state.fusions[owner]??[];
    if (action === 'sky-unfuse') { if (!list.some(f => f.equipment === equipment)) throw new Error('この装備は合成されていません'); if(bridge)bridge.prepare(equipment,undefined)();else this.state.fusions[owner] = list.filter(f => f.equipment !== equipment); return {message: '合成を解除しました。使った素材は戻りません'}; }
@@ -255,6 +264,10 @@ export class SkyboundPowers {
    return {message: '設計帳に保存しました'};
   }
   const parts = this.owned(owner, root.id, context.tick);
+  if(action==='sky-throw'){
+   const length=Math.hypot(aim.x,aim.y,aim.z);if(!finiteVec(aim)||!Number.isFinite(length)||length<.1)throw Error('投げる方向を照準で選んでください');
+   const force=Math.min(60,parts.reduce((n,p)=>n+p.mass,0)*6);impulse(parts,{x:aim.x/length*force,y:aim.y/length*force,z:aim.z/length*force},root.position);this.release(owner);return{message:'保持していた部品を投げました。重い構造物ほど初速が小さくなります'};
+  }
   if(action==='sky-upright'){
    const rootQ=orientation(root),upright=yawQuaternion(root.rotation),relative=multiply(upright,inverse(rootQ)),center=massProperties(parts).center;
    const final=parts.map(p=>{const q=multiply(relative,orientation(p)),offset=rotate({x:p.position.x-center.x,y:p.position.y-center.y,z:p.position.z-center.z},relative);return{...p,q,rotation:heading(q),position:{x:center.x+offset.x,y:center.y+offset.y+.3,z:center.z+offset.z},velocity:zero(),angularVelocity:zero()};});
@@ -289,9 +302,14 @@ export class SkyboundPowers {
   if (action === 'sky-salvage') {
    if(hasCargo(this.state,root.id))throw Error('解体する前に移動倉庫を空にしてください');
    if(root.creator&&root.creator!==owner&&!root.shared)throw new Error('この部品の解体は作成者が許可する必要があります');
+   if(parts.some(p=>!Number.isSafeInteger(p.epoch+1)))throw Error('部品の履歴が上限に達しました');
+   const drops=[{id:MATERIAL_ITEM[root.material],count:root.trial||root.loan?0:Math.floor(PART_COST[root.kind]*(root.integrity??100)/100),point:{x:Math.max(context.bounds.minX+1,Math.min(context.bounds.maxX-1,root.position.x)),y:Math.max(context.bounds.minY+1,Math.min(context.bounds.maxY-1,root.position.y)),z:Math.max(context.bounds.minZ+1,Math.min(context.bounds.maxZ-1,root.position.z))}}].filter(drop=>drop.count>0);
+   // Planning and ID/capacity checks happen while the intact source remains authoritative.
+   // The synchronous drop commit is followed only by in-memory, non-fallible graph deletion.
+   const commit=drops.length?context.prepareDrops?.(drops):undefined;commit?.();
    for (const part of parts) part.links = part.links.filter(key => key !== root.id);
    this.state.parts = this.state.parts.filter(part => part.id !== root.id);this.removeCampRecords(new Set([root.id])); this.history.delete(root.id); this.invalidate(parts.filter(p => p.id !== root.id)); this.release(owner);
-   return {message: '部品を解体し、素材を地面へ戻しました', drops: [{id: MATERIAL_ITEM[root.material], count: PART_COST[root.kind], point: {x: Math.max(context.bounds.minX + 1, Math.min(context.bounds.maxX - 1, root.position.x)), y: Math.max(context.bounds.minY + 1, Math.min(context.bounds.maxY - 1, root.position.y)), z: Math.max(context.bounds.minZ + 1, Math.min(context.bounds.maxZ - 1, root.position.z))}}].map(drop => ({...drop, count: root.trial||root.loan ? 0 : Math.floor(drop.count * (root.integrity ?? 100) / 100)})).filter(drop => drop.count > 0)};
+   return {message:'部品を解体し、素材を地面へ戻しました',drops:commit?[]:drops};
   }
   if (action === 'sky-unglue') { for (const key of root.links) { const other = this.part(key); other.links = other.links.filter(key => key !== root.id); } root.links = []; this.invalidate(parts); this.release(owner); return {message: '接着を外しました'}; }
   throw new Error('能力の操作が不正です');
@@ -315,6 +333,12 @@ export class SkyboundPowers {
   }
   throw new Error('真上に安全な出口が見つかりません');
  }
+ private contact(part:SkyPart,tick:number,position:Vec3,strength:number,kind:SkyContactEvent['kind']='collision'):void{
+  if(kind==='collision'&&(strength<1||tick<(this.contactTicks.get(part.id)??-Infinity)+12))return;
+  if(this.contactEvents.filter(e=>e.tick===tick).length>=16)return;
+  this.contactTicks.set(part.id,tick);this.contactEvents.push({id:`contact:${this.contactEpoch}:${tick}:${this.contactSequence++}`,tick,part:part.id,position:{...position},material:part.material,strength:Math.min(12,strength),kind});
+  while(this.contactEvents.length>64)this.contactEvents.shift();
+ }
  private effect(effects: SkyEffect[], context: SkyContext, source: SkyPart, owner: string, element: SkyElement, origin: Vec3, direction: Vec3, range: number, radius: number, damage: number): void {
   if (this.effectTick !== context.tick) { this.effectTick = context.tick; this.effectsIssued = 0; }
   if (effects.length >= ENVIRONMENT_LIMITS.effectsPerTick || this.effectsIssued >= ENVIRONMENT_LIMITS.effectsPerTick) return;
@@ -326,6 +350,7 @@ export class SkyboundPowers {
   if (!['fire','frost','shock'].includes(element) || !Number.isFinite(amount) || amount < 0 || amount > 100) throw new Error('属性反応が不正です');
   const effects: SkyEffect[] = []; this.react(id, element, amount, context, effects, owner); return effects;
  }
+ private elementVisible(from:Vec3,to:Vec3,context:SkyContext):boolean{const n=Math.ceil(distance(from,to)/.125);for(let i=1;i<n;i++){const p={x:from.x+(to.x-from.x)*i/n,y:from.y+(to.y-from.y)*i/n,z:from.z+(to.z-from.z)*i/n};if(context.solid(p)||context.occupied?.(p))return false;}return true;}
  private react(id: number, element: SkyElement, amount: number, context: SkyContext, effects: SkyEffect[], owner: string): void {
   const pending = [id], seen = new Set<number>();
   while (pending.length && seen.size < ENVIRONMENT_LIMITS.chainParts) {
@@ -335,6 +360,9 @@ export class SkyboundPowers {
     if(!wet)part.heated=true;
     if (wet) { part.burning = 0; part.wet = Math.max(0, (part.wet ?? 0) - amount * .1); continue; }
     if ((part.frozen ?? 0) > 0) { part.frozen = Math.max(0, part.frozen! - amount * .5); continue; }
+    if(part.kind==='battery'&&(part.energy??0)>=10){const energy=part.energy!;part.energy=0;this.contact(part,context.tick,part.position,Math.min(12,energy/5),'explosion');part.integrity=Math.max(0,(part.integrity??100)-20);this.effect(effects,context,part,owner,'fire',part.position,zero(),0,3,Math.min(24,8+energy*.16));
+     for(const other of this.state.parts.slice().sort((a,b)=>a.id-b.id))if(!seen.has(other.id)&&distance(other.position,part.position)<=3&&pending.length<ENVIRONMENT_LIMITS.chainParts&&this.elementVisible(part.position,other.position,context))pending.push(other.id);
+    }
     if (part.material === 'wood') part.burning = Math.max(part.burning ?? 0, 6);
     part.integrity = Math.max(0, (part.integrity ?? 100) - amount * .2);
    } else if (element === 'frost') {
@@ -360,11 +388,12 @@ export class SkyboundPowers {
    part.frozen = Math.max(0, (part.frozen ?? 0) - dt * ((context.temperature?.(part.position) ?? 10) > 20 ? 2 : 1));
    if ((part.burning ?? 0) > 0) {
     part.burning = Math.max(0, part.burning! - dt); part.integrity = Math.max(0, part.integrity - dt * 6);
-    if (burning.has(part.id) && context.tick % 15 === 0) for (const linked of part.links) {
+    if(burning.has(part.id)&&context.tick%15===0){const wind=context.wind?.(part.position)??zero(),windSpeed=Math.hypot(wind.x,wind.z),downwind=windSpeed>.2?this.state.parts.filter(p=>p.id!==part.id&&distance(p.position,part.position)<2&&(p.position.x-part.position.x)*wind.x+(p.position.z-part.position.z)*wind.z>.4&&this.elementVisible(part.position,p.position,context)).map(p=>p.id):[];
+    for (const linked of new Set([...part.links,...downwind])) {
      if (spread >= ENVIRONMENT_LIMITS.spreadPerTick) break;
      const neighbor = this.part(linked);
      if (neighbor.material === 'wood' && !(neighbor.wet ?? 0) && !(neighbor.frozen ?? 0) && !(neighbor.burning ?? 0)) { neighbor.burning = 6; spread++; }
-    }
+    }}
    }
    if (part.kind === 'battery' && immersed && (part.energy ?? 0) > 0 && context.tick >= (this.shortTicks.get(part.id) ?? 0)) {
     part.energy = Math.max(0, part.energy! - 1); this.shortTicks.set(part.id, context.tick + 30); this.react(part.id, 'shock', 4, context, effects, 'host');
@@ -388,6 +417,8 @@ export class SkyboundPowers {
  }
  /** Fixed-budget authority integration: contacts, angular motion, power and environment. */
  step(dt: number, context: SkyContext): SkyEffect[] {
+  while(this.contactEvents.length&&this.contactEvents[0].tick<context.tick-30)this.contactEvents.shift();
+  for(const id of this.contactTicks.keys())if(!this.state.parts.some(p=>p.id===id))this.contactTicks.delete(id);
   this.expire(context.tick); this.powered.clear();this.metrics.activeAssemblies=0;this.metrics.contacts=0;this.metrics.dynamicContacts=0;
   if(context.terrainEdits){if(this.lastTerrainRevision<0)this.wakeAround();else for(const edit of context.terrainEdits.slice(this.lastTerrainRevision))this.wakeAround(edit.position,edit.radius);this.lastTerrainRevision=context.terrainEdits.length;}
   const effects: SkyEffect[] = []; this.environment(dt, context, effects);
@@ -395,14 +426,15 @@ export class SkyboundPowers {
   for (const [owner, recall] of this.recalls) {
    recall.ids.forEach(id => recalled.add(id)); const frame = recall.frames.shift();
    if (!frame) { this.release(owner); continue; }
+   const parts=recall.ids.map(id=>this.part(id)),passengers=deckPassengers(parts,context.actors,new Set(this.riders.keys())),passengerIds=new Set(passengers.map(p=>p.id)),movementContext=passengers.length?{...context,actors:context.actors.filter(a=>!passengerIds.has(a.id))}:context;
    const poses = recall.ids.map(id => ({...this.part(id), ...frame.poses.get(id)!}));
-   if (poses.some(p => !this.volumeClear(p, context, new Set(recall.ids)))) { this.release(owner); this.invalidate(poses.map(p => this.part(p.id))); continue; }
-   this.applyPoses(poses);
+   if (poses.some(p => !this.volumeClear(p, movementContext, new Set(recall.ids)))||!passengersClear(passengers,poses,this.state.parts,context)) { this.release(owner); this.invalidate(poses.map(p => this.part(p.id))); continue; }
+   this.applyPoses(poses);carryPassengers(passengers,poses);
    if (!recall.frames.length) { for(const id of recall.ids){const p=this.part(id);p.recalled=Math.min(1000000,(p.recalled??0)+distance(recall.starts.get(id)!,p.position));} this.release(owner); this.invalidate(poses.map(p => this.part(p.id))); for (const id of recall.ids) {this.part(id).velocity=zero();this.part(id).angularVelocity=zero();} }
   }
   const contactSeen=new Set<number>(),contactGroups:ContactAssembly[]=[];
   for(const root of this.state.parts){if(contactSeen.has(root.id))continue;const parts=this.group(root.id);parts.forEach(p=>contactSeen.add(p.id));const unavailable=parts.some(p=>recalled.has(p.id)||this.leases.has(p.id)||this.tows.has(p.id))||!!this.driver(parts)||(context.actors.length>0&&!context.actors.some(a=>distance(a.position,root.position)<48));contactGroups.push({parts,unavailable});}
-  this.metrics.dynamicContacts=transferAssemblyContacts(contactGroups,dt).contacts;
+  this.metrics.dynamicContacts=transferAssemblyContacts(contactGroups,dt,(part,point,speed)=>this.contact(part,context.tick,point,speed)).contacts;
   const done = new Set<number>();
   for (const root of this.state.parts) {
    if (done.has(root.id) || recalled.has(root.id)) continue;
@@ -422,11 +454,12 @@ export class SkyboundPowers {
     for (const consumer of consumers) this.powered.add(consumer.id);
    }
    if(far&&!driver){for(const p of parts)p.sleeping=true;this.farSleeping.add(root.id);continue;}
+   const passengers=deckPassengers(parts,context.actors,new Set(this.riders.keys())),passengerIds=new Set(passengers.map(p=>p.id)),movementContext=passengers.length?{...context,actors:context.actors.filter(a=>!passengerIds.has(a.id))}:context;
    const mass = parts.reduce((n, p) => n + p.mass, 0), thrust = parts.filter(p => p.kind === 'thruster' && this.powered.has(p.id)).length;
    const wheelContact=supports.length>0;
    if (driver && Math.abs(input.x) > .01 && (wheelContact || wet > .1)) {
     const poses = this.assemblyPoses(parts, root, root.position, root.rotation + input.x * dt * 1.3);
-    if (poses.every(p => this.volumeClear(p, context, new Set(parts.map(p => p.id))))) {const linear={...root.velocity},spin={...(root.angularVelocity??zero())};this.applyPoses(poses);for(const p of parts){p.velocity={...linear};p.angularVelocity={...spin};}supports=wheelSupports(parts,context);}
+    if (poses.every(p => this.volumeClear(p, movementContext, new Set(parts.map(p => p.id))))&&passengersClear(passengers,poses,this.state.parts,context)) {const linear={...root.velocity},spin={...(root.angularVelocity??zero())};this.applyPoses(poses);for(const p of parts){p.velocity={...linear};p.angularVelocity={...spin};}supports=wheelSupports(parts,context);carryPassengers(passengers,parts);}
    }
    const sail = parts.filter(p => p.kind === 'sail' && p.enabled).length;
    for (const part of parts) {
@@ -460,7 +493,7 @@ export class SkyboundPowers {
    this.metrics.activeAssemblies++;
    const ignore=new Set(parts.map(p=>p.id)),neighbors=this.state.parts.filter(p=>!ignore.has(p.id));
    const solid=(point:Vec3)=>context.solid(point)||!!context.occupied?.(point)||!!context.protected?.(point)||neighbors.some(p=>this.contains(p,point));
-   const result=stepRigid(parts,velocity,dt,context,solid,poses=>poses.every(p=>this.volumeClear(p,context,ignore)));this.metrics.contacts+=result.contacts;
+   const result=stepRigid(parts,velocity,dt,context,solid,poses=>poses.every(p=>this.volumeClear(p,movementContext,ignore))&&passengersClear(passengers,poses,this.state.parts,context));this.metrics.contacts+=result.contacts;if(result.contacts)this.contact(root,context.tick,root.position,Math.hypot(velocity.x-root.velocity.x,velocity.y-root.velocity.y,velocity.z-root.velocity.z));carryPassengers(passengers,parts);
    const resting=result.supported&&parts.every(p=>Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<.06&&Math.hypot(p.angularVelocity?.x??0,p.angularVelocity?.y??0,p.angularVelocity?.z??0)<.06)&&!thrust&&!driver;
    const quiet=resting?(this.quiet.get(root.id)??0)+1:0;this.quiet.set(root.id,quiet);if(quiet>=60)for(const p of parts){p.sleeping=true;p.velocity=zero();p.angularVelocity=zero();}
    for (const actor of context.actors) { const seatId=this.riders.get(actor.id),seat=parts.find(p=>p.id===seatId);if(!seat)continue;
@@ -562,7 +595,7 @@ export class SkyboundPowers {
   }
   throw new Error('安全な降車場所がありません。平らな場所へ移動してください');
  }
- collidePlayer(player: Vec3 & {vy: number; grounded: boolean}, previousY: number): void { collideSkyPlayer(this.state.parts,player,previousY); }
+ collidePlayer(player: Vec3 & {crouching?:boolean;vy: number; grounded: boolean}, previousY: number): void { collideSkyPlayer(this.state.parts,player,previousY); }
 
  fusion(owner: string, equipment: string): SkyFusion | undefined { const bridge=this.equipmentBridges.get(owner);if(bridge)return bridge.get(equipment);return (Object.hasOwn(this.state.fusions,owner)?this.state.fusions[owner]:[])?.find(f => f.equipment === equipment && f.durability > 0); }
  wearFusion(owner: string, equipment: string): void { const bridge=this.equipmentBridges.get(owner);if(bridge){bridge.wear(equipment);return;}const fusion = this.fusion(owner, equipment); if (fusion) fusion.durability = Math.max(0, fusion.durability - 1); }

@@ -1,3 +1,4 @@
+import {isSavedRevision} from '../../src/save/revision';
 import {COOP_PROTOCOL} from '../../src/networking/coop-protocol';
 import {validateCheckpoint} from '../../src/save/checkpoint';
 import {encodeRoomAccess,decodeRoomAccess,overlayRoomAccess} from '../../src/save/room-access';
@@ -5,7 +6,7 @@ import { authenticateCoopPacket } from '../../src/networking/coop-identity';
 // Real WebSocket harness for the same authoritative room used in Cloudflare.
 import { createServer } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rename, open } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { AuthorityRoom, type RoomCheckpoint } from '../../src/networking/authority-room';
@@ -14,8 +15,8 @@ export async function startCoopServer(port = 2568, directory?: string) {
  const server = createServer((req,res)=>{res.setHeader('content-type','application/json');res.end(JSON.stringify({service:'voxel-coop-authority',protocol:COOP_PROTOCOL,rooms:rooms.size}));});
  const ws = new WebSocketServer({noServer:true,maxPayload:8192}); let writes=Promise.resolve();
  const persist = async (key:string,room:AuthorityRoom) => {
-  if(room.readOnly)return Promise.reject(new Error('Room reload required'));if(!directory)return Promise.resolve();const checkpoint=validateCheckpoint(room.checkpoint()),text=JSON.stringify(checkpoint);
-  const op=writes.then(async()=>{if(room.readOnly)throw Error('Room reload required');await mkdir(directory,{recursive:true});const file=resolve(directory,key+'.json');try{await readFile(file);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;await writeFile(file+'.tmp',text);await rename(file+'.tmp',file);}if(checkpoint.access){const accessFile=file+'.access';await writeFile(accessFile+'.tmp',JSON.stringify(await encodeRoomAccess(checkpoint.access)));await rename(accessFile+'.tmp',accessFile);}await writeFile(file+'.tmp',text);await rename(file+'.tmp',file);});writes=op.catch(()=>{});return op;
+  if(room.readOnly)return Promise.reject(new Error('Room reload required'));if(!directory)return Promise.resolve();const checkpoint=validateCheckpoint(room.checkpoint()),revision=crypto.randomUUID(),text=JSON.stringify({...checkpoint,persistenceRevision:revision});
+  const op=writes.then(async()=>{if(room.readOnly)throw Error('Room reload required');await mkdir(directory,{recursive:true});const file=resolve(directory,key+'.json');try{await readFile(file);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;await writeFile(file+'.tmp',text);await rename(file+'.tmp',file);}if(checkpoint.access){const accessFile=file+'.access';await writeFile(accessFile+'.tmp',JSON.stringify(await encodeRoomAccess(checkpoint.access)));await rename(accessFile+'.tmp',accessFile);}await writeFile(file+'.tmp',text);const handle=await open(file+'.tmp','r+');try{await handle.sync();}finally{await handle.close();}await rename(file+'.tmp',file);const folder=await open(directory,'r');try{await folder.sync();}finally{await folder.close();}room.recordPersistedRevision(revision);});writes=op.catch(()=>{});return op;
  };
  server.on('upgrade',(request,socket,head)=>{
   const match=request.url?.match(/^\/coop\/([a-f0-9]{48})$/);if(!match){socket.destroy();return;}
@@ -26,7 +27,7 @@ export async function startCoopServer(port = 2568, directory?: string) {
   // Queue packets arriving while the persistent world loads, including hello.
   const early:string[]=[];const queue=(data:unknown)=>early.push(String(data));socket.on('message',queue);
   try {
-   let pending=loads.get(key);if(!pending){pending=(async()=>{let checkpoint:RoomCheckpoint|null=null;if(directory)try{checkpoint=validateCheckpoint(JSON.parse(await readFile(resolve(directory,key+'.json'),'utf8')));}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}if(directory){try{const access=await decodeRoomAccess(JSON.parse(await readFile(resolve(directory,key+'.json.access'),'utf8')));if(!checkpoint)throw Error('World checkpoint is missing');checkpoint=overlayRoomAccess(checkpoint,access);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}}const room=new AuthorityRoom(checkpoint,crypto.randomUUID());rooms.set(key,room);return room;})();loads.set(key,pending);}
+   let pending=loads.get(key);if(!pending){pending=(async()=>{let checkpoint:RoomCheckpoint|null=null,revision:string|undefined;if(directory)try{const raw=JSON.parse(await readFile(resolve(directory,key+'.json'),'utf8'));checkpoint=validateCheckpoint(raw);if(raw.persistenceRevision!==undefined){if(!isSavedRevision(raw.persistenceRevision))throw Error('Invalid persisted revision');revision=raw.persistenceRevision;}}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}if(directory){try{const access=await decodeRoomAccess(JSON.parse(await readFile(resolve(directory,key+'.json.access'),'utf8')));if(!checkpoint)throw Error('World checkpoint is missing');checkpoint=overlayRoomAccess(checkpoint,access);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}}const room=new AuthorityRoom(checkpoint,crypto.randomUUID(),key);if(revision)room.recordPersistedRevision(revision);rooms.set(key,room);return room;})();loads.set(key,pending);}
    const room=await pending,id=crypto.randomUUID();if(socket.readyState!==socket.OPEN)return;
    sockets.set(socket,{room,id,key});room.connect(id,{send:(packet,serialized)=>{if(socket.readyState===socket.OPEN)socket.send(serialized??JSON.stringify(packet));},close:(code,reason)=>socket.close(code,reason)});
    const failed=()=>{if(room.readOnly)return;room.failPersistence();void writes.finally(()=>{if(rooms.get(key)===room){rooms.delete(key);loads.delete(key);}});};

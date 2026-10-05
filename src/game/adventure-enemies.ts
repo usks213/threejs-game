@@ -13,12 +13,15 @@ export const ENCOUNTER_LIMITS={active:64,range:48,projectiles:64,moveSubsteps:8}
 const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const known=(e:EnemyState)=>!e.boss&&ADVENTURE_ENEMY_IDS.includes(e.definition);
 const actors=(g:Adventure)=>g.sim.targets.length?g.sim.targets:[{player:g.sim.player,adventure:g}];
-interface Budget {tick:number;selected:Set<number>;last:Map<number,number>;processed:number}
+interface Budget {tick:number;selected:Set<number>;last:Map<number,number>;processed:number;nearby:Map<number,EnemyState[]>}
 const budgets=new WeakMap<GameSimulation,Budget>();
 const lastSeen=new WeakMap<EnemyState,Vec3>();
 function budget(game:Adventure):Budget{
- let b=budgets.get(game.sim);if(!b){b={tick:-1,selected:new Set(),last:new Map(),processed:0};budgets.set(game.sim,b);}if(b.tick===game.sim.tick)return b;b.tick=game.sim.tick;b.processed=0;b.selected.clear();
- const active=game.state.enemies.filter(e=>known(e)&&actors(game).some(a=>a.adventure.state.health>0&&distance(a.player,e)<ENCOUNTER_LIMITS.range));const start=active.length?(game.sim.tick*ENCOUNTER_LIMITS.active)%active.length:0;for(let i=0;i<Math.min(active.length,ENCOUNTER_LIMITS.active);i++)b.selected.add(active[(start+i)%active.length].id);stepAdventureNavigation(game.sim,b.selected);return b;
+ let b=budgets.get(game.sim);if(!b){b={tick:-1,selected:new Set(),last:new Map(),processed:0,nearby:new Map()};budgets.set(game.sim,b);}if(b.tick===game.sim.tick)return b;b.tick=game.sim.tick;b.processed=0;b.selected.clear();
+ const active=game.state.enemies.filter(e=>known(e)&&actors(game).some(a=>a.adventure.state.health>0&&distance(a.player,e)<ENCOUNTER_LIMITS.range));const start=active.length?(game.sim.tick*ENCOUNTER_LIMITS.active)%active.length:0;for(let i=0;i<Math.min(active.length,ENCOUNTER_LIMITS.active);i++)b.selected.add(active[(start+i)%active.length].id);
+ const cohort=active.filter(e=>b.selected.has(e.id)&&e.health>0);b.nearby.clear();
+ for(const e of cohort)b.nearby.set(e.id,cohort.filter(other=>other!==e&&distance(other,e)<8&&Math.abs(other.y-e.y)<2.5).sort((a,c)=>distance(a,e)-distance(c,e)||a.id-c.id).slice(0,8));
+ stepAdventureNavigation(game.sim,b.selected);return b;
 }
 export function encounterMetrics(sim:GameSimulation):{processed:number;selected:number}{const b=budgets.get(sim);return {processed:b?.processed??0,selected:b?.selected.size??0};}
 /** Sight tests world, carved buildings/trees, rocks and oriented assemblies on the authority. */
@@ -52,6 +55,7 @@ export function stepAdventureEnemy(game:Adventure,e:EnemyState,dt:number):boolea
  e.homeY??=e.y;const def=ENEMIES.find(d=>d.id===e.definition)!;
  const living=actors(game).filter(a=>a.adventure.state.health>0);if(!living.length)return true;
  if(e.health<=0){const home={x:e.homeX,y:e.homeY,z:e.homeZ};if(e.respawnAt!==undefined&&e.respawnAt<=game.state.seconds&&living.every(a=>distance(a.player,home)>18)&&siteClear(game.sim,home)){Object.assign(e,home);e.health=def.health*(1+(e.stars??0))*(1+(e.tier-1)*.4);e.cooldown=2;e.windup=0;e.attackReady={};e.attackKind='idle';delete e.respawnAt;lastSeen.delete(e);clearAdventureRoute(game.sim,e);}return true;}
+ const water=game.sim.fluid.immersion(e,1.2);if(water>.35)e.burn=0;
  if((e.burn??0)>0){e.burn=Math.max(0,e.burn!-dt);game.hit(e,4.4*dt,'fire',false);if(e.health<=0)return true;}
  if((e.stagger??0)>0){e.stagger=Math.max(0,e.stagger!-dt);e.windup=0;e.attackKind='recover';return true;}
  const threats=living.filter(a=>!inEntryClearing(game.sim,a.player));
@@ -62,21 +66,31 @@ export function stepAdventureEnemy(game:Adventure,e:EnemyState,dt:number):boolea
  }
  const target=threats.reduce((best,a)=>distance(a.player,e)<distance(best.player,e)?a:best),p=target.player,d=distance(p,e),visible=d<28&&adventureSees(game,e,p),ready=e.attackReady??={};
  e.slow=Math.max(0,e.slow-dt);e.cooldown=Math.max(0,e.cooldown-dt);e.alerted=visible?6:Math.max(0,(e.alerted??0)-dt);if(visible)lastSeen.set(e,{x:p.x,y:p.y,z:p.z});
- const water=game.sim.fluid.immersion(e,1.2),flow=game.sim.fluid.current(e);if(water>.05){move(game,e,{x:e.x+flow.x,y:e.y,z:e.z+flow.z},Math.min(3,Math.hypot(flow.x,flow.z))*water,dt,e.definition==='veilray');if(e.definition==='slime')e.health=Math.min(def.health*(1+(e.stars??0))*(1+(e.tier-1)*.4),e.health+dt*.8);}
+ const flow=game.sim.fluid.current(e);if(water>.05){move(game,e,{x:e.x+flow.x,y:e.y,z:e.z+flow.z},Math.min(3,Math.hypot(flow.x,flow.z))*water,dt,e.definition==='veilray');if(e.definition==='slime')e.health=Math.min(def.health*(1+(e.stars??0))*(1+(e.tier-1)*.4),e.health+dt*.8);}
+ const peers=b.nearby.get(e.id)??[];
+ // Only a creature with direct sight can call. Calls carry a location, not live wall vision.
+ if(visible&&(ready.callAt??0)<=game.state.seconds){ready.callAt=game.state.seconds+1.5;for(const ally of peers)if(adventureSees(game,e,ally)){ally.alerted=Math.max(ally.alerted??0,4);lastSeen.set(ally,{x:p.x,y:p.y,z:p.z});}}
+ if(e.definition==='cinderunner'&&water>.35&&((ready.dashUntil??0)>game.state.seconds||e.windup>0&&e.attackKind==='charge')){e.windup=0;ready.dashUntil=0;ready.recoverUntil=game.state.seconds+.8;e.cooldown=Math.max(e.cooldown,2);e.attackKind='quenched';return true;}
+ if(e.definition==='reedspitter'){
+  const fire=game.state.buildings.find(f=>f.definition==='fire'&&(f.fuel??0)>0&&!f.open&&distance(f,e)<5&&adventureSees(game,e,f));
+  if(fire){const length=Math.max(.1,Math.hypot(e.x-fire.x,e.z-fire.z));e.windup=0;e.attackKind='flee';navigate(game,e,{x:e.x+(e.x-fire.x)/length*3,y:e.y,z:e.z+(e.z-fire.z)/length*3},def.speed*1.2,dt);return true;}
+ }
  if(e.definition==='cinderunner'&&(ready.dashUntil??0)>game.state.seconds){const aim=e.attackYaw??0,moved=move(game,e,{x:e.x+Math.sin(aim)*2,y:e.y,z:e.z+Math.cos(aim)*2},8,dt,false,false);if(!moved)ready.dashUntil=0;if(!ready.dashHit)for(const actor of threats)if(distance(actor.player,e)<1.4&&adventureSees(game,e,actor.player)){actor.adventure.hurtPlayer(def.damage,'fire',actor.player,e);ready.dashHit=1;break;}e.attackKind='dash';return true;}
  if(e.windup>0){e.windup=Math.max(0,e.windup-dt);if(e.windup>0)return true;
-  if(e.definition==='cinderunner'){ready.dashUntil=game.state.seconds+.6;ready.dashHit=0;e.attackKind='dash';e.cooldown=3;return true;}
-  if(visible){if(e.definition==='reedspitter'||e.definition==='veilray')shoot(game,e,p,def.damage,def.element);else if(d<def.reach+.6)target.adventure.hurtPlayer(def.damage,def.element,p,e);}
+  if(e.definition==='cinderunner'&&e.attackKind==='charge'){ready.dashUntil=game.state.seconds+.6;ready.dashHit=0;e.attackKind='dash';e.cooldown=3;return true;}
+  if(visible){if(e.definition==='reedspitter'||e.definition==='veilray')shoot(game,e,p,def.damage,def.element);else if(d<(e.definition==='cinderunner'?1.65:def.reach)+.6)target.adventure.hurtPlayer(def.damage,e.definition==='cinderunner'&&water>.35?'physical':def.element,p,e);}
   e.cooldown=e.definition==='slime'?2.8:2.2;ready.recoverUntil=game.state.seconds+.65;e.attackKind='recover';return true;
  }
  if((ready.recoverUntil??0)>game.state.seconds)return true;
  if(!visible){const remembered=lastSeen.get(e),searching=(e.alerted??0)>0&&remembered!==undefined,goal=searching?remembered:{x:e.homeX,y:e.homeY,z:e.homeZ};e.attackKind=searching?'pursue':'idle';if(distance(e,goal)>(searching?.35:1)){rotateToward(e,Math.atan2(goal.x-e.x,goal.z-e.z),dt*3);navigate(game,e,goal,def.speed*(searching?1:.6),dt,e.definition==='veilray');}else clearAdventureRoute(game.sim,e);return true;}
  rotateToward(e,Math.atan2(p.x-e.x,p.z-e.z),dt*(e.definition==='shellguard'?1.8:5));
- const ranged=e.definition==='reedspitter'||e.definition==='veilray',reach=ranged?12:e.definition==='cinderunner'?8:def.reach+.25;
- if(e.cooldown<=0&&d<reach){e.windup=e.definition==='cinderunner'?1.15:ranged?.8:e.definition==='slime'?.9:.65;e.attackKind=e.definition==='cinderunner'?'charge':ranged?'shot':e.definition==='slime'?'hop':'melee';e.attackYaw=Math.atan2(p.x-e.x,p.z-e.z);return true;}
+ const ranged=e.definition==='reedspitter'||e.definition==='veilray',charging=e.definition==='cinderunner'&&water<=.35,reach=ranged?12:charging?8:e.definition==='cinderunner'?1.65:def.reach+.25;
+ const attacking=peers.filter(ally=>ally.windup>0||(ally.attackReady?.dashUntil??0)>game.state.seconds).length;
+ if(e.cooldown<=0&&d<reach&&attacking<2){e.windup=charging?1.15:ranged?.8:e.definition==='slime'?.9:.65;e.attackKind=charging?'charge':ranged?'shot':e.definition==='slime'?'hop':'melee';e.attackYaw=Math.atan2(p.x-e.x,p.z-e.z);return true;}
  let destination:Vec3=p;let speed=def.speed*(e.slow?.4:1)*(water>.1&&e.definition!=='slime'?.7:1);
+ if(peers.length&&!ranged&&d>2){const dx=p.x-e.x,dz=p.z-e.z,planar=Math.max(.1,Math.hypot(dx,dz)),rank=peers.filter(ally=>ally.id<e.id).length,side=rank%2?1:-1;destination={x:p.x+dz/planar*side*1.8,y:p.y,z:p.z-dx/planar*side*1.8};}
  if(ranged){const planar=Math.max(.1,Math.hypot(p.x-e.x,p.z-e.z));if(d<5)destination={x:e.x+(e.x-p.x)/planar*3,y:e.y,z:e.z+(e.z-p.z)/planar*3};else if(d<9){const side=e.id%2?1:-1;destination={x:e.x+(p.z-e.z)/planar*side,y:e.y,z:e.z-(p.x-e.x)/planar*side};speed*=.45;}if(e.definition==='veilray')destination={...destination,y:Math.max(e.homeY,p.y+1.8)};}
- e.attackKind=e.definition==='shellguard'?'guard':'pursue';if(d>def.reach||ranged)navigate(game,e,destination,speed,dt,e.definition==='veilray');return true;
+ e.attackKind=e.definition==='shellguard'?'guard':peers.length?'flank':'pursue';if(d>(e.definition==='cinderunner'?1.65:def.reach)||ranged)navigate(game,e,destination,speed,dt,e.definition==='veilray');return true;
 }
 export function adventureGuardMultiplier(game:Adventure,e:EnemyState,element:string,source?:Vec3):number{
  if(game.sim.world.generator!==4||e.definition!=='shellguard'||element!=='physical'||e.windup>0||(e.stagger??0)>0||(e.attackReady?.recoverUntil??0)>game.state.seconds)return 1;

@@ -1,7 +1,7 @@
 import {validateRoomAccess,type RoomAccessState} from '../networking/room-access';
 import { validateSave } from './format';
 import type { WorldSave } from './format';
-export interface SafeCheckpoint { version: 1; access?:RoomAccessState; world: WorldSave; receipts: [string, string[]][] }
+export interface SafeCheckpoint { version: 1; actionSequences?:[string,number][]; access?:RoomAccessState; world: WorldSave; receipts: [string, string[]][] }
 export interface CheckpointManifest { storageVersion: 1; accessRevision?:number; generation: string; segments: number; sha256: string }
 export type CheckpointSelection = {status:'empty'} | {status:'loaded'|'recovered';checkpoint:SafeCheckpoint;message?:string} | {status:'blocked';message:string};
 export async function digest(text:string):Promise<string>{const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return [...new Uint8Array(bytes)].map(n=>n.toString(16).padStart(2,'0')).join('');}
@@ -11,7 +11,9 @@ export function validateCheckpoint(raw:unknown):SafeCheckpoint {
  if(!Array.isArray(source.receipts)||source.receipts.length>10000)throw new Error('操作の受領記録が不正です');
  const seen=new Set<string>(),receipts:[string,string[]][]=[];
  for(const item of source.receipts){if(!Array.isArray(item)||item.length!==2||typeof item[0]!=='string'||!/^[a-zA-Z0-9_-]{1,64}$/.test(item[0])||seen.has(item[0])||!Array.isArray(item[1])||item[1].length>256||new Set(item[1]).size!==item[1].length||item[1].some(id=>typeof id!=='string'||!/^[a-zA-Z0-9_-]{1,96}$/.test(id)))throw new Error('操作の受領記録が不正です');seen.add(item[0]);receipts.push([item[0],[...item[1]]]);}
- return {version:1,...(source.access!==undefined?{access:validateRoomAccess(source.access)}:{}),world:validateSave(source.world),receipts};
+ const actionSequences:[string,number][]=[];const sequenceIds=new Set<string>();
+ if(source.actionSequences!==undefined){if(!Array.isArray(source.actionSequences)||source.actionSequences.length>10000)throw Error('操作連番が不正です');for(const row of source.actionSequences){if(!Array.isArray(row)||row.length!==2||typeof row[0]!=='string'||!/^[a-zA-Z0-9_-]{1,64}$/.test(row[0])||sequenceIds.has(row[0])||!Number.isSafeInteger(row[1])||row[1]<0)throw Error('操作連番が不正です');sequenceIds.add(row[0]);actionSequences.push([row[0],row[1]]);}}
+ return {version:1,...(source.actionSequences!==undefined?{actionSequences}:{}),...(source.access!==undefined?{access:validateRoomAccess(source.access)}:{}),world:validateSave(source.world),receipts};
 }
 export function selectCheckpoint(current:unknown,previous:unknown):CheckpointSelection {
  if(current===undefined&&previous===undefined)return {status:'empty'};

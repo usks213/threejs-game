@@ -1,3 +1,4 @@
+import {ADVENTURE_DECORATIONS} from './adventure-chapters';
 import {ADVENTURE_ENEMIES} from './adventure-encounters';
 import {SITE_BOSSES} from './adventure-sites';
 export interface BiomeDefinition { id: string; name: string; tier: number; center: { x: number; z: number }; grass: string; sky: string; fog: string; boss: string; resource: string }
@@ -109,3 +110,5 @@ ENEMIES.push({id:'greydwarfBrute',name:'森の剛腕',health:150,damage:30,speed
 
 export const LEGACY_ENEMIES:readonly EnemyDefinition[]=[...ENEMIES];
 ENEMIES.push(...ADVENTURE_ENEMIES);
+
+BUILDINGS.push(...ADVENTURE_DECORATIONS);

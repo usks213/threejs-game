@@ -34,8 +34,9 @@ it('predicts climbing against the same wall and releases on authoritative exhaus
  Object.assign(guest.player,{x: 0,y: 3,z: 8,heading: Math.PI,grounded: false}); guest.adventure.traversal.climbing = true;
  replica.world.density = p => p.z < 7.5 ? -1 : 1;
  prediction.reconcile(sessionFrame(authority,'guest')); const y = replica.player.y, stamina = replica.adventure.state.stamina;
- prediction.input(1,{x: 0,z: 0,jump: false}); expect(replica.player.y).toBeCloseTo(y + 1.6 / 30,6); expect(replica.adventure.state.stamina).toBeCloseTo(stamina - 14 / 30,6);
- guest.adventure.state.stamina = 0; guest.sequence = 1; prediction.reconcile(sessionFrame(authority,'guest')); prediction.input(2,{x: 0,z: 0,jump: false}); expect(replica.adventure.traversal.climbing).toBe(false);
+ prediction.input(1,{x: 0,z: -1,jump: false}); expect(replica.player.y).toBeCloseTo(y + 1.6 / 30,6); expect(replica.adventure.state.stamina).toBeCloseTo(stamina - 14 / 30,6);
+ const climbedY=replica.player.y;prediction.input(2,{x:0,z:0,jump:false});expect(replica.player.y).toBeCloseTo(climbedY,6);expect(replica.adventure.state.stamina).toBeCloseTo(stamina-(14+4)/30,6);expect(replica.adventure.traversal.snapshot().hanging).toBe(true);
+ guest.adventure.state.stamina = 0; guest.sequence = 2; prediction.reconcile(sessionFrame(authority,'guest')); prediction.input(3,{x: 0,z: 0,jump: false}); expect(replica.adventure.traversal.climbing).toBe(false);
 });
 it('keeps seated passengers at authority poses while pending walking inputs accumulate', () => {
  const {authority,replica,prediction} = setup(), frame = sessionFrame(authority,'guest');

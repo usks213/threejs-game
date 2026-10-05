@@ -4,7 +4,7 @@ import type { WorldSave } from '../save/format';
 import type { EditOperation } from '../world/types';
 import { CoopClient, type ConnectionState } from '../networking/coop-client';
 import { dedicatedIdentity } from '../networking/identity';
-export function networkUI(signal: AbortSignal, post: (message: ClientMessage) => void, notice: (message: string) => void,options?:{loadPersonal?:()=>Promise<WorldSave|null>;exported?:(save:WorldSave)=>void}) {
+export function networkUI(signal: AbortSignal, post: (message: ClientMessage) => void, notice: (message: string) => void,options?:{savedRevision?:(revision:string|undefined)=>void;loadPersonal?:()=>Promise<WorldSave|null>;exported?:(save:WorldSave)=>void}) {
  const panel = document.querySelector<HTMLElement>('#session-panel')!, status = document.querySelector<HTMLElement>('#session-status')!, token = document.querySelector<HTMLInputElement>('#session-code')!;
  let session: CoopClient | null = null, guest = false, sequence = 0, edits: EditOperation[] = [], generation = 0, lastTick = -1;
  let dedicated: { send(type: string, value: unknown): void; leave(): Promise<unknown> } | null = null;
@@ -33,13 +33,14 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
  document.querySelector('#session-close')!.addEventListener('click', () => { panel.hidden = true; }, { signal });
  document.querySelector('#session-leave')!.addEventListener('click', () => close(), { signal });
  const connect = (create: boolean) => {
-  close(false); const operation = generation;
+  close(false);options?.savedRevision?.(undefined); const operation = generation;
   if (create) { const bytes = crypto.getRandomValues(new Uint8Array(24)); token.value = [...bytes].map(n => n.toString(16).padStart(2,'0')).join(''); }
   try {
    guest = true;sessionStorage.setItem('voxel-coop-last-room',token.value.trim());
    session = new CoopClient(token.value.trim(), packet => {
     if (operation !== generation) return;
-    if (packet.type === 'welcome') { status.dataset.player = packet.playerId; welcome(packet.save,packet.state); }
+    if (packet.type === 'welcome') { options?.savedRevision?.(packet.persistedRevision);status.dataset.player = packet.playerId;if(packet.session){status.dataset.serverBuild=packet.session.buildId;status.dataset.worldVersion=String(packet.session.worldVersion);status.dataset.worldSeed=String(packet.session.worldSeed);} welcome(packet.save,packet.state); }
+    else if(packet.type==='persisted-revision'){status.dataset.savedRevision=packet.revision;options?.savedRevision?.(packet.revision);}
     else if(packet.type==='room-access')updateManagement();else if (packet.type === 'frame') receiveState(packet.state,packet.edits,packet.editBase);else if(packet.type==='ack'){status.dataset.lastAck=JSON.stringify(packet);if(packet.kind==='room-admin'){management.acknowledged();updateManagement();}}else if(packet.type==='export')options?.exported?.(packet.save);
    }, state => { if(operation===generation)show(state); }, notice);
    session.connect();
@@ -52,7 +53,7 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
   try {
    const endpoint = document.querySelector<HTMLInputElement>('#dedicated-url')!.value, url = new URL(endpoint);
    if(url.protocol!=='https:' && url.hostname!=='127.0.0.1')throw new Error('HTTPSのサーバーURLを指定してください');
-   close(false); const operation=generation; guest=true; show('connecting');
+   close(false);options?.savedRevision?.(undefined); const operation=generation; guest=true; show('connecting');
    const { Client }=await import('@colyseus/sdk'); const room=await new Client(endpoint).joinOrCreate('survival',{playerToken:dedicatedIdentity(endpoint)});
    if(operation!==generation || signal.aborted){void room.leave();return;} dedicated=room;
    room.onMessage('welcome',(packet:{save:WorldSave;state:Snapshot})=>welcome(packet.save,packet.state));

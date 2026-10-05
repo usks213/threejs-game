@@ -1,3 +1,5 @@
+import {characterHeight} from '../physics/character-shape';
+import {PROGRESSION_ACTIONS} from '../game/adventure-progression';
 import {SITE_ACTIONS} from '../game/sites';
 import {COMPANION_ACTIONS} from '../game/companions';
 import {assertBuildingTerrain} from '../game/building-permissions';
@@ -19,7 +21,7 @@ import type { ClientMessage, PlayerInput, PlayerState } from './protocol';
 import { finiteVec } from '../world/types';
 export const INPUT_TIMEOUT_TICKS = 15;
 export const MAX_RECORDED_MEMBERS = 256;
-const gameActions = new Set<GameAction>(['race','map-pin-share','map-pin-remove', ...SITE_ACTIONS, ...COMPANION_ACTIONS, ...SKY_ACTIONS, 'building-share', 'terrain-undo', 'talk', 'dialogue', 'trial', 'trial-reset', 'revive', 'return', 'glide', 'climb','gather','attack','heavy','guard','dodge','craft','build','remove','spell','summon','eat','equip','travel','rest','chest','portal','repair','upgrade','cook','fuel','interact','feed','power','offer','drop','plant','sneak','sprint','fish','trade','repairBuilding','split','move','pin','unpin','label','store','take','landscape','sell']);
+const gameActions = new Set<GameAction>([...PROGRESSION_ACTIONS,'race','map-pin-share','map-pin-remove', ...SITE_ACTIONS, ...COMPANION_ACTIONS, ...SKY_ACTIONS, 'building-share', 'terrain-undo', 'talk', 'dialogue', 'trial', 'trial-reset', 'revive', 'return', 'glide', 'climb','gather','attack','heavy','charge-start','charge-release','charge-cancel','guard','dodge','craft','build','remove','spell','summon','eat','equip','travel','rest','chest','portal','repair','upgrade','cook','fuel','interact','feed','power','offer','drop','plant','sneak','sprint','fish','trade','repairBuilding','split','move','pin','unpin','label','store','take','landscape','sell']);
 function shareField<T extends object, K extends keyof T>(state: T, shared: T, key: K): void {
  Object.defineProperty(state, key, { enumerable: true, configurable: true,
   get: () => shared[key], set: (value: T[K]) => { shared[key] = value; } });
@@ -33,7 +35,7 @@ export class SessionAuthority {
  private readonly revives = new ReviveCoordinator();
  private readonly dormant = new Map<string, { player: PlayerState; adventure: AdventureSave }>();
  readonly actors = new Map<string, SessionActor>();
- constructor(save?: WorldSave | null, readonly dedicated = false) { this.sim = new GameSimulation(save); this.sim.sessionSpawns=()=>[...this.actors.values()].flatMap(a=>a.adventure.state.spawn?[a.adventure.state.spawn]:[]).concat([...this.dormant.values()].flatMap(a=>a.adventure.spawn?[a.adventure.spawn]:[])); this.actors.set('host', { id: 'host', player: this.sim.player, adventure: this.sim.adventure, input: { ...idle }, motor: new CharacterMotor(this.sim.world), sequence: 0, lastAction: -100, lastInputTick: this.sim.tick }); for (const member of save?.members ?? []) this.dormant.set(member.id, { player: { ...member.player, heading: 0, vy: 0, grounded: false }, adventure: Adventure.personalSave(member.adventure) }); this.syncTargets(); }
+ constructor(save?: WorldSave | null, readonly dedicated = false) { this.sim = new GameSimulation(save); this.sim.sessionSpawns=()=>[...this.actors.values()].flatMap(a=>a.adventure.state.spawn?[a.adventure.state.spawn]:[]).concat([...this.dormant.values()].flatMap(a=>a.adventure.spawn?[a.adventure.spawn]:[])); this.actors.set('host', { id: 'host', player: this.sim.player, adventure: this.sim.adventure, input: { ...idle }, motor: new CharacterMotor(this.sim.world), sequence: 0, lastAction: -100, lastInputTick: this.sim.tick }); for (const member of save?.members ?? []) this.dormant.set(member.id, { player: { ...member.player, heading: 0, vy: 0, grounded: false,crouching:this.sim.world.generator===4&&(member.player.crouching===true||!!member.adventure.meadows?.sneaking) }, adventure: Adventure.personalSave(member.adventure) }); this.syncTargets(); }
  hasRecordedPlayer(id:string):boolean{return this.actors.has(id)||this.dormant.has(id);}
  canRecordPlayer(id:string):boolean{return this.hasRecordedPlayer(id)||this.dormant.size+this.actors.size-1<MAX_RECORDED_MEMBERS;}
  join(id: string): SessionActor {
@@ -43,7 +45,7 @@ export class SessionAuthority {
   const stored = this.dormant.get(id);
   if(!stored && this.dormant.size+this.actors.size-1>=MAX_RECORDED_MEMBERS)throw new Error('この部屋の参加記録は256人までです。既存の参加者は再接続できます');
   const saved = this.sim.adventure.save(false);
-  const personal: AdventureSave = stored?.adventure ?? { ...saved, inventory: this.sim.world.generator===4?{ragTunic:1,club:1,glider:1,berry:6}:saved.meadows?{ragTunic:1}:{berry:3}, equipment: 'hands', ...(saved.meadows?{meadows:newMeadows()}:{}), health: saved.meadows?25:100, stamina: saved.meadows?50:100, mana: 70, food: 0, rested: 0, spawn: null, death: null, grave: {},gearItems:undefined,graveGear:undefined,gearFlights:undefined, poison: 0, chill: 0, downed: undefined, trialJournal: [], siteJournal: [],race:undefined };
+  const personal: AdventureSave = stored?.adventure ?? { ...saved, inventory: this.sim.world.generator===4?{ragTunic:1,club:1,glider:1,berry:6}:saved.meadows?{ragTunic:1}:{berry:3}, equipment: 'hands', ...(saved.meadows?{meadows:newMeadows()}:{}), health: saved.meadows?25:100, stamina: saved.meadows?50:100, mana: 70, food: 0, rested: 0, spawn: null, death: null, grave: {},gearItems:undefined,graveGear:undefined,gearFlights:undefined, poison: 0, chill: 0, downed: undefined, trialJournal: [], siteJournal: [],race:undefined,progression:undefined };
   const p = this.sim.player;
   const actor = { id, player: stored?.player ?? { ...p, x: p.x + this.actors.size * 0.8, grounded: false }, adventure: new Adventure(this.sim, personal), input: { ...idle }, motor: new CharacterMotor(this.sim.world), sequence: 0, lastAction: -100, lastInputTick: this.sim.tick };
   this.bindWorld(actor.adventure.state);
@@ -69,9 +71,9 @@ export class SessionAuthority {
  }
  private withActor<T>(actor: SessionActor, callback: () => T): T {
   if (actor.id === 'host') return callback();
-  const mainPlayer = { ...this.sim.player }, mainAdventure = this.sim.adventure, mainTargets = this.sim.targets, state = actor.adventure.state, shared = mainAdventure.state;
+  const mainPlayer = { ...this.sim.player,crouching:!!this.sim.player.crouching }, mainAdventure = this.sim.adventure, mainTargets = this.sim.targets, state = actor.adventure.state, shared = mainAdventure.state;
   state.seconds = shared.seconds;
-  Object.assign(this.sim.player, actor.player); this.sim.adventure = actor.adventure;
+  Object.assign(this.sim.player, actor.player,{crouching:!!actor.player.crouching}); this.sim.adventure = actor.adventure;
   this.sim.targets = mainTargets.map(target => target.adventure === mainAdventure ? {...target, player: mainPlayer} : target.adventure === actor.adventure ? {...target, player: this.sim.player} : target);
   try { return callback(); } finally { Object.assign(actor.player, this.sim.player); Object.assign(this.sim.player, mainPlayer); this.sim.adventure = mainAdventure; this.sim.targets = mainTargets; }
  }
@@ -94,7 +96,7 @@ export class SessionAuthority {
   this.guardProtected(actor,message);
   if(message.type==='game-action'&&message.action==='revive'&&!message.id){this.revives.cancelHelper(id,this.actors);return {dirty:[],message:'救助を中断しました'};}
   const waterAction = message.type === 'action' && message.tool === 'water';
-  const releaseAction = message.type === 'game-action' && (message.action==='sky-release'||message.action==='companion-lead'&&(!message.id?.split(':')[1]||message.id.endsWith(':off'))||message.action==='companion-ride'&&this.sim.companions.snapshot(id).riding===Number(message.id)||message.id === 'off' && ['guard','sprint','glide','climb'].includes(message.action));
+  const releaseAction = message.type === 'game-action' && (['charge-release','charge-cancel'].includes(message.action)||message.action==='sky-release'||message.action==='companion-lead'&&(!message.id?.split(':')[1]||message.id.endsWith(':off'))||message.action==='companion-ride'&&this.sim.companions.snapshot(id).riding===Number(message.id)||message.id === 'off' && ['guard','sprint','glide','climb'].includes(message.action));
   if (!waterAction && !releaseAction && this.sim.tick - actor.lastAction < 4) throw new Error('操作の間隔を空けてください');
   if (!waterAction && !releaseAction) actor.lastAction = this.sim.tick;
   if(message.type==='game-action'&&message.action==='revive'){this.revives.start(id,message.id??'',this.actors,this.sim);return {dirty:[],message:'救助中です。3秒間、近くで操作を続けてください'};}
@@ -121,7 +123,7 @@ export class SessionAuthority {
   for (const actor of this.actors.values()) if (this.sim.tick - actor.lastInputTick >= INPUT_TIMEOUT_TICKS) actor.input = { ...idle };
   const host = this.actors.get('host')!; if(hostInput)host.lastInputTick=this.sim.tick; this.sim.step(hostInput ?? host.input); host.input.jump = false;
   for (const actor of this.actors.values()) if (actor.id !== 'host') this.withActor(actor, () => {
-   const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, riding=this.sim.companions.drive(actor.id,actor.input,this.sim.player)||this.sim.skybound.drive(actor.id,actor.input,this.sim.player),traversal=actor.adventure.traversal.beforeMove(actor.input,1/TICK_RATE), wasGrounded=p.grounded, impactVy=p.vy, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, 1.45), speed = traversal.speed * movementSpeed(actor.adventure,!!(input.x||input.z),water,dt);
+   const input = actor.input, p = this.sim.player, dt = 1 / TICK_RATE, riding=this.sim.companions.drive(actor.id,actor.input,this.sim.player)||this.sim.skybound.drive(actor.id,actor.input,this.sim.player),traversal=actor.adventure.traversal.beforeMove(actor.input,1/TICK_RATE), wasGrounded=p.grounded, impactVy=p.vy, length = Math.max(1, Math.hypot(input.x, input.z)), water = this.sim.fluid.immersion(p, characterHeight(p)), speed = traversal.speed * movementSpeed(actor.adventure,!!(input.x||input.z),water,dt);
    const flow = this.sim.fluid.current(p);
    const beforeY = p.y, dx = (traversal.wind?.x??0)*dt+input.x / length * speed * dt + flow.x * Math.min(1, water * 3) * dt, dz = (traversal.wind?.z??0)*dt+input.z / length * speed * dt + flow.z * Math.min(1, water * 3) * dt;
    if(!riding&&!traversal.handled&&!driveRaft(actor.adventure,input.x,input.z,dt))actor.motor.step(p, dx, dz, payJump(actor.adventure,input.jump,p.grounded), dt, water); input.jump = false;
@@ -144,6 +146,6 @@ export class SessionAuthority {
   const actor = this.actors.get(id); if (!actor) throw new Error('Unknown peer');
   const personal = this.withActor(actor, () => ({ player: { ...this.sim.player }, adventure: this.sim.adventure.snapshot() }));
   // The host player aliases sim.player, so read peers only after withActor restores it.
-  return { ...personal, peers: [...this.actors.values()].filter(a => a.id !== id && (!this.dedicated || a.id !== 'host')).map(a => ({ id: a.id, player: { ...a.player }, appearance: { downed: !!a.adventure.state.downed, reviveProgress: a.adventure.receivingHelp?.seconds ?? 0, ...a.adventure.traversal.snapshot(), equipment: a.adventure.state.equipment, attack: a.adventure.attack, guarding: a.adventure.guarding, dodging: a.adventure.dodge > 0, shield: !!a.adventure.state.inventory.shield } })) };
+  return { ...personal, peers: [...this.actors.values()].filter(a => a.id !== id && (!this.dedicated || a.id !== 'host')).map(a => ({ id: a.id, player: { ...a.player }, appearance: { downed: !!a.adventure.state.downed, reviveProgress: a.adventure.receivingHelp?.seconds ?? 0, ...a.adventure.traversal.snapshot(),crouching:!!a.player.crouching, equipment: a.adventure.state.equipment, attack: a.adventure.attack, guarding: a.adventure.guarding, dodging: a.adventure.dodge > 0, shield: !!a.adventure.state.inventory.shield } })) };
  }
 }

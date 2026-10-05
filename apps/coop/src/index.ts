@@ -1,3 +1,4 @@
+import {COOP_BUILD_ID} from '../../../src/networking/coop-handshake';
 import {COOP_PROTOCOL} from '../../../src/networking/coop-protocol';
 import { authenticateCoopPacket } from '../../../src/networking/coop-identity';
 import { CheckpointQueue } from '../../../src/networking/checkpoint-queue';
@@ -12,16 +13,16 @@ export class CoopRoom extends DurableObject<Env> {
  private readonly saves = new CheckpointQueue(() => this.writeCheckpoint());
  private lastSave = 0;
  private recoveryNotice=false;
- private async load(): Promise<AuthorityRoom> {
+ private async load(roomId:string): Promise<AuthorityRoom> {
   if (this.room) return this.room;
-  const {checkpoint,recovered}=await readRoom(this.ctx.storage as unknown as RoomStorage);
+  const {checkpoint,recovered,revision}=await readRoom(this.ctx.storage as unknown as RoomStorage);
   this.recoveryNotice=recovered;
-  return this.room = new AuthorityRoom(checkpoint, crypto.randomUUID());
+  const room=new AuthorityRoom(checkpoint, crypto.randomUUID(),roomId);if(revision)room.recordPersistedRevision(revision);return this.room=room;
  }
  async fetch(request: Request): Promise<Response> {
   if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') return new Response('WebSocket required', { status: 426 });
   let room: AuthorityRoom;
-  try { room = await (this.loading ??= this.load().catch(error => { this.loading = null; throw error; })); } catch { return new Response('Room save could not be loaded; it has not been reset.', { status: 503 }); }
+  try { room = await (this.loading ??= this.load(new URL(request.url).pathname.split('/').at(-1)!).catch(error => { this.loading = null; throw error; })); } catch { return new Response('Room save could not be loaded; it has not been reset.', { status: 503 }); }
   const [client, server] = Object.values(new WebSocketPair()), id = crypto.randomUUID();
   server.accept();
   room.connect(id, { send: (packet,serialized) => { try { server.send(serialized??JSON.stringify(packet)); } catch { room.disconnect(id); } }, close: (code, reason) => server.close(code, reason) });
@@ -43,13 +44,13 @@ export class CoopRoom extends DurableObject<Env> {
  }
  private persistenceFailed(room:AuthorityRoom):void{room.failPersistence();if(this.room===room){if(this.timer!==undefined)clearInterval(this.timer);this.timer=undefined;this.room=null;this.loading=null;}}
  private persist(): Promise<void> { return this.saves.request(); }
- private writeCheckpoint(): Promise<void> {
-  return this.room&&!this.room.readOnly?writeRoom(this.ctx.storage as unknown as RoomStorage,this.room.checkpoint()):Promise.resolve();
+ private async writeCheckpoint(): Promise<void> {
+  const room=this.room;if(!room||room.readOnly)return;const revision=await writeRoom(this.ctx.storage as unknown as RoomStorage,room.checkpoint());room.recordPersistedRevision(revision);
  }
 }
 export default { async fetch(request: Request, env: Env): Promise<Response> {
  const url = new URL(request.url);
- if (url.pathname === '/coop/health') return Response.json({ service: 'voxel-coop-authority', protocol: COOP_PROTOCOL, maxPlayers: 4, persistence: 'sqlite', tickRate: 30 });
+ if (url.pathname === '/coop/health') return Response.json({ service: 'voxel-coop-authority', protocol: COOP_PROTOCOL,buildId:COOP_BUILD_ID, maxPlayers: 4, persistence: 'sqlite', tickRate: 30 });
  const match = url.pathname.match(/^\/coop\/([a-f0-9]{48})$/);
  if (match) {
   const origin = request.headers.get('Origin');

@@ -21,6 +21,10 @@ export function buildingVoxels(id:string):VoxelModel{
   if(id==='beam26'||id==='beam45'){const slope=id==='beam45'?1:.5;return Math.abs(p.y-h/2-p.x*slope)<.125?'wood':null;}
   if(['bench','choppingBlock','tanningRack'].includes(id)){return p.y>h-.2||Math.abs(p.x)>w/2-.25&&Math.abs(p.z)>d/2-.25?'wood':null;}
   if(id==='cook')return Math.abs(p.x)>w/2-.15||p.y>h-.15?'wood':null;
+  if(id==='routeBanner')return Math.abs(p.x)<.13?'wood':p.y>.75?'cloth':null;
+  if(id==='echoMemorial')return p.y<.25||Math.abs(p.x)<.38&&p.y>Math.abs(p.x)*.5?'stone':null;
+  if(id==='windChime')return Math.abs(p.x)<.13||p.y>1.5?'wood':Math.abs(p.x)>.25&&p.y>.65&&Math.abs(p.z)<.13?'metal':null;
+  if(id==='routeMonument')return p.y<.25||Math.abs(p.x)<.25||p.y>1.5&&Math.abs(p.z)<.15?'stone':null;
   if(id==='chest')return p.y<.125||p.y>h-.125||Math.abs(p.x)>w/2-.125||Math.abs(p.z)>d/2-.125?'wood':null;
   if(id==='fire'){const r=Math.hypot(p.x,p.z);return r>.2?'stone':'wood';}
   if(id==='portal')return Math.abs(p.x)>w/2-.3||p.y>h-.3?'wood':null;
@@ -78,8 +82,8 @@ export function rayVoxel(model:VoxelModel,origin:Vec3,direction:Vec3,removed:rea
  }
  return null;
 }
-export function bodyTouchesVoxels(model:VoxelModel,point:Vec3,removed:readonly string[]=[]):boolean{
- const gone=new Set(removed);for(const dx of [-.28,0,.28])for(const dz of [-.28,0,.28])for(let y=.1;y<1.45;y+=.2)if(occupied(model,{x:point.x+dx,y:point.y+y,z:point.z+dz},gone))return true;return false;
+export function bodyTouchesVoxels(model:VoxelModel,point:Vec3,removed:readonly string[]=[],height=1.45):boolean{
+ const gone=new Set(removed);for(const dx of [-.28,0,.28])for(const dz of [-.28,0,.28])for(let y=.1;y<height;y+=.2)if(occupied(model,{x:point.x+dx,y:point.y+y,z:point.z+dz},gone))return true;return false;
 }
 /** Query a cell-top under the feet; collision heights follow the visible voxel staircase. */
 export function footSurface(model:VoxelModel,point:Vec3,previousY:number,removed:readonly string[]=[]):number|null{

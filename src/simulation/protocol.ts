@@ -3,10 +3,10 @@ import type { MeshData, Vec3, EditKind } from '../world/types';
 import type { FluidCell } from '../fluid/fluid';
 import type { SphereBody } from '../physics/sphere';
 import type { WorldSave } from '../save/format';
-export interface PlayerState extends Vec3 { heading: number; vy: number; grounded: boolean }
+export interface PlayerState extends Vec3 { crouching?:boolean; heading: number; vy: number; grounded: boolean }
 export interface PlayerInput { x: number; z: number; jump: boolean }
 export type Tool = EditKind | 'water' | 'rock';
-export interface PlayerAppearance { downed?: boolean; reviveProgress?: number; gliding?: boolean; climbing?: boolean; equipment: string; attack: number; guarding: boolean; dodging: boolean; shield: boolean }
+export interface PlayerAppearance { crouching?:boolean; downed?: boolean; reviveProgress?: number; gliding?: boolean; climbing?: boolean; equipment: string; attack: number; guarding: boolean; dodging: boolean; shield: boolean }
 export interface Snapshot {
   ack?: number; peers?: { id: string; player: PlayerState; appearance?: PlayerAppearance }[]; tick: number; adventure: AdventureSnapshot; player: PlayerState; edits: number; fluids: FluidCell[]; bodies: SphereBody[];
   metrics: { tickMs: number; fluidMs: number; physicsMs: number; jumpHeight: number; meshMs: number; editMs: number; bricks: number; pending: number; triangles: number };

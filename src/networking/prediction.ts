@@ -1,4 +1,5 @@
 import {foodEffect} from '../content/adventure-food';
+import {characterHeight} from '../physics/character-shape';
 import { CharacterMotor } from '../physics/character';
 import { attackMovementScale } from '../game/combat/attack';
 import type { AttackMotion } from '../game/combat/attack';
@@ -17,7 +18,7 @@ export class Prediction {
   this.pending.push({sequence,input:{...input}});if(this.pending.length>120)this.pending.shift();this.apply(input);
  }
  reconcile(state:Snapshot):void{
-  Object.assign(this.sim.player,state.player);this.motor.reset();
+  Object.assign(this.sim.player,state.player,{crouching:state.player.crouching===true});this.motor.reset();
   const snapshot = state.adventure, local = this.sim.adventure.state;
   local.buildings = structuredClone(snapshot.buildings); local.resources = structuredClone(snapshot.resources);
   local.seconds=snapshot.seconds;local.health = snapshot.health; local.stamina = snapshot.stamina; local.chill = snapshot.chill;
@@ -38,11 +39,11 @@ export class Prediction {
   const s=this.sim.adventure.state,m=s.meadows,moving=!!(input.x||input.z),commitment=this.motion?attackMovementScale(this.motion):this.attack>0?1.8/3.4:1;
   if(!m)return s.health<=0?0:(this.guarding?2:4*commitment)*(1-water*.45)*(s.chill?.65:1);
   if(s.health<=0)return 0;
-  const running=!!m.sprinting&&this.attack<=0&&!this.guarding&&!this.dodging;
-  let speed=m.sneaking?1.5:3.4;
+  const crouching=!!this.sim.player.crouching||!!m.sneaking,running=!!m.sprinting&&!crouching&&this.attack<=0&&!this.guarding&&!this.dodging;
+  let speed=crouching?1.5:3.4;
   if(running&&moving&&s.stamina>1){speed=6;s.stamina=Math.max(0,s.stamina-dt*(foodEffect(s,'endurance')?7:10)*(1-(m.skills.run??0)*.005)*(m.power>0?.4:1));}
   if(moving&&water>.65)s.stamina=Math.max(0,s.stamina-dt*(foodEffect(s,'endurance')?5.6:8)*(1-(m.skills.swim??0)*.005));
-  if(m.sneaking&&moving)s.stamina=Math.max(0,s.stamina-dt*3);
+  if(crouching&&moving)s.stamina=Math.max(0,s.stamina-dt*3);
   if(m.weight>300)speed=.7;if(this.guarding)speed=Math.min(speed,2);if(this.attack>0)speed=Math.min(speed,3.4*commitment);
   return speed*(m.gear.offhand==='towerShield'?.9:m.gear.offhand==='shield'?.95:1)*(1-water*.4)*(s.chill?.65:1);
  }
@@ -50,7 +51,7 @@ export class Prediction {
   // Vehicle position is the authority's seat position, never a locally walking passenger.
   if(this.riding)return;
   const p=this.sim.player,dt=1/30,before=p.y,length=Math.max(1,Math.hypot(input.x,input.z));
-  const traversal=this.sim.adventure.traversal.beforeMove(input,dt),water=this.sim.fluid.immersion(p,1.45),speed=traversal.speed*this.speed(input,water,dt);
+  const traversal=this.sim.adventure.traversal.beforeMove(input,dt,false),water=this.sim.fluid.immersion(p,characterHeight(p)),speed=traversal.speed*this.speed(input,water,dt);
   const flow=this.sim.fluid.current(p),carry=Math.min(1,water*3),dx=(input.x/length*speed+flow.x*carry+(traversal.wind?.x??0))*dt,dz=(input.z/length*speed+flow.z*carry+(traversal.wind?.z??0))*dt;
   let jump=input.jump;
   if(jump&&p.grounded&&this.sim.adventure.state.meadows){const state=this.sim.adventure.state,m=state.meadows!,cost=10*(1-(m.skills.jump??0)*.005)*(m.power>0?.4:1);jump=state.stamina>=cost;if(jump)state.stamina-=cost;}

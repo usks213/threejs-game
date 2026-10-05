@@ -1,3 +1,4 @@
+import {helloInfo,sessionInfo} from './coop-handshake';
 import {DeliveryWindow} from './delivery-window';
 import {SnapshotWireEncoder} from './snapshot-wire';
 import {encodeCompactFluidDelta} from './compact-fluid';
@@ -8,7 +9,7 @@ import { SessionAuthority } from '../simulation/session';
 import { sessionFrame } from './frame';
 import { COOP_PROTOCOL, MAX_COOP_PLAYERS, type CoopWireServerPacket, type CoopAction } from './coop-protocol';
 import type { WorldSave } from '../save/format';
-export interface RoomCheckpoint { version: 1; access?:RoomAccessState; world: WorldSave; receipts: [string, string[]][] }
+export interface RoomCheckpoint { version: 1; actionSequences?:[string,number][]; access?:RoomAccessState; world: WorldSave; receipts: [string, string[]][] }
 export interface RoomConnection { send(packet: CoopWireServerPacket,serialized?:string): void; close(code: number, reason: string): void }
 interface Connection { delivery:DeliveryWindow; pendingExport?:string; lastExport?:number; lastWelcome?:number; needsWelcome?:boolean; snapshot:SnapshotWireEncoder; water:FluidWireEncoder; wire: RoomConnection; playerId?: string; editBase: number; window: number; messages: number; created:number }
 /** Pure authority adapter: used by the public Worker and real-socket integration tests. */
@@ -17,13 +18,17 @@ export class AuthorityRoom {
  readonly epoch: string;
  private connections = new Map<string, Connection>();
  private receipts = new Map<string, Set<string>>();
+ private actionSequences=new Map<string,number>();
+ private persistedRevision:string|undefined;
+ recordPersistedRevision(revision:string):void{if(!/^[a-zA-Z0-9_-]{1,80}$/.test(revision))throw Error('保存世代が不正です');this.persistedRevision=revision;for(const c of this.connections.values())if(c.playerId)c.wire.send({type:'persisted-revision',revision});}
  private elapsed = 0;
  private access:RoomAccessState;
  private pendingAccess:{access:RoomAccessState;command?:RoomAdminCommand;commit:()=>void}|undefined;
  private failed=false;
  get readOnly():boolean{return this.failed;}
- constructor(checkpoint: RoomCheckpoint | null, epoch: string) {
+ constructor(checkpoint: RoomCheckpoint | null, epoch: string,private readonly roomId:string|null=null) {
   this.authority = new SessionAuthority(checkpoint?.world, true); this.epoch = epoch;this.access=checkpoint?.access?validateRoomAccess(checkpoint.access):initialRoomAccess(!checkpoint,checkpoint?.world.members?.map(m=>m.id));
+  for(const [id,sequence] of checkpoint?.actionSequences??[])this.actionSequences.set(id,sequence);
   for (const [id, ids] of checkpoint?.receipts ?? []) this.receipts.set(id, new Set(ids.slice(-256)));
  }
  get size(): number { return this.connections.size; }
@@ -48,7 +53,8 @@ export class AuthorityRoom {
    if (!packet || typeof packet !== 'object') throw new Error('Invalid packet');
    if (packet.type === 'hello') {
     if(packet.protocol!==COOP_PROTOCOL)throw Error('ゲームの版が違います。ページを更新してください');
-    if(Object.keys(packet).some(key=>!['type','protocol'].includes(key))||!isPublicPlayerId(authenticatedPlayerId))throw Error('認証済みの接続情報が必要です');
+    if(Object.keys(packet).some(key=>!['type','protocol','buildId','roomId','clientTick'].includes(key))||!isPublicPlayerId(authenticatedPlayerId))throw Error('認証済みの接続情報が必要です');
+    const info=helloInfo(packet);if(this.roomId&&info.roomId&&info.roomId!==this.roomId)throw Error('招待した部屋と接続先が一致しません');
     if(connection.playerId&&connection.playerId!==authenticatedPlayerId)throw Error('Identity cannot change');
     if(this.pendingAccess){connection.wire.close(1013,'Room management is saving');return {changed:false};}
     const playerId=authenticatedPlayerId,known=this.access.knownIds.includes(playerId)||this.authority.hasRecordedPlayer(playerId);
@@ -71,24 +77,28 @@ export class AuthorityRoom {
    if(packet.type==='delivery'){connection.delivery.acknowledge(packet.token);return {changed:false};}
    if(packet.type==='room-admin')return this.admin(connection,packet);
    if(this.pendingAccess){if(packet.type==='resync')connection.needsWelcome=true;else if(packet.type==='ping')connection.wire.send({type:'pong'});else if(packet.type==='action'&&typeof packet.commandId==='string')connection.wire.send({type:'ack',commandId:packet.commandId,accepted:false,message:'部屋管理の保存中です。保存後に再操作してください'});return {changed:false};}
-   if (packet.type === 'input') { this.authority.input(connection.playerId, packet.input as Parameters<SessionAuthority['input']>[1], packet.sequence as number); }
+   if (packet.type === 'input') { helloInfo({clientTick:packet.clientTick});this.authority.input(connection.playerId, packet.input as Parameters<SessionAuthority['input']>[1], packet.sequence as number); }
    else if (packet.type === 'resync') this.welcome(connection);
    else if(packet.type==='export'){if(typeof packet.requestId!=='string'||!/^[a-zA-Z0-9_-]{1,96}$/.test(packet.requestId))throw Error('Invalid export request');connection.pendingExport??=packet.requestId;this.exportPending(connection);}
    else if (packet.type === 'ping') connection.wire.send({ type: 'pong' });
    else if (packet.type === 'action') {
+    helloInfo({clientTick:packet.clientTick});
     if (typeof packet.commandId !== 'string' || !/^[a-zA-Z0-9_-]{1,96}$/.test(packet.commandId)) throw new Error('Invalid command id');
     const commandId = packet.commandId, seen = this.receipts.get(connection.playerId) ?? new Set<string>();
     if (seen.has(commandId)) return { changed: true, acknowledgment: () => connection.wire.send({ type: 'ack', commandId, accepted: true, message: '操作は反映済みです' }) };
+    const sequenceMatch=/^seq_([1-9][0-9]*)_/.exec(commandId), actionSequence=sequenceMatch?Number(sequenceMatch[1]):undefined;
+    if(actionSequence!==undefined&&(!Number.isSafeInteger(actionSequence)||actionSequence<=(this.actionSequences.get(connection.playerId)??0))){connection.wire.send({type:'ack',commandId,accepted:false,message:'反映済みまたは期限切れの操作です。再実行せず最新状態を表示します'});return {changed:false};}
+    if(actionSequence===undefined&&seen.size>=256){connection.wire.send({type:'ack',commandId,accepted:false,message:'旧版の操作記録が満杯です。ページを更新してください'});return {changed:false};}
     const action = packet.message as CoopAction;
     if (!action || (action.type !== 'action' && action.type !== 'game-action')) throw new Error('Invalid action');
     let message: string;
     try {
      if(action.type==='action'&&(action.tool==='dig'||action.tool==='add')&&!Number.isSafeInteger(action.expectedRevision))throw Error('地形の版がありません。ページを更新して同期してください');
-     if(action.type==='game-action'&&['sky-store','sky-take','sky-camp','sky-move','sky-glue','sky-unglue','sky-recall','sky-salvage','sky-toggle','sky-charge','sky-ride','sky-share','sky-upright'].includes(action.action)&&!Number.isSafeInteger(action.expectedEpoch))throw Error('構造物の版がありません。同期して再試行してください');
+     if(action.type==='game-action'&&['sky-store','sky-take','sky-camp','sky-move','sky-glue','sky-unglue','sky-recall','sky-salvage','sky-toggle','sky-charge','sky-ride','sky-share','sky-upright','sky-throw'].includes(action.action)&&!Number.isSafeInteger(action.expectedEpoch))throw Error('構造物の版がありません。同期して再試行してください');
      message = this.authority.action(connection.playerId, action).message;
     }
     catch (error) { connection.wire.send({ type: 'ack', commandId, accepted: false, message: error instanceof Error ? error.message : '操作を受理できません' }); return { changed: false }; }
-    seen.add(commandId); while (seen.size > 256) seen.delete(seen.values().next().value!); this.receipts.set(connection.playerId, seen);
+    if(actionSequence!==undefined)this.actionSequences.set(connection.playerId,actionSequence);else {seen.add(commandId);this.receipts.set(connection.playerId,seen);}
     return { changed: true, acknowledgment: () => connection.wire.send({ type: 'ack', commandId, accepted: true, message }) };
    } else throw new Error('Unknown packet');
   } catch (error) { connection.wire.send({ type: 'notice', message: error instanceof Error ? error.message : '通信データが不正です' }); }
@@ -139,7 +149,7 @@ export class AuthorityRoom {
   if(!connection.delivery.writable){connection.needsWelcome=true;return;}
   if(connection.lastWelcome!==undefined&&this.elapsed-connection.lastWelcome<1){connection.needsWelcome=true;return;}connection.lastWelcome=this.elapsed;connection.needsWelcome=false;
   const playerId = connection.playerId!; connection.editBase = this.authority.sim.world.edits.length;
-  const save=participantSave(this.authority,playerId),state=sessionFrame(this.authority,playerId);connection.water.reset(state.fluids);connection.snapshot.reset({...state,fluids:[]});this.sendDelivery(connection,{ type: 'welcome', protocol: COOP_PROTOCOL, epoch: this.epoch, playerId, save, state });connection.wire.send({type:'room-access',access:this.viewAccess(playerId)});
+  const save=participantSave(this.authority,playerId),state=sessionFrame(this.authority,playerId);connection.water.reset(state.fluids);connection.snapshot.reset({...state,fluids:[]});this.sendDelivery(connection,{ type: 'welcome', protocol: COOP_PROTOCOL,...(this.persistedRevision?{persistedRevision:this.persistedRevision}:{}),actionSequence:this.actionSequences.get(playerId)??0,session:sessionInfo(save,state,this.roomId), epoch: this.epoch, playerId, save, state });connection.wire.send({type:'room-access',access:this.viewAccess(playerId)});
  }
  step(): void {
   this.elapsed += 1 / 30;if(this.failed)return;
@@ -156,6 +166,6 @@ export class AuthorityRoom {
    const state=sessionFrame(this.authority,c.playerId),water=encodeCompactFluidDelta(c.water.encode(state.fluids)),delta=c.snapshot.encode({...state,fluids:[]});this.sendDelivery(c,{ type: 'delta', epoch: this.epoch,tick:state.tick, state:delta,water, editBase: c.editBase, edits: edits.slice(c.editBase) }); c.editBase = edits.length;
   }
  }
- checkpoint(): RoomCheckpoint {if(this.failed)throw Error('保存結果が不明なため再読込が必要です'); return { version: 1, access:structuredClone(this.pendingAccess?.access??this.access), world: this.authority.save(), receipts: [...this.receipts].map(([id, seen]) => [id, [...seen]]) }; }
+ checkpoint(): RoomCheckpoint {if(this.failed)throw Error('保存結果が不明なため再読込が必要です'); return { version: 1, actionSequences:[...this.actionSequences], access:structuredClone(this.pendingAccess?.access??this.access), world: this.authority.save(), receipts: [...this.receipts].map(([id, seen]) => [id, [...seen]]) }; }
  notice(message: string): void { for (const c of this.connections.values()) c.wire.send({ type: 'notice', message }); }
 }
