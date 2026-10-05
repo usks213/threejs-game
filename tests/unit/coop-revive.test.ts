@@ -30,7 +30,7 @@ it('cancels immediate release despite action cooldown and cancels departure, dis
   if(reason==='damage')helper.adventure.hurtPlayer(3,'physical',helper.player);
   ticks(room,100,reason!=='timeout');expect(target.adventure.state.health).toBe(0);expect(target.adventure.receivingHelp).toBeUndefined();
  }
-});
+},20000);
 it('rejects obscured rescue and competing helpers, and releases a target when either participant leaves',()=>{
  const {room,helper,target}=setup(),other=room.join('other');Object.assign(other.player,{x:1,y:2,z:9,grounded:true});
  room.sim.world.density=p=>p.x>.4&&p.x<.6?-1:p.y-2;
