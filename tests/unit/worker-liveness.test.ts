@@ -18,7 +18,7 @@ it('keeps simulation and input live while rendering credits are exhausted, and a
  const blocked=output.filter(m=>m.type==='snapshot').at(-1)!;expect(blocked.type).toBe('snapshot');if(blocked.type!=='snapshot')return;expect(blocked.state.tick).toBeGreaterThan(20);expect(blocked.state.player.x).toBeGreaterThan(1);expect(blocked.state.player.y).toBeGreaterThanOrEqual(sim.groundAt(blocked.state.player.x,blocked.state.player.z)-.3);expect(output.some(m=>m.type==='ready')).toBe(false);
  const initial=output.splice(0);expect(initial.filter(m=>m.type==='mesh')).toHaveLength(4);for(const m of initial)if(m.type==='mesh')send({type:'mesh-ack',epoch:m.epoch!,count:1});
  const pump=()=>{let n=0;while(pending.length&&n++<1500){pending.shift()!();for(const m of output.splice(0)){if(m.type==='mesh')send({type:'mesh-ack',epoch:m.epoch!,count:1});if(m.type==='ready')return true;}}return false;};
- expect(pump()).toBe(true);
+ expect(pump()).toBe(true);send({type:'save'});expect(output.filter(m=>m.type==='save').at(-1)?.epoch).toBe(1);
  send({type:'input',input:{x:1,z:0,jump:false}});vi.advanceTimersByTime(1000);
  const snaps=()=>output.filter(m=>m.type==='snapshot');
  const first=snaps().at(-1)!;expect(first.type).toBe('snapshot');if(first.type!=='snapshot')return;expect(first.state.tick).toBeGreaterThan(20);expect(first.state.player.x).toBeGreaterThan(1);
@@ -29,5 +29,5 @@ it('keeps simulation and input live while rendering credits are exhausted, and a
  send({type:'pause',paused:false});vi.advanceTimersByTime(500);expect(snaps().length).toBeGreaterThan(0);
  output.length=0;send({type:'init',save:sim.save()});expect(pump()).toBe(true);vi.advanceTimersByTime(100);expect(snaps().every(m=>m.epoch===2)).toBe(true);
  output.length=0;for(let i=0;i<10;i++)send({type:'game-action',action:'guard',id:'on',aim:{x:0,y:0,z:-1}});send({type:'game-action',action:'guard',id:'off',aim:{x:0,y:0,z:-1}});expect(output.some(m=>m.type==='save')).toBe(false);
- send({type:'game-action',action:'attack',aim:{x:0,y:-.8,z:-.6}});expect(output.some(m=>m.type==='save')).toBe(false);vi.advanceTimersByTime(600);expect(output.some(m=>m.type==='save')).toBe(false);vi.advanceTimersByTime(600);const saves=output.filter(m=>m.type==='save');expect(saves).toHaveLength(1);expect(saves[0].save.edits.length).toBeGreaterThan(0);
+ send({type:'game-action',action:'attack',aim:{x:0,y:-.8,z:-.6}});expect(output.some(m=>m.type==='save')).toBe(false);vi.advanceTimersByTime(600);expect(output.some(m=>m.type==='save')).toBe(false);vi.advanceTimersByTime(600);const saves=output.filter(m=>m.type==='save');expect(saves).toHaveLength(1);expect(saves[0].epoch).toBe(2);expect(saves[0].save.edits.length).toBeGreaterThan(0);
 },20000);

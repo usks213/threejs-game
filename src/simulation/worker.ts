@@ -13,7 +13,7 @@ import type { PlayerInput } from './protocol';
 import type { SimulationClientMessage as ClientMessage,SimulationWorkerMessage as WorkerMessage } from './local-protocol';
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
-const emit = (message: WorkerMessage, transfer: Transferable[] = []) => scope.postMessage(message.type==='snapshot'?{...message,epoch:terrain.epoch}:message, transfer);
+const emit = (message: WorkerMessage, transfer: Transferable[] = []) => scope.postMessage(message.type==='snapshot'||message.type==='save'?{...message,epoch:terrain.epoch}:message, transfer);
 let sim: GameSimulation | null = null, authority: SessionAuthority | null = null, replica = false;
 let prediction: Prediction | null = null, replicaState: import('./protocol').Snapshot | null = null;
 const peerEdits = new Map<string, number>();

@@ -166,7 +166,7 @@ export function startGame() {
   window.addEventListener('blur',releaseActions,{signal});window.addEventListener('resize',releaseActions,{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseActions();},{signal});
   window.addEventListener('keydown',e=>{
     if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
-    if(preferences.boundCode(e.code)==='Escape'){mouse.unlock();gameAction('guard','off');sprint(false);if(building||app.dataset.sandbox==='true')document.querySelector<HTMLButtonElement>('#build-cancel')!.click();document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
+    if(preferences.boundCode(e.code)==='Escape'){if(document.querySelector('#recovery-panel:not([hidden])')){e.preventDefault();return;}mouse.unlock();gameAction('guard','off');sprint(false);if(building||app.dataset.sandbox==='true')document.querySelector<HTMLButtonElement>('#build-cancel')!.click();document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);return;}
     if(preferences.boundCode(e.code)==='Tab'){e.preventDefault();if(!e.repeat){const panel=document.querySelector<HTMLElement>('#adventure-panel')!;if(panel.hidden){adventure.open('bag');mouse.unlock();}else panel.hidden=true;}return;}
     if(e.repeat||document.querySelector('[role=dialog]:not([hidden])'))return;
     if(preferences.boundCode(e.code)==='Space'){e.preventDefault();if(state&&!state.player.grounded&&state.adventure.inventory.glider)gameAction('glide');else jump=true;}
