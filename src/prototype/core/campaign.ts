@@ -1,3 +1,4 @@
+import {acquisitionInventory,validDiscoveryIds,materialDiscoveryId,itemDiscoveryId,MAX_DISCOVERY_IDS} from './discovery';
 import type {Vec3} from './voxel';
 import {REGIONS,REGIONAL_POINTS,REGIONAL_ENEMIES,REGIONAL_UPGRADES,REGIONAL_QUESTS,regionAt,isRegionalOpen,type RegionalReward,type RegionId} from './regions';
 
@@ -104,7 +105,7 @@ export const CAMPAIGN_QUESTS:readonly {id:string;label:string;detail:string;side
 ];
 export interface GearState {durability:number;maxDurability:number;upgrade:number;socket:'ember-gem'|null}
 export interface CampaignState {
- version:1;items:Record<string,number>;gearState:Record<string,GearState>;equipment:Record<EquipmentSlot,string|null>;completed:string[];claimedEnemies:string[];
+ version:1;collections?:string[];items:Record<string,number>;gearState:Record<string,GearState>;equipment:Record<EquipmentSlot,string|null>;completed:string[];claimedEnemies:string[];
  xp:number;level:number;skillPoints:number;skills:string[];unlockedRegions:RegionId[];discoveredRegions:RegionId[];claimedPoints:string[];flameTier:number;artisanRescued:boolean;gateOpen:boolean;campUnlocked:boolean;
  foodSeconds:number;restSeconds:number;shroudSeconds:number;discovered:CampaignPointId[];built:string[];deaths:number;deathPending:boolean;
  deathBag:{position:Vec3;materials:Record<number,number>}|null;
@@ -123,8 +124,17 @@ export const isShrouded=(position:Vec3)=>position.x>5&&position.x<11&&position.z
 export const isDeepShroud=(position:Vec3)=>position.z<-18&&position.z>-26;
 
 export class CampaignSystem {
- state:CampaignState={version:1,items:{},gearState:{},equipment:{weapon:null,armor:null,grapple:null,glider:null,charm:null},completed:[],claimedEnemies:[],xp:0,level:1,skillPoints:0,skills:[],unlockedRegions:[],discoveredRegions:[],claimedPoints:[],flameTier:0,artisanRescued:false,gateOpen:false,campUnlocked:false,foodSeconds:0,restSeconds:0,shroudSeconds:60,discovered:['hearth'],built:[],deaths:0,deathPending:false,deathBag:null};
- constructor(readonly materials:Record<number,number>){}
+ state:CampaignState={version:1,collections:[],items:acquisitionInventory<string>({},id=>this.discoverItem(id)),gearState:{},equipment:{weapon:null,armor:null,grapple:null,glider:null,charm:null},completed:[],claimedEnemies:[],xp:0,level:1,skillPoints:0,skills:[],unlockedRegions:[],discoveredRegions:[],claimedPoints:[],flameTier:0,artisanRescued:false,gateOpen:false,campUnlocked:false,foodSeconds:0,restSeconds:0,shroudSeconds:60,discovered:['hearth'],built:[],deaths:0,deathPending:false,deathBag:null};
+ constructor(readonly materials:Record<number,number>){this.discoverHoldings();}
+ /** Called at acquisition, never when viewing a recipe or unknown catalog entry. */
+ private discover(id:string){const known=this.state.collections??(this.state.collections=[]);if(known.length<MAX_DISCOVERY_IDS&&!known.includes(id))known.push(id);}
+ discoverMaterial(id:number){if(Object.hasOwn(CAMPAIGN_MATERIALS,id))this.discover(materialDiscoveryId(id));}
+ discoverItem(id:string){if(Object.hasOwn(CAMPAIGN_ITEMS,id))this.discover(itemDiscoveryId(id));}
+ discoverHoldings(materials:Record<number,number>=this.materials,items:Record<string,number>=this.state.items){
+  for(const [id,n] of Object.entries(materials))if(Number.isSafeInteger(n)&&n>0)this.discoverMaterial(Number(id));
+  for(const [id,n] of Object.entries(items))if(Number.isSafeInteger(n)&&n>0)this.discoverItem(id);
+ }
+ hasDiscovered(id:string){return this.state.collections?.includes(id)??false;}
  private professionProvider:CampaignProfessionProvider|null=null;
  setProfessionProvider(provider:CampaignProfessionProvider|null){this.professionProvider=provider;}
  professionUnlocked(role:CampaignProfession){return this.professionProvider?.rescued(role)??false;}
@@ -257,11 +267,17 @@ export class CampaignSystem {
  respawn(){this.state.deathPending=false;this.state.foodSeconds=0;this.state.restSeconds=0;this.state.shroudSeconds=this.shroudMaximum;return this.spawn;}
  recover(position:Vec3):CampaignResult {const b=this.state.deathBag;if(!b)return fail('回収する落とし物はない');if(!finitePosition(position)||dist(position,b.position)>2.8)return fail('落とし物の近くへ移動する');for(const [key,n] of Object.entries(b.materials))this.materials[Number(key)]=(this.materials[Number(key)]??0)+n;this.state.deathBag=null;return success('死亡時の素材をすべて回収');}
  snapshot(){return clone(this.state);}
- restore(value:unknown):boolean {if(!validCampaignState(value))return false;const restored=clone(value),items=this.state.items;for(const id of Object.keys(items))delete items[id];Object.assign(items,restored.items);this.state={...restored,items};return true;}
+ restore(value:unknown):boolean {if(!validCampaignState(value))return false;const restored=clone(value),items=this.state.items;for(const id of Object.keys(items))delete items[id];Object.assign(items,restored.items);this.state={...restored,items,collections:(restored.collections??[]).filter(id=>id.startsWith('material:')?Object.hasOwn(CAMPAIGN_MATERIALS,id.slice(9)):Object.hasOwn(CAMPAIGN_ITEMS,id.slice(5)))};
+  // Pre-codex saves prove current holdings, equipped gems and recoverable materials.
+  // Do not infer that every recipe, previously consumed item or region was found.
+  this.discoverHoldings();if(this.state.deathBag)this.discoverHoldings(this.state.deathBag.materials,{});
+  for(const gear of Object.values(this.state.gearState))if(gear.socket)this.discoverItem(gear.socket);
+  return true;}
 }
 
 /** Strict, atomic hydration rejects unknown IDs and duplicate reward records. */
 export function validCampaignState(value:unknown):value is CampaignState {if(!value||typeof value!=='object'||Array.isArray(value))return false;const s=value as CampaignState;
+ if(!validDiscoveryIds(s.collections))return false;
  const number=(n:unknown,min:number,max:number,integer=false)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max&&(!integer||Number.isSafeInteger(n));
  const list=(v:unknown,allowed:readonly string[],max=allowed.length)=>Array.isArray(v)&&v.length<=max&&new Set(v).size===v.length&&v.every(x=>typeof x==='string'&&allowed.includes(x));
  if(s.version!==1||!number(s.xp,0,10000,true)||!number(s.level,1,10,true)||s.level!==Math.min(10,1+Math.floor(s.xp/80))||!number(s.skillPoints,0,9,true)||!number(s.flameTier,0,5,true)||!number(s.deaths,0,1000000,true))return false;

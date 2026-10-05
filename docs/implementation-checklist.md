@@ -59,7 +59,7 @@ Published checkpoint (2026-10-05 09:13 UTC): commit `3eb279af724f0faea5d539e1bb8
 | C13 | 修理/耐久 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | C14 | 解体 | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
 | C15 | 入手ヒント | 簡易実装・受入試験待ち | src/prototype/core/campaign.ts + tests/unit/campaign.test.ts | Normal-play/browser verification and remaining breadth |
-| C16 | 収集図鑑 | 部分実装 | campaign-presenter.ts; core/campaign.ts | アイテム入手ヒントはある。独立した収集図鑑の発見登録は未実装 |
+| C16 | 収集図鑑 | 実装あり・ブラウザ受入待ち | core/discovery.ts; campaign-codex.ts; campaign-codex-view.ts; tests/unit/discovery-codex.test.ts; tests/e2e/campaign-codex.spec.ts | 初入手を即時記録し、消費せず永続化。素材・制作・報酬・釣り・農業・加工・収納経路と旧保存互換を11試験で確認。日本語の発見状態・地域・入手・用途、検索と絞込。未発見の場所は伏せる。PC/Android 4ケースはローカルChromiumのsocket EPERMで起動前に停止、CIで実操作受入が必要 |
 | B01 | 基本攻撃 | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |
 | B02 | 重攻撃 | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |
 | B03 | 防御 | 実装あり・実操作未検証 | core/simulation.ts; core/motion.ts; tests/unit/prototype.test.ts; motion.test.ts | 武器接触/硬直/盾方向/回避の実操作確認。ゲームの手触りは単体で判定しない |

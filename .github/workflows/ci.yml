@@ -64,7 +64,7 @@ jobs:
             cases: campaign.spec|campaign-playthrough
           - project: desktop-chromium
             group: desktop-campaign-ui
-            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards
+            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards|campaign-codex
           - project: desktop-chromium
             group: desktop-campaign-save
             cases: campaign-save-history|campaign-file-transfer
@@ -76,7 +76,7 @@ jobs:
             cases: campaign.spec|campaign-playthrough
           - project: android-chromium
             group: android-campaign-ui
-            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards
+            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards|campaign-codex
           - project: android-chromium
             group: android-campaign-save
             cases: campaign-save-history|campaign-file-transfer

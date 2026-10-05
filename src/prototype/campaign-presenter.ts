@@ -1,3 +1,4 @@
+import {campaignCodex} from './campaign-codex';
 import {WEST_POINTS,WEST_POIS} from './core/expedition-west';
 import {campaignMapData,type CampaignMapData} from './campaign-map';
 import {homesteadRows} from './homestead-presenter';
@@ -25,7 +26,7 @@ export function campaignSnapshot(sim:CoreSimulation,settings:CampaignSettings,sa
  const mapKey=JSON.stringify([s.discoveredRegions,s.unlockedRegions,sim.westernContent,west?.routes,west?.claimed,west?.gateOpen]);
  let cached=mapCache.get(sim);if(!cached||cached.key!==mapKey){cached={key:mapKey,value:campaignMapData(s.discoveredRegions,s.unlockedRegions,sim.westernContent,west)};mapCache.set(sim,cached);}
  const map=cached.value;
- return {homestead:[...homesteadRows(sim.home,sim.homeContext),...(sim.western?.accessible?sim.western.specialistRows().map(npc=>({id:npc.id,label:npc.name+' · '+npc.label,detail:npc.description+' · '+npc.requirements.map(r=>(r.done?'✓ ':'□ ')+r.label).join(' / '),completed:npc.rescued,reason:npc.rescued?'集落に滞在中 · 世界で照準を合わせて会話':npc.status==='ready'?'現地で話しかけると救出できる':'救出条件を整える'})):[])],materials:Object.values(CAMPAIGN_MATERIALS).map(m=>({id:String(m.id),label:m.icon+' '+m.label,count:c.materials[m.id]??0,detail:m.description+' / '+m.source})),
+ return {codex:campaignCodex(c),homestead:[...homesteadRows(sim.home,sim.homeContext),...(sim.western?.accessible?sim.western.specialistRows().map(npc=>({id:npc.id,label:npc.name+' · '+npc.label,detail:npc.description+' · '+npc.requirements.map(r=>(r.done?'✓ ':'□ ')+r.label).join(' / '),completed:npc.rescued,reason:npc.rescued?'集落に滞在中 · 世界で照準を合わせて会話':npc.status==='ready'?'現地で話しかけると救出できる':'救出条件を整える'})):[])],materials:Object.values(CAMPAIGN_MATERIALS).map(m=>({id:String(m.id),label:m.icon+' '+m.label,count:c.materials[m.id]??0,detail:m.description+' / '+m.source})),
  items:Object.entries(s.items).filter(([,n])=>n>0).map(([id,count])=>{const item=CAMPAIGN_ITEMS[id];return {id,label:item.icon+' '+item.label,count,detail:item.description+' / '+item.source,action:id==='fishing-rod'?'gear':item.slot?'equip':item.category==='food'||item.category==='medicine'?'consume':undefined} as CampaignRow;}),
  recipes:campaignRecipeRows(c,sim.player.position,includeCraftDetails),
  quests:[...c.questRows(),...c.regionQuestRows().map(q=>({...q,side:false})),...(sim.western?.questRows().map(q=>({...q,side:true,detail:q.objectives.map(o=>(o.done?'✓ ':'')+(WEST_POINTS.find(p=>p.id===o.id)?.name??o.id)).join(' / ')}))??[])].map(q=>({id:q.id,label:(q.side?'副依頼 · ':'主目的 · ')+q.label,detail:q.detail,completed:q.status==='complete',reason:q.status==='locked'?'前の主目的から進める':q.status==='active'?'進行中':'完了'})),

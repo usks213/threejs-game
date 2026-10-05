@@ -1,3 +1,4 @@
+import {acquisitionInventory} from './discovery';
 import {record,number,integer,text,vector,checksum} from '../../save/validation';
 import type {VoxelWater} from './water';
 import type {Element} from './elements';
@@ -35,7 +36,9 @@ const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 /** Bounded in-memory collection. Building layers deliberately have no salvage: mining a
  * construction can never create more resources than its recipe spent. Versioned checkpoints preserve source identities and pending resources. */
 export class SurvivalSystem {
- readonly inventory:Record<number,number>={2:0,3:0,4:0,6:0,7:0,10:0};
+ /** All consumers keep this same observable record, including companion pickup and rewards. */
+ onMaterialAcquired:((id:number)=>void)|null=null;
+ readonly inventory=acquisitionInventory<number>({2:0,3:0,4:0,6:0,7:0,10:0},id=>this.onMaterialAcquired?.(Number(id)));
  readonly drops:MaterialDrop[]=[];readonly pendingDrops:MaterialDrop[]=[];selected:RecipeId='workbench';rotation=0;private undoRecord:{id:string;revision:number}|null=null;
  readonly maxDrops=192;readonly maxBuildings=64;buildBounds={minX:-11,maxX:11,minZ:-19,maxZ:19};
  private readonly pendingIndex=new Map<string,MaterialDrop>();

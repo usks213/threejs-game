@@ -89,6 +89,7 @@ export function restoreCampaignInto(sim:CoreSimulation,data:unknown,options:Camp
  if(!elements.restoreState(data.elements))return fail('elements');
  if(!campaign.restore(data.campaign))return fail('campaign');
  if(!home.restore(data.home))return fail('home');
+ campaign.discoverHoldings(home.state.storage.materials,home.state.storage.items);
  const fishing=new FishingSystem(campaign,sim.arena.field,createFishingWaterProbe(sim.arena.field,sim.water));if(!fishing.restore(data.fishing??createFishingState()))return fail('fishing');
  let stagedWest:WestExpeditionSystem|null=null;
  if(data.world==='campaign-v4'){

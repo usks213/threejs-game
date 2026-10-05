@@ -9,6 +9,7 @@ export interface CampaignProbe {
 }
 // Observation only. No test writes to game state, invokes actions, or seeds storage.
 export const read=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__coreProbe') as CampaignProbe);
+const motion=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__inputProbe') as Pick<CampaignProbe,'position'|'hp'|'stamina'|'phase'|'seconds'|'yaw'|'pitch'|'enemies'>);
 const angle=(n:number)=>Math.atan2(Math.sin(n),Math.cos(n));
 
 export class PlayerControls {
@@ -22,21 +23,29 @@ export class PlayerControls {
  }
  async endTouch(){if(!this.touch||!this.liveTouch)return;this.liveTouch=false;await this.touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
  async dispose(){if(!this.mobile)for(const key of ['KeyW','KeyS','KeyA','KeyD','KeyZ','ShiftLeft','Home','End','PageUp','PageDown'])await this.page.keyboard.up(key).catch(()=>{});if(this.touch){await this.endTouch().catch(()=>{});await this.touch.detach().catch(()=>{});this.touch=null;}}
- async action(selector:string,key:string){if(this.mobile)await this.page.locator(selector).tap();else await this.page.keyboard.press(key);}
+ async action(selector:string,key:string){
+  if(!this.mobile){await this.page.keyboard.press(key);return;}
+  // Use a real touch on the visible control. Locator.tap's scrolling/stability
+  // round trips can consume an entire combat opening on software-rendered CI.
+  const control=this.page.locator(selector);await expect(control).toBeEnabled();
+  const point=await control.evaluate(element=>{const r=element.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,hit=document.elementFromPoint(x,y);return {x,y,visible:r.width>0&&r.height>0&&!!hit&&element.contains(hit)};});
+  expect(point.visible,'The real action control must be visible and unobstructed').toBe(true);
+  await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:9,x:point.x,y:point.y}]});this.liveTouch=true;await this.endTouch();
+ }
  async aim(point:Point){
-  expect((await read(this.page)).hp,'Aiming requires a living player; report combat death before input accuracy').toBeGreaterThan(0);await expect(this.page.locator('#death')).toBeHidden();await expect(this.page.locator('#game')).toHaveAttribute('data-running','true');
-  await expect.poll(async()=>(await read(this.page)).phase).toBe('idle');
+  expect((await motion(this.page)).hp,'Aiming requires a living player; report combat death before input accuracy').toBeGreaterThan(0);await expect(this.page.locator('#death')).toBeHidden();await expect(this.page.locator('#game')).toHaveAttribute('data-running','true');
+  await expect.poll(async()=>(await motion(this.page)).phase).toBe('idle');
   if(!this.mobile){await this.keyboardAim(point);return;}
   for(let attempt=0;attempt<8;attempt++){
-   const p=await read(this.page);expect(p.hp,'Touch aiming must not continue on the death overlay').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z,dy=point.y-p.position.y-1.52;
+   const p=await motion(this.page);expect(p.hp,'Touch aiming must not continue on the death overlay').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z,dy=point.y-p.position.y-1.52;
    const yaw=Math.atan2(-dx,-dz),pitch=Math.atan2(dy,Math.hypot(dx,dz)),yawError=angle(yaw-p.yaw),pitchError=pitch-p.pitch;
    if(Math.abs(yawError)<.015&&Math.abs(pitchError)<.015)return;
    if(this.mobile){
     const mx=-yawError/.004,my=-pitchError/.004,steps=Math.max(1,Math.ceil(Math.max(Math.abs(mx)/140,Math.abs(my)/65)));
-    for(let i=0;i<steps;i++){const location=await this.lookPoint(),before=await read(this.page),finger={...location,id:7};await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});this.liveTouch=true;await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...finger,x:finger.x+mx/steps,y:finger.y+my/steps}]});await this.endTouch();await expect.poll(async()=>{const p=await read(this.page);expect(p.hp,'Player died during a touch-look gesture').toBeGreaterThan(0);return Math.abs(angle(p.yaw-before.yaw))+Math.abs(p.pitch-before.pitch);},{timeout:15000,intervals:[50,100]}).toBeGreaterThan(.001);}
+    for(let i=0;i<steps;i++){const location=await this.lookPoint(),before=await motion(this.page),finger={...location,id:7};await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});this.liveTouch=true;await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...finger,x:finger.x+mx/steps,y:finger.y+my/steps}]});await this.endTouch();await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player died during a touch-look gesture').toBeGreaterThan(0);return Math.abs(angle(p.yaw-before.yaw))+Math.abs(p.pitch-before.pitch);},{timeout:15000,intervals:[50,100]}).toBeGreaterThan(.001);}
    }
   }
-  const p=await read(this.page),yaw=Math.atan2(-(point.x-p.position.x),-(point.z-p.position.z)),pitch=Math.atan2(point.y-p.position.y-1.52,Math.hypot(point.x-p.position.x,point.z-p.position.z));
+  const p=await motion(this.page),yaw=Math.atan2(-(point.x-p.position.x),-(point.z-p.position.z)),pitch=Math.atan2(point.y-p.position.y-1.52,Math.hypot(point.x-p.position.x,point.z-p.position.z));
   expect(Math.abs(angle(yaw-p.yaw)),'Real pointer input must reach requested yaw').toBeLessThan(.035);
   expect(Math.abs(pitch-p.pitch),'Real pointer input must reach requested pitch').toBeLessThan(.035);
  }
@@ -49,7 +58,7 @@ export class PlayerControls {
  async keyboardAim(point:Point){
   // Genuine production accessibility keys. CDP absolute mouseMove does not
   // synthesize Pointer Lock's raw relative motion, so this is labeled separately.
-  const error=async(axis:'yaw'|'pitch')=>{const p=await read(this.page);expect(p.hp,'Keyboard aiming must not continue after combat death').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z;return axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch;};
+  const error=async(axis:'yaw'|'pitch')=>{const p=await motion(this.page);expect(p.hp,'Keyboard aiming must not continue after combat death').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z;return axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch;};
   for(const axis of ['yaw','pitch'] as const){
    let precise=false;
    for(let attempt=0;attempt<12;attempt++){
@@ -69,14 +78,14 @@ export class PlayerControls {
   }
  }
  async walkTo(x:number,z:number){
-  const start=await read(this.page),dx=x-start.position.x,dz=z-start.position.z,length=Math.hypot(dx,dz);if(length<.18)return;
+  const start=await motion(this.page),dx=x-start.position.x,dz=z-start.position.z,length=Math.hypot(dx,dz);if(length<.18)return;
   await this.aim({x,y:start.position.y+1.52,z});
   let movementFailed=false;try{
    if(this.mobile){const box=await this.page.locator('#move-pad').boundingBox();expect(box).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:box!.x+box!.width/2,y:box!.y+10}]});this.liveTouch=true;}
    else await this.page.keyboard.down('KeyW');
-   await expect.poll(async()=>{const p=await read(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(.18);
+   await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(.18);
   }catch(error){movementFailed=true;throw error;}finally{try{if(this.mobile)await this.endTouch();else await this.page.keyboard.up('KeyW');}catch(error){if(!movementFailed)throw error;}}
-  const seconds=(await read(this.page)).seconds;await expect.poll(async()=>(await read(this.page)).seconds,{intervals:[50,100]}).toBeGreaterThan(seconds+.15);
+  const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[50,100]}).toBeGreaterThan(seconds+.15);
  }
  async gather(material:number,minimum:number,points:Point[],object:string){
   for(let i=0;i<20&&(await read(this.page)).inventory[material]<minimum;i++){
@@ -84,9 +93,9 @@ export class PlayerControls {
    // A mined patch may expose another part or terrain. Do not call private hit APIs.
    if((await read(this.page)).target!==object)continue;
    await this.action('[data-action="heavy"]','KeyR');
-   await expect.poll(async()=>(await read(this.page)).phase,{intervals:[50,100]}).not.toBe('idle');
-   await expect.poll(async()=>(await read(this.page)).phase,{timeout:60000,intervals:[100]}).toBe('idle');
-   const seconds=(await read(this.page)).seconds;await expect.poll(async()=>(await read(this.page)).seconds,{intervals:[100]}).toBeGreaterThan(seconds+.3);
+   await expect.poll(async()=>(await motion(this.page)).phase,{intervals:[50,100]}).not.toBe('idle');
+   await expect.poll(async()=>(await motion(this.page)).phase,{timeout:60000,intervals:[100]}).toBe('idle');
+   const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[100]}).toBeGreaterThan(seconds+.3);
   }
   expect((await read(this.page)).inventory[material],`Actual chisel strikes and nearby pickup must gather material ${material}`).toBeGreaterThanOrEqual(minimum);
  }
@@ -115,18 +124,27 @@ export class PlayerControls {
    // single starting flask until normal movement/combat has opened space;
    // nearby enemies keep the driver on its shield-and-counter route instead.
    if(this.usedFlask||p.enemies.some(e=>e.hp>0&&Math.hypot(e.position.x-p.position.x,e.position.z-p.position.z)<4))return;
-   this.usedFlask=true;await this.action('#heal','KeyQ');await expect.poll(async()=>(await read(this.page)).phase).toBe('heal');await expect.poll(async()=>(await read(this.page)).phase,{timeout:60000}).toBe('idle');expect((await read(this.page)).hp,'The starting flask must actually heal').toBeGreaterThan(p.hp);return;
+   this.usedFlask=true;await this.action('#heal','KeyQ');await expect.poll(async()=>(await motion(this.page)).phase).toBe('heal');await expect.poll(async()=>(await motion(this.page)).phase,{timeout:60000}).toBe('idle');expect((await read(this.page)).hp,'The starting flask must actually heal').toBeGreaterThan(p.hp);return;
   }
   await this.menu('inventory');await this.row('bandage','consume');await expect.poll(async()=>(await read(this.page)).hp).toBeGreaterThan(p.hp);await this.resume();
  }
  async fight(index:number){
   for(let strikes=0;strikes<18&&(await read(this.page)).enemies[index].hp>0;strikes++){
    await this.healFromInventory();let p=await read(this.page);expect(p.hp,'Combat must preserve a living player').toBeGreaterThan(0);const enemy=p.enemies[index];
-   await this.aim({...enemy.position,y:enemy.position.y+1.52});
-   if(p.stamina<45){await this.retreat();await expect.poll(async()=>(await read(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
-   await this.shield(true);try{await expect.poll(async()=>{const state=await read(this.page);expect(state.hp).toBeGreaterThan(0);return ['recover','stagger','dead'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);}finally{await this.shield(false);}
-   if((await read(this.page)).enemies[index].hp<=0)break;
-   await this.action('[data-action="attack"]','KeyT');await expect.poll(async()=>(await read(this.page)).phase,{intervals:[50,100]}).not.toBe('idle');await expect.poll(async()=>(await read(this.page)).phase,{timeout:60000,intervals:[100]}).toBe('idle');
+   const dx=enemy.position.x-p.position.x,dz=enemy.position.z-p.position.z,desiredYaw=Math.atan2(-dx,-dz),desiredPitch=Math.atan2(enemy.position.y-p.position.y,Math.hypot(dx,dz));
+   // Melee/guard have real physical coverage; do not spend a new precision-look
+   // gesture on a target that is already directly in front after every strike.
+   if(Math.abs(angle(desiredYaw-p.yaw))>.12||Math.abs(desiredPitch-p.pitch)>.12)await this.aim({...enemy.position,y:enemy.position.y+1.52});
+   if(p.stamina<45){await this.retreat();await expect.poll(async()=>(await motion(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
+   await this.shield(true);try{
+    // If we arrive in an old recovery, keep guarding through the next attack.
+    // Counter only a newly observed opening, not the tail of one spent aiming.
+    const opened=['recover','stagger'].includes((await motion(this.page)).enemies[index].phase);
+    if(opened)await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return state.enemies[index].hp<=0||!['recover','stagger'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
+    await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return ['recover','stagger','dead'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
+   }finally{await this.shield(false);}
+   if((await motion(this.page)).enemies[index].hp<=0)break;
+   await this.action('[data-action="attack"]','KeyT');await expect.poll(async()=>(await motion(this.page)).phase,{intervals:[50,100]}).not.toBe('idle');await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Counter-attack recovery must preserve life').toBeGreaterThan(0);return state.phase;},{timeout:60000,intervals:[100]}).toBe('idle');
   }
   expect((await read(this.page)).enemies[index].hp,`Enemy ${index} must be defeated through guarded, aimed attacks`).toBeLessThanOrEqual(0);
  }
