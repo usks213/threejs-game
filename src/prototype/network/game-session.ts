@@ -1,5 +1,5 @@
 import {CampaignCoopClient} from './coop-client';
-import {CAMPAIGN_PROTOCOL,validResumeKey,randomRoomCode,roomFromFragment,inviteFragment,type GuestCommand,type RoomRole} from './protocol';
+import {CAMPAIGN_PROTOCOL,randomRoomCode,roomFromFragment,inviteFragment,type GuestCommand,type RoomRole} from './protocol';
 import {captureGameFrame,applyGameFrame,validGameFrame,captureActor,type GameFrame,type ActorFrame} from './game-frame';
 import {captureSharedCampaign,applySharedCampaign} from '../campaign-network-state';
 import {executeGameCommand,isGameCommand,type GameCommand} from '../campaign-commands';
@@ -7,7 +7,8 @@ import type {CampaignSettings} from '../campaign-session';
 import type {CoreSimulation,Action,Controls} from '../core/simulation';
 import type {CooperationSnapshot,CooperationAction} from '../campaign-ui';
 import {record} from '../../save/validation';
-export interface RoomSessionHooks {settings():CampaignSettings;save():boolean;mode(role:RoomRole|null):void;notice(message:string):void}
+import {readHostResumeIdentity,readRoomResumeKey,roomResumeStorageKey,soloCampaignURL} from './room-invitation';
+export interface RoomSessionHooks {settings():CampaignSettings;save():boolean;mode(role:RoomRole|null):void;notice(message:string):void;guestPreview?:boolean}
 const actions:readonly Action[]=['attack','heavy','dodge','jump','interact','heal','tool','sword','chisel','element-next','cast','recipe-next','build','special','dismantle'];
 const editingActions=new Set<Action>(['build','dismantle','cast']);
 const wrapAngle=(n:number)=>Math.atan2(Math.sin(n),Math.cos(n));
@@ -19,24 +20,29 @@ export class CampaignRoomSession {
  get role(){return this.roleValue;}
  get online(){return !!this.client?.online&&(this.roleValue!=='guest'||this.ready&&Date.now()-this.lastFrameAt<3000);}
  get hostRunning(){return this.roleValue==='host'&&!!this.client?.online;}
- async probe(){try{const r=await fetch(new URL('/campaign-room/health',this.endpoint),{cache:'no-store',signal:AbortSignal.timeout(5000)});const health:unknown=await r.json();this.available=r.ok&&record(health)&&health.service==='pr4-campaign-room'&&health.protocol===CAMPAIGN_PROTOCOL&&health.enabled===true;this.message=this.available?'未接続。招待した相手と二人で同じ旅を進めます':'この公開版では協力プレイの準備中です';}catch{this.available=false;this.message='この公開版では協力プレイの準備中です';}}
- snapshot():CooperationSnapshot{return {enabled:this.available&&this.sim.worldReady,status:this.sim.worldReady?this.message:'地域を展開中。完了すると協力を選べます',role:this.roleValue,invite:this.room?new URL(inviteFragment(this.room),this.endpoint).href:null,guestBuild:this.guestBuild,muted:this.muted,players:this.players,messages:this.chat.map(v=>({...v})),canJoin:!!roomFromFragment(location.hash)};}
+ async probe(){try{const r=await fetch(new URL('/campaign-room/health',this.endpoint),{cache:'no-store',signal:AbortSignal.timeout(5000)});const health:unknown=await r.json();this.available=r.ok&&record(health)&&health.service==='pr4-campaign-room'&&health.protocol===CAMPAIGN_PROTOCOL&&health.enabled===true;this.message=this.available?'未接続。招待した相手と二人で同じ旅を進めます':record(health)&&health.enabled===true&&health.protocol!==CAMPAIGN_PROTOCOL?'協力プレイの版が変わりました。両方のページを再読み込みしてください':'この公開版では協力プレイの準備中です';}catch{this.available=false;this.message='この公開版では協力プレイの準備中です';}}
+ private inviteURL(){if(!this.room)return null;const url=new URL(inviteFragment(this.room),this.endpoint);if(this.sim.streamedWorld)url.searchParams.set('streaming','1');if(this.sim.westernContent)url.searchParams.set('expedition','west');return url.href;}
+ snapshot():CooperationSnapshot{return {enabled:this.available&&this.sim.worldReady,status:this.sim.worldReady?this.message:'地域を展開中。完了すると協力を選べます',role:this.roleValue,invite:this.inviteURL(),guestBuild:this.guestBuild,muted:this.muted,players:this.players,messages:this.chat.map(v=>({...v})),canJoin:!!roomFromFragment(location.hash),guestPreview:!!this.hooks.guestPreview};}
  async command(id:CooperationAction,text=''){
   if(id==='leave'){this.leave();return;}
   if(id==='mute'||id==='unmute'){this.muted=id==='mute';this.client?.setMuted(this.muted);if(this.muted)this.chat=[];return;}
   if(id==='copy-invite'){const invite=this.snapshot().invite;if(invite)try{await navigator.clipboard.writeText(invite);this.hooks.notice('招待URLをコピーしました');}catch{this.hooks.notice('招待欄のURLを選択してコピーしてください');}return;}
   if(id==='allow-build'||id==='deny-build'){if(this.roleValue==='host'&&this.client?.setGuestBuildAllowed(id==='allow-build')){this.guestBuild=id==='allow-build';this.sim.companionCanEdit=this.guestBuild;}return;}
   if(id==='chat'){if(this.muted)return;const clean=text.trim().slice(0,240);if(clean&&!this.client?.sendChat(clean))this.hooks.notice('接続後にメッセージを送れます');return;}
+  if(id==='create'&&this.hooks.guestPreview){this.hooks.notice('招待の確認中は新しい部屋を作れません。自分の旅へ戻ってから作成してください');return;}
   if(!this.available||!this.sim.worldReady||this.client)return;
   const room=id==='create'?randomRoomCode():roomFromFragment(location.hash);if(!room){this.hooks.notice('招待URLを開いてから参加してください');return;}
   if(id!=='create'&&id!=='join')return;
-  if(!this.hooks.save()){this.hooks.notice('先に自分の旅を保存してください。保存できるまで接続しません');return;}
-  let resumingHost=false;try{resumingHost=id==='join'&&!!sessionStorage.getItem('ash-room-resume:'+room+':host');}catch{/* no persisted host identity */}
+  const hostIdentity=id==='join'&&!this.hooks.guestPreview?readHostResumeIdentity(location.hash,()=>sessionStorage):null;
+  const resumingHost=!!hostIdentity;
+  // Preview startup never touched solo; saving its temporary world would be wrong.
+  if(!this.hooks.guestPreview&&!this.hooks.save()){this.hooks.notice('先に自分の旅を保存してください。保存できるまで接続しません');return;}
   const generation=++this.generation;this.commands=Promise.resolve();this.room=room;this.roleValue=id==='create'||resumingHost?'host':'guest';this.ready=false;this.hooks.mode(this.roleValue);
-  const key='ash-room-resume:'+room+':'+this.roleValue;let resumeKey:string;
-  try{const saved=sessionStorage.getItem(key);resumeKey=saved&&validResumeKey(saved)?saved:randomRoomCode();sessionStorage.setItem(key,resumeKey);}catch{resumeKey=randomRoomCode();}
+  const expectedRole=this.roleValue,key=roomResumeStorageKey(room,expectedRole);
+  const resumeKey=hostIdentity?.resumeKey??readRoomResumeKey(room,expectedRole,()=>sessionStorage)??randomRoomCode();
+  try{sessionStorage.setItem(key,resumeKey);}catch{/* This connection can proceed without reload recovery. */}
   this.client=new CampaignCoopClient({room,resumeKey,mode:this.roleValue==='host'?'create':'join',endpoint:this.endpoint},{
-   onRole:role=>{this.roleValue=role;if(role==='host'){this.sim.enableCompanion();this.sim.setCompanionConnected(false);}},
+   onRole:role=>{if(generation!==this.generation||this.disposed)return;if(role!==expectedRole||this.hooks.guestPreview&&role==='host'){this.client?.disconnect();this.message='共有ルームの役割を検証できません。自分の保存を保護して接続を停止しました';this.hooks.notice(this.message);throw new Error(this.message);}this.roleValue=role;if(role==='host'){this.sim.enableCompanion();this.sim.setCompanionConnected(false);}},
    onStatus:(status,message)=>{this.message=message;if(status==='reconnecting'||status==='closed')this.connectionGeneration++;if(this.roleValue==='host'&&['paused','reconnecting','closed','connecting'].includes(status)){this.sim.setCompanionConnected(false);this.remoteActor=null;}if(status==='online'&&this.roleValue==='host')void this.publish();if(this.roleValue==='guest'&&['paused','reconnecting','closed','connecting'].includes(status)){this.ready=false;this.remoteActor=null;this.latestFrame=null;}},
    onInput:input=>{if(this.roleValue==='host')this.sim.setCompanionInput(input);},
    onFrame:frame=>{if(this.roleValue!=='guest'||!this.ready)return;if(!validGameFrame(frame,this.sim.enemies.length)||this.latestFrame&&frame.seconds<this.latestFrame.seconds)return;const host=applyGameFrame(this.sim,frame,true);this.latestFrame=frame;if(!host)throw new Error('共有プレイヤー状態が不正です');this.remoteActor=host;this.lastFrameAt=Date.now();},
@@ -69,6 +75,6 @@ export class CampaignRoomSession {
   });this.pendingPublish=publishing;
   void publishing.finally(()=>{if(this.pendingPublish===publishing)this.pendingPublish=null;});return publishing;
  }
- leave(){this.generation++;this.commands=Promise.resolve();this.pendingPublish=null;const guest=this.roleValue==='guest';this.client?.disconnect();this.client=null;this.roleValue=null;this.room=null;this.ready=false;this.latestFrame=null;this.remoteActor=null;this.players=0;this.guestBuild=false;this.sim.disableCompanion();this.hooks.mode(null);this.message='共有ルームから退出しました';if(guest)location.reload();else this.hooks.save();}
+ leave(){this.generation++;this.commands=Promise.resolve();this.pendingPublish=null;const guest=this.roleValue==='guest'||!!this.hooks.guestPreview;this.client?.disconnect();this.client=null;this.roleValue=null;this.room=null;this.ready=false;this.latestFrame=null;this.remoteActor=null;this.players=0;this.guestBuild=false;this.sim.disableCompanion();this.hooks.mode(null);this.message='共有ルームから退出しました';if(guest){history.replaceState(null,'',soloCampaignURL(location.href));location.reload();}else this.hooks.save();}
  dispose(){this.generation++;this.commands=Promise.resolve();this.disposed=true;this.client?.disconnect();this.client=null;this.remoteActor=null;}
 }

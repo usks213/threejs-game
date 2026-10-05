@@ -9,3 +9,45 @@ button:disabled{opacity:.4;cursor:default}
 
 /* Keep every building action reachable on narrow landscape touch screens. */
 .touch .survival-actions{max-width:calc(100vw - 40px - env(safe-area-inset-left) - env(safe-area-inset-right));flex-wrap:wrap}.touch #dismantle{min-width:60px;min-height:48px;border-color:#d3977988}
+
+/* Campaign HUD: persistent information, actions, and touch combat occupy separate zones. */
+.campaign-mode .hud{display:grid;grid-template-columns:190px minmax(0,1fr) 48px 92px;align-items:start;gap:12px}
+.campaign-mode .vitals{width:190px;padding:9px 10px;background:#101b22e8;border:1px solid #adbaa044;border-radius:5px}
+.campaign-mode .values{font-size:12px;letter-spacing:0;color:#f1eddf;text-shadow:none}
+.campaign-mode .values b{color:#fff}
+.campaign-mode #objective{min-width:0;max-width:none;max-height:58px;margin:0;padding:8px 10px;text-align:left;line-height:18px;font-size:12px;letter-spacing:0;color:#fff3d9;background:#111e25e8;border:1px solid #adbaa044;border-radius:5px;text-shadow:none;overflow:hidden}
+.campaign-mode #menu-toggle,.campaign-mode #campaign-toggle{margin:0;min-height:48px;background:#15232ded;border-color:#b8c3ad88;font-size:12px}
+.campaign-mode .survival-hud{width:auto;max-width:calc(100vw - 48px)}
+.campaign-mode #inventory{width:max-content;max-width:100%;flex-wrap:wrap;gap:4px 10px;padding:6px 9px;font-size:12px;line-height:18px;background:#101c24e8;border:1px solid #a1b5993d;border-radius:4px;text-shadow:none}
+.campaign-mode .survival-actions{gap:6px;margin:7px 0}
+.campaign-mode .survival-actions button{font-size:12px;background:#16262ff2;border-color:#bac5b56b;min-height:48px;color:#fff2d8}
+.campaign-mode #recipe-cost{width:max-content;max-width:100%;padding:5px 8px;line-height:18px;font-size:12px;color:#f2e6cb;background:#101c24e8;border-radius:4px;text-shadow:none}
+.campaign-mode:not(.building-mode) #recipe-switch,.campaign-mode:not(.building-mode) #recipe-cost,.campaign-mode:not(.building-mode):not(.focus-ready) #special{display:none}
+.campaign-mode .equipment button{font-size:12px;background:#15232def;border-color:#b8c3ad77}
+.campaign-mode .pc-hint{font-size:12px;line-height:18px;padding:6px 8px;background:#101c24df;border-radius:4px;color:#efeadc;max-width:570px}
+.campaign-mode .focus:has(#target:not(:empty)){padding:7px 10px;background:#101c24df;border:1px solid #aab59744;border-radius:5px}
+.campaign-mode #target,.campaign-mode #prompt,.campaign-mode #material-status{font-size:12px;line-height:18px;letter-spacing:0;color:#fff0cf;text-shadow:none}
+.campaign-mode #message:not(:empty){padding:7px 10px;line-height:18px;max-width:440px;background:#172630ed;border:1px solid #d9c38b66;border-radius:4px;color:#fff0cf;text-shadow:none}
+.campaign-mode.touch .hud{top:max(10px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));grid-template-columns:140px minmax(0,1fr) 48px 80px;gap:8px}
+.campaign-mode.touch .vitals{width:140px;padding:7px 8px}
+.campaign-mode.touch #objective{font-size:12px;line-height:17px;padding:6px 8px;max-height:52px}
+.campaign-mode.touch #campaign-toggle{min-width:80px;font-size:12px;padding:0 6px}
+.campaign-mode.touch .survival-hud{top:64px;bottom:auto;left:max(12px,env(safe-area-inset-left));width:calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));max-width:none}
+.campaign-mode.touch #inventory{position:absolute;left:152px;top:0;width:calc(100% - 152px);max-height:44px;overflow:hidden;gap:0 9px;padding:4px 7px;font-size:12px;line-height:18px}
+.campaign-mode.touch .survival-actions{position:relative;top:48px;display:flex;flex-wrap:nowrap;gap:4px;margin:0;width:max-content;max-width:100%}
+.campaign-mode.touch .survival-actions button{height:48px;min-height:48px;min-width:56px;padding:0 6px;font-size:12px;white-space:nowrap}
+.campaign-mode.touch #element-switch{width:72px;min-width:72px}
+.campaign-mode.touch #cast{width:68px;min-width:68px}
+.campaign-mode.touch #recipe-switch{width:88px;min-width:88px;overflow:hidden;text-overflow:ellipsis}
+.campaign-mode.touch #build{width:60px;min-width:60px}
+.campaign-mode.touch #special,.campaign-mode.touch #dismantle{width:56px;min-width:56px}
+.campaign-mode.touch #recipe-cost{position:relative;top:53px;max-width:420px;max-height:27px;overflow:hidden;padding:4px 7px;font-size:12px;line-height:18px}
+.campaign-mode.touch .touch-actions .context{left:auto;right:0;width:104px;min-height:48px;font-size:12px}
+.campaign-mode.touch .touch-actions button,.campaign-mode.touch .equipment button{font-size:12px}
+.campaign-mode.touch .touch-actions .sprint{font-size:12px}
+.campaign-mode.touch #message{bottom:132px;max-width:290px;font-size:12px}
+@media(max-width:600px) and (orientation:landscape){.campaign-mode.touch .focus{width:220px;top:calc(50% + 12px)}.campaign-mode.touch .focus:has(#target:not(:empty)){padding:4px 7px}.campaign-mode.touch #material-status{display:none}.campaign-mode.touch #message{bottom:126px;left:50%;max-width:220px}.campaign-mode.touch #recipe-cost{max-width:420px}.campaign-mode.touch .equipment{left:150px;gap:4px}.campaign-mode.touch .equipment button{padding:0 6px}}
+.campaign-mode.touch .bar{height:6px;margin-bottom:5px}.campaign-mode.touch .values{line-height:14px}
+.campaign-mode #inventory span{color:#f0e4c9!important}
+
+.controller-help{margin:10px 0;border:1px solid #b3b99b55;border-radius:4px;background:#101b22}.controller-help summary{min-height:48px;padding:13px 12px;cursor:pointer;font-size:12px;color:#f0e1bf}.controller-help summary span{margin-left:8px;font-size:11px;color:#b6c8bf}.controller-help p{padding:0 12px 10px;font-size:12px;line-height:1.8;color:#e3dfd1}.controller-help summary:focus-visible{outline:2px solid #dfb578;outline-offset:-2px}.menu-card:has(.controller-help){max-height:100%;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;padding:2px}

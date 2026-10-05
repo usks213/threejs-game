@@ -1,3 +1,4 @@
+import {WEST_EXPEDITION_MANIFEST} from './expedition-west';
 import {record,number,text} from '../../save/validation';
 import {SparseOverlayField,type SparseOverlayState} from './sample-overlay';
 import type {DeterministicSampleProvider} from './sample-provider';
@@ -17,7 +18,7 @@ function overlayFromEnvelope(value:unknown,provider:DeterministicSampleProvider)
 }
 /** Explicit opt-in adapter; importing it does not replace the legacy world or save store. */
 export class StreamedCampaignField extends SparseOverlayField {
- constructor(provider:DeterministicSampleProvider){if(provider.manifestId!==CAMPAIGN_SAMPLE_MANIFEST||provider.size!==.25)throw new Error('Unsupported campaign sample manifest');super(provider);}
+ constructor(provider:DeterministicSampleProvider){if(![CAMPAIGN_SAMPLE_MANIFEST,WEST_EXPEDITION_MANIFEST].includes(provider.manifestId)||provider.size!==.25)throw new Error('Unsupported campaign sample manifest');super(provider);}
  override exportState():StreamedVoxelState {
   const state=this.exportOverlay(),layers=new Map(state.layers.map(layer=>[layer.id,layer])),base=layers.get('');
   return {version:1,size:this.size,baseline:this.provider.manifestId,base:base?.cells??[],removedBase:base?.removed??[],order:state.order,layers:state.order.map(id=>layers.get(id)??{id,cells:[],removed:[]}),suppressed:state.suppressed};

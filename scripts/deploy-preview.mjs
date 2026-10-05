@@ -10,7 +10,7 @@ if (manifest.application !== 'threejs-game' || manifest.commit !== expected) thr
 // Relay deployment is opt-in and restricted to PR4's actually enabled adapter.
 // Other previews and the default path keep their existing assets-only config.
 const campaignRelay = pr === '4' && process.env.PR4_CAMPAIGN_RELAY_ENABLED === 'true';
-if (campaignRelay && manifest.campaignCoop !== true) throw new Error('PR4 co-op adapter is not enabled in this verified artifact');
+if (campaignRelay && (manifest.campaignCoop !== true || !Number.isSafeInteger(manifest.campaignProtocol) || manifest.campaignProtocol < 1)) throw new Error('PR4 co-op adapter is not enabled in this verified artifact');
 const previewArgs = ['--yes', 'wrangler@4.147.0', 'preview', '--name', `pr-${pr}`, '--json'];
 if (campaignRelay) previewArgs.push('--config', 'apps/campaign-room/wrangler.preview.jsonc');
 const result = spawnSync('npx', previewArgs, { encoding: 'utf8', timeout: 300000, maxBuffer: 5 * 1024 * 1024, env: { ...process.env, CI: 'true', WRANGLER_SEND_METRICS: 'false' } });
@@ -64,9 +64,9 @@ if (!confirmed) throw new Error('The Preview URL did not serve the requested com
 if (campaignRelay) {
   const healthResponse = await fetch(`${url.origin}/campaign-room/health`, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
   const health = await healthResponse.json();
-  if (!healthResponse.ok || health.service !== 'pr4-campaign-room' || health.protocol !== 1 || health.enabled !== true) throw new Error('Campaign relay health check failed');
+  if (!healthResponse.ok || health.service !== 'pr4-campaign-room' || health.protocol !== manifest.campaignProtocol || health.enabled !== true) throw new Error('Campaign relay health check failed');
 }
-const record = { campaignCoop: campaignRelay, url: url.origin, commit: expected, pullRequest: Number(pr) };
+const record = { campaignProtocol: campaignRelay ? manifest.campaignProtocol : undefined, campaignCoop: campaignRelay, url: url.origin, commit: expected, pullRequest: Number(pr) };
 writeFileSync('preview-release.json', JSON.stringify(record));
 console.log(`Preview URL: ${url.origin}`);
 console.log(`Published commit: ${expected}`);

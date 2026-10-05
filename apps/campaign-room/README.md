@@ -1,4 +1,4 @@
-# PR4 campaign co-op relay (protocol 1)
+# PR4 campaign co-op relay (protocol 2)
 
 Independent from PR5. Route: `/campaign-room/<64 lowercase hex characters>`.
 
@@ -43,3 +43,5 @@ The module's pure/mock-socket tests are not proof of actual multi-browser operat
 The proposed Preview config preserves Worker `threejs-game` and Preview `pr-4`, with an exported same-Worker `CampaignRoom` SQLite class, no `script_name`, and a matching `previews.durable_objects` binding. Current official [Preview isolation documentation](https://developers.cloudflare.com/workers/previews/resources/) says this creates a distinct namespace per Preview. Assets stay top-level under the [Preview configuration rules](https://developers.cloudflare.com/workers/previews/configuration/). No production service binding is used. This documented isolation must still be checked on the first deployed release; a generated URL alone is insufficient.
 
 Local evidence includes 14 transport tests, with real two-socket transfer/input/frame/permission/disconnect/reconnect checks, plus separate HTTP health/origin tests. This does not yet establish two-browser integrated gameplay or a deployed Durable Object. Do not enable the public relay until those remaining adapter/deployment gates and the existing no-new-spend condition are satisfied.
+
+Protocol2 includes independently validated per-player environmental exposure. Both peers must reload older open pages; incompatible transport versions are rejected before role assignment. Existing room identity/receipt checkpoints remain version1 and are retained across this codec upgrade. The deployment manifest and health response use the same protocol constant.

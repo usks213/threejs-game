@@ -38,7 +38,7 @@ export function migrateLegacyCampaignField(value:unknown,provider:DeterministicS
  * The caller must verify preserveLegacyMigrationBackup before committing this candidate
  * to a NEW v3 key; normal v3 autosaves must never overwrite the original v2 key. */
 export function prepareLegacyCampaignMigration(value:unknown,prototype:Pick<ReturnType<typeof createCampaignSamplePrototype>,'provider'|'objects'>):StreamedCampaignSave|null {
- if(!isCampaignSave(value))return null;let source:CampaignSave;try{source=JSON.parse(JSON.stringify(value)) as CampaignSave;}catch{return null;}if(!isCampaignSave(source))return null;
+ if(!isCampaignSave(value)||value.world!=='campaign-v2')return null;let source:CampaignSave;try{source=JSON.parse(JSON.stringify(value)) as CampaignSave;}catch{return null;}if(!isCampaignSave(source))return null;
  if(source.objects.length!==prototype.objects.size||source.objects.some(object=>!prototype.objects.has(object.id)))return null;
  const field=migrateLegacyCampaignField(source.field,prototype.provider);if(!field)return null;
  const empty=new VoxelField(),survival=new SurvivalSystem(empty),elements=new ElementSystem(empty,new VoxelWater(empty)),campaign=new CampaignSystem(survival.inventory),home=new HomesteadSystem(survival.inventory,campaign.state.items);
@@ -51,11 +51,11 @@ export type MigrationBackupResult={ok:true;key:string;alreadyPresent:boolean}|{o
 /** Write-once migration archive, independent of the rotating :backup slot. This never
  * erases/changes the source and never overwrites a different earlier archive. On quota or
  * verification failure callers must leave the v2 game/store selected and show a blocker. */
-export function preserveLegacyMigrationBackup(storage:SaveStorage,sourceKey:string):MigrationBackupResult {
- try{const raw=storage.getItem(sourceKey);if(raw===null)return {ok:false,reason:'missing'};if(raw.length>12000000)return {ok:false,reason:'invalid-source'};
+export function preserveLegacyMigrationBackup(storage:SaveStorage,sourceKey:string,archiveKey=migrationBackupKey(sourceKey),expectedSource?:string):MigrationBackupResult {
+ try{const raw=storage.getItem(sourceKey);if(raw===null)return {ok:false,reason:'missing'};if(expectedSource!==undefined&&raw!==expectedSource)return {ok:false,reason:'source-changed'};if(raw.length>12000000)return {ok:false,reason:'invalid-source'};
   let envelope:unknown,source:unknown;try{envelope=JSON.parse(raw);if(!record(envelope)||envelope.format!=='voxel-campaign'||envelope.version!==1||!integer(envelope.savedAt)||typeof envelope.payload!=='string'||typeof envelope.checksum!=='string'||checksum(envelope.payload)!==envelope.checksum)return {ok:false,reason:'invalid-source'};source=JSON.parse(envelope.payload);}catch{return {ok:false,reason:'invalid-source'};}
-  if(!isCampaignSave(source)||source.field.baseline!==LEGACY_CAMPAIGN_V2_BASELINE)return {ok:false,reason:'invalid-source'};
-  const key=migrationBackupKey(sourceKey),previous=storage.getItem(key);if(previous!==null){if(previous!==raw)return {ok:false,reason:'conflict'};return storage.getItem(sourceKey)===raw?{ok:true,key,alreadyPresent:true}:{ok:false,reason:'source-changed'};}
+  if(!isCampaignSave(source)||source.world!=='campaign-v2'||source.field.baseline!==LEGACY_CAMPAIGN_V2_BASELINE)return {ok:false,reason:'invalid-source'};
+  const key=archiveKey,previous=storage.getItem(key);if(previous!==null){if(previous!==raw)return {ok:false,reason:'conflict'};return storage.getItem(sourceKey)===raw?{ok:true,key,alreadyPresent:true}:{ok:false,reason:'source-changed'};}
   storage.setItem(key,raw);if(storage.getItem(key)!==raw)return {ok:false,reason:'verification'};if(storage.getItem(sourceKey)!==raw)return {ok:false,reason:'source-changed'};return {ok:true,key,alreadyPresent:false};
  }catch{return {ok:false,reason:'storage'};}
 }

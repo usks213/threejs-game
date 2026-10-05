@@ -61,10 +61,28 @@ jobs:
             cases: elemental
           - project: desktop-chromium
             group: desktop-campaign
-            cases: campaign
+            cases: campaign.spec|campaign-playthrough
+          - project: desktop-chromium
+            group: desktop-campaign-ui
+            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards
+          - project: desktop-chromium
+            group: desktop-campaign-save
+            cases: campaign-save-history|campaign-file-transfer
+          - project: desktop-chromium
+            group: desktop-campaign-migration
+            cases: campaign-expansion|campaign-invitation-privacy
           - project: android-chromium
             group: android-campaign
-            cases: campaign
+            cases: campaign.spec|campaign-playthrough
+          - project: android-chromium
+            group: android-campaign-ui
+            cases: campaign-camera|campaign-hud|campaign-map|campaign-bulk-crafting|campaign-hazards
+          - project: android-chromium
+            group: android-campaign-save
+            cases: campaign-save-history|campaign-file-transfer
+          - project: android-chromium
+            group: android-campaign-migration
+            cases: campaign-expansion|campaign-invitation-privacy
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -82,7 +100,7 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --project="${{ matrix.project }}" --grep="${{ matrix.cases }}" --grep-invert="campaign first chapter|cooperation integration"
+      - run: npm run e2e -- --project="${{ matrix.project }}" --grep="${{ matrix.cases }}" --grep-invert="campaign first chapter|cooperation integration|streamed campaign"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -146,6 +164,37 @@ jobs:
         if: always()
         with:
           name: first-chapter-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+  streamed-world-browser:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, android-chromium]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- --project="${{ matrix.project }}" --grep="streamed campaign"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: streamed-world-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/

@@ -3,9 +3,9 @@ import type {VoxelWater} from './water';
 import type {Element} from './elements';
 import {materialDefinition} from './materials';
 import { VoxelField, roundedBox, type Vec3, type Sdf } from './voxel';
-export type RecipeId='workbench'|'wall'|'floor'|'roof'|'stairs'|'door'|'window';
+export type RecipeId='workbench'|'wall'|'floor'|'roof'|'stairs'|'door'|'window'|'ladder';
 export const SURVIVAL_RECIPES:Record<RecipeId,{id:RecipeId;label:string;cost:number}>={
- workbench:{id:'workbench',label:'作業台',cost:8},wall:{id:'wall',label:'木の壁',cost:8},floor:{id:'floor',label:'木の床',cost:4},roof:{id:'roof',label:'木の屋根',cost:6},stairs:{id:'stairs',label:'木の階段',cost:8},door:{id:'door',label:'木の扉',cost:10},window:{id:'window',label:'窓付きの壁',cost:7},
+ workbench:{id:'workbench',label:'作業台',cost:8},wall:{id:'wall',label:'木の壁',cost:8},floor:{id:'floor',label:'木の床',cost:4},roof:{id:'roof',label:'木の屋根',cost:6},stairs:{id:'stairs',label:'木の階段',cost:8},door:{id:'door',label:'木の扉',cost:10},window:{id:'window',label:'窓付きの壁',cost:7},ladder:{id:'ladder',label:'木の梯子',cost:6},
 };
 export interface DropInput {material:number;position:Vec3;count:number;id?:string|number}
 export interface MaterialDrop {id:number;material:number;position:Vec3;count:number;velocity?:Vec3;fire?:number;wet?:number;charge?:number}
@@ -15,7 +15,7 @@ export interface PlacementResult {ok:boolean;message:string}
 export interface PlacementPreview extends PlacementResult {bounds:{min:Vec3;max:Vec3};recipe:RecipeId;rotation:number;target:Vec3}
 interface BuildingShape {min:Vec3;max:Vec3;sdf:Sdf;anchor:Vec3}
 function buildingShape(recipe:RecipeId,target:Vec3,rotation:number,open=false):BuildingShape {
- const sizes:Record<RecipeId,[number,number,number]>={workbench:[1.1,.85,.7],wall:[1.5,1.65,.3],floor:[1.5,.25,1.5],roof:[1.5,.55,1.5],stairs:[1.5,.88,2],door:[2,2.5,.4],window:[1.5,1.65,.4]};
+ const sizes:Record<RecipeId,[number,number,number]>={workbench:[1.1,.85,.7],wall:[1.5,1.65,.3],floor:[1.5,.25,1.5],roof:[1.5,.55,1.5],stairs:[1.5,.88,2],door:[2,2.5,.4],window:[1.5,1.65,.4],ladder:[1.2,2.4,.35]};
  const [w,h,d]=sizes[recipe],turn=((rotation%4)+4)%4,c=[1,0,-1,0][turn],s=[0,1,0,-1][turn];
  const world=(p:Vec3):Vec3=>({x:target.x+c*p.x-s*p.z,y:target.y+.025+p.y,z:target.z+s*p.x+c*p.z});
  const local=(p:Vec3):Vec3=>({x:c*(p.x-target.x)+s*(p.z-target.z),y:p.y-target.y-.025,z:-s*(p.x-target.x)+c*(p.z-target.z)});
@@ -23,11 +23,12 @@ function buildingShape(recipe:RecipeId,target:Vec3,rotation:number,open=false):B
  if(recipe==='workbench'){box(-w/2,h-.34,-d/2,w/2,h,d/2,.065);for(const x of [-w/2+.03,w/2-.31])for(const z of [-d/2+.03,d/2-.31])box(x,0,z,x+.28,h-.15,z+.28);}
  else if(recipe==='door'){box(-1,0,-.2,-.5,2.5,.2);box(.5,0,-.2,1,2.5,.2);box(-.5,2,-.2,.5,2.5,.2);if(open)box(-.65,0,0,-.3,2,1.05);else box(-.5,0,-.175,.5,2,.175,.02);}
  else if(recipe==='window'){box(-.75,0,-.2,-.38,1.65,.2);box(.38,0,-.2,.75,1.65,.2);box(-.38,0,-.2,.38,.5,.2);box(-.38,1.2,-.2,.38,1.65,.2);}
+ else if(recipe==='ladder'){box(-.6,0,-.175,-.32,2.4,.175);box(.32,0,-.175,.6,2.4,.175);for(let y=.15;y<2.4;y+=.35)box(-.42,y,-.175,.42,Math.min(2.4,y+.23),.175,.015);}
  else if(recipe==='stairs'){for(let i=0;i<4;i++)box(-w/2,0,-d/2+i*.5,w/2,(i+1)*.22,-d/2+(i+1)*.5,0);}
  else if(recipe==='roof'){parts.push(p=>Math.max(Math.abs(p.x)-w/2,Math.abs(p.z)-d/2,Math.abs(p.y-(.4-.25*Math.abs(p.x)/(w/2)))-.15));}
  else box(-w/2,0,-d/2,w/2,h,d/2,.06);
  const corners=[world({x:-w/2,y:0,z:-d/2}),world({x:w/2,y:h,z:d/2}),world({x:-w/2,y:0,z:recipe==='door'&&open?1.05:d/2}),world({x:w/2,y:h,z:-d/2})];
- return {min:{x:Math.min(...corners.map(p=>p.x)),y:target.y+.025,z:Math.min(...corners.map(p=>p.z))},max:{x:Math.max(...corners.map(p=>p.x)),y:target.y+h+.025,z:Math.max(...corners.map(p=>p.z))},sdf:p=>Math.min(...parts.map(shape=>shape(local(p)))),anchor:world({x:0,y:h-(recipe==='workbench'?.25:.125),z:0})};
+ return {min:{x:Math.min(...corners.map(p=>p.x)),y:target.y+.025,z:Math.min(...corners.map(p=>p.z))},max:{x:Math.max(...corners.map(p=>p.x)),y:target.y+h+.025,z:Math.max(...corners.map(p=>p.z))},sdf:p=>Math.min(...parts.map(shape=>shape(local(p)))),anchor:world({x:recipe==='ladder'?.45:0,y:h-(recipe==='workbench'?.25:.125),z:0})};
 }
 const finite=(p:Vec3)=>Number.isFinite(p.x)&&Number.isFinite(p.y)&&Number.isFinite(p.z);
 const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
@@ -54,6 +55,7 @@ export class SurvivalSystem {
   const sources=new Set<string|number>();for(const id of value.sourceIds){if(!(text(id)||integer(id))||sources.has(id))return false;sources.add(id);}
   Object.assign(this.inventory,inventory);this.drops.splice(0,this.drops.length,...drops);this.pendingDrops.length=0;for(const d of pending)this.pendingDrops.push(d);this.pendingIndex.clear();for(const d of pending)this.pendingIndex.set(this.dropKey(d),d);this.pendingCursor=0;this.sequence=value.sequence;this.selected=value.selected as RecipeId;this.buildings=buildings;this.rotation=(value.rotation??0) as number;this.undoRecord=null;this.sourceIds.clear();for(const id of sources)this.sourceIds.add(id);this.accepted=new WeakSet();return true;
  }
+ ladder(id:string){const b=this.buildings.find(b=>b.id===id&&b.recipe==='ladder');if(!b||!this.alive(b)||this.damagedObjects?.has(id))return null;return {id:b.id,position:{...b.position},rotation:b.rotation??0,height:2.4};}
  get recipe(){return SURVIVAL_RECIPES[this.selected];}
  cycleRecipe(){const ids=Object.keys(SURVIVAL_RECIPES) as RecipeId[];this.selected=ids[(ids.indexOf(this.selected)+1)%ids.length];return this.selected;}
  private clearLine(a:Vec3,b:Vec3,tolerance=.05){const d=distance(a,b);return d<.001||!this.field.ray(a,{x:b.x-a.x,y:b.y-a.y,z:b.z-a.z},Math.max(0,d-tolerance));}

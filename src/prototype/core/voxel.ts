@@ -13,7 +13,7 @@ export const ellipsoid=(c:Vec3,r:Vec3):Sdf=>p=>(Math.hypot((p.x-c.x)/r.x,(p.y-c.
 export const capsule=(a:Vec3,b:Vec3,r:number):Sdf=>p=>{const x=p.x-a.x,y=p.y-a.y,z=p.z-a.z,dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,t=Math.max(0,Math.min(1,(x*dx+y*dy+z*dz)/(dx*dx+dy*dy+dz*dz||1)));return Math.hypot(x-t*dx,y-t*dy,z-t*dz)-r;};
 export const roundedBox=(a:Vec3,b:Vec3,r=0):Sdf=>p=>{const x=Math.abs(p.x-(a.x+b.x)/2)-(b.x-a.x)/2+r,y=Math.abs(p.y-(a.y+b.y)/2)-(b.y-a.y)/2+r,z=Math.abs(p.z-(a.z+b.z)/2)-(b.z-a.z)/2+r;return Math.hypot(Math.max(x,0),Math.max(y,0),Math.max(z,0))+Math.min(Math.max(x,y,z),0)-r;};
 export type SampleState=[number,number,number,number,number];
-export interface VoxelState {version:1;size:number;baseline:string;base:SampleState[];removedBase:string[];layers:{id:string;cells:SampleState[];removed:string[]}[];order:string[]}
+export interface VoxelState {suppressed?:string[];version:1;size:number;baseline:string;base:SampleState[];removedBase:string[];layers:{id:string;cells:SampleState[];removed:string[]}[];order:string[]}
 export interface AuthoredVoxelState {version:1;size:number;baseline:string;base:Float64Array;layers:{id:string;samples:Float64Array}[]}
 export interface VoxelWorkOptions {budgetMs?:number;yieldTask?:()=>Promise<void>}
 export async function runVoxelWork<T>(steps:Generator<void,T>,options:VoxelWorkOptions={}):Promise<T>{const budget=Math.max(.5,Math.min(12,options.budgetMs??3)),yieldTask=options.yieldTask??(()=>new Promise<void>(resolve=>setTimeout(resolve,0)));let start=performance.now();for(;;){const step=steps.next();if(step.done)return step.value;if(performance.now()-start>=budget){await yieldTask();start=performance.now();}}}

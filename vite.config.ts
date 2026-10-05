@@ -1,3 +1,4 @@
+import {CAMPAIGN_PROTOCOL} from './src/prototype/network/protocol';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -13,7 +14,7 @@ export default defineConfig({
       this.emitFile({
         type: 'asset',
         fileName: 'deployment.json',
-        source: JSON.stringify({ application: 'threejs-game', commit, campaignCoop: process.env.PR4_CAMPAIGN_RELAY_ENABLED === 'true' }),
+        source: JSON.stringify({ application: 'threejs-game', commit, campaignProtocol: CAMPAIGN_PROTOCOL, campaignCoop: process.env.PR4_CAMPAIGN_RELAY_ENABLED === 'true' }),
       });
     },
   }],

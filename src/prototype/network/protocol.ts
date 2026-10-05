@@ -1,5 +1,6 @@
 /** PR4 transport protocol. Server is a bounded relay; host owns game rules. */
-export const CAMPAIGN_PROTOCOL=1;
+// v2 adds independently validated player exposure in the actor codec.
+export const CAMPAIGN_PROTOCOL=2;
 export const MAX_ROOM_PLAYERS=2;
 export const MAX_PACKET_BYTES=40*1024;
 export const MAX_SNAPSHOT_BYTES=16*1024*1024;
@@ -17,7 +18,7 @@ export interface RoomPlayer {id:RoomRole;connected:boolean;pose:PlayerPose|null}
 export interface GuestCommand {action:string;payload:Record<string,unknown>}
 export interface SnapshotManifest {sequence:number;chunks:number;bytes:number;checksum:string}
 export type ClientPacket=
- |{type:'hello';protocol:1;mode:'create'|'join';resumeKey:string}
+ |{type:'hello';protocol:typeof CAMPAIGN_PROTOCOL;mode:'create'|'join';resumeKey:string}
  |{type:'ping';epoch:string}
  |{type:'frame';epoch:string;sequence:number;payload:Record<string,unknown>}
  |{type:'input';epoch:string;sequence:number;input:GuestInput}
@@ -31,7 +32,7 @@ export type ClientPacket=
  |{type:'resync';epoch:string}
  |{type:'chat';epoch:string;text:string};
 export type ServerPacket=
- |{type:'welcome';protocol:1;role:RoomRole;epoch:string;lastCommandSequence:number;lastPoseSequence:number;snapshotSequence:number;guestBuild:boolean;hostOnline:boolean}
+ |{type:'welcome';protocol:typeof CAMPAIGN_PROTOCOL;role:RoomRole;epoch:string;lastCommandSequence:number;lastPoseSequence:number;snapshotSequence:number;guestBuild:boolean;hostOnline:boolean}
  |{type:'status';epoch:string;hostOnline:boolean;message:string}
  |{type:'players';epoch:string;players:RoomPlayer[]}
  |{type:'frame';epoch:string;sequence:number;payload:Record<string,unknown>}

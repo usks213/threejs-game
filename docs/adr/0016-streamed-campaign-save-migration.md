@@ -1,6 +1,7 @@
 # 0016: Certified legacy saves and streamed sample overlays
 
-Status: migration/adapter stage only. No production Core, app, or storage-default switch.
+Status: explicit opt-in runtime via `?streaming=1`, or a previously verified v3 selector.
+The default for users who have not opted in remains the legacy backend.
 
 ## Identities and representation
 
@@ -31,7 +32,8 @@ player changes as authored baseline.
 - `StreamedCampaignField.restoreState` accepts only its explicit manifest envelope, supports
   dry-run validation, and rejects malformed input without changing revision/dirty state.
 - Legacy baseline capture, full-world packets, legacy bootstrap, and authoring generators
-  are deliberately blocked on the new adapter. Core/app integration must opt in explicitly.
+  are deliberately blocked on the new adapter. `CoreSimulation(true, false, true)` selects
+  the provider directly and skips the full-world worker; existing constructors are unchanged.
 
 ## Original-save preservation and future commit order
 
@@ -46,7 +48,10 @@ player changes as authored baseline.
 5. Only after successful commit, select v3 durably. Keep that format-selection marker through
    New Game/reset; a missing v3 primary must not silently re-import the retained old v2 world.
 
-Stage B intentionally performs neither steps 4–5 nor any automatic erase/selector change.
+The opt-in `selectCampaignStore` transaction now performs these checks and writes the v3
+selector only after verified commit. A recovered v2 backup can be archived without replacing
+a corrupt old primary. Unknown selectors, future payloads, and unknown manifests block
+migration; they never silently downgrade to an older rotating backup. No path erases v2.
 No connection identifiers, resume credentials, or room permissions are introduced.
 
 ## Proofs

@@ -3,6 +3,7 @@ import type {createArena,ObjectState} from './world';
 /** Original compact open region, with physical side paths rather than copied game geography. */
 export function extendCampaignArena(arena:ReturnType<typeof createArena>,includeTerrain=true){
  const {field,objects}=arena;
+ for(const [id,name] of Object.entries({'sample-wood':'倒れた丸太','sample-stone':'崩れた炉石','sample-grass':'繊維草の茂み','sample-metal':'放置された鉱材',valve:'旧水路の水門',altar:'灯守りの記憶碑'})){const object=objects.get(id);if(object)object.name=name;}
  const box=(a:Vec3,b:Vec3,m:number,id?:string,r=.07)=>field.box(a,b,m,id,r);
  const orb=(p:Vec3,r:Vec3,m:number,id?:string)=>field.shape({x:p.x-r.x,y:p.y-r.y,z:p.z-r.z},{x:p.x+r.x,y:p.y+r.y,z:p.z+r.z},ellipsoid(p,r),m,id);
  const limb=(a:Vec3,b:Vec3,r:number,m:number,id?:string)=>field.shape({x:Math.min(a.x,b.x)-r,y:Math.min(a.y,b.y)-r,z:Math.min(a.z,b.z)-r},{x:Math.max(a.x,b.x)+r,y:Math.max(a.y,b.y)+r,z:Math.max(a.z,b.z)+r},capsule(a,b,r),m,id);

@@ -31,10 +31,10 @@ export function homesteadRows(home:HomesteadSystem,context:HomesteadContext):Cam
   if(!plot.planted)add(`plant:${plot.id}`,`畑${plot.id+1}に種をまく`,`薬草の種1 · 育成${CROP_SECONDS}秒`,(home.items['herb-seed']??0)<1?'薬草の種が必要です。':'');
   else add(`harvest:${plot.id}`,`畑${plot.id+1}を収穫する`,plot.remaining>0?`育成中 · あと${Math.ceil(plot.remaining)}秒`:'薬草3・種2を収穫できます。',plot.remaining>0?'まだ収穫できません。':(home.items.herbs??0)>197||(home.items['herb-seed']??0)>198?'持ち物の空きを作ってください。':'');
  }
- const animal=home.state.animal;
- if(!animal.tamed)add('tame','山羊をなつかせる','草葉8 · 拠点でミルクを生産できるようになります。',!canPay({7:8})?'草葉8が必要です。':'');
- else if(animal.ready)add('animal','山羊のミルクを受け取る','ミルク1 · 食事として使用できます。',(home.items.milk??0)>=20?'ミルクの所持上限です。':'');
- else add('feed','山羊に餌を与える',animal.remaining>0?`餌を食べています · あと${Math.ceil(animal.remaining)}秒`:`草葉2 · ${ANIMAL_SECONDS}秒後にミルク1`,animal.remaining>0?'搾乳できるまでお待ちください。':!canPay({7:2})?'草葉2が必要です。':'');
+ const animal=home.state.animal,animalStatus=home.animalInteractionStatus(context),animalReason=animalStatus.ok?'':animalStatus.message;
+ if(!animal.tamed)add('tame','山羊をなつかせる','草葉8 · 拠点でミルクを生産できるようになります。',animalReason||(!canPay({7:8})?'草葉8が必要です。':''));
+ else if(animal.ready)add('animal','山羊のミルクを受け取る','ミルク1 · 食事として使用できます。',animalReason||((home.items.milk??0)>=20?'ミルクの所持上限です。':''));
+ else add('feed','山羊に餌を与える',animal.remaining>0?`餌を食べています · あと${Math.ceil(animal.remaining)}秒`:`草葉2 · ${ANIMAL_SECONDS}秒後にミルク1`,animalReason||(animal.remaining>0?'搾乳できるまでお待ちください。':!canPay({7:2})?'草葉2が必要です。':''));
  for(const furniture of FURNITURE){const placed=home.state.furniture.includes(furniture.id);if(placed)rows.push({id:`furniture:${furniture.id}`,label:furniture.label+' · 設置済み',detail:`快適度 +${furniture.comfort} · 同じ種類は重複しません。`,completed:true});else add(`furniture:${furniture.id}`,furniture.label+'を設置',`${costText(furniture.cost)} · 快適度 +${furniture.comfort}`,!canPay(furniture.cost)?'家具の素材が足りません。':'');}
  return rows;
 }

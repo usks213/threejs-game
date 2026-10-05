@@ -61,7 +61,7 @@ test('motion review: windup, moving blade, follow-through and recovery',async({p
 
 test('desktop duel: read enemy windup, raise shield, then punish recovery',async({page,isMobile})=>{
  test.setTimeout(300000);
- test.skip(isMobile,'Shared motion rendering is covered on mobile; keyboard duel is desktop-specific.');const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await page.locator('#start').click();await expect.poll(()=>page.evaluate(()=>!!document.pointerLockElement)).toBe(true);await expect.poll(async()=>(await probe(page)).seconds).toBeGreaterThan(.25);await prepareLockedPointer(page);await page.keyboard.down('KeyW');await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.6);await page.keyboard.up('KeyW');await page.keyboard.press('KeyE');await expect.poll(async()=>(await probe(page)).door).toBe(true);
+ test.skip(isMobile,'Shared motion rendering is covered on mobile; keyboard duel is desktop-specific.');const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await page.locator('#quality-toggle').click();expect((await probe(page)).stats.mode).toBe('performance');await page.locator('#start').click();await expect.poll(()=>page.evaluate(()=>!!document.pointerLockElement)).toBe(true);await expect.poll(async()=>(await probe(page)).seconds).toBeGreaterThan(.25);await prepareLockedPointer(page);await page.keyboard.down('KeyW');await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.6);await page.keyboard.up('KeyW');await page.keyboard.press('KeyE');await expect.poll(async()=>(await probe(page)).door).toBe(true);
  // Slow the approach before entering melee range. A delayed CDP key-up on
  // SwiftShader must not carry the player past their own shield's coverage.
  await page.keyboard.press('F4');await expect.poll(async()=>(await probe(page)).timeScale).toBe(.25);
@@ -82,5 +82,8 @@ test('desktop SDF carve changes the visible mesh and the aimed obstruction toget
  // Keep the same physical route and arrival assertion. SwiftShader advanced
  // continuously but needed more than60wallseconds for2.2simulationseconds.
  await page.keyboard.down('KeyD');try{await expect.poll(async()=>(await probe(page)).position.x,{timeout:120000}).toBeGreaterThan(5.25);}finally{await page.keyboard.up('KeyD');}
+ // Movement/carving use the real lightweight preset; reflection visibility is
+ // checked separately after returning to the original balanced presentation.
+ await page.keyboard.press('Escape');await page.locator('#quality-toggle').click();await page.locator('#quality-toggle').click();expect((await probe(page)).stats.mode).toBe('balanced');await page.locator('#start').click();
  await expect.poll(async()=>(await probe(page)).stats.reflectionSources,{timeout:60000}).toBeGreaterThan(0);await page.screenshot({path:'test-results/desktop-water-reflection.png'});expect(errors).toEqual([]);
 });

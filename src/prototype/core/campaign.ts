@@ -16,6 +16,11 @@ const regionalItems:CampaignItem[]=[
 ];
 export const CAMPAIGN_ITEMS:Readonly<Record<string,CampaignItem>>={
  ...Object.fromEntries(regionalItems.map(i=>[i.id,i])),
+ 'fishing-rod':{...item('fishing-rod','葦糸の釣竿','tool','⌁','岸で釣竿を選び、水面へ投げる。食いつき中に操作すると釣り上げる。','木材5・草葉3で手作り。練り餌を用意し、水槽では先に水門のレバーを放水にする'),stackLimit:1},
+ 'fish-bait':{...item('fish-bait','草実の練り餌','resource','•','有効な投げ入れ1回につき1個消費。中断した餌は戻らない。','草葉2から3個作る。水辺で釣竿と一緒に使う'),stackLimit:100},
+ 'silverfin':item('silverfin','澄鰭魚','resource','◁','水辺で釣れる生魚。炉で焼くか、薬草と煮込む。生では食べられない。','地下墓所脇の水門を開け、水槽の南岸から西寄りへ投げる。浅い中央を避ける。澄鐘の湖でも釣れる'),
+ 'grilled-silverfin':item('grilled-silverfin','澄鰭魚の炉焼き','food','◁','120秒、最大HP +20・スタミナ +15。食事枠を上書き。','澄鰭魚1・木材1を灯守りの炉で調理'),
+ 'herb-fish-soup':item('herb-fish-soup','澄鰭魚の薬草汁','food','◉','180秒、最大HP +20・スタミナ +15。食事枠を上書き。','澄鰭魚1・摘みたての薬草1・木材1を灯守りの炉で調理'),
  'herb-seed':{...item('herb-seed','野草の種','farming','✿','畑に植えて育てる。収穫時に種が戻る。','拠点の種交換: 草葉2・土1で2粒'),stackLimit:200},
  herbs:{...item('herbs','摘みたての薬草','resource','♧','畑で収穫。拠点の加工設備で料理にする。','野草の種を植え、成長後に収穫'),stackLimit:200},
  milk:item('milk','山羊の乳','food','◉','120秒、最大HP +20・スタミナ +15。食事枠を上書き。','拠点の山羊に餌を与え、生産後に回収'),
@@ -23,9 +28,12 @@ export const CAMPAIGN_ITEMS:Readonly<Record<string,CampaignItem>>={
  bow:item('bow','旅弓','weapon','⌁','矢を消費して照準先へ放つ。近距離では取り回しに注意。','木材6・草葉4で手作り','weapon'),
  staff:item('staff','灯木の杖','weapon','✧','属性術の威力 +20%。術はスタミナを消費する。','木材4・石3・草葉2で手作り','weapon'),
  arrows:item('arrows','石先の矢','ammunition','➶','弓用の矢。1回の制作で8本。最大200本。','木材1・石1で8本制作'),
+ 'copper-mail':item('copper-mail','鳴銅の鎖鎧','armor','◆','物理被ダメージ −30%、移動速度 −6%。金属は通電しやすく、濡れると雷に弱い。','救出した鍛冶師の設備で金属12・布4・木材2から制作','armor'),
  'hide-coat':item('hide-coat','織り鎧','armor','◆','被ダメージ −20%。繊維と布を重ねる防具。','救出した鍛冶師の設備で制作','armor'),
  grapple:item('grapple','登り鉤','tool','↗','指定アンカーへ引き寄せる。装備後、照準を合わせてフック操作。','鍛冶師救出後、炉辺で制作','grapple'),
  glider:item('glider','風布の翼','tool','▽','空中で滑空。スタミナ消費中は落下速度を抑える。','鍛冶師救出後、炉辺で制作','glider'),
+ 'windwoven-glider':item('windwoven-glider','木霊の風織り翼','tool','▽','滑空速度 +20%、滑空のスタミナ消費 −25%。装備すると通常の翼と交代する。','西方の木工師マキを救出後、灯守りの炉か木霊の帰還炉で制作','glider'),
+ 'resin-staff':item('resin-staff','響銅の調律杖','weapon','✧','属性術の威力 +40%。強化・ジェム・耐久は通常の武器と共通。','西方の錬金師セナを救出後、灯守りの炉か木霊の帰還炉で制作','weapon'),
  'berry-meal':item('berry-meal','野草の煮込み','food','●','180秒、最大HP +20、最大スタミナ +15。同じ食事は重複せず更新。','草葉4を炉辺で調理'),
  bandage:item('bandage','繊維の包帯','medicine','✚','HPを25回復。無傷では消費しない。','草葉3と布1で手作り'),
  'mist-core':item('mist-core','霞の結晶','quest','◇','高台の霧宝箱に眠る結晶。炉の強化に必要。','登り鉤と風布の翼で霧の高台へ'),
@@ -40,16 +48,31 @@ export const CAMPAIGN_MATERIALS:Readonly<Record<number,{id:number;label:string;c
  [4,'木材','▥','建築と初期装備の基本素材。','丸太や木の幹を削り、破片へ近づく'],[6,'金属','⬡','鍛冶装備・登り鉤の部材。','入口右の金属材を鑿で掘る'],
  [7,'草葉','♧','繊維、料理、餌の材料。','草や木の葉を採集する'],[10,'布','▤','織り鎧・滑空翼・包帯。','鍛冶師の救出報酬、または繊維の加工'],
 ].map(([id,label,icon,description,source])=>[id,{id:Number(id),label:String(label),category:'resource' as const,icon:String(icon),stackLimit:1000000,description:String(description),source:String(source)}]));
-export interface CampaignRecipe {id:string;label:string;output:string;cost:Record<number,number>;station:'hand'|'hearth'|'forge';requiresArtisan:boolean;description:string;outputCount?:number}
+export type CampaignProfession='carpenter'|'alchemist';
+export const CAMPAIGN_PROFESSIONS:Readonly<Record<CampaignProfession,{label:string;rescueHint:string}>>={
+ carpenter:{label:'木工師',rescueHint:'木霊の荷場で木工師マキを救出する'},
+ alchemist:{label:'錬金師',rescueHint:'二口の響銅坑で錬金師セナを救出する'},
+};
+/** The optional world owns rescue claims. This adapter never creates a second
+ * profession ledger in CampaignState or unlocks western crafts in the v3 world. */
+export interface CampaignProfessionProvider {rescued(role:CampaignProfession):boolean;atWorkshop(position:Vec3):boolean}
+export interface CampaignRecipe {id:string;label:string;output:string;cost:Record<number,number>;station:'hand'|'hearth'|'forge';requiresArtisan:boolean;requiresProfession?:CampaignProfession;description:string;outputCount?:number;itemCost?:Record<string,number>}
 export const CAMPAIGN_RECIPES:readonly CampaignRecipe[]=[
+ {id:'fishing-rod',label:'葦糸の釣竿',output:'fishing-rod',cost:{4:5,7:3},station:'hand',requiresArtisan:false,description:'釣竿を選択し、水面へ投げ入れる'},
+ {id:'fish-bait',label:'草実の練り餌 ×3',output:'fish-bait',cost:{7:2},station:'hand',requiresArtisan:false,description:'岸釣り1回につき1個消費',outputCount:3},
+ {id:'grilled-silverfin',label:'澄鰭魚の炉焼き',output:'grilled-silverfin',cost:{4:1},itemCost:{silverfin:1},station:'hearth',requiresArtisan:false,description:'釣った魚を焼く。HP +20 / スタミナ +15、120秒'},
+ {id:'herb-fish-soup',label:'澄鰭魚の薬草汁',output:'herb-fish-soup',cost:{4:1},itemCost:{silverfin:1,herbs:1},station:'hearth',requiresArtisan:false,description:'魚と栽培薬草を煮込む。HP +20 / スタミナ +15、180秒'},
  {id:'bow',label:'旅弓',output:'bow',cost:{4:6,7:4},station:'hand',requiresArtisan:false,description:'矢を使う遠距離武器'},
  {id:'arrows',label:'石先の矢 ×8',output:'arrows',outputCount:8,cost:{4:1,3:1},station:'hand',requiresArtisan:false,description:'旅弓の弾薬8本'},
  {id:'staff',label:'灯木の杖',output:'staff',cost:{4:4,3:3,7:2},station:'hand',requiresArtisan:false,description:'属性術の威力 +20%'},
  {id:'ember-gem',label:'灯火の石',output:'ember-gem',cost:{3:4,6:3},station:'forge',requiresArtisan:true,description:'武器か防具のジェム枠に装着'},
  {id:'iron-blade',label:'銅風の剣',output:'iron-blade',cost:{4:4,6:6},station:'forge',requiresArtisan:true,description:'近接ダメージ +30%'},
+ {id:'copper-mail',label:'鳴銅の鎖鎧',output:'copper-mail',cost:{6:12,10:4,4:2},station:'forge',requiresArtisan:true,description:'物理被ダメージ −30% / 移動 −6% / 通電に注意'},
  {id:'hide-coat',label:'織り鎧',output:'hide-coat',cost:{7:6,10:4},station:'forge',requiresArtisan:true,description:'被ダメージ −20%'},
  {id:'grapple',label:'登り鉤',output:'grapple',cost:{6:4,7:4},station:'forge',requiresArtisan:true,description:'霧の高台にあるアンカーを利用'},
  {id:'glider',label:'風布の翼',output:'glider',cost:{4:6,10:6},station:'forge',requiresArtisan:true,description:'空中で起動、スタミナを使って滑空'},
+ {id:'windwoven-glider',label:'木霊の風織り翼',output:'windwoven-glider',cost:{4:10,10:8},itemCost:{'amber-resin':4},station:'hearth',requiresArtisan:false,requiresProfession:'carpenter',description:'木工師の翼。滑空速度 +20% / 消費スタミナ −25%'},
+ {id:'resin-staff',label:'響銅の調律杖',output:'resin-staff',cost:{4:6,3:4},itemCost:{'singing-copper':2,'amber-resin':2},station:'hearth',requiresArtisan:false,requiresProfession:'alchemist',description:'錬金師の杖。属性術の威力 +40%、耐久・強化に対応'},
  {id:'berry-meal',label:'野草の煮込み',output:'berry-meal',cost:{7:4},station:'hearth',requiresArtisan:false,description:'HP +20 / スタミナ +15、180秒'},
  {id:'bandage',label:'繊維の包帯',output:'bandage',cost:{7:3,10:1},station:'hand',requiresArtisan:false,description:'HPを25回復'},
 ];
@@ -69,8 +92,8 @@ export const CAMPAIGN_POINTS:readonly {id:CampaignPointId;label:string;kind:'bas
 export const CAMPAIGN_QUESTS:readonly {id:string;label:string;detail:string;side?:boolean;rewardXp:number}[]=[
  {id:'gather',label:'火を起こす支度',detail:'木材8・石6を採集する',rewardXp:20},
  {id:'hearth',label:'谷に灯を',detail:'灯守りの炉を点火する',rewardXp:25},
- {id:'rescue',label:'忘れられた鍛冶師',detail:'地下墓所で鍛冶師ナギを救出する',rewardXp:35},
- {id:'forge',label:'旅に耐える装備',detail:'剣・弓・杖のいずれかと織り鎧を制作し、装備する',rewardXp:30},
+ {id:'rescue',label:'忘れられた鍛冶師',detail:'入口の番兵を外へ誘い、墓所の左手にいるナギを救出する。壁で敵の視線を切れる',rewardXp:35},
+ {id:'forge',label:'旅に耐える装備',detail:'剣・弓・杖のいずれかと織り鎧または鎖鎧を制作し、装備する',rewardXp:30},
  {id:'traverse',label:'風と鉤',detail:'登り鉤と風布の翼を制作し、装備する',rewardXp:30},
  {id:'cache',label:'霞の向こうの結晶',detail:'霧の高台に到達し宝箱を開く',rewardXp:40},
  {id:'warden',label:'銅殻の番人',detail:'地下墓所の番人を倒し火種を得る',rewardXp:60},
@@ -102,20 +125,27 @@ export const isDeepShroud=(position:Vec3)=>position.z<-18&&position.z>-26;
 export class CampaignSystem {
  state:CampaignState={version:1,items:{},gearState:{},equipment:{weapon:null,armor:null,grapple:null,glider:null,charm:null},completed:[],claimedEnemies:[],xp:0,level:1,skillPoints:0,skills:[],unlockedRegions:[],discoveredRegions:[],claimedPoints:[],flameTier:0,artisanRescued:false,gateOpen:false,campUnlocked:false,foodSeconds:0,restSeconds:0,shroudSeconds:60,discovered:['hearth'],built:[],deaths:0,deathPending:false,deathBag:null};
  constructor(readonly materials:Record<number,number>){}
+ private professionProvider:CampaignProfessionProvider|null=null;
+ setProfessionProvider(provider:CampaignProfessionProvider|null){this.professionProvider=provider;}
+ professionUnlocked(role:CampaignProfession){return this.professionProvider?.rescued(role)??false;}
  get maxHp(){return 100+(this.state.skills.includes('vigor')?20:0)+(this.state.foodSeconds>0?20:0)+(this.state.equipment.charm==='ember-charm'?15:0);}
  get maxStamina(){return 100+(this.state.skills.includes('endurance')?20:0)+(this.state.foodSeconds>0?15:0);}
  get equippedWeapon(){return this.state.equipment.weapon;}
- get spellMultiplier(){return this.equippedWeapon==='staff'?1.2*this.gearPower('staff'):1;}
+ get isStaffWeapon(){return this.equippedWeapon==='staff'||this.equippedWeapon==='resin-staff';}
+ get spellMultiplier(){const id=this.equippedWeapon;return id==='staff'?1.2*this.gearPower(id):id==='resin-staff'?1.4*this.gearPower(id):1;}
  get attackMultiplier(){const id=this.equippedWeapon;return (id==='iron-blade'?1.3:1)*(id?this.gearPower(id):1);}
- get damageReduction(){const id=this.state.equipment.armor;if(id!=='hide-coat')return 0;const g=this.gearInfo(id);return Math.min(.5,(.2+g.upgrade*.03+(g.socket ? .05 : 0))*(g.durability>0?1:.5));}
+ get armorMaterial():0|6|10{return this.state.equipment.armor==='copper-mail'?6:this.state.equipment.armor==='hide-coat'?10:0;}
+ get damageReduction(){const id=this.state.equipment.armor;if(id!=='hide-coat'&&id!=='copper-mail')return 0;const g=this.gearInfo(id);return Math.min(.5,((id==='copper-mail'?.3:.2)+g.upgrade*.03+(g.socket ? .05 : 0))*(g.durability>0?1:.5));}
  private gearPower(id:string){const g=this.gearInfo(id);return (1+g.upgrade*.1+(g.socket ? .12 : 0))*(g.durability>0?1:.5);}
  gearInfo(id:string):GearState {const g=this.state.gearState[id];return g?{...g}:{durability:100,maxDurability:100,upgrade:0,socket:null};}
  private ensureGear(id:string){return this.state.gearState[id]??(this.state.gearState[id]=this.gearInfo(id));}
 
- get moveMultiplier(){return this.state.skills.includes('endurance')?1.08:1;}
+ get moveMultiplier(){return (this.state.skills.includes('endurance')?1.08:1)*(this.state.equipment.armor==='copper-mail'?.94:1);}
  get staminaRegenMultiplier(){return this.state.restSeconds>0?1.4:1;}
  get shroudMaximum(){return 60+Math.max(0,this.state.flameTier-1)*30+(this.state.skills.includes('attunement')?30:0);}
- get canGlide(){return this.state.equipment.glider==='glider';}
+ get canGlide(){return this.state.equipment.glider==='glider'||this.state.equipment.glider==='windwoven-glider';}
+ get glideSpeedMultiplier(){return this.state.equipment.glider==='windwoven-glider'?1.2:1;}
+ get glideStaminaMultiplier(){return this.state.equipment.glider==='windwoven-glider'?.75:1;}
  get canGrapple(){return this.state.equipment.grapple==='grapple';}
  get complete(){return this.state.completed.includes('ridge');}
  get campaignChapterComplete(){return this.complete;}
@@ -129,7 +159,7 @@ export class CampaignSystem {
  private refresh(){const s=this.state;
   if((this.materials[4]??0)>=8&&(this.materials[3]??0)>=6)this.finish('gather');
   if(s.flameTier>0)this.finish('hearth');if(s.artisanRescued)this.finish('rescue');
-  if(s.equipment.weapon!==null&&s.equipment.armor==='hide-coat')this.finish('forge');
+  if(s.equipment.weapon!==null&&['hide-coat','copper-mail'].includes(s.equipment.armor??''))this.finish('forge');
   if(this.canGrapple&&this.canGlide)this.finish('traverse');
   if(this.has('mist-core'))this.finish('cache');if(this.has('warden-core'))this.finish('warden');
   if(s.flameTier>=2)this.finish('flame');if(s.campUnlocked)this.finish('ridge');
@@ -145,15 +175,19 @@ export class CampaignSystem {
   if(!Number.isSafeInteger(count)||count<1||count>20)return fail('制作数は1〜20個');
   if(!finitePosition(position))return fail('制作位置が無効');
   if(r.requiresArtisan&&!this.state.artisanRescued)return fail('地下墓所の鍛冶師を救出する');
+  if(r.requiresProfession&&!this.professionUnlocked(r.requiresProfession))return fail(CAMPAIGN_PROFESSIONS[r.requiresProfession].rescueHint);
   if(r.station!=='hand'&&this.state.flameTier===0)return fail('灯守りの炉を点火する');
-  if(r.station!=='hand'&&dist(position,point('hearth')!.position)>3)return fail('灯守りの炉から3m以内で制作する');
+  if(r.station!=='hand'&&dist(position,point('hearth')!.position)>3&&!(r.requiresProfession&&this.professionProvider?.atWorkshop(position)))return fail(r.requiresProfession?'灯守りの炉か発見済みの木霊の帰還炉から3m以内で制作する':'灯守りの炉から3m以内で制作する');
   if((this.state.items[r.output]??0)+count*(r.outputCount??1)>CAMPAIGN_ITEMS[r.output].stackLimit)return fail('所持上限。装備は各1個、消耗品は各20個');
   const missing=Object.entries(r.cost).filter(([key,n])=>(this.materials[Number(key)]??0)<n*count);
   if(missing.length)return fail('素材不足: '+missing.map(([key,n])=>`${({3:'石',4:'木材',6:'金属',7:'草葉',10:'布'} as Record<string,string>)[key]} ${(this.materials[Number(key)]??0)}/${n*count}`).join(' / '));
+  const missingItems=Object.entries(r.itemCost??{}).filter(([id,n])=>(this.state.items[id]??0)<n*count);
+  if(missingItems.length)return fail('素材不足: '+missingItems.map(([id,n])=>`${CAMPAIGN_ITEMS[id].label} ${(this.state.items[id]??0)}/${n*count} · ${CAMPAIGN_ITEMS[id].source}`).join(' / '));
   return success('制作できる');
  }
  craft(id:string,position:Vec3,count=1):CampaignResult {const status=this.recipeStatus(id,position,count);if(!status.ok)return status;const r=CAMPAIGN_RECIPES.find(r=>r.id===id)!;
   for(const [key,n] of Object.entries(r.cost))this.materials[Number(key)]-=n*count;
+  for(const [id,n] of Object.entries(r.itemCost??{}))this.state.items[id]-=n*count;
   this.state.items[r.output]=(this.state.items[r.output]??0)+count*(r.outputCount??1);if(['weapon','armor'].includes(CAMPAIGN_ITEMS[r.output].slot??''))this.ensureGear(r.output);this.refresh();return success(`${CAMPAIGN_ITEMS[r.output].label} ×${count*(r.outputCount??1)}を制作。装備品は持物から装備する`);
  }
  private atForge(position:Vec3):CampaignResult {if(!finitePosition(position)||dist(position,point('hearth')!.position)>3)return fail('灯守りの炉から3m以内で作業する');if(!this.state.flameTier||!this.state.artisanRescued)return fail('炉を点火し、鍛冶師を救出する');return success('鍛冶設備を利用できる');}
@@ -174,7 +208,7 @@ export class CampaignSystem {
  equip(id:string):CampaignResult {const i=CAMPAIGN_ITEMS[id];if(!i?.slot||!this.has(id))return fail('所持している装備を選ぶ');this.state.equipment[i.slot]=id;this.refresh();return success(i.label+'を装備');}
  unequip(slot:EquipmentSlot):CampaignResult {if(!slots.includes(slot)||this.state.equipment[slot]===null)return fail('この枠には装備していない');this.state.equipment[slot]=null;return success('装備を外した');}
  consume(id:string,hp=this.maxHp):CampaignResult {if(!this.has(id))return fail('持っていない');
-  if(id==='berry-meal'||id==='milk'){this.state.items[id]--;this.state.foodSeconds=id==='milk'?120:180;this.refresh();return success(`${CAMPAIGN_ITEMS[id].label} · ${this.state.foodSeconds}秒、最大HP +20 / スタミナ +15`);}
+  if(id==='berry-meal'||id==='milk'||id==='grilled-silverfin'||id==='herb-fish-soup'){this.state.items[id]--;this.state.foodSeconds=id==='milk'||id==='grilled-silverfin'?120:180;this.refresh();return success(`${CAMPAIGN_ITEMS[id].label} · ${this.state.foodSeconds}秒、最大HP +20 / スタミナ +15`);}
   if(id==='bandage'){if(!Number.isFinite(hp)||hp<0||hp>=this.maxHp)return fail('HPが減ったときに使う');this.state.items[id]--;return success('包帯でHPを25回復',{heal:Math.min(25,this.maxHp-hp)});}
   return fail('この品は使用できない');
  }
