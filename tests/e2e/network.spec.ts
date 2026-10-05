@@ -22,7 +22,7 @@ test.describe.serial('two real browsers',()=>{
   identity=(await b.locator('#session-status').getAttribute('data-player'))!;expect(identity).not.toBe(await a.locator('#session-status').getAttribute('data-player'));
   // Both connections remain live; only one software-GPU view renders at a time.
   for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-players','2');await page.keyboard.press('Escape');await running(page);await page.locator('#session-menu').click();}
-  stage('two browsers ready');}catch(error){failed=true;throw error;}
+  stage('two browsers ready');}catch(error){failed=true;await Promise.all([a,b].filter(Boolean).map(diagnostics));throw error;}
  });
  test.afterEach(async({},info)=>{if(info.status!==info.expectedStatus){failed=true;for(const page of[a,b].filter(Boolean))await diagnostics(page);}});
  test.afterAll(async()=>{await Promise.allSettled(contexts.map((c,i)=>Promise.race([c.tracing.stop(failed?{path:tracePaths[i]}:undefined),new Promise<void>(r=>setTimeout(r,5000))])));await Promise.allSettled(contexts.map(c=>Promise.race([c.close(),new Promise<void>(r=>setTimeout(r,5000))])));});
@@ -49,7 +49,13 @@ test.describe.serial('two real browsers',()=>{
   await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('movement verified');
  });
  test('commit a visible terrain edit and converge on both clients',async()=>{
-  test.setTimeout(90000);stage('visible terrain tool');await a.keyboard.press('Escape');await a.locator('#adventure-menu').click();await a.locator('[data-tab=build]').click();await a.locator('[data-game-action=tool][data-id=dig]').click();
+  test.setTimeout(90000);stage('visible terrain tool');await a.keyboard.press('Escape');await running(a);
+  // The initial camera aimed into the protected arrival/landmark cores. Walk
+  // east using real input before digging; keep both clients on the same world.
+  const creator=await a.locator('#session-status').getAttribute('data-player');
+  await a.keyboard.down('KeyD');try{await expect.poll(async()=>JSON.parse(await b.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===creator)?.x??-999).toBeGreaterThan(4.2);}finally{await a.keyboard.up('KeyD');}
+  await expect.poll(async()=>Number(await a.locator('#position').getAttribute('data-x'))).toBeGreaterThan(4.2);
+  await a.locator('#adventure-menu').click();await a.locator('[data-tab=build]').click();await a.locator('[data-game-action=tool][data-id=dig]').click();
   await a.mouse.move(400,150);await a.mouse.down({button:'middle'});await a.mouse.move(400,220,{steps:4});await a.mouse.up({button:'middle'});await expect(a.locator('#use-tool')).toBeEnabled();
   const priorEditCount=Number(await a.locator('#edit-count').getAttribute('data-count'));console.log('COOP_PRE_EDIT_AIM',await a.locator('#app').getAttribute('data-aim'));await a.locator('#use-tool').click();
   await expect.poll(async()=>Number(await a.locator('#edit-count').getAttribute('data-count')),{timeout:20000}).toBeGreaterThan(priorEditCount);expectedEditCount=Number(await a.locator('#edit-count').getAttribute('data-count'));await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount),{timeout:20000});

@@ -1,3 +1,4 @@
+import {ReplicaBridge} from './replica-bridge';
 import {SITES} from '../content/adventure-sites';
 import {rescueUI} from '../ui/expeditions';
 import {companionsUI} from '../ui/companions';
@@ -99,7 +100,9 @@ export function startGame() {
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
-  const post = (message: ClientMessage) => { if(message.type==='init'||message.type==='replica-init'){loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
+  const acceptSnapshot=(next:Snapshot,motionOnly=false)=>{diagnostics.snapshot();state=next;if(!motionOnly)dirtyWorld=true;if(first){world.player.position.set(next.player.x,next.player.y,next.player.z);first=false;}};
+  const replicaBridge=new ReplicaBridge(message=>worker?.postMessage(message),acceptSnapshot);
+  const post = (message: ClientMessage) => { if(message.type==='replica-state'){replicaBridge.offer(message.state,message.edits);return;} if(message.type==='init'||message.type==='replica-init'){replicaBridge.reset();loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
   const photo=document.createElement('button');photo.id='photo';photo.textContent='風景をPNGで保存 [P]';document.querySelector('#system-panel')!.append(photo);photo.addEventListener('click',()=>{if(app.dataset.state!=='running'){notice('ワールドの準備ができてから写真を撮ってください');return;}photoNext=true;document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);},{signal});signal.addEventListener('abort',()=>photo.remove(),{once:true});
   const network = networkUI(signal, post, notice,{loadPersonal:()=>persistence.load(),exported:save=>persistence.exportSave(save)});
   const send = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input);if (!network.forward(message)) post(message); };
@@ -203,8 +206,8 @@ export function startGame() {
     worker.onerror = () => fail('地形処理を開始できませんでした。ページを再読み込みしてください。');
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       if (stopped) return;
-      const message = event.data;if(message.type==='health'){diagnostics.heartbeat(message.health);return;} if (message.type!=='terrain-reset'&&message.type!=='terrain-visibility'&&network.receive(message)) return;
-      if(message.type==='terrain-reset'){terrainEpoch=message.epoch;app.dataset.worldEpoch=String(terrainEpoch);awaitTerrainReset=false;readyPending=false;terrainQueue.clear();terrainQueue.remove(terrain.ids());terrain.setActive([]);}
+      const message = event.data;if(message.type==='replica-rejected'){replicaBridge.rejected(message);notice(message.message);return;}if(message.type==='replica-applied'){replicaBridge.applied(message);return;}if(message.type==='replica-motion'){replicaBridge.motion(message);return;}if(message.type==='health'){diagnostics.heartbeat(message.health);return;} if (message.type!=='terrain-reset'&&message.type!=='terrain-visibility'&&network.receive(message)) return;
+      if(message.type==='terrain-reset'){terrainEpoch=message.epoch;replicaBridge.beginEpoch(terrainEpoch);app.dataset.worldEpoch=String(terrainEpoch);awaitTerrainReset=false;readyPending=false;terrainQueue.clear();terrainQueue.remove(terrain.ids());terrain.setActive([]);}
       else if(message.type==='terrain-visibility'){if(!awaitTerrainReset&&message.epoch===terrainEpoch)terrain.setActive(message.ids);}
       else if(message.type==='mesh'||message.type==='mesh-batch'){
         if(awaitTerrainReset||message.epoch!==terrainEpoch)return;
@@ -212,7 +215,7 @@ export function startGame() {
         receivedMeshes+=meshes.length;for(const mesh of meshes)discarded+=terrainQueue.enqueue(mesh);acknowledgeMeshes(discarded);
       }
       else if(message.type==='remove'){if(awaitTerrainReset||message.epoch!==terrainEpoch)return;acknowledgeMeshes(terrainQueue.remove(message.ids,id=>terrain.has(id)));}
-      else if (message.type === 'snapshot') { if(awaitTerrainReset||message.epoch!==terrainEpoch)return;diagnostics.snapshot();state = message.state;dirtyWorld=true; if (first) { world.player.position.set(state.player.x, state.player.y, state.player.z); first = false; } }
+      else if (message.type === 'snapshot') { if(awaitTerrainReset||message.epoch!==terrainEpoch)return;acceptSnapshot(message.state); }
       else if(message.type==='ready'){if(!awaitTerrainReset&&message.epoch===terrainEpoch){nearReadyMs=performance.now()-loadingStarted;readyPending=true;readyFence=terrainQueue.fence();}}
       else if (message.type === 'save' && !network.guest) {if(awaitTerrainReset||message.epoch!==terrainEpoch)return;persistence.receive(message.save);}
       else if (message.type === 'notice') notice(message.message);

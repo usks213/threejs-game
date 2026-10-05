@@ -31,3 +31,29 @@ it('keeps simulation and input live while rendering credits are exhausted, and a
  output.length=0;for(let i=0;i<10;i++)send({type:'game-action',action:'guard',id:'on',aim:{x:0,y:0,z:-1}});send({type:'game-action',action:'guard',id:'off',aim:{x:0,y:0,z:-1}});expect(output.some(m=>m.type==='save')).toBe(false);
  send({type:'game-action',action:'attack',aim:{x:0,y:-.8,z:-.6}});expect(output.some(m=>m.type==='save')).toBe(false);vi.advanceTimersByTime(600);expect(output.some(m=>m.type==='save')).toBe(false);vi.advanceTimersByTime(600);const saves=output.filter(m=>m.type==='save');expect(saves).toHaveLength(1);expect(saves[0].epoch).toBe(2);expect(saves[0].save.edits.length).toBeGreaterThan(0);
 },20000);
+it('streams the real cooperative world under repeated complete snapshots without echoing its water on every input',async()=>{
+ vi.useFakeTimers();
+ const [{SessionAuthority},{sessionFrame},{participantSave}]=await Promise.all([import('../../src/simulation/session'),import('../../src/networking/frame'),import('../../src/save/participant')]);
+ const room=new SessionAuthority(null,true),actor=room.join('guest');for(let i=0;i<30;i++)room.step();
+ const save=participantSave(room,actor.id),snapshot=sessionFrame(room,actor.id);expect(snapshot.fluids.length).toBeGreaterThan(1000);
+ const output:SimulationWorkerMessage[]=[],pending:Array<()=>void>=[];
+ const scope={postMessage:(m:SimulationWorkerMessage)=>output.push(m),onmessage:null as null|((e:{data:SimulationClientMessage})=>void)};
+ class Mesher {onmessage:((e:{data:unknown})=>void)|null=null;onerror=null;runtime=new TerrainRuntime();dead=false;postMessage(m:TerrainRequest){pending.push(()=>{if(this.dead)return;const r=this.runtime.handle(m);if(r)this.onmessage?.({data:r});});}terminate(){this.dead=true;}}
+ vi.stubGlobal('self',scope);vi.stubGlobal('Worker',Mesher);await import('../../src/simulation/worker');
+ const send=(m:SimulationClientMessage)=>scope.onmessage!({data:m});send({type:'replica-init',save,direct:true});send({type:'replica-update',requestId:1,state:snapshot,edits:save.edits});
+ let ready=false,meshCount=0,sequence=0,fullBytes=0,lightBytes=0;const consume=()=>{for(const m of output.splice(0)){
+  if(m.type==='mesh'){meshCount++;send({type:'mesh-ack',epoch:m.epoch!,count:1});}
+  if(m.type==='ready')ready=true;
+  if(m.type==='replica-applied'||m.type==='replica-motion'){lightBytes+=JSON.stringify(m).length;fullBytes+=JSON.stringify({type:'snapshot',state:{...snapshot,player:m.player}}).length;expect('state'in m).toBe(false);}
+  expect(m.type).not.toBe('error');expect(m.type).not.toBe('replica-rejected');expect(m.type).not.toBe('snapshot');
+ }};
+ for(let i=0;i<150&&!ready;i++){
+  send({type:'replica-update',requestId:i+2,state:{...snapshot,tick:snapshot.tick+i,ack:sequence},edits:save.edits});
+  for(let j=0;j<3;j++)send({type:'replica-input',sequence:++sequence,input:{x:0,z:0,jump:false}});
+  pending.shift()?.();consume();
+ }
+ expect(ready).toBe(true);expect(meshCount).toBeLessThan(70);expect(lightBytes).toBeLessThan(fullBytes*.005);
+ console.log('REPLICA_IPC_BYTES',JSON.stringify({fullBytes,lightBytes,reductionPercent:(1-lightBytes/fullBytes)*100,meshCount,waterCells:snapshot.fluids.length}));
+ send({type:'replica-input',sequence:++sequence,input:{x:1,z:0,jump:false}});const motion=output.find(m=>m.type==='replica-motion');expect(motion?.type).toBe('replica-motion');if(motion?.type==='replica-motion')expect(motion.player.x).toBeGreaterThan(snapshot.player.x);
+ vi.advanceTimersByTime(1000);const health=output.find(m=>m.type==='health');expect(health?.type).toBe('health');if(health?.type==='health'){expect(health.health.paused).toBe(false);expect(health.health.nearReady).toBe(true);expect(health.health.terrain?.completed).toBe(meshCount);expect(health.health.terrain?.activeJob).toBeDefined();expect(health.health.terrain?.credits).toBe(0);expect(health.health.replica?.frames).toBeGreaterThan(30);}
+},20000);

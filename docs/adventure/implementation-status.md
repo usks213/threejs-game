@@ -138,3 +138,11 @@
 - Journeyボタンのタッチ操作への重なりとsafe-area不足を修正。2本指試験は操作指を離すCDPのIDが誤っていたため修正し、実pointerdownとスティック保持の検査を追加。共有物資回収を移動より先にして、トレースの二重開始も修正。
 - 8m立方体全域を描画していたdirect-field proxyを、全ゼロ交差セルを含む保守的な領域へ縮小。洞窟・天井・境界・編集・LOD・half-float誤差の回帰を追加。代表brickの体積は約31%、CPU境界計算平均約0.015ms。GPU改善の実測ではない。auto解像度は重大なactive描画遅延へ早く反応し、安定後は段階的に戻す。機能/最大ray sampleを削除しない。
 - 統合版は型検査、709テスト/152ファイル、production build合格。公開先・実ブラウザでの再確認は未完了。54項目の全受入完了は引き続き0。
+
+## 第12区切り: ローカル複製通信の整理（2026-10-05、公開準備中）
+- 3645d252でAndroidエミュレーション13/13ケースが合格。desktopの地形境界走行は最大frame gap433ms/29samplesで、以前の2.42〜3.40秒/4〜7samplesから改善（CI software GPUであり実機FPSではない）。公開2WebSocketは参加/移動/掘削/再接続まで合格。
+- 実2ブラウザでは地形準備待ちが残った。37brickの受信/反映一致・queue0・paused=falseを確認し、proxy/描画creditの欠落は除外。8,000弱の水cellを含む817,025byte snapshotが、入力ごとにもworkerから返る冗長な経路を発見。
+- 複製workerへの完全snapshotを1件処理中＋最新1件待機へ限定し、mainに正本snapshot/全edit履歴を保持。処理応答と移動予測はplayer/tick/request IDのみとし、代表serialized payloadは155byte、30入力では24.51MB→4.65KB。古いepoch/request/sequence、同tick更新、失敗した適用、再接続ack巻戻しの回帰を追加。公開protocolや権威の水/世界状態は変更しない。
+- 実初期状態によるworker再生で42近傍brick完了と移動の継続を検証。地形のactive job/経過時間/最終完了/credit/reconcile時間を診断へ追加。公開の準備待ちが解消したとはまだ扱わない。
+- 掘削のブラウザ試験は、入力で保護域外へ歩いてから照準を合わせる。desktop pointer-lockはnative mouseイベント計測と複数段階の実mousemoveを用い、回転/ガード/攻撃の期待値は保持する。
+- 統合版は型検査、715テスト/153ファイル、production build合格。実ブラウザ再受入は未完了。

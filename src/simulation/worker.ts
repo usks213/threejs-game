@@ -15,6 +15,7 @@ import type { SimulationClientMessage as ClientMessage,SimulationWorkerMessage a
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const emit = (message: WorkerMessage, transfer: Transferable[] = []) => scope.postMessage(message.type==='snapshot'||message.type==='save'?{...message,epoch:terrain.epoch}:message, transfer);
 let sim: GameSimulation | null = null, authority: SessionAuthority | null = null, replica = false;
+let replicaRequest=0,replicaFrames=0,reconcileMs=0,meshStartedAt=0,lastMeshCompletedAt=0,completedMeshes=0;
 let prediction: Prediction | null = null, replicaState: import('./protocol').Snapshot | null = null;
 const peerEdits = new Map<string, number>();
 let input: PlayerInput = { x: 0, z: 0, jump: false };
@@ -30,7 +31,7 @@ function initializeTerrain(): void {
   // Reinitialization also cancels a synchronous in-flight job in the old world.
   mesher?.terminate(); mesher = null;
   terrain.reset(); uploads.reset(terrain.epoch); triangles.clear(); editedMeshes.clear();
-  center = ''; initialized = false; meshMs = 0; editMs = 0; editStart = 0;
+  center = ''; initialized = false; meshStartedAt=0;lastMeshCompletedAt=0;completedMeshes=0;meshMs = 0; editMs = 0; editStart = 0;
   emit({ type: 'terrain-reset', epoch: terrain.epoch });
   const worker = new Worker(new URL('../world/terrain-worker.ts', import.meta.url), { type: 'module' });
   mesher = worker;
@@ -49,6 +50,7 @@ function initializeTerrain(): void {
     }
     const accepted = terrain.complete(result.job, meshTransferables([result.mesh]).reduce((sum, buffer) => sum + buffer.byteLength, 0));
     if (accepted) {
+      completedMeshes++;lastMeshCompletedAt=performance.now();
       const mesh = result.mesh;
       meshMs = mesh.milliseconds; triangles.set(mesh.id, mesh.indices.length / 3);
       if (accepted === 'edit') editedMeshes.set(mesh.id, mesh);
@@ -103,13 +105,13 @@ function scheduleMesh(): void {
   publishEdit(); checkReady();
   if (!uploads.available) return;
   const job = terrain.next(sentEditCount);
-  if (job) sendTerrain({ type: 'mesh', job });
+  if (job) {meshStartedAt=performance.now();sendTerrain({ type: 'mesh', job });}
 }
 scope.onmessage = (event: MessageEvent<ClientMessage>) => {
   const message = event.data;
   try {
     if (message.type === 'init' || message.type === 'replica-init') {
-      combatSaveAt=0;direct=!!message.direct;uploads=new TerrainUploadWindow(direct?12:4);authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
+      combatSaveAt=0;replicaRequest=0;replicaFrames=0;reconcileMs=0;direct=!!message.direct;uploads=new TerrainUploadWindow(direct?12:4);authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
     } else if (message.type === 'peer-join' && authority && !replica) { authority.join(message.peer); peerEdits.set(message.peer, sim!.world.edits.length); emit({ type: 'peer-welcome', peer: message.peer, save: sim!.save(), state: sessionFrame(authority, message.peer) }); }
     else if (message.type === 'peer-leave' && authority) { authority.leave(message.peer); peerEdits.delete(message.peer); }
     else if (message.type === 'peer-input' && authority && !replica) authority.input(message.peer, message.input, message.sequence);
@@ -117,16 +119,20 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
       const result = authority.action(message.peer, message.message);
       invalidateTerrain(result.dirty); scheduleMesh();
       emit({ type: 'notice', message: result.message });
-    } else if (message.type === 'replica-state' && sim && replica) {
+    } else if ((message.type === 'replica-state'||message.type==='replica-update') && sim && replica) {
       replicaState = message.state;
       const dirty = new Set<string>();
       for (const edit of message.edits.slice(sim.world.edits.length)) for (const id of sim.world.apply(edit)) dirty.add(id);
       invalidateTerrain(dirty);
-      prediction!.reconcile(message.state);
-      stream(); scheduleMesh(); emit({ type: 'snapshot', state: { ...message.state, player: { ...sim.player } } });
+      const started=performance.now();prediction!.reconcile(message.state);reconcileMs=performance.now()-started;replicaFrames++;
+      replicaRequest=message.type==='replica-update'?message.requestId:0;
+      stream(); scheduleMesh();
+      if(replicaRequest)emit({type:'replica-applied',requestId:replicaRequest,epoch:terrain.epoch,tick:message.state.tick,player:{...sim.player}});
+      else emit({type:'snapshot',state:{...message.state,player:{...sim.player}}});
     } else if (message.type === 'replica-input' && sim && replica && replicaState) {
-      prediction!.input(message.sequence,message.input);stream();
-      emit({type:'snapshot',state:{...replicaState,player:{...sim.player}}});
+      inputSequence=message.sequence;input={...message.input};prediction!.input(message.sequence,message.input);stream();scheduleMesh();
+      if(replicaRequest)emit({type:'replica-motion',requestId:replicaRequest,epoch:terrain.epoch,tick:replicaState.tick,sequence:message.sequence,player:{...sim.player}});
+      else emit({type:'snapshot',state:{...replicaState,player:{...sim.player}}});
     } else if (message.type === 'input') {inputSequence++;input = { ...message.input, jump: input.jump || message.input.jump };}
     else if (message.type === 'pause') { paused = message.paused; terrain.paused = paused; input = { x: 0, z: 0, jump: false }; previous = performance.now(); accumulator = 0; if (!paused) scheduleMesh(); }
     else if (message.type === 'mesh-ack') { uploads.acknowledge(message.epoch, message.count); scheduleMesh(); }
@@ -139,7 +145,7 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
       if(message.type==='game-action'&&(message.action==='attack'||message.action==='heavy'))combatSaveAt=performance.now()+1000;
       else if(message.type==='action'?message.tool!=='water':!transientActions.has(message.action))emit({type:'save',save:authority!.save()});
     }
-  } catch (error) { emit({ type: message.type === 'init' || message.type === 'replica-init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
+  } catch (error) {if(message.type==='replica-update'){lastError=String(error);emit({type:'replica-rejected',requestId:message.requestId,epoch:terrain.epoch,message:lastError});return;} emit({ type: message.type === 'init' || message.type === 'replica-init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
 };
 // Collision samples the authoritative SdfWorld directly; visual mesh/GPU credits
 // must never pause simulation or input, including the first near-ready handshake.
@@ -162,4 +168,4 @@ setInterval(() => {
   } catch (error) { lastError=String(error);paused = true; emit({ type: 'error', message: String(error) }); }
 }, 1000 / TICK_RATE);
 
-setInterval(()=>emit({type:'health',health:{epoch:terrain.epoch,tick:sim?.tick??0,paused,nearReady:initialized,input:{...input},inputSequence,lastAction,pending:terrain.pending,error:lastError}}),1000);
+setInterval(()=>emit({type:'health',health:{epoch:terrain.epoch,tick:sim?.tick??0,paused,nearReady:initialized,input:{...input},inputSequence,lastAction,pending:terrain.pending,error:lastError,terrain:{activeJob:terrain.activeJob,activeAgeMs:terrain.activeJob?Math.round(performance.now()-meshStartedAt):null,lastCompletionAgeMs:lastMeshCompletedAt?Math.round(performance.now()-lastMeshCompletedAt):null,credits:uploads.credits,completed:completedMeshes,meshMs},...(replica?{replica:{requestId:replicaRequest,tick:replicaState?.tick??-1,frames:replicaFrames,reconcileMs}}:{})}}),1000);
