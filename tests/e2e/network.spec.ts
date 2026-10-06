@@ -370,6 +370,7 @@ test.describe.serial('two real browsers',()=>{
   };
   const showSharedPart=async(page:Page,label:string)=>{
    await page.locator('#powers-menu').click();await expect(page.locator('#powers-panel')).toBeVisible();
+   await page.locator('#power-part').scrollIntoViewIfNeeded();await expect(page.locator('#power-part')).toBeInViewport();
    await page.locator('#power-part').selectOption(String(sharedPartId));await expect(page.locator('#power-part')).toHaveValue(String(sharedPartId));
    await expect(page.locator('#power-part option:checked')).toHaveText(`木の箱 #${sharedPartId}`);
    await expect(page.locator('#powers-panel [data-power=grab]')).toBeEnabled();

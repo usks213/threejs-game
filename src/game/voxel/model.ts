@@ -13,6 +13,7 @@ function generate(key:string,size:number,min:Vec3,max:Vec3,fill:(p:Vec3)=>VoxelM
  cache.set(key,model);return model;
 }
 export function buildingVoxels(id:string):VoxelModel{
+ const existing=cache.get('b:'+id);if(existing)return existing;
  const def=BUILDINGS.find(b=>b.id===id)!;const [w,h,d]=def.size,size=.125,roof=roofHeight(id,0,0)!==null;
  return generate('b:'+id,size,{x:-w/2,y:0,z:-d/2},{x:w/2,y:roof?2.25:Math.max(h,.125),z:d/2},p=>{
   if(roof){const top=roofHeight(id,p.x,p.z)!;return p.y>top&&p.y<=top+.25?'wood':null;}

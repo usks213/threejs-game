@@ -35,7 +35,6 @@ export class CoopRoom extends DurableObject<Env> {
    this.ctx.waitUntil((async()=>{
    if (typeof event.data !== 'string') { server.close(1003, 'Text only'); return; }
    const verified=await authenticateCoopPacket(event.data),result = room.receive(id,verified.text,verified.playerId);
-   if(result.schedulerWake&&this.room===room){const timer=this.timer;try{timer?.wake();}catch{this.stopSimulation(room,timer);}}
    if(this.recoveryNotice&&JSON.parse(event.data).type==='hello')room.notice('直前の正常な共有保存へ復旧しました。壊れた最新保存は保護されています');
    if (result.changed) this.ctx.waitUntil(this.persist().then(() => result.acknowledgment?.()).catch(() => this.persistenceFailed(room)));else result.acknowledgment?.();
    })().catch(()=>server.close(1008,'Invalid handshake')));

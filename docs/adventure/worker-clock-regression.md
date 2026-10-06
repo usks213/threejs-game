@@ -75,3 +75,15 @@ optional `events`診断も追加し、step entry/message entryで観測したI/O
 このwake候補の関連51試験と全typecheckに合格。early wakeでtimerを再予約しないこと、1,000msのserver-clock上で大量wakeを送っても30stepを超えないこと、reentrant/stale callback/stop/restart/例外、clock clamp除去後の読み直し、admissionとoptional診断の互換性/不正値/逆行を確認した。wakeの外側でnow/cancelが例外になっても、捕捉したtimerをstopしてから同じroom/timerの場合だけ参照を除去する。
 
 ローカルworkerdの実4WebSocket/5秒smokeも通信失敗0で完走し、全員2つの有効なevent telemetry sampleを受信した。対応するpong両端は60tick/2,013msのI/O-clock区間。短い全測定窓では直前のframe到着位置の影響を受けるため、これを公開30Hz合格へ拡大しない。結果はローカルadapterの接続確認だけで、公開でのwake効果やCPU能力は未確認。
+
+## 6aa70935: I/O wakeも棄却、native post-armへ戻す
+
+QA終了後に順序付けた公開6aa70935の4接続は60.019秒、通信失敗0だったが、最小12.696HzでI/O wake候補は不合格。`docs/benchmarks/public-worker-load-6aa70935-sequenced.json`に元のreceiptを保持した。wake method、admission flag/callsite、専用試験を除去し、22ce332のnative post-arm動作へ戻した。constant-size clock診断とcaptured-timer停止helperは保持する。物理/水/dt/broadcastを下げる変更はなく、別の未検証timer候補は追加しない。
+
+最初/最後のpongが共通して覆う区間はWorker56.502秒/client56.823秒、721step/tick、30rebase、32,480.058msのI/O-clock debt discard。run末の累積event値は821step entry、6,147message entry、stepで発見した250ms超jumpが4、messageで発見したjumpが34。この区間の増分に限ると721step entry、5,546message entry、step jump 1/message jump 29だった。累積最大advanceは1,778ms。観測jumpが主にmessage entryで現れたことは確認できる。
+
+ただし`recentClockJumps`は2秒間隔のpongが最後のjumpを取り出したsampleで、message subtypeを記録しない。sample到着の約2秒間隔だけから「pingがclockを補正した」と断定しない。最大受信frame gapは505.903msで、最大1,778msのclock advanceを単発の1.778秒CPU/実時間停止とは呼べない。累積CPU時間、待機/queue時間、event-clockの更新遅れの割合は、このtelemetryだけでは分離できない。
+
+[Cloudflareのperformance仕様](https://developers.cloudflare.com/workers/runtime-apis/performance/)では、公開Workerの時計は同期CPU実行中には進まない。[scheduler仕様](https://developers.cloudflare.com/workers/runtime-apis/scheduler/)も同じ制約を説明している。sourceで確認したnative promise/timeoutの順序は、このclockをCPU計測器に変えない。現時点で言える制約は「この計測ではWorker CPU/peak memoryとclock補正を直接分離できず、30Hz未達の原因を特定できていない」こと。Cloudflare上で30Hzが不可能だという結論ではない。追加判断には実WorkerのCPU/メモリ指標や対応するruntime観測が必要で、Nodeの値を代用しない。
+
+rollback後の関連46試験/9ファイル、全typecheck、diff checkに合格。message entry観測だけではtimerをcancelしたりsimulationを進めたりしないこと、captured old timerを停止してもreplacement runを消去/通知しないことも確認した。公開でrollback版をまだ再測定していないため、復旧後のHzは未確定。

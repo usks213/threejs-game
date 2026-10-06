@@ -15,7 +15,7 @@ export class FixedStepClock {
  private readonly schedule:(callback:()=>void,delayMs:number)=>()=>void;
  private readonly interval:number;private readonly maxSteps:number;private readonly maxWork:number;private readonly maxBacklog:number;
  private readonly values:FixedStepStats={steps:0,turns:0,catchUpSteps:0,rebases:0,droppedMs:0,maxDebtMs:0};
- private running=false;private turning=false;private generation=0;private deadline=0;private cancel:(()=>void)|undefined;
+ private running=false;private generation=0;private deadline=0;private cancel:(()=>void)|undefined;
  constructor(private readonly step:()=>void,private readonly options:FixedStepOptions={}){
   this.interval=options.intervalMs??1000/30;this.maxSteps=options.maxCatchUpSteps??3;this.maxWork=options.maxWorkMs??12;this.maxBacklog=options.maxBacklogMs??250;
   if(!Number.isFinite(this.interval)||this.interval<=0||!Number.isSafeInteger(this.maxSteps)||this.maxSteps<1||!Number.isFinite(this.maxWork)||this.maxWork<=0||!Number.isFinite(this.maxBacklog)||this.maxBacklog<this.interval)throw Error('Invalid fixed-step clock limits');
@@ -25,16 +25,6 @@ export class FixedStepClock {
  get stats():FixedStepStats{return {...this.values};}
  start():void{if(this.running)return;this.running=true;this.generation++;this.deadline=this.now()+this.interval;this.arm();}
  stop():void{this.running=false;this.generation++;this.cancel?.();this.cancel=undefined;}
- /** An admitted server-I/O event may service a due single step. Message count
-  * and client time never move the deadline. Early events leave the timer alone. */
- wake():boolean{
-  if(!this.running||this.turning||this.maxSteps!==1||this.now()+1e-7<this.deadline)return false;
-  const generation=++this.generation,cancel=this.cancel;this.cancel=undefined;cancel?.();
-  if(!this.running||generation!==this.generation)return false;
-  // Read the runtime clock again in turn(), after removing any pending timeout
-  // clamp. Preserve the same deadline and existing overload bookkeeping.
-  this.turn(generation);return true;
- }
  private arm():void{
   const generation=this.generation;
   // Event-frozen integer clocks can repeatedly observe a fractional deadline as
@@ -44,14 +34,14 @@ export class FixedStepClock {
   this.cancel=this.schedule(()=>{if(!this.running||generation!==this.generation)return;this.cancel=undefined;this.turn(generation);},delay);
  }
  private turn(generation:number):void{
-  const started=this.now();let steps=0;this.values.turns++;this.turning=true;
+  const started=this.now();let steps=0;this.values.turns++;
   try{
    const debt=Math.max(0,started-this.deadline);this.values.maxDebtMs=Math.max(this.values.maxDebtMs,debt);
    if(debt>this.maxBacklog){this.deadline=started;this.values.rebases++;this.values.droppedMs+=debt;this.options.onOverload?.({debtMs:debt,droppedMs:debt,stats:this.stats});}
    while(this.running&&generation===this.generation&&this.now()+1e-7>=this.deadline&&steps<this.maxSteps&&(steps===0||this.now()-started<this.maxWork)){
     this.deadline+=this.interval;this.step();this.values.steps++;if(steps++)this.values.catchUpSteps++;
    }
-  }catch(error){this.stop();throw error;}finally{this.turning=false;}
+  }catch(error){this.stop();throw error;}
   if(this.running&&generation===this.generation)this.arm();
  }
 }

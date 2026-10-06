@@ -112,3 +112,26 @@ The sequenced 14459fe2 run had 1,803 ms maximum I/O-clock debt but only about
 274 ms maximum received frame gap. Its 19,966 ms discard is recorded logical
 schedule debt, not measured CPU or lost wall time. Pre-arm was rejected; the next
 admitted-I/O wake candidate must be judged from a fresh public measurement.
+
+## 6aa70935 result and interpretation limit
+
+The sequenced wake-candidate run completed four clients without transport errors
+but reached only 12.696 Hz. The candidate was rejected and native post-arm
+behavior restored; bounded clock observations remain. The unmodified receipt is
+`docs/benchmarks/public-worker-load-6aa70935-sequenced.json`.
+
+At the last sample, cumulative observations were 821 step entries and 6,147
+message entries, with four step-observed and 34 message-observed jumps above
+250 ms. Within the comparable pong interval, the increases were 721 step entries,
+5,546 message entries and one/29 jumps respectively. Thus large observed clock
+advances appeared predominantly at message entry. The probe does not identify
+which message subtype caused an observation or establish causality.
+
+The recent-jump list is sampled by two-second pongs, so approximately two-second
+receipt spacing is not independent evidence of a ping-triggered correction.
+The largest recorded clock advance was 1,778 ms, whereas the maximum client
+frame gap was 505.903 ms. Neither the advance nor the 32,480.058 ms discarded
+I/O-clock schedule debt is a CPU duration or a measured wall-time stall.
+Cumulative CPU cost, queuing and event-clock correction remain unresolved without
+corresponding runtime timing metrics. These findings do not establish that 30 Hz
+is impossible on the platform.

@@ -1,5 +1,13 @@
 # 実装台帳
 
+## 現在の公開・検証結果（2026-10-06 01:49 UTC）
+
+公開 `6aa709354a62470be625abfa3e2e1f3d604bcac5` は型・937試験/200ファイル・build・専用SHA/権威health、Android、公開/ローカル実2browser各6/6に成功。今回の復帰検査はBの全所持品、B/Cの完全な地形履歴、同じtickの共有parts全内容、通常UIの箱選択まで確認しました。画像とJSONも確認済みです。[公開照合結果](../benchmarks/public-browser-6aa70935.json)。
+
+ただし4人測定は12.70Hzで30Hz未達。受理I/Oでdeadlineを処理する候補は採用せず、native post-armへ戻します。時計の大きなadvanceは主にmessage entryで観測しましたが、2秒ごとのpong標本だけでpingが原因とは言えず、CPU時間・queue・時計補正の内訳も未確定です。性能失敗をCIの収集成功で隠しません。
+
+ローカル次候補は935試験/200ファイル・型・build成功。拒否したwake経路と専用試験を除去し、時計観測と安全なtimer後始末は保持しました。1行の既存建築model cache早期returnは45種の全geometry/identityと完全保存hashを維持し、狭いlookupの改善だけを確認。部屋全体の高速化とはしません。iPhone 13 profileのWebKit engine smokeを1件追加し、実WebGL2/描画/回転/touch/menu/設定保存を次のCIで検査します。まだWebKitの実行成功、実端末FPS、Worker128MiB適合、全54最終受入とは称しません。
+
 ## 現在の公開・検証結果（2026-10-06 01:18 UTC）
 
 公開 `14459fe2594b883a1f26956ec71eec6e7cdb1093` は型・923試験/197ファイル・build、専用SHA/権威health照合、Android選択に合格。公開2browserは4合格/1失敗/1未実行で、実際の崩落破片に加え落ちた石が別の視線も遮り、床の照準検査が止まりました。直前2aの6/6成功はその版の証拠として保持します。現在、普通の視点操作で複数の方角を確認し、初回/再参加のどちらも新しい実際の床hitだけを採用する試験に修正中です。再接続Bの全所持品・B/Cの完全な編集履歴・同じ権威tickの全共有部品・通常UIを照合する追加受入も未実行です。

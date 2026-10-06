@@ -77,11 +77,55 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - run: npm run e2e -- --project=desktop-chromium --project=android-chromium
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: browser-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  iphone-webkit-smoke:
+    # One selected engine smoke, not a full browser matrix or physical iPhone test.
+    # Reuse the exact verified build and never make preview publication wait for it.
+    if: needs.verify.outputs.game == 'true'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps webkit
+      - name: Serve the verified build and run the bounded WebKit smoke
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort > /tmp/webkit-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true; cat /tmp/webkit-preview.log' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/ > /dev/null
+          npm run e2e -- --project=iphone-webkit --workers=1 --retries=0 --global-timeout=240000
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4173
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-webkit-smoke
           path: |
             playwright-report/
             test-results/

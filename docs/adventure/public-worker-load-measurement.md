@@ -67,3 +67,9 @@ load-onlyでも10rebase/9,977.106msのdiscardが残る。公開はCPU時間/peak
 browser QAの後に実行するCI条件で、4接続60.017秒、通信失敗0、最小19.994Hz。`public-worker-load-14459fe2-sequenced.json`に元の結果を保持した。pre-armの採用根拠にはならず、runtime optionと専用試験を取り除いた。他の利用者/別roomまで無負荷だったと保証する検査ではない。
 
 20rebase/19,966.096msのI/O-clock discardと、1.803秒の最大debtを観測。一方client最大frame gapは約274ms。これらをCPU停止時間や実時間の欠落と同一視しない。次は従来のnative post-armを保持し、admitted server-I/Oによるdue-step候補とbounded clock-entry診断を検証する。30Hz未達は引き続き未解決。
+
+## 6aa70935: I/O wake棄却と計測限界
+
+順序付けたload-onlyは4接続60.019秒、通信失敗0、最小12.696Hzで不合格。元receiptは`public-worker-load-6aa70935-sequenced.json`。wake候補を除去してnative post-armへ戻し、clock-entry診断と過去の失敗記録は保持した。
+
+観測jumpは主にmessage entryで記録されたが、2秒pongで最後のjumpをsampleするため、到着間隔だけではpingの因果性を示さない。最大clock advance1,778msとclient最大frame gap505.903msを区別する。CPU/待機/clock補正の内訳は未取得で、32,480.058msのdiscardをCPU時間や実時間停止へ読み替えない。30Hzは未解決であり、platform上で不可能とも断定しない。

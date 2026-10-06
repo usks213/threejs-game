@@ -212,3 +212,10 @@ browser試験は最初の視点で実際に低い掘削面が見えた場合、�
 成功時も失敗時も `terrain-collision-view-search.json` と `terrain-reentry-view-search.json` に、試した各視点の要求角度・実角度・時刻・描画回数・terrain ray・reticleTarget・interaction ID/表示名・新鮮な観測か・採用したかを残す。候補に届かない場合も、その要求と最後に観測できた状態を残す。
 
 型検査と関連21単体試験、6browserケースのdiscoveryに合格。有限の視点探索を加えた実ブラウザの合格は次のCI待ちであり、過去2aの公開合格を新しいソースへ移し替えない。
+
+
+## 公開6aa70935で強化した復帰受入の実行結果
+
+[CI37399174801](https://github.com/usks213/threejs-game/actions/runs/37399174801) の公開/ローカル実2browserは各6/6、再試行0で成功。Bの全所持品と通常bag表示、B/Cの完全な編集履歴、同じ権威tickの全共有parts、既存箱のUI選択、地形の視線探索/再参加後の接地と新しい床hitを実行済み。公開artifact11385250050のJSONと画像を確認し、[識別子を省いた照合結果](../benchmarks/public-browser-6aa70935.json)を保存した。通常bagの4品/個数を画像でも確認した。共有箱のスクリーンショットは上側のpanelを写していたため、次の試験では選択欄を通常scrollで画面内へ表示する。6aaのUI選択/内容assertionは実際に合格したが、その画像だけで選択欄の見た目を証明しない。
+
+NET-A05/06の旧「edit数だけ」という不足はこの実行で閉じた。NET-A07の実プロセス停止/復帰は別の固定ソース長時間証拠として引き続き区別する。最新公開版の4人30Hz、Worker最大メモリ、実Android/iPhone、全内容の実機視認/操作はこれらの成功とは別の未完了項目である。
