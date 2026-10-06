@@ -1,4 +1,5 @@
-import type { Vec3 } from '../world/types';
+// Frozen pre-AABB oracle from 2e3e6e62; compare exact values and insertion order.
+import type { Vec3 } from '../../src/world/types';
 export interface WaterObstacle extends Vec3 { hx:number; hy:number; hz:number; rotation?:number; q?:{x:number;y:number;z:number;w:number} }
 export function obstacleContains(b:WaterObstacle,x:number,y:number,z:number):boolean{
  if(b.q){const m=rotationMatrix(b),dx=x-b.x,dy=y-b.y,dz=z-b.z;return Math.abs(m[0]*dx+m[3]*dy+m[6]*dz)<b.hx&&Math.abs(m[1]*dx+m[4]*dy+m[7]*dz)<b.hy&&Math.abs(m[2]*dx+m[5]*dy+m[8]*dz)<b.hz;}
@@ -24,16 +25,9 @@ export function voxelizeObstacles(obstacles:readonly WaterObstacle[],size=1){
  for(const b of obstacles){
   if(b.q){voxelizeQuaternion(b,size,occupied,barriers,hullSamples);continue;}
   const r=Math.hypot(b.hx,b.hz),c=Math.cos(b.rotation??0),s=Math.sin(b.rotation??0),cs=c*size,ss=s*size;
-  // Binary production grids preserve repeated-addition coordinates when a loop
-  // starts later within a conservative safe-index domain. Other sizes or
-  // large coordinates keep their original scan and key order.
-  const coordinateLimit=Number.MAX_SAFE_INTEGER*size/4;
-  const tight=(size===.5||size===1)&&[b.x,b.y,b.z,b.hx,b.hy,b.hz,b.rotation??0].every(Number.isFinite)&&b.hx>0&&b.hy>0&&b.hz>0&&Math.abs(b.x)+r+size<coordinateLimit&&Math.abs(b.z)+r+size<coordinateLimit;
-  const padding=8*Number.EPSILON*(Math.abs(b.x)+Math.abs(b.z)+r+size);
-  const rx=tight?Math.min(r,Math.abs(c)*b.hx+Math.abs(s)*b.hz+padding):r,rz=tight?Math.min(r,Math.abs(s)*b.hx+Math.abs(c)*b.hz+padding):r;
   // Include the cell just outside each lower face: positive edges can enter a solid from there.
-  const minX=Math.floor((b.x-rx)/size)*size-size,minZ=Math.floor((b.z-rz)/size)*size-size,minY=Math.floor((b.y-b.hy)/size)*size-size;
-  for(let x=minX;x<=b.x+rx;x+=size)for(let z=minZ;z<=b.z+rz;z+=size){
+  const minX=Math.floor((b.x-r)/size)*size-size,minZ=Math.floor((b.z-r)/size)*size-size,minY=Math.floor((b.y-b.hy)/size)*size-size;
+  for(let x=minX;x<=b.x+r;x+=size)for(let z=minZ;z<=b.z+r;z+=size){
    // Occupancy's four horizontal samples are identical at every height in this column.
    let horizontal=0;
    for(let ix=0;ix<2;ix++)for(let iz=0;iz<2;iz++){
