@@ -5,6 +5,11 @@ export function catalogOrder<T extends CatalogRow>(rows:readonly T[],query:strin
  const words=catalogQuery(query),result=rows.filter(row=>{const text=row.text.normalize('NFKC').toLocaleLowerCase('ja');return words.every(w=>text.includes(w));});
  return result.sort((a,b)=>order==='original'?a.index-b.index:order==='available'&&a.available!==b.available?Number(b.available)-Number(a.available):a.label.localeCompare(b.label,'ja')||a.index-b.index);
 }
+/** Keep live catalog refreshes from detaching the button under an active finger. */
+export function placeCatalogRows(group:HTMLElement,rows:readonly HTMLElement[]):void{
+ let anchor=group.firstElementChild;
+ for(const row of rows){if(row!==anchor)group.insertBefore(row,anchor);anchor=row.nextElementSibling;}
+}
 /** Search UI is outside the replaced panel content, so live snapshots preserve it.
  * Inventory slots and map geometry are never reordered. */
 export function catalogTools(panel:HTMLElement,content:HTMLElement,signal:AbortSignal){
@@ -17,7 +22,7 @@ export function catalogTools(panel:HTMLElement,content:HTMLElement,signal:AbortS
   for(const group of content.querySelectorAll<HTMLElement>('.recipe-grid,.region-cards,[data-catalog-group]')){
    const cards=[...group.children].filter((el):el is HTMLElement=>el instanceof HTMLElement&&(el.matches('.recipe-card,[data-catalog-row]')));
    const rows=cards.map((el,index)=>{if(!orders.has(el))orders.set(el,index);return {el,index:orders.get(el)!,label:el.dataset.catalogName??el.querySelector('strong,h3,h2')?.textContent??el.textContent??'',text:el.textContent??'',available:!!el.querySelector('button:not([disabled])')};});
-   const sorted=catalogOrder(rows,input.value,select.value as CatalogOrder),visible=new Set(sorted.map(r=>r.el));for(const row of rows)row.el.hidden=!visible.has(row.el);for(const row of sorted)group.append(row.el);shown+=sorted.length;total+=rows.length;
+   const sorted=catalogOrder(rows,input.value,select.value as CatalogOrder),visible=new Set(sorted.map(r=>r.el));for(const row of rows){const hidden=!visible.has(row.el);if(row.el.hidden!==hidden)row.el.hidden=hidden;}placeCatalogRows(group,sorted.map(row=>row.el));shown+=sorted.length;total+=rows.length;
   }
   const text=total?`${shown} / ${total}件。所持枠の配置や地図の位置は変わりません。`:'この欄には検索対象の一覧がありません。';if(status.textContent!==text)status.textContent=text;
  };

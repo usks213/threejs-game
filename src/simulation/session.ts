@@ -21,7 +21,7 @@ import type { ClientMessage, PlayerInput, PlayerState } from './protocol';
 import { finiteVec } from '../world/types';
 export const INPUT_TIMEOUT_TICKS = 15;
 export const MAX_RECORDED_MEMBERS = 256;
-const gameActions = new Set<GameAction>([...PROGRESSION_ACTIONS,'race','map-pin-share','map-pin-remove', ...SITE_ACTIONS, ...COMPANION_ACTIONS, ...SKY_ACTIONS, 'building-share', 'terrain-undo', 'talk', 'dialogue', 'trial', 'trial-reset', 'revive', 'return', 'glide', 'climb','gather','attack','heavy','charge-start','charge-release','charge-cancel','guard','dodge','craft','build','remove','spell','summon','eat','equip','travel','rest','chest','portal','repair','upgrade','cook','fuel','interact','feed','power','offer','drop','plant','sneak','sprint','fish','trade','repairBuilding','split','move','pin','unpin','label','store','take','landscape','sell']);
+const gameActions = new Set<GameAction>([...PROGRESSION_ACTIONS,'race','map-pin-share','map-pin-remove', ...SITE_ACTIONS, ...COMPANION_ACTIONS, ...SKY_ACTIONS, 'building-share', 'terrain-undo', 'talk', 'dialogue', 'trial', 'trial-reset', 'revive', 'return', 'debug-flight', 'glide', 'climb','gather','attack','heavy','charge-start','charge-release','charge-cancel','guard','dodge','craft','build','remove','spell','summon','eat','equip','travel','rest','chest','portal','repair','upgrade','cook','fuel','interact','feed','power','offer','drop','plant','sneak','sprint','fish','trade','repairBuilding','split','move','pin','unpin','label','store','take','landscape','sell']);
 function shareField<T extends object, K extends keyof T>(state: T, shared: T, key: K): void {
  Object.defineProperty(state, key, { enumerable: true, configurable: true,
   get: () => shared[key], set: (value: T[K]) => { shared[key] = value; } });
@@ -35,7 +35,7 @@ export class SessionAuthority {
  private readonly revives = new ReviveCoordinator();
  private readonly dormant = new Map<string, { player: PlayerState; adventure: AdventureSave }>();
  readonly actors = new Map<string, SessionActor>();
- constructor(save?: WorldSave | null, readonly dedicated = false) { this.sim = new GameSimulation(save); this.sim.sessionSpawns=()=>[...this.actors.values()].flatMap(a=>a.adventure.state.spawn?[a.adventure.state.spawn]:[]).concat([...this.dormant.values()].flatMap(a=>a.adventure.spawn?[a.adventure.spawn]:[])); this.actors.set('host', { id: 'host', player: this.sim.player, adventure: this.sim.adventure, input: { ...idle }, motor: new CharacterMotor(this.sim.world), sequence: 0, lastAction: -100, lastInputTick: this.sim.tick }); for (const member of save?.members ?? []) this.dormant.set(member.id, { player: { ...member.player, heading: 0, vy: 0, grounded: false,crouching:this.sim.world.generator===4&&(member.player.crouching===true||!!member.adventure.meadows?.sneaking) }, adventure: Adventure.personalSave(member.adventure) }); this.syncTargets(); }
+ constructor(save?: WorldSave | null, readonly dedicated = false) { this.sim = new GameSimulation(save); this.sim.debugFlightAllowed=!dedicated; this.sim.sessionSpawns=()=>[...this.actors.values()].flatMap(a=>a.adventure.state.spawn?[a.adventure.state.spawn]:[]).concat([...this.dormant.values()].flatMap(a=>a.adventure.spawn?[a.adventure.spawn]:[])); this.actors.set('host', { id: 'host', player: this.sim.player, adventure: this.sim.adventure, input: { ...idle }, motor: new CharacterMotor(this.sim.world), sequence: 0, lastAction: -100, lastInputTick: this.sim.tick }); for (const member of save?.members ?? []) this.dormant.set(member.id, { player: { ...member.player, heading: 0, vy: 0, grounded: false,crouching:this.sim.world.generator===4&&(member.player.crouching===true||!!member.adventure.meadows?.sneaking) }, adventure: Adventure.personalSave(member.adventure) }); this.syncTargets(); }
  hasRecordedPlayer(id:string):boolean{return this.actors.has(id)||this.dormant.has(id);}
  canRecordPlayer(id:string):boolean{return this.hasRecordedPlayer(id)||this.dormant.size+this.actors.size-1<MAX_RECORDED_MEMBERS;}
  join(id: string): SessionActor {
@@ -44,6 +44,7 @@ export class SessionAuthority {
   if (this.actors.size >= (this.dedicated ? 9 : 8)) throw new Error('セッションは8人までです');
   const stored = this.dormant.get(id);
   if(!stored && this.dormant.size+this.actors.size-1>=MAX_RECORDED_MEMBERS)throw new Error('この部屋の参加記録は256人までです。既存の参加者は再接続できます');
+  if(this.sim.adventure.traversal.debug.active)this.sim.adventure.traversal.debug.action('off');this.sim.debugFlightAllowed=false;
   const saved = this.sim.adventure.save(false);
   const personal: AdventureSave = stored?.adventure ?? { ...saved, inventory: this.sim.world.generator===4?{ragTunic:1,club:1,glider:1,berry:6}:saved.meadows?{ragTunic:1}:{berry:3}, equipment: 'hands', ...(saved.meadows?{meadows:newMeadows()}:{}), health: saved.meadows?25:100, stamina: saved.meadows?50:100, mana: 70, food: 0, rested: 0, spawn: null, death: null, grave: {},gearItems:undefined,graveGear:undefined,gearFlights:undefined, poison: 0, chill: 0, downed: undefined, trialJournal: [], siteJournal: [],race:undefined,progression:undefined };
   const p = this.sim.player;
@@ -66,8 +67,8 @@ export class SessionAuthority {
  }
  private syncTargets(): void { this.sim.targets = [...this.actors.values()].filter(a => !this.dedicated || a.id !== 'host').map(a => ({ player: a.player, adventure: a.adventure })); }
  input(id: string, input: PlayerInput, sequence: number): void {
-  const actor = this.actors.get(id); if (!actor || !Number.isSafeInteger(sequence) || sequence <= actor.sequence || !input || !Number.isFinite(input.x) || !Number.isFinite(input.z) || Math.abs(input.x) > 1 || Math.abs(input.z) > 1 || typeof input.jump !== 'boolean') return;
-  actor.sequence = sequence; actor.lastInputTick = this.sim.tick; actor.input = { x:input.x, z:input.z, jump: actor.input.jump || input.jump };
+  const actor = this.actors.get(id); if (!actor || !Number.isSafeInteger(sequence) || sequence <= actor.sequence || !input || !Number.isFinite(input.x) || !Number.isFinite(input.z) || Math.abs(input.x) > 1 || Math.abs(input.z) > 1 || typeof input.jump !== 'boolean'||input.debugVertical!==undefined&&(!Number.isFinite(input.debugVertical)||Math.abs(input.debugVertical)>1||input.debugVertical!==0&&(!this.sim.debugFlightAllowed||id!=='host'))) return;
+  actor.sequence = sequence; actor.lastInputTick = this.sim.tick; actor.input = { ...(input.debugVertical!==undefined?{debugVertical:input.debugVertical}:{}), x:input.x, z:input.z, jump: actor.input.jump || input.jump };
  }
  private withActor<T>(actor: SessionActor, callback: () => T): T {
   if (actor.id === 'host') return callback();
@@ -93,10 +94,11 @@ export class SessionAuthority {
   if(expected.expectedEpoch!==undefined){const partId=message.type==='game-action'?Number(message.id?.split(':')[0]):NaN;const part=this.sim.skybound.state.parts.find(p=>p.id===partId);if(!part||!Number.isSafeInteger(expected.expectedEpoch)||part.epoch!==expected.expectedEpoch)throw new Error('構造物が更新されています。同期してから再試行してください');}
   const vector=(p:{x:number;y:number;z:number})=>({x:p.x,y:p.y,z:p.z});
   message=message.type==='action'?{type:'action',tool:message.tool,target:vector(message.target)}:{type:'game-action',action:message.action,id:message.id,target:message.target?vector(message.target):undefined,aim:vector(message.aim)};
+  if(message.type==='game-action'&&message.action==='debug-flight'&&(!this.sim.debugFlightAllowed||id!=='host'))throw Error('デバッグ飛行はひとりプレイ専用です。協力プレイでは使えません');
   this.guardProtected(actor,message);
   if(message.type==='game-action'&&message.action==='revive'&&!message.id){this.revives.cancelHelper(id,this.actors);return {dirty:[],message:'救助を中断しました'};}
   const waterAction = message.type === 'action' && message.tool === 'water';
-  const releaseAction = message.type === 'game-action' && (['charge-release','charge-cancel'].includes(message.action)||message.action==='sky-release'||message.action==='companion-lead'&&(!message.id?.split(':')[1]||message.id.endsWith(':off'))||message.action==='companion-ride'&&this.sim.companions.snapshot(id).riding===Number(message.id)||message.id === 'off' && ['guard','sprint','glide','climb'].includes(message.action));
+  const releaseAction = message.type === 'game-action' && (['charge-release','charge-cancel'].includes(message.action)||message.action==='sky-release'||message.action==='companion-lead'&&(!message.id?.split(':')[1]||message.id.endsWith(':off'))||message.action==='companion-ride'&&this.sim.companions.snapshot(id).riding===Number(message.id)||message.id === 'off' && ['guard','sprint','glide','climb','debug-flight'].includes(message.action));
   if (!waterAction && !releaseAction && this.sim.tick - actor.lastAction < 4) throw new Error('操作の間隔を空けてください');
   if (!waterAction && !releaseAction) actor.lastAction = this.sim.tick;
   if(message.type==='game-action'&&message.action==='revive'){this.revives.start(id,message.id??'',this.actors,this.sim);return {dirty:[],message:'救助中です。3秒間、近くで操作を続けてください'};}

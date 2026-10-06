@@ -23,9 +23,11 @@ const terrain = new TerrainScheduler();let uploads = new TerrainUploadWindow(4);
 const triangles = new Map<string, number>(), editedMeshes = new Map<string, MeshData>();
 let mesher: Worker | null = null, sentEditCount = 0;
 let direct=false,inputSequence=0,lastAction='',lastError:string|null=null,combatSaveAt=0;
-const transientActions=new Set(['guard','dodge','sprint','sneak','glide','climb']);
+const transientActions=new Set(['guard','dodge','sprint','sneak','glide','climb','debug-flight']);
 let center = '', initialized = false, paused = false;
 let previous = performance.now(), accumulator = 0, meshMs = 0, editMs = 0, editStart = 0;
+// A temporarily unsafe debug landing can defer a save, never stop simulation.
+function publishSave():void{try{emit({type:'save',save:authority!.save()});}catch(error){emit({type:'notice',message:error instanceof Error?error.message:String(error)});}}
 function sendTerrain(message: TerrainRequest): void { mesher?.postMessage(message); }
 function initializeTerrain(): void {
   // Reinitialization also cancels a synchronous in-flight job in the old world.
@@ -111,7 +113,7 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
   const message = event.data;
   try {
     if (message.type === 'init' || message.type === 'replica-init') {
-      combatSaveAt=0;replicaRequest=0;replicaFrames=0;reconcileMs=0;direct=!!message.direct;uploads=new TerrainUploadWindow(direct?12:4);authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
+      combatSaveAt=0;replicaRequest=0;replicaFrames=0;reconcileMs=0;direct=!!message.direct;uploads=new TerrainUploadWindow(direct?12:4);authority = new SessionAuthority(message.save); sim = authority.sim; replica = message.type === 'replica-init'; if(replica)sim.debugFlightAllowed=false; prediction = replica ? new Prediction(sim) : null; replicaState = null; peerEdits.clear(); initializeTerrain(); accumulator = 0; previous = performance.now(); input = { x: 0, z: 0, jump: false }; stream();
     } else if (message.type === 'peer-join' && authority && !replica) { authority.join(message.peer); peerEdits.set(message.peer, sim!.world.edits.length); emit({ type: 'peer-welcome', peer: message.peer, save: sim!.save(), state: sessionFrame(authority, message.peer) }); }
     else if (message.type === 'peer-leave' && authority) { authority.leave(message.peer); peerEdits.delete(message.peer); }
     else if (message.type === 'peer-input' && authority && !replica) authority.input(message.peer, message.input, message.sequence);
@@ -138,13 +140,13 @@ scope.onmessage = (event: MessageEvent<ClientMessage>) => {
     else if (message.type === 'pause') { paused = message.paused; terrain.paused = paused; input = { x: 0, z: 0, jump: false }; previous = performance.now(); accumulator = 0; if (!paused) scheduleMesh(); }
     else if (message.type === 'mesh-ack') { uploads.acknowledge(message.epoch, message.count); scheduleMesh(); }
     else if (sim && message.type === 'reset-player') sim.resetPlayer();
-    else if (sim && message.type === 'save' && !replica) emit({ type: 'save', save: authority!.save() });
+    else if (sim && message.type === 'save' && !replica) publishSave();
     else if (sim && (message.type === 'action' || message.type === 'game-action')) {
       lastAction=message.type==='action'?message.tool:message.action;const result = sim.world.generator===4?authority!.action('host',message):message.type === 'action' ? sim.act(message.tool, message.target) : message.action==='revive'?authority!.action('host',message):sim.adventure.action(message.action, message.id, message.target, message.aim);
       invalidateTerrain(result.dirty); scheduleMesh();
       emit({ type: 'notice', message: result.message });
       if(message.type==='game-action'&&(message.action==='attack'||message.action==='heavy'))combatSaveAt=performance.now()+1000;
-      else if(message.type==='action'?message.tool!=='water':!transientActions.has(message.action))emit({type:'save',save:authority!.save()});
+      else if(message.type==='action'?message.tool!=='water':!transientActions.has(message.action))publishSave();
     }
   } catch (error) {if(message.type==='replica-update'){lastError=String(error);emit({type:'replica-rejected',requestId:message.requestId,epoch:terrain.epoch,message:lastError});return;} emit({ type: message.type === 'init' || message.type === 'replica-init' ? 'error' : 'notice', message: error instanceof Error ? error.message : String(error) }); }
 };
@@ -158,7 +160,7 @@ setInterval(() => {
     if (sim.pendingEdits.size) { invalidateTerrain(sim.pendingEdits); sim.pendingEdits.clear(); scheduleMesh(); }
     stream();
     // Persist resolved combat after a quiet moment, not before contact or on every guard update.
-    if(combatSaveAt&&now>=combatSaveAt&&sim.adventure.attack<=0){combatSaveAt=0;emit({type:'save',save:authority!.save()});}
+    if(combatSaveAt&&now>=combatSaveAt&&sim.adventure.attack<=0){combatSaveAt=0;publishSave();}
     // UI persistence owns the five-second autosave cadence; avoid a second full copy here.
     if (sim.tick % 3 === 0 && authority!.actors.size > 1) for (const peer of authority!.actors.keys()) if (peer !== 'host') {
       const base = peerEdits.get(peer) ?? 0;

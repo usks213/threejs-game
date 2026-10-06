@@ -1,3 +1,4 @@
+import {debugFlightUI} from '../ui/debug-flight';
 import {chargeInput} from '../input/charge';
 import {soundCaptionUI} from '../ui/sound-captions';
 import {ReplicaBridge} from './replica-bridge';
@@ -98,13 +99,14 @@ export function startGame() {
   let contextual:InteractionTarget|null=null;
   let guardHeld = false, lastGuardAim = 0, lastRayYaw = NaN, lastRayPitch = NaN;
   const interactButton=document.querySelector<HTMLButtonElement>('#interact')!;
+  let debugVertical=0;
   let state: Snapshot | null = null, tool: Tool = 'dig', jump = false, target: Vec3 | null = null, lastInput = 0, lastRay = 0, lastUI = 0;
   // A removed surface remains a valid fill location while the player aims at the hole.
   const editedPoint = new THREE.Vector3(); let hasEditedPoint = false;
   const names: Record<Tool, string> = { dig: '掘る', add: '盛る', water: '水を流す', rock: '岩を落とす' };
   const acceptSnapshot=(next:Snapshot,motionOnly=false)=>{diagnostics.snapshot();state=next;if(!motionOnly)dirtyWorld=true;if(first){world.player.position.set(next.player.x,next.player.y,next.player.z);first=false;}};
   const replicaBridge=new ReplicaBridge(message=>worker?.postMessage(message),acceptSnapshot);
-  const post = (message: ClientMessage) => { if(message.type==='replica-state'){replicaBridge.offer(message.state,message.edits);return;} if(message.type==='init'||message.type==='replica-init'){replicaBridge.reset();loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
+  const post = (message: ClientMessage) => { if(message.type==='replica-state'){replicaBridge.offer(message.state,message.edits);return;} if(message.type==='init'||message.type==='replica-init'){replicaBridge.reset();loadingStarted=performance.now();receivedMeshes=0;submittedMeshes=0;uploadMs=0;nearReadyMs=-1;draws=0;app.dataset.state='loading';status.textContent='ワールドを準備中…';awaitTerrainReset=true;readyPending=false;terrainQueue.clear();world.resetWater();delete app.dataset.tick;state=null;debugVertical=0;first=true;hasEditedPoint=false;target=null;contextual=null;guardHeld=false;} if (!stopped) worker?.postMessage(message.type==='init'||message.type==='replica-init'?{...message,direct}:message); };
   const photo=document.createElement('button');photo.id='photo';const photoLabel=()=>{photo.textContent='風景をPNGで保存'+(preferences.hint('KeyP')?' ['+preferences.hint('KeyP')+']':'');};photoLabel();document.querySelector('#system-menu')!.addEventListener('click',photoLabel,{signal});document.querySelector('#accessibility-settings')!.addEventListener('keyup',photoLabel,{signal});document.querySelector('#system-panel')!.append(photo);photo.addEventListener('click',()=>{if(app.dataset.state!=='running'){notice('ワールドの準備ができてから写真を撮ってください');return;}photoNext=true;document.querySelectorAll<HTMLElement>('[role=dialog]').forEach(p=>p.hidden=true);},{signal});signal.addEventListener('abort',()=>photo.remove(),{once:true});
   const network = networkUI(signal, post, notice,{savedRevision:revision=>persistence.sharedRevision(revision),loadPersonal:()=>persistence.load(),exported:save=>persistence.exportSave(save),continueReplica:(state,edits)=>replicaBridge.continue(state,edits)});
   const send = (message: ClientMessage) => { if(message.type==='input')diagnostics.input(message.input);if (!network.forward(message)) post(message); };
@@ -115,7 +117,7 @@ export function startGame() {
     readKeyboard(input);if(touch.x||touch.z){input.x=touch.x;input.z=touch.z;}
     if(forceIdle||document.hidden||app.dataset.state!=='running'||document.querySelector('[role=dialog]:not([hidden])')){input.x=0;input.z=0;jump=false;}
     const sin=Math.sin(view.yaw),cos=Math.cos(view.yaw);
-    send({type:'input',input:{x:input.x*cos+input.z*sin,z:input.z*cos-input.x*sin,jump}});jump=false;lastInput=performance.now();
+    send({type:'input',input:{x:input.x*cos+input.z*sin,z:input.z*cos-input.x*sin,jump,...(!network.guest&&state?.adventure.traversal?.debugFlying?{debugVertical:forceIdle||document.hidden||document.querySelector('[role=dialog]:not([hidden])')?0:debugVertical}:{})}});jump=false;lastInput=performance.now();
   };
   const inputHeartbeat=setInterval(()=>sendMotion(),100);signal.addEventListener('abort',()=>clearInterval(inputHeartbeat),{once:true});
   const persistence = persistenceUI(send, signal, notice,{active:()=>network.guest,exportWorld:()=>network.exportWorld()});
@@ -148,6 +150,7 @@ export function startGame() {
     send({type:'game-action',action,id,target:action==='build'?placement??undefined:(action==='repairBuilding'||action==='remove')&&contextual?.id==='b:'+id?contextual.point:target??undefined,aim});
   };
   const powers=powersUI(signal,(action,id,point,rotation)=>{sampleReticle();const guarded=['sky-store','sky-take','sky-camp','sky-move','sky-glue','sky-unglue','sky-recall','sky-salvage','sky-toggle','sky-charge','sky-ride','sky-share','sky-upright','sky-throw'].includes(action);const expectedEpoch=guarded?state?.adventure.skybound?.parts.find(p=>p.id===Number(id?.split(':')[0]))?.epoch:undefined;send({type:'game-action',expectedEpoch,action,id,target:point??target??undefined,aim:rotation===undefined?{...reticleAim}:{x:Math.sin(rotation),y:0,z:Math.cos(rotation)}});});
+  const flight=debugFlightUI(signal,id=>gameAction('debug-flight',id),axis=>{debugVertical=axis;sendMotion();},code=>preferences.boundCode(code),preferences.hint);
   const rescue=rescueUI(signal,()=>gameAction('site-rescue','850002'));
   const companions=companionsUI(signal,(kind,id)=>gameAction(kind,id),()=>powers.selectedPart);
   const glide=document.createElement('button');glide.id='traverse-glide';glide.className='hud-button';glide.textContent='翼';glide.setAttribute('aria-label','翼を開閉');app.append(glide);actionInput(glide,()=>gameAction('glide'),signal);signal.addEventListener('abort',()=>glide.remove(),{once:true});
@@ -169,7 +172,7 @@ export function startGame() {
   holdAction(document.querySelector<HTMLButtonElement>('#water-cast')!, pour, () => true, signal);
   const act = () => { if (!building && tool === 'water') pour(); else if (target && building) gameAction('build', building); else if (target) { if(tool==='dig'||tool==='add'){editedPoint.set(target.x,target.y,target.z);hasEditedPoint=true;} send({ type: 'action', tool, target,expectedRevision:state?.edits }); } else notice('近くの地面に照準を合わせてください'); };
   holdAction(use, act, () => !building && tool === 'water', signal);
-  actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { if(state&&!state.player.grounded&&state.adventure.inventory.glider)gameAction('glide');else {jump=true;sendMotion();} }, signal);
+  actionInput(document.querySelector<HTMLButtonElement>('#jump')!, () => { if(state?.adventure.traversal?.debugFlying)return;if(state&&!state.player.grounded&&state.adventure.inventory.glider)gameAction('glide');else {jump=true;sendMotion();} }, signal);
   document.querySelector('#view-reset')!.addEventListener('click', () => { view.yaw = 0; view.pitch = DEFAULT_CAMERA_PITCH; }, { signal });
   const interact=()=>{contextual=sampleReticle().interaction;if(!contextual){if(state?.adventure.meadows?.fishing||state?.adventure.equipment==='fishingRod')gameAction('fish');else if(state?.adventure.meadows?.riding)gameAction('interact');return;}const t=contextual;if(state?.adventure.generator===4&&t.id.startsWith('r:')){const id=Number(t.id.slice(2));if(SITES.some(s=>s.npc===id)){gameAction('site-talk',String(id));return;}if(GUIDES.some(g=>g.id===id)){gameAction('talk',String(id));return;}if(TRIALS.some(g=>g.id===id)){adventure.open('world');return;}}if(t.id==='fishing'){gameAction('fish');return;}if(t.id==='dismount'){gameAction('interact');return;}if(state?.adventure.equipment==='hammer'&&t.id.startsWith('b:')&&!t.panel){gameAction('repairBuilding',t.id.slice(2));return;}if(t.panel){adventure.openContext(t.panel,t.id);mouse.unlock();}send({type:'game-action',action:'interact',id:t.id,target:t.point,aim:{...reticleAim}});};
   actionInput(interactButton,interact,signal);actionInput(document.querySelector<HTMLButtonElement>('#dismantle')!,()=>{if(contextual?.id.startsWith('b:'))gameAction('remove',contextual.id.slice(2));},signal);
@@ -177,7 +180,7 @@ export function startGame() {
   document.querySelector('#hotbar')!.addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLElement>('[data-quick]');if(b)quick(Number(b.dataset.quick));},{signal});
   const mouse=mouseActions(canvas,signal,()=>building||app.dataset.sandbox==='true'?act():gameAction('attack'),held=>{if(building||app.dataset.sandbox==='true'){if(held)document.querySelector<HTMLButtonElement>('#build-cancel')!.click();}else gameAction('guard',held?'on':'off');});
   const sprint=(held:boolean)=>{if(state?.adventure.meadows)gameAction('sprint',held?'on':'off');};
-  const releaseActions=()=>{gameAction('charge-cancel');jump=false;readKeyboard.clear();sendMotion(true);gameAction('guard','off');sprint(false);};
+  const releaseActions=()=>{flight.release();gameAction('charge-cancel');jump=false;readKeyboard.clear();sendMotion(true);gameAction('guard','off');sprint(false);};
   window.addEventListener('blur',releaseActions,{signal});window.addEventListener('resize',releaseActions,{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseActions();},{signal});
   window.addEventListener('keydown',e=>{
     if((e.target as HTMLElement)?.closest?.('input,textarea,select,[contenteditable=true]'))return;
@@ -288,7 +291,7 @@ export function startGame() {
       } } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
       if (state && now - lastUI > 200) {
-        const p = state.player, m = state.metrics; if(state.adventure.meadows){document.querySelector('#cast')!.innerHTML=itemIcon(state.adventure.meadows.fishing?'fishingRod':'hammer')+'<span>'+ (state.adventure.meadows.fishing?.phase==='bite'?'合わせる':state.adventure.meadows.fishing?.phase==='fight'?(state.adventure.meadows.fishing.reeling?'緩める':'巻く'):'使う')+'</span>';} adventure.update(state.adventure, p,view.yaw);powers.update(state,target,reticleAim);companions.update(state);rescue.update(state.adventure,state.player);coop.update(state);dialogue.update(state.adventure);app.dataset.skybound=JSON.stringify(state.adventure.skybound);app.dataset.traversal=JSON.stringify(state.adventure.traversal);glide.hidden=state.adventure.generator!==4;glide.setAttribute('aria-pressed',String(!!state.adventure.traversal?.gliding));
+        const p = state.player, m = state.metrics; if(state.adventure.meadows){document.querySelector('#cast')!.innerHTML=itemIcon(state.adventure.meadows.fishing?'fishingRod':'hammer')+'<span>'+ (state.adventure.meadows.fishing?.phase==='bite'?'合わせる':state.adventure.meadows.fishing?.phase==='fight'?(state.adventure.meadows.fishing.reeling?'緩める':'巻く'):'使う')+'</span>';} adventure.update(state.adventure, p,view.yaw);flight.update(state,network.guest);powers.update(state,target,reticleAim);companions.update(state);rescue.update(state.adventure,state.player);coop.update(state);dialogue.update(state.adventure);app.dataset.skybound=JSON.stringify(state.adventure.skybound);app.dataset.traversal=JSON.stringify(state.adventure.traversal);glide.hidden=state.adventure.generator!==4;glide.setAttribute('aria-pressed',String(!!state.adventure.traversal?.gliding));
         if(state.adventure.meadows){const slots=reconcileSlots(state.adventure.meadows,state.adventure.inventory);const markup=slots.slice(0,8).map((slot,i)=>`<button type=button data-quick=${i} aria-label="${slot?slot.id:'空き'}" class="${slot?.id===state!.adventure.equipment?'selected':''}"><kbd>${i+1}</kbd>${slot?itemIcon(slot.id)+'<small>'+slot.count+'</small>':'·'}</button>`).join('');const hotbar=document.querySelector('#hotbar')!;if(hotbar.innerHTML!==markup)hotbar.innerHTML=markup;}
         app.dataset.performance=JSON.stringify({terrainQueue:terrainQueue.stats,terrainGPU:terrain.stats,terrainWorkers:1,meshThread:'dedicated-worker',water:world.waterStats,timings:frameTimings.snapshot()});
         app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:direct?['pbr','physical-sky','ibl','sh','direct-field']:['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']});

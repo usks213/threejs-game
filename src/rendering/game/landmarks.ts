@@ -14,7 +14,7 @@ export function createLandmarks(scene:THREE.Scene){
   const enabled=state.adventure.generator===4;wind.visible=enabled;
   BEACONS.forEach((b,i)=>{const resource=state.adventure.resources.find(n=>n.id===b.id),group=beacons[i];group.visible=enabled;group.position.set(b.x,resource?.y??b.y,b.z);group.rotation.y=state.adventure.seconds*.25;for(const child of group.children)(child as THREE.Mesh).material=(resource?.ready??0)>1e9?crystal:dark;});
   if(enabled){for(let w=0;w<WIND_COLUMNS.length;w++){const column=WIND_COLUMNS[w];for(let i=0;i<40;i++){const n=(w*40+i)*3,phase=i*.71+state.adventure.seconds*.7;windPositions[n]=column.x+Math.sin(phase)*column.radius*.7;windPositions[n+1]=3+(i*.87+state.adventure.seconds*2.8)%(column.top-3);windPositions[n+2]=column.z+Math.cos(phase)*column.radius*.7;}}windGeometry.getAttribute('position').needsUpdate=true;}
-  wing('local',local,!!state.adventure.traversal?.gliding);
+  wing('local',local,!!(state.adventure.traversal?.gliding||state.adventure.traversal?.debugFlying));
   for(const peer of state.peers??[]){const view=remote.get(peer.id);if(view)wing(peer.id,view.model.group,!!peer.appearance?.gliding);}
   for(const[id,group]of wings)if(id!=='local'&&!remote.has(id)){group.removeFromParent();wings.delete(id);}
  },dispose(){for(const group of beacons)scene.remove(group);for(const group of wings.values())group.removeFromParent();scene.remove(wind);box.dispose();crystal.dispose();dark.dispose();wingMaterial.dispose();windGeometry.dispose();windMaterial.dispose();}};

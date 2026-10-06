@@ -1,6 +1,7 @@
 import type { GameSimulation } from '../simulation/game-simulation';
 import type { Adventure, } from '../game/adventure';
 import type { AdventureSave, AdventureSnapshot } from '../game/types';
+import { inBeginnerArea } from '../game/entry-clearing';
 import { newMeadows } from '../game/meadows/state';
 export const BEACONS = [
  {id:810001,name:'風原の道標',x:0,y:3,z:3,hint:'木の部品を2つ接着し、道標の近くへ運ぶ'},
@@ -18,7 +19,9 @@ export function seedAdventureWorld(sim:GameSimulation,state:AdventureSave):void{
  for(const b of BEACONS)state.resources.push({id:b.id,kind:'runestone',x:b.x,y:b.id===810001?sim.groundAt(b.x,b.z):b.y,z:b.z,amount:1,ready:0});
  for(const[x,y,z]of[[15,25,-18],[22,25,-15],[28,-10.5,14],[33,-10.5,5]]){node('crystal',x,y,z,3);}
  for(const[x,y,z]of[[8,3,18],[30,-10.5,12],[-15,-10.5,-6]])node('iron',x,y,z,4);
- for(let i=0;i<8;i++){const angle=i*Math.PI/4,x=Math.sin(angle)*34,z=Math.cos(angle)*34-5;state.enemies.push({id:sim.allocateEntityId(),definition:i%2?'walker':'slime',tier:1,x,y:sim.groundAt(x,z),z,homeX:x,homeZ:z,health:i%2?48:24,cooldown:2,windup:0,slow:0,boss:false});}
+ // Two separated slimes introduce combat after the learning clearing. Random
+ // tiles do not add packs here; later authored enemies retain their old roles.
+ for(let i=0;i<8;i++){const angle=i*Math.PI/4,x=Math.sin(angle)*34,z=Math.cos(angle)*34-5,y=sim.groundAt(x,z),beginner=inBeginnerArea(sim,{x,y,z}),id=sim.allocateEntityId();if(beginner&&i!==0&&i!==1)continue;const walker=!beginner&&i%2;state.enemies.push({id,definition:walker?'walker':'slime',tier:1,x,y,z,homeX:x,homeZ:z,health:walker?48:24,cooldown:2,windup:0,slow:0,boss:false});}
 }
 export function adventureObjective(state:Pick<AdventureSave,'resources'|'defeated'|'siteWorld'>):string{
  if(state.defeated.includes('stormcore'))return '嵐心を鎮めた。三層の世界を自由に探索し、仲間と新しい航路を作ろう';

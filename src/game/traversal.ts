@@ -1,3 +1,4 @@
+import {DebugFlight} from './debug-flight';
 import {canStand} from './crouch';
 import {characterHeight} from '../physics/character-shape';
 import {siteWalkingContext,siteSupport,siteClear} from './site-walking';
@@ -10,14 +11,16 @@ import {adventureEnvironment} from '../environment/adventure';
 import type { Adventure } from './adventure';
 import type { PlayerInput } from '../simulation/protocol';
 import type { Vec3 } from '../world/types';
-export interface TraversalSnapshot { crouching?:boolean; gliding:boolean; climbing:boolean; swimming?:boolean; breath?:number; maxBreath?:number; warning?:string; grip?:'stone'|'wood'|'metal'|'ice'; hanging?:boolean }
+export interface TraversalSnapshot { debugFlying?:boolean; debugFlightAvailable?:boolean; crouching?:boolean; gliding:boolean; climbing:boolean; swimming?:boolean; breath?:number; maxBreath?:number; warning?:string; grip?:'stone'|'wood'|'metal'|'ice'; hanging?:boolean }
 export const WIND_COLUMNS=[{x:10,z:-15,radius:3,top:44},{x:39,z:20,radius:4,top:44},{x:-48,z:-52,radius:4,top:44},{x:66,z:-26,radius:4,top:44}] as const;
 /** Actor-local movement intent; world collisions and stamina remain authoritative. */
 export class Traversal {
+ readonly debug:DebugFlight;
  gliding=false;climbing=false;
  private breath=12;private drownClock=0;private slipClock=0;private swimming=false;private warning:string|undefined;private grip:TraversalSnapshot['grip'];private hanging=false;private notice:string|undefined;private noticeTime=0;
- constructor(private readonly game:Adventure){}
+ constructor(private readonly game:Adventure){this.debug=new DebugFlight(game);}
  action(kind:'glide'|'climb',id:string,aim:Vec3):string{
+  if(this.debug.active)throw Error('先にデバッグ飛行を終了してください');
   if(id==='off'){this.stop();return '通常の移動に戻りました';}
   const p=this.game.sim.player;
   if(kind==='glide'&&id==='dive'){if(p.grounded)throw Error('空中で使ってください');this.stop();p.vy=Math.min(p.vy,-12);return '翼を閉じて急降下します。着地前に翼を開いてください';}
@@ -53,6 +56,7 @@ export class Traversal {
    if(state.health<=0){this.breath=12;this.drownClock=0;}else if(submerged&&this.breath<=0){this.drownClock+=dt;if(this.drownClock>=1){this.drownClock-=1;if(authoritative)this.game.hurtPlayer(5,'physical');}}else this.drownClock=0;
    if(submerged&&this.breath<=5)this.warning=`息が残り${Math.ceil(this.breath)}秒です。水面へ上がってください`;
   }
+  if(this.debug.active&&state.health>0){this.debug.step(input,dt);return {handled:true,speed:0};}
   if(this.swimming&&state.stamina<=16)this.warning??='泳ぐ力が残りわずかです。動きを止めて浮くか、岸へ上がってください';
   if(state.health>0&&this.swimming&&input.jump&&Math.hypot(input.x,input.z)>.1){p.heading=Math.atan2(input.x,input.z);if(this.mantle()){this.stop();this.swimming=false;return{handled:true,speed:0};}}
   if(state.health<=0||state.stamina<=0||water>.35){this.stop();return {handled:false,speed:1};}
@@ -75,6 +79,6 @@ export class Traversal {
   }
   return {handled:false,speed:1};
  }
- snapshot():TraversalSnapshot{return {crouching:!!this.game.sim.player.crouching,gliding:this.gliding,climbing:this.climbing,swimming:this.swimming,breath:this.breath,maxBreath:12,warning:this.warning,grip:this.climbing?this.grip:undefined,hanging:this.climbing&&this.hanging};}
- stop():void{this.gliding=false;this.climbing=false;this.hanging=false;this.slipClock=0;}
+ snapshot():TraversalSnapshot{return {debugFlying:this.debug.active,debugFlightAvailable:this.game.sim.debugFlightAllowed&&this.game.owner==='host'&&this.game.sim.world.generator===4,crouching:!!this.game.sim.player.crouching,gliding:this.gliding,climbing:this.climbing,swimming:this.swimming,breath:this.breath,maxBreath:12,warning:this.warning,grip:this.climbing?this.grip:undefined,hanging:this.climbing&&this.hanging};}
+ stop():void{this.debug.clear();this.gliding=false;this.climbing=false;this.hanging=false;this.slipClock=0;}
 }

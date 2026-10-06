@@ -4,7 +4,7 @@ import type { FluidCell } from '../fluid/fluid';
 import type { SphereBody } from '../physics/sphere';
 import type { WorldSave } from '../save/format';
 export interface PlayerState extends Vec3 { crouching?:boolean; heading: number; vy: number; grounded: boolean }
-export interface PlayerInput { x: number; z: number; jump: boolean }
+export interface PlayerInput { debugVertical?:number; x: number; z: number; jump: boolean }
 export type Tool = EditKind | 'water' | 'rock';
 export interface PlayerAppearance { crouching?:boolean; downed?: boolean; reviveProgress?: number; gliding?: boolean; climbing?: boolean; equipment: string; attack: number; guarding: boolean; dodging: boolean; shield: boolean }
 export interface Snapshot {

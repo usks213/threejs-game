@@ -201,6 +201,50 @@ jobs:
             test-results/
           retention-days: 7
 
+  desktop-adventure-feedback:
+    # Bounded PC input coverage for the mobile-menu/debug-flight feedback.
+    # Reuse the verified build; leave the full browser matrix opt-in.
+    if: github.event_name == 'pull_request' && needs.verify.outputs.game == 'true'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - name: Check menu wheel and debug-flight keyboard controls
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort > /tmp/feedback-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true; cat /tmp/feedback-preview.log' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/ > /dev/null
+          npm run e2e -- --project=desktop-chromium --workers=1 --retries=0 --grep 'menu scrolling|debug flight' --global-timeout=360000
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4173
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-adventure-feedback
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   deploy-signaling:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.verify.outputs.signaling == 'true'
     needs: verify

@@ -29,6 +29,7 @@ import { validateSave, type WorldSave } from '../save/format';
 import type { PlayerInput, PlayerState, Tool } from './protocol';
 export const TICK_RATE = 30;
 export class GameSimulation {
+  debugFlightAllowed=true;
   sessionSpawns?: () => readonly Vec3[];
   readonly terrainHistory=new TerrainUndo(this);
   adventure: Adventure;
@@ -84,7 +85,7 @@ export class GameSimulation {
     const length = Math.max(1, Math.hypot(ix, iz));
     const riding=this.companions.drive('host',input,this.player)||this.skybound.drive('host',input,this.player),traversal=this.adventure.traversal.beforeMove(input,dt);
     const wasGrounded=this.player.grounded,impactVy=this.player.vy;
-    const immersion = this.fluid.immersion(this.player, characterHeight(this.player)), speed = traversal.speed * movementSpeed(this.adventure,!!(ix||iz),immersion,dt);
+    const immersion = this.fluid.immersion(this.player, characterHeight(this.player)), speed = this.adventure.traversal.debug.active?0:traversal.speed * movementSpeed(this.adventure,!!(ix||iz),immersion,dt);
     const flow = this.fluid.current(this.player);
     const dx = (traversal.wind?.x??0)*dt+ix / length * speed * dt + flow.x * Math.min(1, immersion * 3) * dt, dz = (traversal.wind?.z??0)*dt+iz / length * speed * dt + flow.z * Math.min(1, immersion * 3) * dt;
     const p = this.player;
@@ -181,13 +182,14 @@ export class GameSimulation {
     }
     return [...dirty];
   }
-  resetPlayer(): void { this.character.reset(); this.player.x = 0; this.player.z = 8; this.player.y = this.groundAt(0, 8) + 1; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
+  resetPlayer(): void { this.adventure.traversal.stop(); this.character.reset(); this.player.x = 0; this.player.z = 8; this.player.y = this.groundAt(0, 8) + 1; this.player.vy = 0; this.player.grounded = false; this.jumpOrigin = null; this.metrics.jumpHeight = 0; }
   save(): WorldSave {
     this.adventure.gear.ensure();migrateCampGear(this);
     if(this.adventure.state.meadows)updateWaterObstacles(this);
     // Persistence needs every cell, but not the derived terrain floors used by rendering.
     // Keep the existing velocity precision without sampling the whole explored ocean.
     const fluids = Array.from(this.fluid.cells.values(), c => ({ x: c.x, y: c.y, z: c.z, size: c.size, volume: c.volume, vx: Math.round((c.vx ?? 0) * 1000) / 1000 || 0, vz: Math.round((c.vz ?? 0) * 1000) / 1000 || 0 }));
-    return { version: 2,nextEntityId:this.nextEntity,sharedPins:this.sharedPins.map(p=>({...p,position:{...p.position}})), companions:this.companions.save(),skybound: this.skybound.save(), adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: this.player.x, y: this.player.y, z: this.player.z,...(this.player.crouching?{crouching:true}:{}) }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids, bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
+    const savedPlayer=this.adventure.traversal.debug.active?this.adventure.traversal.debug.savedPosition():this.player;
+    return { version: 2,nextEntityId:this.nextEntity,sharedPins:this.sharedPins.map(p=>({...p,position:{...p.position}})), companions:this.companions.save(),skybound: this.skybound.save(), adventure: this.adventure.save(), generator: this.world.generator, seed: this.world.bounds.seed, player: { x: savedPlayer.x, y: savedPlayer.y, z: savedPlayer.z,...(this.player.crouching?{crouching:true}:{}) }, edits: this.world.edits.map(e => ({ ...e, position: { ...e.position } })), fluids, bodies: this.bodies.map(b => ({ ...b, position: { ...b.position }, velocity: { ...b.velocity } })) };
   }
 }

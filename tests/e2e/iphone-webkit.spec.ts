@@ -104,6 +104,9 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
   await observedTap(page, 'powers-menu');
   await expect(page.getByRole('dialog', { name: '創作能力', exact: true })).toBeVisible();
   await expect(page.locator('#power-kind option')).toHaveCount(13);
+  // Mobile WebKit exposes native taps, but neither swipes nor wheel input through
+  // Playwright. Check gesture policy here; Android separately proves native swipes.
+  expect(await page.locator('#powers-panel,#powers-close').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).touchAction))).toEqual(['manipulation','manipulation']);
   await observedTap(page, 'powers-close');
   await expect(page.getByRole('dialog', { name: '創作能力', exact: true })).toBeHidden();
 

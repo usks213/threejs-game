@@ -1,3 +1,4 @@
+import {BEGINNER_ENCOUNTER,crossesEntryClearing,inBeginnerArea,inEntryClearing} from './entry-clearing';
 import {completeAdventureBoss,flushPendingBossRewards} from './combat/boss-rewards';
 import {characterHeight} from '../physics/character-shape';
 import {AdventureProgression,PROGRESSION_ACTIONS,decorationUnlocked,type ProgressionAction} from './adventure-progression';
@@ -8,7 +9,7 @@ import {EquipmentInventory} from './equipment/inventory';
 import {isEquipment} from './equipment/items';
 import {safeSavedRespawn,safeStartRespawn} from './respawn-safety';
 import {TrailRace,raceGates} from './trail-race';
-import {stepAdventureEnemy,adventureGuardMultiplier,dropAdventureEnemyLoot} from './adventure-enemies';
+import {stepAdventureEnemy,isOrdinaryAdventureEnemy,adventureGuardMultiplier,dropAdventureEnemyLoot} from './adventure-enemies';
 import {populateAdventureTiles,advanceAdventureWater,explorationStatus} from './adventure-exploration';
 import {beaconTravel} from './beacon-travel';
 import {marketTrade} from '../content/adventure-market';
@@ -245,11 +246,13 @@ export class Adventure {
   if(action==='dialogue'&&id==='bye')this.sites.close();if(action==='talk')this.sites.close();
   if(action==='talk'||action==='dialogue'||action==='trial'||action==='trial-reset'){const message=action==='talk'?this.trials.talk(id):action==='dialogue'?this.trials.choose(id):action==='trial'?this.trials.complete(id):this.trials.reset(id);return {dirty:[],message};}
   if(action==='map-pin-share'||action==='map-pin-remove')return sharedPinAction(this.sim,this.owner,action,id);
+  if(this.traversal.debug.active&&(['companion-ride','sky-ride','sky-ascend'].includes(action)||action==='interact'&&s.buildings.some(b=>b.definition==='raft'&&(!id||b.id===Number(id.replace('b:',''))))))throw Error('先にデバッグ飛行を終了してください');
   if(COMPANION_ACTIONS.includes(action as CompanionAction))return this.sim.companions.action(this.owner,action as CompanionAction,id);
   if(this.sim.companions.isRiding(this.owner)&&(['sky-ride','sky-ascend'].includes(action)||['glide','climb'].includes(action)&&id!=='off'||action==='interact'&&s.buildings.some(b=>b.id===Number(id.replace('b:',''))&&b.definition==='raft')))throw Error('灯背獣から降りてから使ってください');
   if(action==='building-share')return {dirty:[],message:setBuildingShared(this,id)};
   if(action==='terrain-undo')return this.sim.terrainHistory.undo(this.owner);
   if(action==='return'){const start=this.sim.world.generator===4?safeStartRespawn(this.sim,this.owner):undefined;if(this.sim.world.generator===4&&!start)throw Error('出発点の周りに安全な空きがありません。仲間に場所を空けてもらってください');this.sim.companions.release(this.owner,this.sim.player);this.traversal.stop();this.sim.skybound.release(this.owner);this.sim.resetPlayer();if(start)Object.assign(p,start,{vy:0,grounded:true});return {dirty:[],message:'安全な出発点へ戻りました'};}
+  if(action==='debug-flight')return {dirty:[],message:this.traversal.debug.action(id)};
   if(action==='glide'||action==='climb')return {dirty:[],message:this.traversal.action(action,id,aim)};
   if (SKY_ACTIONS.includes(action as SkyAction)) {
    const result = this.sim.skybound.action(this.owner, action as SkyAction, id, target, aim, skyContext(this.sim));
@@ -514,10 +517,11 @@ export class Adventure {
   }
   for (let i = this.projectiles.length - 1; i >= 0; i--) {
    const shot = this.projectiles[i],previousShot={x:shot.x,y:shot.y,z:shot.z}; shot.life -= dt;shot.vy-=(shot.gravity??0)*dt; shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.z += shot.vz * dt;
-   const hostile = shot.owner?.startsWith('enemy:');
+   const hostile = shot.owner?.startsWith('enemy:'),ordinaryHostile=hostile&&this.sim.world.generator===4&&s.enemies.some(e=>shot.owner==='enemy:'+e.id&&isOrdinaryAdventureEnemy(e));
+   if(ordinaryHostile&&crossesEntryClearing(this.sim,previousShot,shot))shot.life=0;
    const contact = shot.life>0&&!hostile ? sweptEnemyContact(s.enemies,previousShot,shot,shot.radius) : undefined;
    if(this.sim.world.generator===4&&!clearMeleeContact(s,previousShot,contact?.point??shot,point=>this.sim.world.density(point))){Object.assign(shot,previousShot);shot.life=0;}
-   if(hostile&&shot.life>0) for(const actor of this.sim.targets.length?this.sim.targets:[{player:this.sim.player,adventure:this}])if(Math.hypot(actor.player.x-shot.x,actor.player.y+0.7-shot.y,actor.player.z-shot.z)<shot.radius+0.6){actor.adventure.hurtPlayer(shot.damage,shot.element,actor.player);shot.life=0;}
+   if(hostile&&shot.life>0) for(const actor of this.sim.targets.length?this.sim.targets:[{player:this.sim.player,adventure:this}])if(Math.hypot(actor.player.x-shot.x,actor.player.y+0.7-shot.y,actor.player.z-shot.z)<shot.radius+0.6){if(ordinaryHostile&&inEntryClearing(this.sim,actor.player)){shot.life=0;break;}const beginner=ordinaryHostile&&inBeginnerArea(this.sim,actor.player);actor.adventure.hurtPlayer(beginner?Math.min(shot.damage,BEGINNER_ENCOUNTER.damage):shot.damage,beginner?'physical':shot.element,actor.player);shot.life=0;}
    if (contact&&shot.life>0) { const enemy=contact.enemy,owner = this.sim.targets.find(t => t.adventure.owner === shot.owner)?.adventure ?? this; owner.hit(enemy, shot.damage, shot.element,true,previousShot,contact.point);Object.assign(shot,contact.point);if(shot.burn)enemy.burn=shot.burn;enemy.alerted=10; shot.life = 0; }
    if (shot.element === 'frost' && (this.sim.fluid.immersion(shot, 0.3) > 0 || this.sim.world.density(shot) <= 0)) { this.sim.fluid.freeze(shot, 3); shot.life = 0; }
    if(shot.gearFlight!==undefined)updateGearFlight(this,shot);

@@ -13,8 +13,8 @@ it('keeps actual newly joined players alive at the shared start while loading, t
  const wood=a.adventure.state.resources.find(n=>n.drop&&n.kind==='wood')!;
  room.action(a.id,{type:'game-action',action:'gather',id:String(wood.id),aim:{x:0,y:0,z:-1}});expect(a.adventure.state.inventory.wood).toBe(12);
  const before=b.player.x;for(let i=0;i<12;i++){room.input(b.id,{x:1,z:0,jump:false},i+1);room.step();}expect(b.player.x).toBeGreaterThan(before+.4);
- // Leaving the small clearing restores the actual seeded enemy threat.
- for(let i=0;i<600&&b.adventure.state.health===25;i++){room.input(b.id,{x:0,z:i<120?1:0,jump:false},i+13);room.step();}
+ // Leaving the expanded learning clearing reaches the gentler seeded encounter.
+ for(let i=0;i<600&&b.adventure.state.health===25;i++){room.input(b.id,{x:0,z:i<260?1:0,jump:false},i+13);room.step();}
  expect(inEntryClearing(room.sim,b.player)).toBe(false);expect(b.adventure.state.health).toBeLessThan(25);
  expect(a.adventure.state.health).toBe(25);
 },60000);
