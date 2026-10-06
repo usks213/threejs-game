@@ -25,3 +25,17 @@ it('does not retain time debt across a leave/rejoin or restart during the callba
  let ticks=0;const f=fixture(()=>{if(++ticks===1){f.clock.stop();f.clock.start();}});f.clock.start();f.one();expect(f.scheduled.size).toBe(1);f.clock.stop();f.jump(10000);f.clock.start();f.one();expect(ticks).toBe(2);expect(f.clock.stats.rebases).toBe(0);
 });
 it('rejects invalid scheduler bounds',()=>{for(const options of [{intervalMs:0},{maxCatchUpSteps:0},{maxWorkMs:NaN},{maxBacklogMs:1}])expect(()=>new FixedStepClock(()=>{},options)).toThrow('limits');});
+it('pre-arms a single-step wait before work and cancels it after stop or failure',()=>{
+ for(const fail of [false,true]){const f=fixture(()=>{expect(f.scheduled.size).toBe(1);if(fail)throw Error('failed');f.clock.stop();},{maxCatchUpSteps:1,scheduleBeforeStep:true});f.clock.start();if(fail)expect(()=>f.one()).toThrow('failed');else f.one();expect(f.clock.active).toBe(false);expect(f.scheduled.size).toBe(0);}
+});
+it('does not duplicate a pre-armed timer after a callback restart and does not reuse old callbacks',()=>{
+ let ticks=0;const f=fixture(()=>{if(++ticks===1){f.clock.stop();f.clock.start();}},{maxCatchUpSteps:1,scheduleBeforeStep:true});f.clock.start();f.one();expect(f.scheduled.size).toBe(1);f.all[1]();expect(ticks).toBe(1);f.one();expect(ticks).toBe(2);expect(f.scheduled.size).toBe(1);f.clock.stop();
+});
+it('retains a one-step callback limit and honest rebase accounting with pre-arming',()=>{
+ const f=fixture(()=>f.work(80),{maxCatchUpSteps:1,scheduleBeforeStep:true});f.clock.start();f.jump(500);f.one();expect(f.clock.stats).toMatchObject({steps:1,turns:1,catchUpSteps:0,rebases:1});expect(f.clock.stats.droppedMs).toBeCloseTo(500-1000/30);expect(f.scheduled.size).toBe(1);f.one();expect(f.clock.stats.steps).toBe(2);f.clock.stop();
+ expect(()=>new FixedStepClock(()=>{},{scheduleBeforeStep:true})).toThrow('single-step');
+});
+it('does not execute a step if pre-arming synchronously stops the run',()=>{
+ let callback:()=>void=()=>{},calls=0,steps=0,cancels=0,now=34;const clock=new FixedStepClock(()=>steps++,{now:()=>now,maxCatchUpSteps:1,scheduleBeforeStep:true,intervalMs:1,schedule:run=>{callback=run;if(++calls===2)clock.stop();return()=>cancels++;}});
+ clock.start();now=35;callback();expect(steps).toBe(0);expect(clock.active).toBe(false);expect(cancels).toBe(1);
+});

@@ -33,3 +33,27 @@ Workerだけに`createWorkerSchedule`を挿入し、公開されたAPI `schedule
 変更範囲はWorkerの待機adapterと停止時のabort/失敗通知だけ。Nodeのscheduler、固定dt、Workerの1callback/1step、positive整数delay、backlog上限、既存counter、物理/水/ゲーム仕様は維持した。待機の同期例外・非同期reject・step失敗は停止を通知し、leave/restart時の古いfulfillment/rejectionは次のrunへ作用しない。関連28試験と全typecheckに合格。全体試験/buildと公開確認は統合側で実施する。
 
 同じ候補bundleをMiniflare5.20261001.0-alpha/workerd1.20261001.1で起動し、本物の4WebSocketで5秒の接続smokeを完走した。全員のwelcome/3peer/進むframeと2つずつの有効なtiming sampleを確認。ローカル最小29.738Hz、開始直後には4回のoverload/rebaseも観測した。ローカルの時計は公開と異なり、この短い試験はadapterの実API接続確認であって、公開性能やcleanup順序の証明ではない。
+
+## 2a1debf1の公開結果と次の待機開始位置
+
+native wait版2a1debf1は、公開4接続の測定区間でWorker58.520秒/client58.425秒と両時計が近づいた。ただしbrowser QAの別部屋と並行した60.015秒の測定では最小14.896Hz。876tick/callback、26rebase、29,304.070msのdiscardを観測し、30Hzには届かなかった。これは`public-worker-load-2a1debf1-concurrent.json`へ保存した。
+
+全browser QA終了・関連する別部屋のsocketを閉じた後、同じSHA・同じ4接続条件のload-only再測定は60.045秒、最小24.282Hz、失敗0だった。同じpong両端でWorker56.182秒/client56.947秒、1,386tick/callback、10rebase、9,977.106msのdiscard。元の結果は`public-worker-load-2a1debf1-isolated.json`。同じ版で大きく変わるため14.896Hzの全差をnative adapterのコストと断定しない。一方、残る0.765秒の時計差もCPU実測とは扱わず、load-onlyでも30Hz未達と記録する。
+
+### 固定commitによる順序の確認
+
+workerd commit `0e2da6cb219819e65fd80175331a4cef256508e9` と、同じcommitの[依存指定](https://github.com/cloudflare/workerd/blob/0e2da6cb219819e65fd80175331a4cef256508e9/build/deps/gen/deps.MODULE.bazel#L27-L35)が参照するKJ commit `1be2d2a8e60152c89b00adca758c0c495acadc2b`で再確認した。
+
+- [timeoutのattachmentとeager評価](https://github.com/cloudflare/workerd/blob/0e2da6cb219819e65fd80175331a4cef256508e9/src/workerd/io/io-context.c%2B%2B#L976-L1003)：timeout時刻の除去処理をpromiseにattachしてからeagerlyEvaluateする。
+- [KJ EagerPromiseNode::fire](https://github.com/capnproto/capnproto/blob/1be2d2a8e60152c89b00adca758c0c495acadc2b/c%2B%2B/src/kj/async.c%2B%2B#L3033-L3042)：callbackを含むdependencyを実行し、そのdependencyを破棄してから依存側を起こす。
+- [native wait](https://github.com/cloudflare/workerd/blob/0e2da6cb219819e65fd80175331a4cef256508e9/src/workerd/api/basics.c%2B%2B#L1360-L1397)はKJ eventを起こす。現在のeventが戻る前に別eventが実行されることはない。JS Promiseをresolveするtimeout callbackのmicrotaskとは順序が異なる。
+
+したがって確認したupstream実装では元timeoutの除去がnative JS再入より先になる。公開fleetがこの正確なcommitであることや実時間30Hzを、sourceだけで保証するものではない。
+
+### single-step pre-arm候補
+
+Workerだけ`maxCatchUpSteps=1`と`scheduleBeforeStep=true`を組み合わせ、次のpositive整数waitをroom.step前に予約する候補を追加。native再入では前のtimeoutが除かれているため、新しいtimeoutを最先頭として予約できる。同期stepの後に初めて待機を開始する直列化を避けるが、CPU時間を読めるようにしたりcatch-up上限を増やしたりはしない。Nodeは既定のpost-armを維持する。
+
+stop・例外・leave/restart・古いcallbackを検証。pre-arm中の同期停止でも返ってきたcancel handleを直ちに呼び、次のstepを行わない。pre-armと複数step設定の併用は拒否する。関連33試験と全typecheckに合格。
+
+2a1debf1のfrozen sourceにtimer変更だけを適用し、booleanだけが異なるbundleをローカルworkerdでpost/pre/pre/post順に各5秒測定した。最小Hzは29.891 / 29.823 / 29.366 / 29.781、4接続はいずれも完走。preの一回では初期rebaseもあり、localthroughput改善を証明していない。`docs/benchmarks/worker-prearm-local-abba.json`を参照。公開へ採用する場合も同SHA・load-only条件で再判定する。

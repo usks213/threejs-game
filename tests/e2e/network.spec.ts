@@ -292,10 +292,21 @@ test.describe.serial('two real browsers',()=>{
   // surface that supports B. No CPU fixture or test-only ray is substituted.
   await b.mouse.move(400,130);await b.mouse.down({button:'middle'});await b.mouse.move(400,300,{steps:4});await b.mouse.up({button:'middle'});
   const renderedAim=async()=>JSON.parse(await b.locator('#app').getAttribute('data-aim')??'{}') as {target?:{x:number;y:number;z:number}};
+  await expect.poll(async()=>Number(await b.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(1.2,5);
+  const firstAim=await renderedAim();let turnedAroundDebris=false;
+  if(!firstAim.target||firstAim.target.y>=edit.position.y-.3||Math.hypot(firstAim.target.x-edit.position.x,firstAim.target.z-edit.position.z)>=2.3){
+   // This real dig can release loose fragments on the east rim. They correctly
+   // block the shoulder camera's original ray before it reaches the floor. Look
+   // from the opposite side with normal middle drags; never ignore the debris.
+   await b.bringToFront();await expect(b.locator('#app')).toHaveAttribute('data-camera-yaw',/^-?\d/);
+   const yaw=Number(await b.locator('#app').getAttribute('data-camera-yaw'));
+   for(let turn=0;turn<2;turn++){await b.mouse.move(400,150);await b.mouse.down({button:'middle'});try{await b.mouse.move(140,150,{steps:4});}finally{await b.mouse.up({button:'middle'});}}
+   await expect.poll(async()=>Number(await b.locator('#app').getAttribute('data-camera-yaw'))).toBeCloseTo(yaw+3.12,5);turnedAroundDebris=true;
+  }
   await expect.poll(async()=>(await renderedAim()).target?.y??Infinity,{timeout:20000}).toBeLessThan(edit.position.y-.3);
   const target=(await renderedAim()).target!;expect(Math.hypot(target.x-edit.position.x,target.z-edit.position.z)).toBeLessThan(2.3);
   await b.screenshot({path:info.outputPath('remote-excavation-collision.png'),timeout:60000,scale:'css',animations:'disabled'});
-  await info.attach('terrain-render-collision-evidence.json',{body:JSON.stringify({edit,collided,renderedAim:await renderedAim(),streaming:JSON.parse(await b.locator('#app').getAttribute('data-streaming')??'{}')},null,2),contentType:'application/json'});
+  await info.attach('terrain-render-collision-evidence.json',{body:JSON.stringify({edit,collided,firstAim,turnedAroundDebris,cameraYaw:await b.locator('#app').getAttribute('data-camera-yaw'),renderedAim:await renderedAim(),streaming:JSON.parse(await b.locator('#app').getAttribute('data-streaming')??'{}')},null,2),contentType:'application/json'});
   stage('NET-A04 leave and re-enter the same excavated floor');
   const beforeReentryEdits=[...wire.get(b)!.edits.values()].sort((left,right)=>left.id-right.id);expect(beforeReentryEdits).toHaveLength(expectedEditCount);
   const beforeReentryEpoch=await b.locator('#app').getAttribute('data-world-epoch');await b.locator('#session-menu').click();await b.locator('#session-leave').click();await expect(a.locator('#session-status')).toHaveAttribute('data-players','1');await b.locator('#session-close').click();await running(b);

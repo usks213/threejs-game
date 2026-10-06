@@ -43,9 +43,9 @@ export class CoopRoom extends DurableObject<Env> {
   if (!this.timer) {const timing=this.timing=new CoopTimingSource(++this.timingRun),stop=()=>{room.notice('共有シミュレーションを停止しました。再接続してください');this.timer?.stop();this.timer=undefined;};this.timer = new FixedStepClock(() => {
    try { room.step();timing.stepCompleted(); if (Date.now() - this.lastSave > 30000) { this.lastSave = Date.now(); this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); } }
    catch { stop(); }
-  // Keep each turn to one fixed step. Native scheduler.wait returns after the
-  // internal timeout callback; a JS setTimeout callback retains its clock clamp.
-  }, {maxCatchUpSteps:1,schedule:createWorkerSchedule((delay,options)=>scheduler.wait(delay,options),stop),onOverload:event=>console.warn(JSON.stringify({event:'coop-scheduler-overload',...event}))});this.timer.start();}
+  // Keep each turn to one fixed step. The native wait resumes outside its timer
+  // callback, so arm the next positive wait before doing synchronous room work.
+  }, {maxCatchUpSteps:1,scheduleBeforeStep:true,schedule:createWorkerSchedule((delay,options)=>scheduler.wait(delay,options),stop),onOverload:event=>console.warn(JSON.stringify({event:'coop-scheduler-overload',...event}))});this.timer.start();}
   return new Response(null, { status: 101, webSocket: client });
  }
  private persistenceFailed(room:AuthorityRoom):void{room.failPersistence();if(this.room===room){this.timer?.stop();this.timer=undefined;this.room=null;this.loading=null;}}

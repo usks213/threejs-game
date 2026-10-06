@@ -39,5 +39,5 @@ it('stops the real adapter and reports a native wait failure rather than leaving
 });
 it('stops native scheduling after a room-step error',async()=>{
  const f=await setup();vi.spyOn(fixture.room,'step').mockImplementation(()=>{throw Error('step failed');});await vi.advanceTimersByTimeAsync(100);
- expect((await f.ping()).timing).toBeUndefined();expect(fixture.room.notice).toHaveBeenCalledOnce();expect(f.wait).toHaveBeenCalledOnce();expect(vi.getTimerCount()).toBe(0);
+ expect((await f.ping()).timing).toBeUndefined();expect(fixture.room.notice).toHaveBeenCalledOnce();expect(f.wait).toHaveBeenCalledTimes(2);expect(f.wait.mock.calls[1][1].signal.aborted).toBe(true);expect(vi.getTimerCount()).toBe(0);
 });

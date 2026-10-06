@@ -6,6 +6,9 @@ export interface FixedStepOptions {
  intervalMs?:number;maxCatchUpSteps?:number;
  // Best-effort only when now() advances during synchronous work.
  maxWorkMs?:number;maxBacklogMs?:number;
+ // Single-step runtimes may arm the next wait before synchronous work. This
+ // overlaps waiting with work without allowing another step in this callback.
+ scheduleBeforeStep?:boolean;
  now?:()=>number;
  schedule?:(callback:()=>void,delayMs:number)=>()=>void;
  onOverload?:(event:{debtMs:number;droppedMs:number;stats:FixedStepStats})=>void;
@@ -13,12 +16,14 @@ export interface FixedStepOptions {
 export class FixedStepClock {
  private readonly now:()=>number;
  private readonly schedule:(callback:()=>void,delayMs:number)=>()=>void;
- private readonly interval:number;private readonly maxSteps:number;private readonly maxWork:number;private readonly maxBacklog:number;
+ private readonly interval:number;private readonly maxSteps:number;private readonly maxWork:number;private readonly maxBacklog:number;private readonly prearm:boolean;
  private readonly values:FixedStepStats={steps:0,turns:0,catchUpSteps:0,rebases:0,droppedMs:0,maxDebtMs:0};
  private running=false;private generation=0;private deadline=0;private cancel:(()=>void)|undefined;
  constructor(private readonly step:()=>void,private readonly options:FixedStepOptions={}){
   this.interval=options.intervalMs??1000/30;this.maxSteps=options.maxCatchUpSteps??3;this.maxWork=options.maxWorkMs??12;this.maxBacklog=options.maxBacklogMs??250;
+  this.prearm=options.scheduleBeforeStep??false;
   if(!Number.isFinite(this.interval)||this.interval<=0||!Number.isSafeInteger(this.maxSteps)||this.maxSteps<1||!Number.isFinite(this.maxWork)||this.maxWork<=0||!Number.isFinite(this.maxBacklog)||this.maxBacklog<this.interval)throw Error('Invalid fixed-step clock limits');
+  if(this.prearm&&this.maxSteps!==1)throw Error('Scheduling before work requires a single-step limit');
   this.now=options.now??(()=>performance.now());this.schedule=options.schedule??((callback,delay)=>{const timer=setTimeout(callback,delay);return()=>clearTimeout(timer);});
  }
  get active():boolean{return this.running;}
@@ -31,17 +36,20 @@ export class FixedStepClock {
   // still ahead after a sub-ms timeout is truncated to zero. Always yield a real
   // positive timer; epsilon only removes sub-nanosecond arithmetic residue.
   const delay=Math.max(1,Math.ceil(this.deadline-this.now()-1e-7));
-  this.cancel=this.schedule(()=>{if(!this.running||generation!==this.generation)return;this.cancel=undefined;this.turn(generation);},delay);
+  const cancel=this.schedule(()=>{if(!this.running||generation!==this.generation)return;this.cancel=undefined;this.turn(generation);},delay);
+  if(this.running&&generation===this.generation)this.cancel=cancel;else cancel();
  }
  private turn(generation:number):void{
-  const started=this.now();let steps=0;this.values.turns++;
+  const started=this.now();let steps=0,armed=false;this.values.turns++;
   try{
    const debt=Math.max(0,started-this.deadline);this.values.maxDebtMs=Math.max(this.values.maxDebtMs,debt);
    if(debt>this.maxBacklog){this.deadline=started;this.values.rebases++;this.values.droppedMs+=debt;this.options.onOverload?.({debtMs:debt,droppedMs:debt,stats:this.stats});}
    while(this.running&&generation===this.generation&&this.now()+1e-7>=this.deadline&&steps<this.maxSteps&&(steps===0||this.now()-started<this.maxWork)){
-    this.deadline+=this.interval;this.step();this.values.steps++;if(steps++)this.values.catchUpSteps++;
+    this.deadline+=this.interval;
+    if(this.prearm){this.arm();armed=true;if(!this.running||generation!==this.generation)break;}
+    this.step();this.values.steps++;if(steps++)this.values.catchUpSteps++;
    }
   }catch(error){this.stop();throw error;}
-  if(this.running&&generation===this.generation)this.arm();
+  if(this.running&&generation===this.generation&&!armed)this.arm();
  }
 }

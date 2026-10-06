@@ -275,8 +275,10 @@ jobs:
 
   public-coop-load:
     # Bounded measurement only on the existing free preview; no load generator service.
-    if: github.event_name == 'pull_request'
-    needs: deploy-preview
+    # Browser rooms share this Worker script. Measure after they close so their
+    # unrelated authority work does not confound this four-client baseline.
+    if: always() && !cancelled() && github.event_name == 'pull_request' && needs.deploy-preview.result == 'success'
+    needs: [deploy-preview, public-coop]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

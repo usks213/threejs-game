@@ -55,3 +55,9 @@ CIの公開測定も同じpreview上の別部屋のbrowser QAと並行し得る�
 期待SHA `707a0c46d9f40d9c7feb578ce0dfdf04425070fa` をasset/authority/welcomeで照合した測定は60.052秒、4接続、失敗0で完走。しかし最小22.780Hzで目標未達。元の結果を`docs/benchmarks/public-worker-load-707a0c46.json`へ保持した。
 
 最初の接続のpong両端で、client実時間56,956.524ms、Worker I/O時計43,400ms、実tick/callback各1,302、rebase/drop各0を観測した。I/O時計上の30Hzや小さいdebtを実時間の合格へ読み替えない。CPU時間、実時間backlog、backend peak memoryは依然測れていない。次のnative wait候補とその未証明部分は`worker-clock-regression.md`を参照。公開後に同一条件・新しいSHAで再測定する。
+
+## 2a1debf1: 並行QAとload-onlyを分ける
+
+native wait版の同一SHAで2回実測した。browser QAと並行した版は14.896Hz、QA終了後に関連する全socketを閉じて行ったload-onlyは24.282Hz。いずれも4接続・約60秒・通信失敗0だが30Hz未達。結果はそれぞれ`public-worker-load-2a1debf1-concurrent.json`、`public-worker-load-2a1debf1-isolated.json`。比較条件が異なるためnative待機の変更だけに速度差を帰属しない。
+
+load-onlyでも10rebase/9,977.106msのdiscardが残る。公開はCPU時間/peak memoryを直接公開しておらず、scheduler counterとclient実時間だけでCPU容量や原因を断定しない。次の候補の判定も関連する別部屋の負荷を分けて行う。

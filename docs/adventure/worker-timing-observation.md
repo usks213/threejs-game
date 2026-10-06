@@ -73,3 +73,18 @@ unverified production hypothesis, detailed in `worker-clock-regression.md`.
 Neither the model test nor local workerd establishes deployed cadence. A new
 probe against the exact published commit must validate the effect; the earlier
 707a0c46 result remains a performance failure.
+
+The subsequent native-wait build `2a1debf1` was measured twice. Concurrent browser
+QA produced a minimum 14.896 Hz; a same-build load-only repeat after those rooms
+closed produced 24.282 Hz. Both four-client runs completed without connection
+errors, and neither met 30 Hz. Their unchanged receipts are
+`public-worker-load-2a1debf1-concurrent.json` and
+`public-worker-load-2a1debf1-isolated.json` under `docs/benchmarks`.
+
+The isolated client's first/last pong interval contains 1,386 callbacks/ticks,
+10 rebases and 9,977.106 ms of recorded discard, over 56.182 Worker-clock seconds
+versus 56.947 client seconds. A residual clock/network interval difference still
+exists; this is not a CPU measurement. The large difference between the two runs
+prevents attributing the concurrent slowdown solely to scheduler reentry. The
+upstream ordering is now traced to fixed commits in `worker-clock-regression.md`;
+deployed cadence remains an empirical acceptance gate.
