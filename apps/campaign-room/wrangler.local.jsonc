@@ -5,7 +5,7 @@
   "assets": {
     "directory": "../../dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/campaign-room/*"]
+    "run_worker_first": ["/campaign-room/*", "/dungeon-room/*"]
   },
   "vars": {"CAMPAIGN_RELAY_ENABLED": "true"},
   "durable_objects": {

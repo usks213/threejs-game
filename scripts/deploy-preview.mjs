@@ -62,6 +62,9 @@ for (let attempt = 0; attempt < 12; attempt++) {
 }
 if (!confirmed) throw new Error('The Preview URL did not serve the requested commit');
 if (campaignRelay) {
+  const dungeonResponse = await fetch(`${url.origin}/dungeon-room/health`, {cache:'no-store',signal:AbortSignal.timeout(10000)});
+  const dungeon = await dungeonResponse.json();
+  if (!dungeonResponse.ok || dungeon.service !== 'pr4-dungeon' || dungeon.authority !== 'server' || dungeon.protocol !== manifest.dungeonProtocol || dungeon.enabled !== true) throw new Error('Dungeon authority health check failed');
   const healthResponse = await fetch(`${url.origin}/campaign-room/health`, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
   const health = await healthResponse.json();
   if (!healthResponse.ok || health.service !== 'pr4-campaign-room' || health.protocol !== manifest.campaignProtocol || health.enabled !== true) throw new Error('Campaign relay health check failed');

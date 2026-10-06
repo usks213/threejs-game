@@ -1,2 +1,2 @@
-import { startPrototype } from './prototype/app';
-try { startPrototype(); } catch(error) {const alert=document.querySelector<HTMLElement>('#error');if(alert){alert.hidden=false;alert.textContent='ゲームを起動できません。WebGL対応ブラウザで開いてください。';}console.error(error);}
+async function boot(){try {if(new URLSearchParams(location.search).get('mode')==='dungeon'){const {startDungeon}=await import('./dungeon/app');startDungeon();}else{const {startPrototype}=await import('./prototype/app');startPrototype();}} catch(error) {const alert=document.querySelector<HTMLElement>('#error');if(alert){alert.hidden=false;alert.textContent='ゲームを起動できません。WebGL対応ブラウザで開いてください。';}console.error(error);}}
+void boot();

@@ -7,7 +7,7 @@
   "assets": {
     "directory": "../../dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/campaign-room/*"]
+    "run_worker_first": ["/campaign-room/*", "/dungeon-room/*"]
   },
   "durable_objects": {
     "bindings": [{"name": "CAMPAIGN_ROOMS", "class_name": "CampaignRoom"}]

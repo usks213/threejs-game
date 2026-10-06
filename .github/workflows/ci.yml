@@ -11,12 +11,18 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
+    outputs:
+      legacy: ${{ steps.scope.outputs.legacy }}
+      cooperative: ${{ steps.scope.outputs.cooperative }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - id: scope
+        run: node scripts/dungeon-test-scope.mjs
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -34,6 +40,7 @@ jobs:
           path: dist/
           retention-days: 7
   browser:
+    if: needs.verify.outputs.legacy == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -144,6 +151,7 @@ jobs:
             test-results/
           retention-days: 7
   mobile-webkit-browser:
+    if: needs.verify.outputs.legacy == 'true'
     # Bounded mobile engine acceptance, independent of Chromium/CDP and preview.
     # Linux WebKit emulation does not establish physical iPhone/Safari or FPS.
     needs: verify
@@ -174,6 +182,7 @@ jobs:
             test-results/webkit/
           retention-days: 7
   native-pointer-browser:
+    if: needs.verify.outputs.legacy == 'true'
     # A focused native-input contract; each desktop job owns its X11 display.
     needs: verify
     runs-on: ubuntu-latest
@@ -234,6 +243,7 @@ jobs:
           path: preview-release.json
           retention-days: 7
   first-chapter-browser:
+    if: needs.verify.outputs.legacy == 'true'
     needs: verify
     strategy:
       fail-fast: false
@@ -272,6 +282,7 @@ jobs:
             test-results/
           retention-days: 7
   combat-build-browser:
+    if: needs.verify.outputs.legacy == 'true'
     needs: verify
     strategy:
       fail-fast: false
@@ -314,7 +325,7 @@ jobs:
     # A separate end-to-end campaign budget. Existing short/chapter jobs and
     # their assertions/timeouts are unchanged. Android runs independently below.
     needs: verify
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
+    if: needs.verify.outputs.legacy == 'true' && (github.event_name == 'pull_request' && github.event.pull_request.number == 4)
     runs-on: ubuntu-latest
     timeout-minutes: 100
     steps:
@@ -347,7 +358,7 @@ jobs:
     # Same strict seven-region route with genuine CDP touches. Chromium mobile
     # emulation is independently reported; this is not Android device evidence.
     needs: verify
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
+    if: needs.verify.outputs.legacy == 'true' && (github.event_name == 'pull_request' && github.event.pull_request.number == 4)
     runs-on: ubuntu-latest
     timeout-minutes: 100
     steps:
@@ -379,6 +390,7 @@ jobs:
             test-results/
           retention-days: 7
   streamed-world-browser:
+    if: needs.verify.outputs.legacy == 'true'
     needs: verify
     strategy:
       fail-fast: false
@@ -418,7 +430,7 @@ jobs:
           retention-days: 7
   cooperative-browser:
     needs: [verify, deploy-preview]
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
+    if: needs.verify.outputs.cooperative == 'true' && github.event_name == 'pull_request' && github.event.pull_request.number == 4
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -443,6 +455,65 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          retention-days: 7
+  dungeon-browser:
+    needs: [verify, deploy-preview]
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, android-chromium]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- tests/e2e/dungeon.spec.ts --project=${{ matrix.project }}
+        env:
+          E2E_BASE_URL: https://pr-4-threejs-game.usks213.workers.dev
+          E2E_DUNGEON: '1'
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dungeon-browser-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+  dungeon-webkit-browser:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps webkit
+      - run: npm run e2e:webkit -- tests/webkit/dungeon.spec.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dungeon-webkit-menu-smoke
+          path: |
+            playwright-report/webkit/
+            test-results/webkit/
           retention-days: 7
   verify-production:
     needs: verify
