@@ -27,7 +27,7 @@ test('campaign first chapter through normal keyboard or touch play: rescue, gear
    // The browser trace rescues successfully, then takes three warden hits
    // while making the interaction/return turns. Resolve its approach facing
    // north at the open doorway before turning toward the left-hand alcove.
-   await controls.walkTo(0,0);if((await read(page)).enemies[1].hp>0)await controls.fight(1);await controls.walkTo(0,0);
+   await controls.enterCrypt();if((await read(page)).enemies[1].hp>0)await controls.fight(1);await controls.walkTo(0,0);
    await controls.walkTo(-2.4,-1.8);await controls.interact('artisan',{x:-2.5,y:1.1,z:-3.5});await expect.poll(async()=>(await read(page)).campaign.artisanRescued).toBe(true);
    await controls.walkTo(0,0);await controls.walkTo(0,3.2);await controls.walkTo(0,5.3);await controls.walkTo(-3.5,5.3);await checkpoint('02-artisan-rescued');
   });

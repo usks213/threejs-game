@@ -24,7 +24,7 @@ test('H15 zero-grant waterwheel build, real valve, pause, stop/resume, single cl
   // Face the approaching warden before turning into the artisan alcove.
   // The prior trace died during that unguarded return turn. Use the same
   // finite shield/counter encounter as the normal first-chapter route.
-  await c.walkTo(0,0);await c.fight(1);await c.healFromInventory();
+  await c.enterCrypt();await c.fight(1);await c.healFromInventory();
   await c.walkTo(0,0);await c.walkTo(-2.4,-1.8);await c.interact('artisan',{x:-2.5,y:1.1,z:-3.5});await expect.poll(async()=>(await read(page)).campaign.artisanRescued).toBe(true);await c.walkTo(0,0);await c.walkTo(0,3.2);await c.walkTo(0,5.3);await c.walkTo(-3.5,5.3);
   await c.menu('crafting');for(const id of ['iron-blade','hide-coat','bandage','bandage'])await c.row(id,'craft');await c.activate('[data-tab=inventory]');for(const id of ['iron-blade','hide-coat'])await c.row(id,'equip');await c.resume();await c.healFromInventory();await c.walkTo(0,5.3);await c.walkTo(0,3.2);await c.walkTo(0,-3);expect((await read(page)).enemies[1].hp).toBe(0);await c.walkTo(0,0);await c.walkTo(2.5,0);await c.walkTo(2.5,-1.3);
   const before=(await read(page)).inventory;await c.menu('homestead');await c.row('watermill-build','homestead');await c.row('watermill-start','homestead');expect((await read(page)).inventory[7]).toBe(before[7]-6);expect((await mill(page)).job!.remaining).toBe(8);await c.resume();

@@ -1,4 +1,5 @@
 import {test,expect,type Page,type CDPSession} from '@playwright/test';
+import {cryptReengagementWaypoint} from './crypt-reengagement';
 import {observeAttack} from './transient-observation';
 import {TouchContacts} from './touch-contacts';
 import {pulseKeyboardInput,type LookKey} from './keyboard-pulse';
@@ -133,27 +134,27 @@ export class PlayerControls {
   }}finally{await transport.detach();}
  }
 
- async walkTo(x:number,z:number){
+ async walkTo(x:number,z:number,guarded=false){
   // A signed projection detects crossing the waypoint, not actually arriving.
   // Genuine release latency/inertia can carry us beyond it, especially on CI.
   // Re-aim from the settled position and correct with normal input before the
   // next route segment; never treat a wall-adjacent overshoot as arrival.
   for(let attempt=0;attempt<5;attempt++){
    const p=await motion(this.page);if(Math.hypot(x-p.position.x,z-p.position.z)<.18)return;
-   await this.walkSegment(x,z);
+   await this.walkSegment(x,z,guarded);
   }
   const p=await motion(this.page);expect(Math.hypot(x-p.position.x,z-p.position.z),'Normal movement must settle at the requested waypoint').toBeLessThan(.18);
  }
- private async walkSegment(x:number,z:number){
+ private async walkSegment(x:number,z:number,guarded=false){
   const before=await motion(this.page);if(Math.hypot(x-before.position.x,z-before.position.z)<.18)return;
-  await this.aim({x,y:before.position.y+1.52,z});
+  await this.aim({x,y:before.position.y+1.52,z},guarded);
   // Momentum may carry the player while aiming. Measure the walking segment
   // after the real look input, rather than projecting against a stale origin.
   const start=await motion(this.page),dx=x-start.position.x,dz=z-start.position.z,length=Math.hypot(dx,dz);if(length<.18)return;
   // The real desktop trace overshot the 1.6m doorway approach into the
   // warden's sight range. Slow short approaches and brake long legs early;
   // keep the same five corrections and strict .18m final tolerance.
-  const precise=length<2.25;let restoreTool=false,guard=false,movementFailed=false;
+  const precise=length<2.25;let restoreTool=false,guard=guarded,movementFailed=false;
   // Use the actual analog stick for small touch corrections. Keyboard players
   // can raise their guard to walk carefully; restore a selected tool afterward.
   if(!this.mobile&&precise){restoreTool=(await read(this.page)).tool;if(restoreTool){await this.action('#tool-switch','Digit1');await expect.poll(async()=>(await read(this.page)).tool).toBe(false);}
@@ -166,7 +167,7 @@ export class PlayerControls {
    const brake=precise?Math.min(.12,length*.3):1.2;
    if(!this.mobile)await this.pulseDesktopWalk(x,z,dx,dz,length,brake,guard,precise);
    else await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(brake);
-  }catch(error){movementFailed=true;throw error;}finally{try{if(this.mobile)await this.moveAxes(0,0);else {await desktopKeyUp(this.page,'KeyW');if(guard)await this.key('KeyZ',false);}}catch(error){if(!movementFailed)throw error;}}
+  }catch(error){movementFailed=true;throw error;}finally{try{if(this.mobile)await this.moveAxes(0,0);else {await desktopKeyUp(this.page,'KeyW');if(guard&&!guarded)await this.key('KeyZ',false);}}catch(error){if(!movementFailed)throw error;}}
   const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[50,100]}).toBeGreaterThan(seconds+.3);
   if(restoreTool){await this.action('#tool-switch','Digit2');await expect.poll(async()=>(await read(this.page)).tool).toBe(true);}
  }
@@ -246,6 +247,39 @@ export class PlayerControls {
   }
   const guarded=this.shieldHeld;if(guarded)await this.shield(false);await this.menu('inventory');await this.row('bandage','consume');await expect.poll(async()=>(await read(this.page)).hp).toBeGreaterThan(p.hp);await this.resume();if(guarded)await this.shield(true);
  }
+ /** Re-center after combat before crossing the open door, avoiding courtyard
+  * props and the doorway wall even after a long sideways stamina retreat. */
+ async enterCrypt(){
+  for(let leg=0;leg<5;leg++){
+   const p=await motion(this.page);if(Math.hypot(p.position.x,p.position.z)<.18)return;
+   const waypoint=cryptReengagementWaypoint(p.position,p.enemies[1].position);
+   await this.walkTo(waypoint.x,waypoint.z);
+  }
+  const p=await motion(this.page);expect(Math.hypot(p.position.x,p.position.z),'The physical crypt entrance must be reached').toBeLessThan(.18);
+ }
+ /** A retreating warden has no recovery animation to wait for. Re-enter its
+  * sight through the real doorway and central aisle, retaining the shield.
+  * Initial sentry lures are deliberately untouched. */
+ async waitForOpening(index:number){
+  let idleSince:number|null=null;const started=Date.now();
+  await expect.poll(async()=>{
+   expect(Date.now()-started,'Re-engagement retains the existing 90-second opening budget').toBeLessThan(90000);
+   const state=await motion(this.page),enemy=state.enemies[index];
+   expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);
+   if(['recover','stagger','dead'].includes(enemy.phase)||enemy.hp<=0)return true;
+   const distant=index===1&&enemy.phase==='idle'&&Math.hypot(enemy.position.x-state.position.x,enemy.position.z-state.position.z)>2.5;
+   if(!distant){idleSince=null;return false;}
+   idleSince??=state.seconds;
+   if(state.seconds-idleSince<3)return false;
+   const waypoint=cryptReengagementWaypoint(state.position,enemy.position);
+   await this.walkTo(waypoint.x,waypoint.z,true);
+   const after=await motion(this.page),target=after.enemies[index];
+   if(target.hp>0)await this.aim({...target.position,y:target.position.y+1.52},true);
+   expect(Date.now()-started,'Walking and aiming must fit the same opening budget').toBeLessThan(90000);
+   idleSince=after.seconds;
+   return false;
+  },{timeout:90000,intervals:[50,100]}).toBe(true);
+ }
  async fight(index:number){
   try{for(let strikes=0;strikes<18&&(await read(this.page)).enemies[index].hp>0;strikes++){
    await this.shield(true);await this.healFromInventory();let p=await read(this.page);expect(p.hp,'Combat must preserve a living player').toBeGreaterThan(0);const enemy=p.enemies[index];
@@ -260,7 +294,7 @@ export class PlayerControls {
     // Counter only a newly observed opening, not the tail of one spent aiming.
     const opened=['recover','stagger'].includes((await motion(this.page)).enemies[index].phase);
     if(opened)await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return state.enemies[index].hp<=0||!['recover','stagger'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
-    await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return ['recover','stagger','dead'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
+    await this.waitForOpening(index);
    const opening=await motion(this.page);if(opening.enemies[index].hp<=0)break;
    // A successful block costs stamina too. Keep enough for the20-cost sword
    // counter and a later18-cost guard; never decide from the pre-block value.
