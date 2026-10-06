@@ -1,3 +1,4 @@
+import {formatPersistenceDiagnostic,type PersistenceDiagnostic} from '../save/persistence-diagnostic';
 import {helloInfo,sessionInfo} from './coop-handshake';
 import {DeliveryWindow} from './delivery-window';
 import {SnapshotWireEncoder} from './snapshot-wire';
@@ -141,7 +142,7 @@ export class AuthorityRoom {
   }catch(error){return reject(error instanceof Error?error.message:'部屋管理を受理できません');}
  }
  /** A failed write may already have committed remotely. Stop rather than guessing or rolling back access. */
- failPersistence():void{if(this.failed)return;this.failed=true;this.broadcastAccess();this.notice('共有保存の結果を確認できません。操作を停止し、保存から部屋を読み直します');for(const c of this.connections.values())c.wire.close(1011,'Persistence outcome uncertain; reload required');}
+ failPersistence(diagnostic?:PersistenceDiagnostic):void{if(this.failed)return;this.failed=true;this.broadcastAccess();this.notice('共有保存の結果を確認できません。操作を停止し、保存から部屋を読み直します'+(diagnostic?' [保存診断:'+formatPersistenceDiagnostic(diagnostic)+']':''));for(const c of this.connections.values())c.wire.close(1011,'Persistence outcome uncertain; reload required');}
  private sendDelivery(connection:Connection,packet:CoopWireServerPacket):void{
   const text=JSON.stringify(packet),bytes=new TextEncoder().encode(text).byteLength+64;
   try{const delivery=connection.delivery.issue(bytes,this.elapsed),message={...packet,delivery};connection.wire.send(message,text.slice(0,-1)+',"delivery":'+JSON.stringify(delivery)+'}');}

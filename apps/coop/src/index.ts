@@ -1,3 +1,4 @@
+import {PersistenceFailure,persistenceDiagnostic,type PersistencePhase} from '../../../src/save/persistence-diagnostic';
 import {CoopTimingSource} from '../../../src/networking/coop-timing';
 import {FixedStepClock} from '../../../src/networking/fixed-step-clock';
 import {createWorkerSchedule} from './worker-schedule';
@@ -65,7 +66,7 @@ export class CoopRoom extends DurableObject<Env> {
   }finally{this.pendingJoins--;this.releaseIdleRoom(this.room);}
  }
  private stopSimulation(room:AuthorityRoom,timer:FixedStepClock|undefined):void{try{timer?.stop();}finally{if(this.room===room&&this.timer===timer){this.timer=undefined;room.notice('共有シミュレーションを停止しました。再接続してください');}}}
- private persistenceFailed(room:AuthorityRoom):void{room.failPersistence();if(this.room===room){this.timer?.stop();this.timer=undefined;}}
+ private persistenceFailed(room:AuthorityRoom,error:unknown):void{room.failPersistence(persistenceDiagnostic(error));if(this.room===room){this.timer?.stop();this.timer=undefined;}}
  private releaseIdleRoom(room:AuthorityRoom|null):void{
   if(!room||this.room!==room||this.pendingJoins||this.pendingSaves||room.size&&!room.readOnly)return;
   this.timer?.stop();this.timer=undefined;this.timing=undefined;
@@ -74,14 +75,16 @@ export class CoopRoom extends DurableObject<Env> {
  private persist(room:AuthorityRoom): Promise<void> {
   if(this.room!==room||room.readOnly)return Promise.reject(new Error('Room reload required'));
   this.pendingSaves++;
-  return this.saves.request().catch(error=>{this.persistenceFailed(room);throw error;}).finally(()=>{
+  return this.saves.request().catch(error=>{this.persistenceFailed(room,error);throw error;}).finally(()=>{
    // A successful earlier batch is not the final checkpoint if another request
    // arrived during its write. Failure also drains before allowing a cold load.
    this.pendingSaves--;this.releaseIdleRoom(room);
   });
  }
  private async writeCheckpoint(): Promise<void> {
-  const room=this.room;if(!room||room.readOnly)throw Error('Room reload required');const revision=await writeRoom(this.ctx.storage as unknown as RoomStorage,room.checkpoint());room.recordPersistedRevision(revision);
+  const room=this.room;if(!room||room.readOnly)throw Error('Room reload required');let phase:PersistencePhase='checkpoint';
+  try{const checkpoint=room.checkpoint(),revision=await writeRoom(this.ctx.storage as unknown as RoomStorage,checkpoint,next=>{phase=next;});phase='record-revision';room.recordPersistedRevision(revision);}
+  catch(error){throw new PersistenceFailure(phase,error);}
  }
 }
 export default { async fetch(request: Request, env: Env): Promise<Response> {

@@ -6,12 +6,12 @@ interface Wire { send(packet:Packet,serialized?:string):void; close(code:number,
 interface PendingWrite { checkpoint:Checkpoint; resolve:()=>void; reject:(error:Error)=>void }
 const fixture=vi.hoisted(()=>({
  saved:null as Checkpoint|null,rooms:[] as MockRoom[],peers:[] as Peer[],writes:[] as PendingWrite[],reads:0,
- readGate:undefined as Promise<void>|undefined,
+ readGate:undefined as Promise<void>|undefined,diagnostics:[] as unknown[],
 }));
 vi.mock('cloudflare:workers',()=>({DurableObject:class{constructor(public ctx:unknown,public env:unknown){}}}));
 vi.mock('../../src/save/room-storage',()=>({
  readRoom:async()=>{fixture.reads++;await fixture.readGate;return{checkpoint:structuredClone(fixture.saved),recovered:false,revision:fixture.saved?'saved':undefined};},
- writeRoom:async(_storage:unknown,checkpoint:Checkpoint)=>{await new Promise<void>((resolve,reject)=>fixture.writes.push({checkpoint:structuredClone(checkpoint),resolve:()=>{fixture.saved=structuredClone(checkpoint);resolve();},reject}));return'revision';},
+ writeRoom:async(_storage:unknown,checkpoint:Checkpoint,onPhase?:(phase:'transaction-commit')=>void)=>{onPhase?.('transaction-commit');await new Promise<void>((resolve,reject)=>fixture.writes.push({checkpoint:structuredClone(checkpoint),resolve:()=>{fixture.saved=structuredClone(checkpoint);resolve();},reject}));return'revision';},
 }));
 vi.mock('../../src/networking/coop-identity',()=>({authenticateCoopPacket:async(text:string)=>({text,playerId:'player'})}));
 vi.mock('../../src/networking/authority-room',()=>({AuthorityRoom:class{
@@ -22,7 +22,7 @@ vi.mock('../../src/networking/authority-room',()=>({AuthorityRoom:class{
  disconnect(id:string){this.wires.delete(id);}
  receive(id:string,text:string){const wire=this.wires.get(id);if(!wire||this.readOnly)return{changed:false};const packet=JSON.parse(text) as Packet;if(packet.type==='mutate'){this.value=packet.value!;return{changed:true,acknowledgment:()=>wire.send({type:'ack'})};}wire.send({type:'pong'});return{changed:false};}
  step(){this.authority.sim.tick++;}notice(){}checkpoint(){if(this.readOnly)throw Error('Read only');return{value:this.value,locked:this.locked,members:[...this.members]};}
- recordPersistedRevision(){}failPersistence(){if(this.readOnly)return;this.readOnly=true;for(const wire of this.wires.values())wire.close(1011,'Persistence uncertain');}
+ recordPersistedRevision(){}failPersistence(diagnostic?:unknown){if(this.readOnly)return;fixture.diagnostics.push(diagnostic);this.readOnly=true;for(const wire of this.wires.values())wire.close(1011,'Persistence uncertain');}
 }}));
 interface MockRoom {
  authority:{sim:{tick:number}};readOnly:boolean;value:number;locked:boolean;members:string[];readonly size:number;
@@ -42,7 +42,7 @@ const request=()=>new Request('https://preview.test/coop/'+'a'.repeat(48),{heade
 const settle=async()=>{for(let i=0;i<20;i++)await Promise.resolve();};
 beforeEach(()=>{
  vi.useFakeTimers({toFake:['setTimeout','clearTimeout','Date','performance']});vi.setSystemTime(0);
- fixture.saved=null;fixture.rooms=[];fixture.peers=[];fixture.writes=[];fixture.reads=0;fixture.readGate=undefined;
+ fixture.saved=null;fixture.rooms=[];fixture.peers=[];fixture.writes=[];fixture.reads=0;fixture.readGate=undefined;fixture.diagnostics=[];
  vi.stubGlobal('scheduler',{wait:(delay:number,{signal}:{signal:AbortSignal})=>new Promise<void>((resolve,reject)=>{const timer=setTimeout(resolve,delay);signal.addEventListener('abort',()=>{clearTimeout(timer);reject(signal.reason);},{once:true});})});
  vi.stubGlobal('WebSocketPair',class{0=new Peer();1=new Peer();constructor(){fixture.peers.push(this[1]);}});
  vi.stubGlobal('Response',class{status:number;constructor(public body:unknown,options:{status:number}){this.status=options.status;}});
@@ -102,4 +102,14 @@ it('does not let delayed old close or failure callbacks discard a replacement ge
 it('treats a send failure as an idempotent disconnect even without a platform close event',async()=>{
  const{worker,pending}=await setup();fixture.peers[0].sendFails=true;fixture.peers[0].emit('message','{"type":"ping"}');await settle();expect(worker.room?.size).toBe(0);expect(worker.timer).toBeUndefined();
  await vi.advanceTimersByTimeAsync(80);fixture.writes[0].resolve();await Promise.all(pending);expect(worker.room).toBeNull();
+});
+
+it.each(['checkpoint','transaction-commit','record-revision'] as const)('keeps a safe %s diagnostic through worker failure without ACK',async phase=>{
+ const{worker,pending}=await setup(),room=worker.room!,secret='fake-token https://private.invalid/room-id',cause=Error(secret+' SQLITE_FULL');
+ if(phase==='checkpoint')vi.spyOn(room as unknown as {checkpoint:()=>unknown},'checkpoint').mockImplementation(()=>{throw cause;});
+ if(phase==='record-revision')vi.spyOn(room,'recordPersistedRevision').mockImplementation(()=>{throw cause;});
+ fixture.peers[0].emit('message','{"type":"mutate","value":9}');await settle();await vi.advanceTimersByTimeAsync(80);
+ if(phase==='transaction-commit')fixture.writes[0].reject(cause);else if(phase==='record-revision')fixture.writes[0].resolve();
+ await Promise.all(pending);expect(fixture.diagnostics).toEqual([{phase,category:'storage-full'}]);expect(room.readOnly).toBe(true);
+ expect(fixture.peers[0].closed).toContainEqual({code:1011,reason:'Persistence uncertain'});expect(fixture.peers[0].sent).not.toContain('{"type":"ack"}');expect(JSON.stringify(fixture.peers[0].sent)).not.toContain(secret);
 });

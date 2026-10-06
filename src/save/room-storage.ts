@@ -1,3 +1,4 @@
+import type {PersistencePhase} from './persistence-diagnostic';
 import {encodeRoomAccess,decodeRoomAccess,overlayRoomAccess} from './room-access';
 import {decodeCheckpoint,encodeCheckpoint,validateCheckpoint,type CheckpointManifest,type SafeCheckpoint} from './checkpoint';
 export interface RoomStorage { get<T=unknown>(key:string):Promise<T|undefined>; put(entries:Record<string,unknown>):Promise<void>; delete(keys:string[]):Promise<unknown>; transaction<T>(fn:(tx:RoomStorage)=>Promise<T>):Promise<T> }
@@ -22,13 +23,19 @@ export async function readRoom(storage:RoomStorage):Promise<{checkpoint:SafeChec
  const parts:string[]=[];for(let i=0;i<count;i++){const part=await storage.get(`world:${i}`);if(typeof part!=='string')throw Error('Incomplete legacy room');parts.push(part);}
  const checkpoint=overlayRoomAccess(validateCheckpoint(JSON.parse(parts.join(''))),access);const revision=await writeRoom(storage,checkpoint);return {checkpoint,recovered:false,revision};
 }
-export async function writeRoom(storage:RoomStorage,checkpoint:SafeCheckpoint):Promise<string>{
- const encoded=await encodeCheckpoint(checkpoint,crypto.randomUUID()),access=checkpoint.access?await encodeRoomAccess(checkpoint.access):undefined;
+export async function writeRoom(storage:RoomStorage,checkpoint:SafeCheckpoint,onPhase?:(phase:PersistencePhase)=>void):Promise<string>{
+ onPhase?.('encode-checkpoint');const encoded=await encodeCheckpoint(checkpoint,crypto.randomUUID());
+ onPhase?.('encode-access');const access=checkpoint.access?await encodeRoomAccess(checkpoint.access):undefined;
+ onPhase?.('transaction-open');
  await storage.transaction(async tx=>{
+  onPhase?.('transaction-read');
   const current=await tx.get<CheckpointManifest>(CURRENT),previous=await tx.get<CheckpointManifest>(PREVIOUS),prior=await tx.get('room-access');if(prior!==undefined&&checkpoint.access){const priorAccess=await decodeRoomAccess(prior);if(priorAccess.revision>checkpoint.access.revision||priorAccess.revision===checkpoint.access.revision&&JSON.stringify(priorAccess)!==JSON.stringify(checkpoint.access))throw Error('古い管理情報では保存を上書きできません');}
-  await putChunks(tx,encoded.segments);await tx.put({...(access?{'room-access':access}:{}),[CURRENT]:encoded.manifest,...(current?{[PREVIOUS]:current}:{})});
+  onPhase?.('transaction-write');await putChunks(tx,encoded.segments);
+  onPhase?.('transaction-pointers');await tx.put({...(access?{'room-access':access}:{}),[CURRENT]:encoded.manifest,...(current?{[PREVIOUS]:current}:{})});
   // A protected invalid generation is no longer a pointer and is intentionally retained.
-  if(previous&&previous.storageVersion===1&&typeof previous.generation==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(previous.generation)&&Number.isInteger(previous.segments)&&previous.segments>0&&previous.segments<=1024&&previous.generation!==current?.generation){const stale=keys(previous);for(let i=0;i<stale.length;i+=128)await tx.delete(stale.slice(i,i+128));}
+  if(previous&&previous.storageVersion===1&&typeof previous.generation==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(previous.generation)&&Number.isInteger(previous.segments)&&previous.segments>0&&previous.segments<=1024&&previous.generation!==current?.generation){onPhase?.('transaction-cleanup');const stale=keys(previous);for(let i=0;i<stale.length;i+=128)await tx.delete(stale.slice(i,i+128));}
+  // The callback has completed; rejection after this point is transaction commit.
+  onPhase?.('transaction-commit');
  });
  return encoded.manifest.generation;
 }
