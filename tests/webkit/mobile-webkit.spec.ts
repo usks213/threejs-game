@@ -152,6 +152,13 @@ test('WebKit saves touch-selected settings and reloads the same campaign',async(
  await page.locator('#restart').tap();
  await page.locator('[data-tab=settings]').tap();
  await expect(volume).toHaveValue(String(saved.settings.volume));
+ const quality=page.getByRole('combobox',{name:'描画品質',exact:true});await quality.scrollIntoViewIfNeeded();
+ await expect(quality).toBeInViewport({ratio:1});await expect(quality).toHaveValue('performance');
+ const face=await quality.evaluate(element=>{const style=getComputedStyle(element);const luminance=(color:string)=>{const channels=color.match(/[\d.]+/g)!.slice(0,3).map(Number).map(value=>{const s=value/255;return s<=.04045?s/12.92:((s+.055)/1.055)**2.4;});return channels[0]*.2126+channels[1]*.7152+channels[2]*.0722;};const fg=luminance(style.color),bg=luminance(style.backgroundColor);return {appearance:style.appearance,color:style.color,background:style.backgroundColor,contrast:(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05)};});
+ // Author-painted face avoids the pale native WebKit background seen in4276b09.
+ // The original select remains keyboard/touch accessible with its native picker.
+ expect(face.appearance).toBe('none');expect(face.contrast).toBeGreaterThanOrEqual(4.5);
+ await testInfo.attach('select-face-readability',{body:JSON.stringify(face,null,2),contentType:'application/json'});
  await page.screenshot({path:testInfo.outputPath('webkit-restored-settings.png')});
  await page.getByRole('button',{name:'探索に戻る',exact:true}).tap();
  await expect(page.locator('#game')).toHaveAttribute('data-running','true');

@@ -1,3 +1,4 @@
+import {createHomesteadPanel} from './homestead-panel';
 import {createInventoryView,freshInventoryDraft} from './inventory-view';
 import type {InventoryViewModel} from './inventory-presenter';
 import {createStorageTransfer} from './storage-transfer-view';
@@ -59,6 +60,7 @@ export function createCampaignUI(onCommand:(command:CampaignCommand)=>void){
  let movingPin='',pendingPin:MapPosition|null=null;
  function clearPinMove(){inventoryDraft.confirmDrop=false;movingPin='';pendingPin=null;delete mapSelection.mode;}
  let snapshot:CampaignUISnapshot|undefined,tab:CampaignTab='inventory',opened=false,lastFocus:HTMLElement|null=null,query='',confirmExpansion=false,confirmNew=false,confirmArchive='',confirmSalvage='',lastRender='';
+ let homesteadPanel:ReturnType<typeof createHomesteadPanel>|null=null;
  let cooperationPanel:ReturnType<typeof createCooperationPanel>|null=null;
  const root=node('section',undefined,'campaign-overlay');root.id='campaign-panel';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-labelledby','campaign-heading');
  const card=node('div',undefined,'campaign-card'),header=node('header',undefined,'campaign-header'),heading=node('h2','旅の記録');heading.id='campaign-heading';
@@ -159,6 +161,7 @@ export function createCampaignUI(onCommand:(command:CampaignCommand)=>void){
   heading.textContent=tabs[tab];summary.textContent=`Lv.${snapshot.stats.level} · XP ${snapshot.stats.xp} · 技能ポイント ${snapshot.stats.skillPoints} · ${snapshot.stats.region}`;
   for(const [name,b] of tabButtons){b.setAttribute('aria-pressed',String(name===tab));b.classList.toggle('selected',name===tab);}
   if(tab==='cooperation'){cooperationPanel??=createCooperationPanel((id,text)=>onCommand({type:'coop',id,text}),cooperationControls,cooperationChatText,signal);if(!body.contains(cooperationPanel.root))body.replaceChildren(cooperationPanel.root);cooperationPanel.update(snapshot.cooperation??unavailableCooperation);return;}
+  if(tab==='homestead'){homesteadPanel??=createHomesteadPanel(row=>rows([row],'').firstElementChild as HTMLElement);if(!body.contains(homesteadPanel.root))body.replaceChildren(homesteadPanel.root);homesteadPanel.update(snapshot.homestead??[]);return;}
   const focused=document.activeElement instanceof HTMLElement&&body.contains(document.activeElement)?document.activeElement:null;const focusedRow=focused?.closest<HTMLElement>('[data-item]')?.dataset.item;const focusedArchive=focused?.closest<HTMLElement>('[data-archive-id]')?.dataset.archiveId;const focusedText=focused?.textContent;const focusedCraftControl=focused?.dataset.craftSelect??(focused?.dataset.command==='craft'?'submit':null);const focusedField=focused instanceof HTMLInputElement?{id:focused.id,start:focused.selectionStart,end:focused.selectionEnd}:null;
   body.replaceChildren();
   if(tab==='inventory'){body.append(node('p',campaignHudText(snapshot.stats).full,'campaign-help'));if(snapshot.inventory)body.append(createInventoryView(snapshot.inventory,inventoryDraft,onCommand,signal));title('素材');body.append(rows(snapshot.materials,'素材は木や岩を削り、近づいて集めます。'));title('道具・食料');body.append(rows(snapshot.items,'まだ道具や食料を持っていません。'));}
@@ -166,7 +169,6 @@ export function createCampaignUI(onCommand:(command:CampaignCommand)=>void){
   if(tab==='equipment'){title('装備');body.append(rows(snapshot.equipment,'装備品は制作して入手します。'));title('技能');body.append(rows(snapshot.skills,'技能は探索と戦闘で解放します。'));}
   if(tab==='codex')body.append(createCodexView(snapshot.codex??[],codexFilter,signal));
   if(tab==='journal'){if(snapshot.personalQuests){body.append(node('h3','この参加者の旅'),rows(snapshot.personalQuests,'同期してから個人の記録を表示します。'),node('h3','世界の共有目標'));}body.append(rows(snapshot.quests,'現在のクエストはありません。'));}
-  if(tab==='homestead')body.append(rows(snapshot.homestead??[],'拠点の炉を灯すと生活設備を利用できます。'));
   if(tab==='map'){
    const data=snapshot.map??campaignMapData([],[],false,null),refs=mapPointReferences(snapshot.points);
    if(movingPin&&!snapshot.points.some(p=>p.id===movingPin))clearPinMove();

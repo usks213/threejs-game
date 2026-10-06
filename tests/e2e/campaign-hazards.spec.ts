@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {PlayerControls,read,choosePerformance} from './helpers/campaign-controls';
 import {expectClearTouchBuildFeedback} from './helpers/hud-layout';
+import {observeNotice} from './helpers/transient-observation';
 test('campaign caster can ignite nearby wood, catch fire, and extinguish with a real aimed water cast',async({page,isMobile},info)=>{
  test.setTimeout(360000);const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));await page.goto('/?test=1&streaming=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await choosePerformance(page,isMobile);if(isMobile)await page.locator('#start').tap();else await page.locator('#start').click();const controls=new PlayerControls(page,isMobile);await controls.initialize();const exposure=()=>page.evaluate(()=>Reflect.get(window,'__coreProbe').environment as {wet:number;burning:number;shock:number});
  try{await controls.walkTo(-.95,6.15);await controls.aim({x:-1.7,y:.58,z:6.25});expect((await read(page)).target).toBe('sample-wood');await controls.action('#cast','KeyG');await expect.poll(async()=>(await exposure()).burning,{timeout:60000}).toBeGreaterThan(0);await expect(page.locator('#campaign-status')).toContainText('炎上');expect((await read(page)).hp).toBeLessThan(100);
@@ -17,6 +18,18 @@ test('campaign caster can ignite nearby wood, catch fire, and extinguish with a 
    await controls.action('#cast','KeyG');
    await page.setViewportSize({width:844,height:390});
   }
-  const p=(await read(page)).position;await controls.aim({x:p.x,y:p.y-.05,z:p.z+.08});await controls.action('#element-switch','KeyF');await expect(page.locator('#element-switch')).toContainText('水');await controls.action('#cast','KeyG');await expect.poll(async()=>(await exposure()).wet,{timeout:60000}).toBeGreaterThan(0);expect((await exposure()).burning).toBe(0);expect((await read(page)).hp).toBeGreaterThan(0);await page.screenshot({path:info.outputPath('water-extinguished-caster.png')});expect(errors).toEqual([]);
+  const p=(await read(page)).position;await controls.aim({x:p.x,y:p.y-.05,z:p.z+.08});await controls.action('#element-switch','KeyF');await expect(page.locator('#element-switch')).toContainText('水');await controls.action('#cast','KeyG');await expect.poll(async()=>(await exposure()).wet,{timeout:60000}).toBeGreaterThan(0);expect((await exposure()).burning).toBe(0);expect((await read(page)).hp).toBeGreaterThan(0);await page.screenshot({path:info.outputPath('water-extinguished-caster.png')});
+  // Fire inflicted real damage above. Prove that another finger can consume
+  // the one owned flask while guard remains held, without granting HP/items.
+  const injured=(await read(page)).hp;expect(injured).toBeLessThan(100);await controls.shield(true);
+  await expect(page.locator('#heal')).toContainText('×1');const healing=await observeNotice(page,'#heal','服薬中');
+  try{
+   await controls.action('#heal','KeyQ');await controls.assertShieldHeld();
+   await expect.poll(()=>healing.read()).not.toBeNull();
+   await expect.poll(async()=>(await read(page)).hp).toBeGreaterThan(injured);
+   await expect.poll(async()=>(await read(page)).phase).toBe('idle');
+   await expect(page.locator('#heal')).toContainText('×0');await controls.assertShieldHeld();
+  }finally{await healing.dispose();await controls.shield(false);}
+  expect(errors).toEqual([]);
  }finally{await controls.dispose();}
 });

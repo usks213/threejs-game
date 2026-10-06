@@ -83,5 +83,10 @@ body:not(.campaign-mode) .values{width:max-content;max-width:100%}
  .campaign-mode.touch.building-mode #combat-status{flex:0 1 auto}
  .campaign-mode.touch.building-mode .focus{top:auto;bottom:calc(max(6px,env(safe-area-inset-bottom)) + 54px);left:calc(max(25px,env(safe-area-inset-left)) + 114px);right:calc(max(22px,env(safe-area-inset-right)) + 168px);width:auto;transform:none;text-align:left}
  .campaign-mode.touch.building-mode .equipment{left:calc(max(25px,env(safe-area-inset-left)) + 114px)}
- .campaign-mode.touch.building-mode #move-pad,.campaign-mode.touch.building-mode .touch-actions,.campaign-mode.touch.building-mode .equipment{bottom:max(6px,env(safe-area-inset-bottom))}
+.campaign-mode.touch.building-mode #move-pad,.campaign-mode.touch.building-mode .touch-actions,.campaign-mode.touch.building-mode .equipment{bottom:max(6px,env(safe-area-inset-bottom))}
 }
+
+/* WebKit's native select face can ignore a dark author background while using
+ * its light text. Keep the native picker/keyboard behavior, but paint the face. */
+.campaign-overlay select:not([multiple]){color-scheme:dark;-webkit-appearance:none;appearance:none;background-color:#101d22;color:#eee5d4;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23eee5d4' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-size:12px 8px;background-position:right 12px center}
+.campaign-overlay select:focus-visible{outline:2px solid #e3cca0;outline-offset:2px}

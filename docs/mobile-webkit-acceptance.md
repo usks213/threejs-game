@@ -58,3 +58,13 @@ remain separate acceptance work.
 Official Playwright references: [browser/dependency installation](https://playwright.dev/docs/browsers),
 [device emulation](https://playwright.dev/docs/emulation), and
 [touchscreen API](https://playwright.dev/docs/api/class-touchscreen).
+
+## Exact engine result and visual follow-up
+
+Run37406668087 passed all three cases on4276b09 without retries; artifact11387589938 was downloaded and its pixels inspected. Campaign rendering, portrait pause and the restored settings panel are visible. These results establish Linux WebKit engine coverage, not physical iPhone/Safari performance.
+
+The restored-settings image exposed pale selected text on WebKit's light native
+dropdown face. The next correction paints the select face explicitly with the
+existing dark palette, while retaining the native picker and keyboard behavior.
+The case scrolls the graphics select fully into view, records foreground and
+background contrast, and captures another image for actual pixel review.

@@ -17,3 +17,18 @@ Every step revalidates safety before and after advancing. Cancellation, another 
 - iPhone Safari, physical controllers and real-device performance have not been verified here.
 
 This is one fixed canopy bed, not free-positioned furniture or a character lying-down animation. Other furniture remains the existing bounded homestead implementation. It is not full original-game furniture breadth or overnight offline production.
+
+## Stable live Cancel target (2026-10-06)
+
+The Android acceptance trace exposed a live-view defect: each countdown snapshot
+rebuilt the homestead controls before a touch tap could finish. The homestead
+panel now reconciles rows by identity and updates only the countdown text for
+an active rest. Unchanged controls remain attached even when other life rows
+change. Unit regressions cover 100 live updates, action delivery, completion,
+eligibility changes and row removal. The existing ordinary PC/Android bed route
+also checks that the original cancel element stays connected through a real
+countdown update before tapping it. No assertion timeout is relaxed.
+
+Typecheck and production build passed locally. Exact-commit browser acceptance
+remains pending; the local environment cannot launch the required Chromium
+socket/WebGL path, so those previously established restrictions are not retried.

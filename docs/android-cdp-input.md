@@ -108,3 +108,9 @@ listeners are removed so a later compatibility click cannot double-consume.
 Unit input tests retain a shield contact while a second finger activates each
 button exactly once. The driver also reserves6m of enemy separation before
 attempting the interruptible1.6-second flask action. Browser proof is pending.
+
+A dedicated browser regression now reuses the real fire-and-water route: after
+actual damage and extinguishing, it holds the shield while consuming the one
+owned flask, observes the visible healing phase, checks HP gain and the zero
+remaining-flask HUD, and confirms the guard contact survived. No damage, HP or
+item state is seeded. The new assertion awaits its own browser run.
