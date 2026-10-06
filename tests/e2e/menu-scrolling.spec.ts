@@ -22,23 +22,32 @@ async function ready(page:Page){
 const scrollState=(page:Page,id:string)=>page.locator('#'+id).evaluate(el=>({top:el.scrollTop,max:el.scrollHeight-el.clientHeight}));
 /** Native Chromium touch input: logical up becomes physical right in portrait.
  * No synthetic DOM events or scrollTop assignments are used to make menus move. */
-async function swipe(page:Page,cdp:CDPSession,id:string,options:{button?:boolean;reverse?:boolean}={}){
- const path=await page.locator('#'+id).evaluate((panel,options)=>{
+async function swipePath(page:Page,id:string,options:{button?:boolean;reverse?:boolean}={}){
+ return page.locator('#'+id).evaluate((panel,options)=>{
   const rotated=document.querySelector<HTMLElement>('#app')!.dataset.rotated==='true';
   const logical=(r:DOMRect)=>rotated?{left:r.top,right:r.bottom,top:innerWidth-r.right,bottom:innerWidth-r.left}:r;
+  const physical=(x:number,y:number)=>rotated?{x:innerWidth-y,y:x}:{x,y};
   const box=logical(panel.getBoundingClientRect());let x=box.left+(box.right-box.left)*.2,y=options.reverse?box.top+30:box.bottom-30;
   if(options.button){
-   const buttons=[...panel.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')].map(el=>({el,r:logical(el.getBoundingClientRect())})).filter(({el,r})=>el.getClientRects().length&&r.top>=box.top+75&&r.bottom<=box.bottom-8&&r.left>=box.left&&r.right<=box.right).sort((a,b)=>b.r.bottom-a.r.bottom);
-   if(!buttons.length)throw Error('No fully visible button for native swipe in '+panel.id);
-   const r=buttons[0].r;x=(r.left+r.right)/2;y=(r.top+r.bottom)/2;
+   // A button can be touched when only part of it is visible. Use the clipped
+   // touchable region, not a fully-contained bounding box or a header cutoff.
+   const buttons=[...panel.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')].filter(el=>el.getClientRects().length).map(el=>{
+    const r=logical(el.getBoundingClientRect()),left=Math.max(r.left,box.left+3),right=Math.min(r.right,box.right-3),top=Math.max(r.top,box.top+3),bottom=Math.min(r.bottom,box.bottom-3);
+    return {el,left,right,top,bottom,x:(left+right)/2,y:(top+bottom)/2};
+   }).filter(r=>r.right-r.left>=8&&r.bottom-r.top>=8&&r.y-(box.top+25)>=60).sort((a,b)=>b.y-a.y);
+   const target=buttons.find(candidate=>{const point=physical(candidate.x,candidate.y);return document.elementFromPoint(point.x,point.y)?.closest('button')===candidate.el;});
+   if(!target)return null;
+   x=target.x;y=target.y;
   }
   const endY=options.reverse?Math.min(box.bottom-30,y+140):options.button?box.top+25:Math.max(box.top+25,y-140);
-  const physical=(x:number,y:number)=>rotated?{x:innerWidth-y,y:x}:{x,y};
   const start=physical(x,y),end=physical(x,endY),target=document.elementFromPoint(start.x,start.y);
   if(!target||!panel.contains(target))throw Error('Swipe target is outside '+panel.id);
-  if(options.button&&!target.closest('button'))throw Error('Swipe must begin on a button');
+  if(options.button&&(!target.closest('button')||(target.closest('button') as HTMLButtonElement).disabled))throw Error('Swipe must begin on an enabled button');
   return {start,end};
  },options);
+}
+async function swipe(page:Page,cdp:CDPSession,id:string,options:{button?:boolean;reverse?:boolean}={}){
+ const path=await swipePath(page,id,options);if(!path)throw Error('No visible enabled button with sufficient native swipe travel in '+id);
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...path.start,id:61}]});
  for(let step=1;step<=10;step++){
   await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:path.start.x+(path.end.x-path.start.x)*step/10,y:path.start.y+(path.end.y-path.start.y)*step/10,id:61}]});
@@ -46,6 +55,18 @@ async function swipe(page:Page,cdp:CDPSession,id:string,options:{button?:boolean
  }
  // Let the final position settle before release rather than testing fling timing.
  await page.waitForTimeout(100);await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+}
+/** Reach an enabled button using actual scrolling, even if the current section
+ * only contains selectors or disabled controls. Navigation is excluded from the
+ * subsequent button-swipe displacement assertion. */
+async function prepareButtonSwipe(page:Page,cdp:CDPSession,id:string){
+ while(!await swipePath(page,id,{button:true})){
+  const before=await scrollState(page,id);
+  if(before.max-before.top<25)throw Error('Reached menu end without a hit-testable enabled swipe button in '+id);
+  await swipe(page,cdp,id);
+  await expect.poll(async()=>(await scrollState(page,id)).top).toBeGreaterThan(before.top+10);
+ }
+ return scrollState(page,id);
 }
 const modes=[{open:'adventure-menu',panel:'adventure-panel',tab:'bag'},{open:'adventure-menu',panel:'adventure-panel',tab:'craft'},{open:'powers-menu',panel:'powers-panel'},{open:'system-menu',panel:'system-panel'}];
 async function openMenu(page:Page,mode:typeof modes[number],touch:boolean){
@@ -69,11 +90,13 @@ test('survival adventure menu scrolling uses native swipes from buttons in lands
    // A short inventory may already be near the end after the first swipe.
    // Move back with a real gesture to leave room for the button-start check.
    if(before.max-before.top<50){await swipe(page,cdp,mode.panel,{reverse:true});before=await scrollState(page,mode.panel);}
+   before=await prepareButtonSwipe(page,cdp,mode.panel);
    expect(before.max-before.top).toBeGreaterThan(20);
    const clicks=await page.evaluate(()=>(window as ObservedWindow).menuScrollEvidence.clicks);
    await swipe(page,cdp,mode.panel,{button:true});await expect.poll(async()=>(await scrollState(page,mode.panel)).top).toBeGreaterThan(before.top+Math.min(20,(before.max-before.top)/2));
    expect(await page.evaluate(()=>(window as ObservedWindow).menuScrollEvidence.clicks),'A scroll beginning on a button must not activate it').toBe(clicks);
    await expect(panel).toBeVisible();expect(await page.locator('#app').getAttribute('data-camera-yaw')).toBe(yaw);expect(await page.locator('#app').getAttribute('data-camera-pitch')).toBe(pitch);
+   if(mode.tab==='bag')await page.screenshot({path:info.outputPath('menu-scroll-'+(size.height>size.width?'portrait':'landscape')+'.png'),scale:'css'});
    const down=await scrollState(page,mode.panel);await swipe(page,cdp,mode.panel,{reverse:true});await expect.poll(async()=>(await scrollState(page,mode.panel)).top).toBeLessThan(down.top-20);
    await page.keyboard.press('Escape');await expect(panel).toBeHidden();
   }
