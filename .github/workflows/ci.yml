@@ -225,6 +225,36 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+  regional-campaign-browser:
+    # A separate end-to-end campaign budget. Existing short/chapter jobs and
+    # their assertions/timeouts are unchanged. Desktop proof comes first.
+    needs: verify
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- tests/e2e/campaign-regional-playthrough.spec.ts --project=desktop-chromium
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regional-campaign-desktop
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
   streamed-world-browser:
     needs: verify
     strategy:

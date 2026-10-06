@@ -29,12 +29,18 @@ export class PlayerControls {
  async dispose(){if(!this.mobile)for(const key of ['KeyW','KeyS','KeyA','KeyD','KeyZ','ShiftLeft','Home','End','PageUp','PageDown'])await this.page.keyboard.up(key).catch(()=>{});if(this.touch){await this.endTouch().catch(()=>{});await this.touch.detach().catch(()=>{});this.touch=null;}}
  async action(selector:string,key:string){
   if(!this.mobile){if(key==='KeyR'){await this.page.keyboard.down(key);try{await expect.poll(()=>this.page.locator('#combat-status').textContent()).toContain('強撃準備完了');}finally{await this.page.keyboard.up(key);}}else await this.page.keyboard.press(key);return;}
+  // Digit1/2 select a mode; the touch control toggles. Equipping a weapon
+  // already selects it, so blindly tapping here used to return mobile ranged
+  // routes to the chisel and silently disable their shield.
+  const requestedTool=selector==='#tool-switch'&&(key==='Digit1'||key==='Digit2')?key==='Digit2':null;
+  if(requestedTool!==null&&(await read(this.page)).tool===requestedTool)return;
   // Use a real touch on the visible control. Locator.tap's scrolling/stability
   // round trips can consume an entire combat opening on software-rendered CI.
   const control=this.page.locator(selector);await expect(control).toBeEnabled();
   const point=await control.evaluate(element=>{const r=element.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,hit=document.elementFromPoint(x,y);return {x,y,visible:r.width>0&&r.height>0&&!!hit&&element.contains(hit)};});
   expect(point.visible,'The real action control must be visible and unobstructed').toBe(true);
   await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:9,x:point.x,y:point.y}]});this.liveTouch=true;try{if(key==='KeyR')await expect.poll(()=>this.page.locator('#combat-status').textContent()).toContain('強撃準備完了');}finally{await this.endTouch();}
+  if(requestedTool!==null)await expect.poll(async()=>(await read(this.page)).tool).toBe(requestedTool);
  }
  async aim(point:Point,guarded=false){
   if(guarded)await this.shield(true);
@@ -49,7 +55,17 @@ export class PlayerControls {
    if(Math.abs(yawError)<.015&&Math.abs(pitchError)<.015)return;
    if(this.mobile){
     const mx=-yawError/.004,my=-pitchError/.004,steps=Math.max(1,Math.ceil(Math.max(Math.abs(mx)/140,Math.abs(my)/65)));
-    for(let i=0;i<steps;i++){const location=await this.lookPoint(),before=await motion(this.page),finger={...location,id:7};await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[...shieldFinger,finger]});this.liveTouch=true;await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[...shieldFinger,{...finger,x:finger.x+mx/steps,y:finger.y+my/steps}]});if(guarded)await this.touch!.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:shieldFinger});else await this.endTouch();await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player died during a touch-look gesture').toBeGreaterThan(0);return Math.abs(angle(p.yaw-before.yaw))+Math.abs(p.pitch-before.pitch);},{timeout:15000,intervals:[50,100]}).toBeGreaterThan(.001);}
+    for(let i=0;i<steps;i++){
+     const location=await this.lookPoint(),before=await motion(this.page),finger={...location,id:7};
+     await this.touch!.send('Input.dispatchTouchEvent',{type:guarded?'touchMove':'touchStart',touchPoints:[...shieldFinger,finger]});this.liveTouch=true;
+     await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[...shieldFinger,{...finger,x:finger.x+mx/steps,y:finger.y+my/steps}]});
+     // Android pins SyntheticPointerActions: additions and removals use
+     // touchMove while a contact exists. Empty touchEnd releases every finger.
+     // A changed active set on touchMove
+     // releases only the look finger while the actual shield contact stays down.
+     if(guarded){await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:shieldFinger});await this.assertShieldHeld();}else await this.endTouch();
+     await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player died during a touch-look gesture').toBeGreaterThan(0);return Math.abs(angle(p.yaw-before.yaw))+Math.abs(p.pitch-before.pitch);},{timeout:15000,intervals:[50,100]}).toBeGreaterThan(.001);
+    }
    }
   }
   const p=await motion(this.page),yaw=Math.atan2(-(point.x-p.position.x),-(point.z-p.position.z)),pitch=Math.atan2(point.y-p.position.y-1.52,Math.hypot(point.x-p.position.x,point.z-p.position.z));
@@ -111,15 +127,38 @@ export class PlayerControls {
   const precise=length<2.25;let restoreTool=false,guard=false,movementFailed=false;
   // Use the actual analog stick for small touch corrections. Keyboard players
   // can raise their guard to walk carefully; restore a selected tool afterward.
-  if(!this.mobile&&precise){restoreTool=(await read(this.page)).tool;if(restoreTool){await this.action('#tool-switch','Digit1');await expect.poll(async()=>(await read(this.page)).tool).toBe(false);}guard=await this.page.locator('[data-action=block]').isEnabled();}
+  if(!this.mobile&&precise){restoreTool=(await read(this.page)).tool;if(restoreTool){await this.action('#tool-switch','Digit1');await expect.poll(async()=>(await read(this.page)).tool).toBe(false);}
+   // Core mode changes before the next HUD update. Read the rendered mode
+   // before deciding whether the real shield control is available.
+   await expect(this.page.locator('#tool-switch')).toContainText(/^1 /);guard=await this.page.locator('[data-action=block]').isEnabled();}
   try{
    if(this.mobile){const box=await this.page.locator('#move-pad').boundingBox();expect(box).not.toBeNull();const magnitude=precise?Math.min(.65,Math.max(.1,length/3)):1;await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:box!.x+box!.width/2,y:box!.y+box!.height/2-box!.width*.32*magnitude}]});this.liveTouch=true;}
-   else {if(guard)await this.page.keyboard.down('KeyZ');await this.page.keyboard.down('KeyW');}
+   else {if(guard)await this.page.keyboard.down('KeyZ');if(!precise)await this.page.keyboard.down('KeyW');}
    const brake=precise?Math.min(.12,length*.3):1.2;
-   await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(brake);
+   if(!this.mobile&&precise)await this.pulseDesktopWalk(x,z,dx,dz,length,brake,guard);
+   else await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(brake);
   }catch(error){movementFailed=true;throw error;}finally{try{if(this.mobile)await this.endTouch();else {await this.page.keyboard.up('KeyW');if(guard)await this.page.keyboard.up('KeyZ');}}catch(error){if(!movementFailed)throw error;}}
   const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[50,100]}).toBeGreaterThan(seconds+.3);
   if(restoreTool){await this.action('#tool-switch','Digit2');await expect.poll(async()=>(await read(this.page)).tool).toBe(true);}
+ }
+ private async pulseDesktopWalk(x:number,z:number,dx:number,dz:number,length:number,brake:number,guard:boolean){
+  const started=Date.now(),remaining=(p:Awaited<ReturnType<typeof motion>>)=>((x-p.position.x)*dx+(z-p.position.z)*dz)/length;
+  let metresPerMs=(guard?1.05:2.5)/1000;
+  // These are pulses within one already aimed segment, not extra waypoint
+  // correction attempts. Five corrections and the .18m final gate stay above.
+  for(let pulse=0;pulse<24;pulse++){
+   const before=await motion(this.page);expect(before.hp,'Precision movement must preserve life').toBeGreaterThan(0);const distance=remaining(before);if(distance<brake)return;
+   expect(Date.now()-started,'Precision input retains the existing 60-second segment budget').toBeLessThan(60000);
+   const delay=Math.max(50,Math.min(200,(distance-brake)*.65/metresPerMs));
+   // The server releases W before we request telemetry. Read/poll round trips
+   // can no longer extend the held input past an observed arrival threshold.
+   await this.page.keyboard.press('KeyW',{delay});
+   const released=await motion(this.page);await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Settling a real key pulse must preserve life').toBeGreaterThan(0);return p.seconds;},{timeout:Math.max(1,60000-(Date.now()-started)),intervals:[50,100]}).toBeGreaterThan(released.seconds+.3);
+   const settled=await motion(this.page),travelled=distance-remaining(settled);
+   if(travelled>0)metresPerMs=Math.max(metresPerMs*.75,travelled/delay);
+   if(remaining(settled)<brake)return;
+  }
+  expect(remaining(await motion(this.page)),'A bounded sequence of released key pulses must reach the existing segment brake').toBeLessThan(brake);
  }
  async gather(material:number,minimum:number,points:Point[],object:string){
   for(let i=0;i<20&&(await read(this.page)).inventory[material]<minimum;i++){
@@ -146,10 +185,11 @@ export class PlayerControls {
  async resume(){const button=this.page.getByRole('button',{name:'探索に戻る',exact:true});if(this.mobile)await button.tap();else await button.click();await expect(this.page.locator('#game')).toHaveAttribute('data-running','true');}
  async row(id:string,action:string){const button=this.page.locator(`[data-item="${id}"] [data-command="${action}"]`);await expect(button).toBeEnabled();if(this.mobile)await button.tap();else await button.click();}
  async interact(id:string,point:Point){await this.aim(point);await expect(this.page.locator('#game')).toHaveAttribute('data-target',id);await this.action('[data-action="interact"]','KeyE');}
+ async assertShieldHeld(){await expect.poll(()=>this.page.evaluate(()=>Boolean((Reflect.get(window,'__inputProbe') as {controls:{block:boolean}}).controls.block))).toBe(true);}
  async shield(held:boolean){
-  if(held&&this.shieldHeld)return;
+  if(held&&this.shieldHeld){await this.assertShieldHeld();return;}
   if(!this.mobile){if(held)await this.page.keyboard.down('KeyZ');else await this.page.keyboard.up('KeyZ');this.shieldHeld=held;return;}
-  if(!held){await this.endTouch();return;}const box=await this.page.locator('[data-action="block"]').boundingBox();expect(box).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:8,x:box!.x+box!.width/2,y:box!.y+box!.height/2}]});this.liveTouch=true;this.shieldHeld=true;
+  if(!held){await this.endTouch();return;}await expect(this.page.locator('[data-action=block]')).toBeEnabled();const box=await this.page.locator('[data-action="block"]').boundingBox();expect(box).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:8,x:box!.x+box!.width/2,y:box!.y+box!.height/2}]});this.liveTouch=true;this.shieldHeld=true;await this.assertShieldHeld();
  }
  async retreat(){
   const state=await read(this.page),start=state.seconds;

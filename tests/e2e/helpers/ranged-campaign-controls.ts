@@ -60,7 +60,14 @@ export class RangedCampaignControls {
     // Aiming can consume an old recovery. Counter a newly observed opening.
     if(['recover','stagger'].includes((await readMotion(this.page)).enemies[index].phase))await expect.poll(async()=>{const state=await readMotion(this.page);expect(state.hp).toBeGreaterThan(0);return state.enemies[index].hp<=0||!['recover','stagger'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
     await expect.poll(async()=>{const state=await readMotion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return ['recover','stagger','dead'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
+    // The newly observed attack changes pose/position after the earlier aim.
+    // A damaged torso can leave that ray in empty space. Reacquire surviving
+    // material through the real reticle while the shield is still held.
+    if((await readMotion(this.page)).enemies[index].hp>0)await this.aimEnemy(index);
     p=await readRanged(this.page);if(p.enemies[index].hp<=0)break;
+    // Precision look may consume this opening. Keep the same 28-round bound
+    // and start another guarded cycle instead of committing a stale shot/cast.
+    if(!['recover','stagger'].includes(p.enemies[index].phase))continue;
     // Real guard contacts during the aiming/waiting interval can exhaust the
     // action budget. Recover with the normal movement route on the next turn.
     if(p.stamina<(this.build==='staff'?18:8))continue;

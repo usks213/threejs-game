@@ -1,18 +1,15 @@
-import {test,expect} from '@playwright/test';
-import {PlayerControls,read,choosePerformance} from './helpers/campaign-controls';
+import {test,expect,type Page,type TestInfo} from '@playwright/test';
+import {PlayerControls,read} from './campaign-controls';
 
-test('campaign first chapter through normal keyboard or touch play: rescue, gear, grapple, glide, warden and ridge',async({page,isMobile},testInfo)=>{
- test.setTimeout(1800000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Actual Android touches':'Production keyboard-look, T attack and Z held shield; no relative-mouse claim'});
- const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});
- expect((await read(page)).campaign.flameTier).toBe(0);expect((await read(page)).inventory[4]).toBe(0);
- await choosePerformance(page,isMobile);
- if(isMobile)await page.locator('#start').tap();else await page.locator('#start').click();await expect(page.locator('#game')).toHaveAttribute('data-running','true');const controls=new PlayerControls(page,isMobile);await controls.initialize();
- const checkpoint=async(name:string)=>{const p=await read(page);expect(p.hp).toBeGreaterThan(0);expect(p.campaign.deaths).toBe(0);await testInfo.attach(name,{body:JSON.stringify({position:p.position,hp:p.hp,stamina:p.stamina,enemies:p.enemies.map((enemy,index)=>({index,...enemy,distance:Math.hypot(enemy.position.x-p.position.x,enemy.position.z-p.position.z)})),inventory:p.inventory,campaign:p.campaign},null,2),contentType:'application/json'});};
- try{
+/** The established browser first chapter, with sixteen additionally harvested
+ * stone for fourteen final mana doses and the net late gear-upgrade reserve,
+ * plus five grass to cover guaranteed medicine/food costs. The existing case
+ * is unchanged. All inputs, waypoint tolerance and harvest bounds are shared. */
+export async function regionalFirstChapter(page:Page,controls:PlayerControls,testInfo:TestInfo,checkpoint:(name:string)=>Promise<void>){
   await test.step('Harvest a real material budget and establish the hearth',async()=>{
    await controls.walkTo(-.55,6.15);await controls.action('#tool-switch','Digit2');await controls.gather(4,24,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95},{x:-2.2,y:.58,z:6.25},{x:-2.2,y:.58,z:6.95}],'sample-wood');
-   await controls.walkTo(-.55,5.25);await controls.walkTo(-3.45,5.25);await controls.walkTo(-3.45,6.35);await controls.gather(3,6,[{x:-4.2,y:.55,z:6.8},{x:-4.5,y:.55,z:6.8},{x:-4.5,y:.65,z:6.5}],'sample-stone');
-   await controls.walkTo(-3.45,6.65);await controls.gather(7,14,[{x:-3.45,y:.5,z:7.9},{x:-3.1,y:.5,z:7.9},{x:-3.8,y:.5,z:7.9}],'sample-grass');
+   await controls.walkTo(-.55,5.25);await controls.walkTo(-3.45,5.25);await controls.walkTo(-3.45,6.35);await controls.gather(3,22,[{x:-4.2,y:.55,z:6.8},{x:-4.5,y:.55,z:6.8},{x:-4.5,y:.65,z:6.5}],'sample-stone');
+   await controls.walkTo(-3.45,6.65);await controls.gather(7,19,[{x:-3.45,y:.5,z:7.9},{x:-3.1,y:.5,z:7.9},{x:-3.8,y:.5,z:7.9}],'sample-grass');
    await controls.walkTo(-3.45,5.3);await controls.walkTo(2.5,5.3);await controls.walkTo(2.5,5.75);await controls.gather(6,4,[{x:2.5,y:.8,z:7.1},{x:2.8,y:.8,z:7.1},{x:2.2,y:.8,z:7.1}],'sample-metal');
    await controls.walkTo(2.5,5.3);await controls.walkTo(-3.5,5.3);await controls.interact('hearth',{x:-3,y:.9,z:4});await expect.poll(async()=>(await read(page)).campaign.flameTier).toBe(1);await checkpoint('01-hearth-materials');
   });
@@ -51,11 +48,6 @@ test('campaign first chapter through normal keyboard or touch play: rescue, gear
    for(const i of [0,1]){const p=await read(page),e=p.enemies[i];if(e.hp>0&&Math.hypot(e.position.x-p.position.x,e.position.z-p.position.z)<8)await controls.fight(i);}
    await checkpoint('04-crypt-threats');
   });
-  await test.step('Talk to the rescued moving smith without receiving rescue rewards again',async()=>{
-   await controls.walkTo(0,5.3);await controls.walkTo(-3.5,5.3);await expect.poll(async()=>(await read(page)).npcLife?.activity).not.toBe('walking');const before=await read(page);expect(before.npcLife).not.toBeNull();expect(before.npcLife!.recovery).toBe('none');
-   const point=before.npcLife!.position;await controls.interact('artisan',{...point,y:point.y+1.1});await expect.poll(async()=>(await read(page)).npcLife?.activity).toBe('talking');
-   const after=await read(page);expect(after.inventory).toEqual(before.inventory);expect(after.campaign.artisanRescued).toBe(true);await page.screenshot({path:testInfo.outputPath('nagi-rescued-conversation.png')});
-  });
   await test.step('Reach the mist from the east perimeter, grapple, and collect the cache',async()=>{
    await controls.healFromInventory();for(const [x,z] of [[0,5.3],[3.5,5.3],[11,5.3],[11,-5.5],[7,-5.5]])await controls.walkTo(x,z);
    await controls.interact('grapple-mist',{x:7,y:4.1,z:-6.8});await expect.poll(async()=>(await read(page)).position.y,{timeout:90000}).toBeGreaterThan(3.15);await expect.poll(async()=>(await read(page)).grapple,{timeout:90000}).toBeNull();
@@ -89,7 +81,4 @@ test('campaign first chapter through normal keyboard or touch play: rescue, gear
    await controls.walkTo(-1.5,-27);await controls.walkTo(0,-28.5);await controls.interact('nextcamp',{x:0,y:3.8,z:-31});await expect.poll(async()=>(await read(page)).campaign.campUnlocked).toBe(true);expect((await read(page)).campaign.completed).toContain('ridge');await checkpoint('11-ridge-camp');
    await page.screenshot({path:testInfo.outputPath('chapter-one-complete.png')});
   });
-  await controls.menu('settings');const save=page.getByRole('button',{name:'今すぐ保存',exact:true});if(isMobile)await save.tap();else await save.click();await expect.poll(async()=>(await read(page)).saveStatus).toContain('保存済み');
- }finally{await controls.dispose();}
- expect(errors).toEqual([]);
-});
+}

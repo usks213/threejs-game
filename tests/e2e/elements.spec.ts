@@ -1,22 +1,16 @@
 import {chargeHeavy} from './helpers/charge-heavy';
+import {PlayerControls} from './helpers/campaign-controls';
 import {test,expect,type Page} from '@playwright/test';
 interface Probe {position:{x:number;y:number;z:number};yaw:number;pitch:number;phase:string;selectedElement:string;selectedRecipe:string;inventory:Record<number,number>;burning:number;wet:number;charged:number;seconds:number;target:string;stats:{remeshes:number}}
 const probe=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__coreProbe') as Probe);
 async function aim(page:Page,isMobile:boolean,point:{x:number;y:number;z:number}){
- const p=await probe(page),dx=point.x-p.position.x,dy=point.y-p.position.y-1.52,dz=point.z-p.position.z;
- const yaw=Math.atan2(-dx,-dz),pitch=Math.atan2(dy,Math.hypot(dx,dz)),yawDelta=Math.atan2(Math.sin(yaw-p.yaw),Math.cos(yaw-p.yaw));
- if(!isMobile){await page.evaluate(({dx,dy})=>document.dispatchEvent(new MouseEvent('mousemove',{movementX:dx,movementY:dy,bubbles:true})),{dx:-yawDelta/.0022,dy:(p.pitch-pitch)/.0022});}
- else {
-  const session=await page.context().newCDPSession(page),mx=-yawDelta/.004,my=(p.pitch-pitch)/.004,steps=Math.max(1,Math.ceil(Math.max(Math.abs(mx)/280,Math.abs(my)/100)));
-  for(let i=0;i<steps;i++){const start={x:550,y:170,id:7};await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[start]});await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...start,x:start.x+mx/steps,y:start.y+my/steps}]});await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
-  await session.detach();
- }
+ const controls=new PlayerControls(page,isMobile);await controls.initialize();
+ try{await controls.aim(point);}finally{await controls.dispose();}
 }
 async function start(page:Page,slow=false){await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});if(slow)await page.locator('#motion-toggle').click();await page.locator('#start').click();await expect(page.locator('#game')).toHaveAttribute('data-running','true');
- // Consume the lock's first ignored motion without changing view.
+ // Desktop uses the production keyboard-look path; mobile uses actual touch.
  if(!await page.evaluate(()=>matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>0))await expect.poll(()=>page.evaluate(()=>!!document.pointerLockElement)).toBe(true);
  await expect.poll(async()=>(await probe(page)).seconds).toBeGreaterThan(.25);
- await page.evaluate(()=>document.dispatchEvent(new MouseEvent('mousemove',{movementX:0,movementY:0,bubbles:true})));
 }
 const action=async(page:Page,mobile:boolean,id:string,key:string)=>{if(mobile)await page.locator('#'+id).tap();else await page.keyboard.press(key);};
 test('elemental fire and water use real aimed controls and pause safely',async({page,isMobile})=>{
@@ -51,5 +45,8 @@ test('elemental enemies burn and extinguish through real input',async({page,isMo
  test.setTimeout(300000);await start(page);if(isMobile){const session=await page.context().newCDPSession(page),r=(await page.locator('#move-pad').boundingBox())!;await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:r.x+r.width/2,y:r.y+10,id:1}]});await expect.poll(async()=>(await probe(page)).position.z).toBeLessThan(3.6);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await session.detach();await page.locator('[data-action=interact]').tap();}else{await page.keyboard.down('KeyW');await expect.poll(async()=>(await probe(page)).position.z).toBeLessThan(3.6);await page.keyboard.up('KeyW');await page.keyboard.press('KeyE');}
  const enemy=()=>page.evaluate(()=>Reflect.get(window,'__coreProbe').enemies[0] as {position:{x:number;y:number;z:number};burning:number;wet:number;hp:number});
  await expect.poll(async()=>{const p=await probe(page),e=await enemy();return Math.hypot(p.position.x-e.position.x,p.position.z-e.position.z);},{timeout:90000}).toBeLessThan(6);
- const point=(e:Awaited<ReturnType<typeof enemy>>)=>({...e.position,y:e.position.y+1.1});await aim(page,isMobile,point(await enemy()));await action(page,isMobile,'cast','KeyG');await expect.poll(async()=>(await enemy()).burning).toBeGreaterThan(0);await page.screenshot({path:`test-results/${isMobile?'mobile':'desktop'}-elemental-enemy.png`});await expect.poll(async()=>(await probe(page)).phase).toBe('idle');await action(page,isMobile,'element-switch','KeyF');await aim(page,isMobile,point(await enemy()));await action(page,isMobile,'cast','KeyG');await expect.poll(async()=>(await enemy()).wet).toBeGreaterThan(0);expect((await enemy()).burning).toBe(0);
+ const point=(e:Awaited<ReturnType<typeof enemy>>)=>({...e.position,y:e.position.y+1.1});await aim(page,isMobile,point(await enemy()));await action(page,isMobile,'cast','KeyG');await expect.poll(async()=>(await enemy()).burning).toBeGreaterThan(0);await page.screenshot({path:`test-results/${isMobile?'mobile':'desktop'}-elemental-enemy.png`});await expect.poll(async()=>(await probe(page)).phase).toBe('idle');await action(page,isMobile,'element-switch','KeyF');
+ // Fire can consume the cloth torso during the screenshot. Aim at the surviving
+ // metal head, and require an actual enemy reticle before the paid water cast.
+ const current=await enemy();await aim(page,isMobile,{...current.position,y:current.position.y+1.62});await expect(page.locator('#enemy-health')).toBeVisible();await action(page,isMobile,'cast','KeyG');await expect.poll(async()=>(await enemy()).wet).toBeGreaterThan(0);expect((await enemy()).burning).toBe(0);
 });
