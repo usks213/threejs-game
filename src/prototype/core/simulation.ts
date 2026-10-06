@@ -25,7 +25,7 @@ import {weatherAt,WeatherReactions} from './weather';
 import {createCampaignSamplePrototype} from './campaign-sample-provider';
 import {StreamedCampaignField} from './streamed-campaign-field';
 import { createArena, creatureVoxels, setDoor } from './world';
-import { direction, type Vec3, type Hit } from './voxel';
+import { direction, VoxelField, type Vec3, type Hit } from './voxel';
 import { VoxelWater } from './water';
 import { ElementSystem,type Element } from './elements';
 import { materialDefinition } from './materials';
@@ -292,9 +292,12 @@ export class CoreSimulation {
   if(this.campaignMode){if(o.id.startsWith('rg-')&&o.kind!=='anchor'){const r=this.campaign.interactRegional(o.id,this.player.position,this.worldHour);if(r.ok){o.open=true;if(o.kind==='resource'||o.kind==='plant'){this.arena.field.removeObject(o.id);this.syncMaterials();}}this.events.push({kind:'interact',text:r.message});return;}if(o.kind==='anchor'){if(!this.campaign.canGrapple){this.events.push({kind:'interact',text:'登り鉤を制作して装備する'});return;}const rp=REGIONAL_POINTS.find(p=>p.id===o.id);this.grapple=rp?{...rp.position,y:rp.position.y+.1}:{x:7.65,y:3.55,z:-7.45};this.grappleTime=0;this.events.push({kind:'interact',text:'鉤縄で引き寄せる'});return;}
    if(o.kind==='plant'){if(!o.open){o.open=true;this.survival.inventory[7]+=4;this.events.push({kind:'interact',text:'食用草葉 ×4'});}return;}
    if(['hearth','artisan','cache','gate'].includes(o.kind)){if(o.id==='forest-chest'||o.id==='ridge-chest'){if(!o.open){o.open=true;this.survival.inventory[6]+=6;this.survival.inventory[10]+=4;this.events.push({kind:'interact',text:'探索報酬 金属6・布4'});}return;}if(o.id==='artisan'&&this.campaign.state.artisanRescued){this.events.push({kind:'interact',text:'ナギ「炉のそばで装備を整えよう。旅の記録から制作できる」'});return;}const result=this.campaign.interact(o.id,this.player.position);if(result.ok&&o.id==='artisan')this.reconcileNpc();this.events.push({kind:'interact',text:result.message});return;}}
-  if(o.kind==='door'){setDoor(this.arena.field,!o.open);
-   if(this.playerBodies().some(position=>this.arena.field.overlaps(position))||this.campaignMode&&this.npcActors.some(actor=>actor.visible&&actor.overlapsTerrain(this.arena.field))||this.enemies.some(e=>e.hp>0&&this.arena.field.overlaps(e.position,.27,1.7))){setDoor(this.arena.field,o.open);this.events.push({kind:'interact',text:'扉が体に当たるため動かせない'});return;}
-   o.open=!o.open;
+  if(o.kind==='door'){
+   // Check the candidate leaf, not unrelated terrain contacts elsewhere in the
+   // world. Use the same sampled SDF and capsule shapes as movement collision.
+   const candidate=new VoxelField(this.arena.field.size);setDoor(candidate,!o.open);
+   if(this.playerBodies().some(position=>candidate.overlaps(position))||this.campaignMode&&this.npcActors.some(actor=>actor.visible&&actor.overlapsTerrain(candidate))||this.enemies.some(e=>e.hp>0&&candidate.overlaps(e.position,.27,1.7))){this.events.push({kind:'interact',text:'扉が体に当たるため動かせない'});return;}
+   setDoor(this.arena.field,!o.open);o.open=!o.open;
   }
   if(o.kind==='chest'&&!o.open){o.open=true;this.player.flasks+=2;this.arena.field.box({x:-3.25,y:1,z:-3.75},{x:-1.75,y:1.25,z:-3},0);this.events.push({kind:'interact',text:'回復薬 ×2'});}
   if(o.kind==='valve')this.waterOn=!this.waterOn;

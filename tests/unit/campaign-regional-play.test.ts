@@ -95,7 +95,9 @@ describe('regional progression through ordinary production Core controls (not br
   for(const [x,z] of [[-7,-48],[-7,-44],[-7,-40],[-7,-33],[-10,-33],[-10,9.5],[0,9.5],[0,5.3],[-3.5,2.2]])d.walk(x,z);
   d.interact('hearth',{x:-3,y:.9,z:4});expect(s.campaign.regionUnlocked('mirrorlake')).toBe(true);
   for(const id of ['iron-blade','hide-coat'])if(s.campaign.gearInfo(id).durability<100)d.menu('gear','repair:'+id);d.menu('gear','upgrade:iron-blade');
-  for(const [x,z] of [[-3.5,5.3],[0,5.3],[0,9.5],[-10,9.5],[-10,1.9],[-6,1.9]])d.walk(x,z);d.act('chisel');d.harvest(7,56,[{x:-5.75,y:3.4,z:3},{x:-5.4,y:3.5,z:3},{x:-6.1,y:3.5,z:3}],'tree0');d.act('sword');for(const [x,z] of [[-10,1.9],[-10,9.5],[0,9.5],[0,5.3],[-3.5,5.3]])d.walk(x,z);
+  // After the near crown is depleted, step around the goat under the remaining
+  // foliage, then return to the approach lane before leaving the tree.
+  for(const [x,z] of [[-3.5,5.3],[0,5.3],[0,9.5],[-10,9.5],[-10,1.9],[-6,1.9]])d.walk(x,z);d.act('chisel');d.harvest(7,56,[{x:-5.75,y:3.4,z:3},{x:-5.4,y:3.5,z:3},{x:-6.1,y:3.5,z:3}],'tree0',()=>d.walk(-6.3,2.8));d.walk(-6,1.9);d.act('sword');for(const [x,z] of [[-10,1.9],[-10,9.5],[0,9.5],[0,5.3],[-3.5,5.3]])d.walk(x,z);
   d.menu('craft','berry-meal');d.menu('consume','berry-meal');for(let n=0;n<8;n++)d.menu('craft','bandage');while(s.campaign.has('bandage')&&s.player.hp<s.campaign.maxHp-10)d.menu('consume','bandage');
   for(const [x,z] of [[0,5.3],[11,5.3],[11,3],[13,3],[13,-40],[13,-44],[15,-45.7]])d.walk(x,z);
   approachDuel(d,s.enemies.findIndex(e=>e.regional===110),9.5,16.5);d.heal();

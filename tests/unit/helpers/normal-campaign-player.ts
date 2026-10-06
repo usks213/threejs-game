@@ -21,7 +21,21 @@ export class NormalPlayer {
  track(point:Vec3){const p=this.sim.player,dx=point.x-p.position.x,dz=point.z-p.position.z,yaw=Math.atan2(-dx,-dz),pitch=Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz));this.sim.look(-angle(yaw-p.yaw),p.pitch-pitch);}
  act(action:Action,input:Partial<Controls>={}){this.sim.action(action,{...neutral,...input});}
  walk(x:number,z:number){this.idle();const start={...this.sim.player.position},dx=x-start.x,dz=z-start.z,len=Math.hypot(dx,dz);if(len<.18)return;this.look({x,y:start.y+1.52,z});this.until(()=>((x-this.sim.player.position.x)*dx+(z-this.sim.player.position.z)*dz)/len<.18,Math.max(6,len*2),{z:1},`walk to ${x},${z}`);this.advance(.25);}
- harvest(material:number,minimum:number,points:Vec3[],object:string){for(let attempt=0;attempt<20&&this.sim.survival.inventory[material]<minimum;attempt++){this.look(points[attempt%points.length]);if(this.sim.target(2.5)?.hit.cell.object!==object)continue;this.act('heavy');expect(this.sim.player.phase,this.diagnostic('harvest strike accepted')).not.toBe('idle');this.idle();this.advance(.4);}expect(this.sim.survival.inventory[material],this.diagnostic('gather material '+material)).toBeGreaterThanOrEqual(minimum);}
+ // A depleted front face can leave finite material farther behind it. An
+ // optional route waypoint changes reach through ordinary walking, once only;
+ // it does not add attempts, alter the world, or relax the resource requirement.
+ harvest(material:number,minimum:number,points:Vec3[],object:string,reposition?:()=>void){
+  let misses=0;
+  for(let attempt=0;attempt<20&&this.sim.survival.inventory[material]<minimum;attempt++){
+   this.look(points[attempt%points.length]);
+   if(this.sim.target(2.5)?.hit.cell.object!==object){
+    if(++misses>=points.length&&reposition){reposition();reposition=undefined;}
+    continue;
+   }
+   misses=0;this.act('heavy');expect(this.sim.player.phase,this.diagnostic('harvest strike accepted')).not.toBe('idle');this.idle();this.advance(.4);
+  }
+  expect(this.sim.survival.inventory[material],this.diagnostic('gather material '+material)).toBeGreaterThanOrEqual(minimum);
+ }
  interact(id:string,point:Vec3){this.look(point);expect(this.sim.target(this.sim.campaign.canGrapple?7:2.75)?.hit.cell.object,this.diagnostic('aim '+id)).toBe(id);this.act('interact');this.tick();}
  menu(type:GameCommand['type'],id:string){const result=executeGameCommand(this.sim,{type,id} as GameCommand);expect(result.ok,this.diagnostic(id+': '+result.message)).toBe(true);}
  heal(){const p=this.sim.player;if(p.hp>=65)return;if(this.sim.campaign.has('bandage'))this.menu('consume','bandage');else if(p.flasks>0){this.act('heal');this.until(()=>p.phase==='idle',4,{},'normal starting flask while stationary');}}
