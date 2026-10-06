@@ -17,13 +17,16 @@ const manual = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
 const config = changed(/^(package(-lock)?\.json|tsconfig.*\.json|vite\.config\.ts)$/);
 // A regression-test fix can unblock source changes on the previous unshipped head.
 // Build/release the exact tested SHA instead of silently leaving that preview stale.
-const gameTests = changed(/^tests\/(unit|e2e)\//);
+const scopeChanged = changed(/^scripts\/ci-scope\.mjs$/);
+const gameTests = scopeChanged || changed(/^tests\/(unit|e2e)\//);
 const game = config || gameTests || changed(/^(src\/|public\/|index\.html$|wrangler\.jsonc$|scripts\/deploy-preview\.mjs$)/);
 const signaling = false; // This isolated adventure never redeploys PR3's signaling service.
 const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/(dedicated|signaling|coop)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
 const host = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/signaling\/|tests\/e2e\/network\.spec\.ts$)/);
 const checks = manual || game || signaling || network || changed(/^tests\/unit\//);
 const patterns = new Set();
+// A test-only swipe correction must select its Android case as well as desktop.
+if (scopeChanged || changed(/^tests\/e2e\/menu-scrolling\.spec\.ts$/)) patterns.add('menu scrolling');
 if (config || changed(/^(index\.html$|src\/main\.ts$|tests\/e2e\/game\.spec\.ts$)/)) patterns.add('core landscape');
 if (changed(/^src\/(input\/|platform\/game\.ts$|physics\/character\.ts$)/)) { patterns.add('starts, moves'); patterns.add('two fingers'); }
 if (changed(/^src\/(world\/|fluid\/|save\/|simulation\/(game-simulation|worker)\.ts$)/)) {patterns.add('water is always available');patterns.add('core landscape');patterns.add('renders equipped');}
