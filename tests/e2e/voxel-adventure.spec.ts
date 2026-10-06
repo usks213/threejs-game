@@ -29,11 +29,28 @@ test('voxel adventure creates, holds, moves, records and releases a visible auth
  await page.screenshot({path:info.outputPath('held-part-layout.png'),scale:'css'});
  if(info.project.name==='android-chromium'){
   await page.setViewportSize({width:568,height:320});
+  // Resize completion and the game's logical-landscape listener are separate.
+  // Do not send coordinates from the preceding wide frame into a small viewport.
+  await expect(page.locator('#game')).toHaveJSProperty('clientWidth',568);
+  await expect(page.locator('#game')).toHaveJSProperty('clientHeight',320);
+  await expect(page.locator('#app')).toHaveAttribute('data-rotated','false');
+  await expect.poll(()=>page.locator('#power-quick-actions').evaluate(el=>el.scrollWidth-el.clientWidth)).toBeGreaterThan(60);
   const compact=await page.locator('#powers-quick').boundingBox(),aimBox=await page.locator('.reticle').boundingBox();expect(compact!.y+compact!.height).toBeLessThan(aimBox!.y);
-  await expect(page.locator('#power-quick-release')).toBeVisible();const area=await page.locator('#power-quick-actions').boundingBox();if(!area)throw Error('Carry controls missing');
+  await expect(page.locator('#power-quick-release')).toBeVisible();let area=await page.locator('#power-quick-actions').boundingBox();if(!area)throw Error('Carry controls missing');
+  const beforeSwipe=await page.locator('#power-quick-actions').evaluate(el=>{const r=el.getBoundingClientRect(),x=r.right-12,y=r.top+24,target=document.elementFromPoint(x,y);return {rect:r.toJSON(),scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,appWidth:document.querySelector('#game')!.clientWidth,target:target?.closest('button')?.getAttribute('data-power')??target?.tagName,touchAction:getComputedStyle(el).touchAction};});
+  await info.attach('compact-carry-before-swipe.json',{body:JSON.stringify(beforeSwipe),contentType:'application/json'});
+  await page.screenshot({path:info.outputPath('held-part-compact-before-swipe.png'),scale:'css'});
+  expect(beforeSwipe.rect.right).toBeLessThan(568);expect(['up','down','forward','back','rotate','throw']).toContain(beforeSwipe.target);
+  await page.evaluate(()=>{const w=window as typeof window&{carryGesture?:unknown[]};w.carryGesture=[];for(const type of ['pointerdown','pointercancel','touchstart','touchend','touchcancel'])document.addEventListener(type,event=>{const target=event.target instanceof Element?event.target:null;w.carryGesture!.push({type:event.type,trusted:event.isTrusted,time:event.timeStamp,power:target?.closest<HTMLButtonElement>('button')?.dataset.power??null,inStrip:!!target?.closest('#power-quick-actions')});},{capture:true,passive:true});});
+  area=await page.locator('#power-quick-actions').boundingBox();if(!area)throw Error('Carry controls missing');
   const touch=await page.context().newCDPSession(page);await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:area.x+area.width-12,y:area.y+24,id:71}]});
   for(let step=1;step<=8;step++){await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:area.x+area.width-12-(area.width-24)*step/8,y:area.y+24,id:71}]});await page.waitForTimeout(35);}
-  await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect.poll(()=>page.locator('#power-quick-actions').evaluate(el=>el.scrollLeft)).toBeGreaterThan(30);
+  await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  const nativeEvents=await page.evaluate(()=>(window as typeof window&{carryGesture?:{type:string;trusted:boolean;inStrip:boolean}[]}).carryGesture??[]);
+  await info.attach('compact-carry-native-events.json',{body:JSON.stringify(nativeEvents),contentType:'application/json'});
+  expect(nativeEvents.some(e=>e.type==='touchstart'&&e.trusted&&e.inStrip)).toBe(true);
+  await page.screenshot({path:info.outputPath('held-part-compact-after-swipe.png'),scale:'css'});
+  await expect.poll(()=>page.locator('#power-quick-actions').evaluate(el=>el.scrollLeft)).toBeGreaterThan(30);
   await expect(page.locator('#power-preview')).toBeHidden();await expect(page.locator('#power-quick-release')).toBeVisible();await page.screenshot({path:info.outputPath('held-part-compact.png'),scale:'css'});
   await page.setViewportSize({width:844,height:390});
  }
