@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { singleLineHeightMatches } from './journey-line-height';
 
 /** Read-only geometry check, including the portrait viewport's landscape transform. */
 export async function expectJourneyTextFits(page: Page) {
@@ -42,7 +43,7 @@ export async function expectJourneyTextFits(page: Page) {
    expect(line.height / line.lineHeight).toBeGreaterThanOrEqual(1);
    expect(line.height / line.lineHeight).toBeLessThanOrEqual(2);
   } else {
-   expect(line.height).toBeCloseTo(line.lineHeight, 1);
+   expect(singleLineHeightMatches(line.height, line.lineHeight), `${line.selector} is one complete line: measured ${line.height}px, computed ${line.lineHeight}px`).toBe(true);
    expect(line.whiteSpace).toBe('nowrap');
    expect(line.textOverflow).toBe('ellipsis');
   }

@@ -95,3 +95,9 @@ rollback後の関連46試験/9ファイル、全typecheck、diff checkに合格�
 他の公開browser接続が終了して数分経ってから、同じSHAの負荷jobだけ一度再実行した。60.017秒、通信失敗0、最小17.695Hzだった。[再測定receipt](../benchmarks/public-worker-load-54850cae-quiet-repeat.json)も保持する。この差だけで、別roomの保持、CPU競合、GC、providerのisolate配置のどれが原因かは判定できない。quietという呼称も専用isolateや他負荷ゼロの証明ではない。
 
 別途、最終切断後にもroomとfulfilled loading promiseが残る参照を発見した。新しい候補は最後の保存完了・保留join/saveなしを待って参照を解放し、次の参加時に保存から再構築する。ローカル同一Durable Objectのcold rejoinで保存状態を確認したが、この変更が公開Hzまたはpeak heapを改善するかはまだ測定していない。30Hz・128MiBの合格へ読み替えない。
+
+## 7c7caae9: idle lifecycle修正後も30Hz未達
+
+[CI37404827306](https://github.com/usks213/threejs-game/actions/runs/37404827306) の公開2browserは新しい全退出/保存再参加を含む6件に成功。後続の4接続は60.049秒、通信失敗0、最小11.291Hzで30Hz未達だった。[計測receipt](../benchmarks/public-worker-load-7c7caae9-idle-cleanup.json)を保存する。31回のrebaseと約37,295msのI/O-clock debt破棄を観測したが、CPU・実時間停止の測定とは解釈しない。
+
+最終退出後の参照解放とcold rejoinの機能上の証拠は得られた一方、今回の公開計測ではthroughput改善を確認できない。別roomの残留が遅さの原因だったとも、修正が遅さを生んだとも、この1回の前後差から断定しない。実WorkerのCPU/peak heap指標は引き続き未確認。

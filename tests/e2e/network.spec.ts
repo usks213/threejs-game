@@ -382,6 +382,13 @@ test.describe.serial('two real browsers',()=>{
   };
   try{
    for(const page of [a,b])expect(await page.evaluate(()=>({enabled:window.coopDeliveryFault.enabled,skipNextDelta:window.coopDeliveryFault.skipNextDelta,dropNextIdle:window.coopDeliveryFault.dropNextIdle,queued:window.coopDeliveryFault.stats.queued}))).toEqual({enabled:false,skipNextDelta:false,dropNextIdle:false,queued:0});
+   // Respawn is a separate setup phase: the authority keeps running while
+   // menus park rendering, and A can be downed during B's terrain walk. Do not
+   // spend the offline ray-convergence budget waiting through that game timer.
+   await a.bringToFront();await a.keyboard.press('Escape');await running(a);
+   const readAim=()=>a.evaluate(()=>{const app=document.querySelector<HTMLElement>('#app')!,aim=JSON.parse(app.dataset.aim??'{}'),streaming=JSON.parse(app.dataset.streaming??'{}'),combat=JSON.parse(app.dataset.combat??'{}');return {epoch:streaming.epoch,draws:streaming.draws,health:combat.health,player:aim.player,target:aim.target??null};}) as Promise<CoopRecoveryAim>;
+   await expect.poll(async()=>Number((await readAim()).health),{message:'A completes any ordinary downed/respawn phase before B disconnects',intervals:[100,200],timeout:60000}).toBeGreaterThan(0);
+   evidence.beforeDisconnectActor=await readAim();
    await expect.poll(()=>recoveryB.latest?.tick).toBeGreaterThan(0);
    const beforeB=structuredClone(recoveryB.latest!),welcomesBefore=recoveryB.welcomeCount,before=expectedEditCount;
    const priorIds=new Set(observedA.edits.keys());
@@ -391,13 +398,10 @@ test.describe.serial('two real browsers',()=>{
    try{
     await expect(b.locator('#session-status')).toHaveAttribute('data-connection','reconnecting',{timeout:25000});
     stage('NET-A05 terrain edit while second browser is offline');
-    // The authority keeps running while menus park rendering. A may have died
-    // and respawned during B's terrain walk. Wait for a living grounded actor
-    // and a stable actual ray, rather than clicking through camera transit.
-    await a.bringToFront();await a.keyboard.press('Escape');await running(a);
-    const readAim=()=>a.evaluate(()=>{const app=document.querySelector<HTMLElement>('#app')!,aim=JSON.parse(app.dataset.aim??'{}'),streaming=JSON.parse(app.dataset.streaming??'{}'),combat=JSON.parse(app.dataset.combat??'{}');return {epoch:streaming.epoch,draws:streaming.draws,health:combat.health,player:aim.player,target:aim.target??null};}) as Promise<CoopRecoveryAim>;
+    // A is alive before disconnect; still require grounded state and a
+    // stable real terrain ray across fresh frames before the single dig.
     let previousAim=await readAim();const observedViews:CoopRecoveryAim[]=[previousAim];evidence.offlineDigViews=observedViews;
-    await expect.poll(async()=>{const current=await readAim(),settled=settledRecoveryAim(previousAim,current);if(current.draws!==previousAim.draws){observedViews.push(current);if(observedViews.length>30)observedViews.shift();}previousAim=current;return settled;},{message:'A is alive and grounded with a stable terrain ray across distinct rendered frames',timeout:20000}).toBe(true);
+    await expect.poll(async()=>{const current=await readAim(),settled=settledRecoveryAim(previousAim,current);if(current.draws!==previousAim.draws){observedViews.push(current);if(observedViews.length>30)observedViews.shift();}previousAim=current;return settled;},{message:'A is alive and grounded with a stable terrain ray across distinct rendered frames',intervals:[100,200],timeout:20000}).toBe(true);
     await expect(a.locator('#session-status')).toHaveAttribute('data-connection','online');await expect(a.locator('#use-tool')).toBeEnabled();
     const submissionStart=await a.evaluate(()=>window.coopActionSubmissions.length);await a.locator('#use-tool').click();
     const submission=await a.evaluate(start=>window.coopActionSubmissions.slice(start).find(item=>item.message.type==='action'&&item.message.tool==='dig'),submissionStart);

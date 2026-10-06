@@ -64,3 +64,15 @@ Primary references:
 - [WebKit touch emulation setup, v1.55.1](https://github.com/microsoft/playwright/blob/v1.55.1/packages/playwright-core/src/server/webkit/wkPage.ts)
 
 The actual 548 portrait screenshot also exposed a clipped second mission-hint line. The pending CSS keeps the same card size and touch layout, budgets explicit text line heights, and clamps long hints to two complete lines. Read-only geometry checks now run in both portrait and landscape phases of this real WebKit smoke, plus the Android geometry-only regression. Browser validation of this fix is pending.
+
+Run [37404827306](https://github.com/usks213/threejs-game/actions/runs/37404827306)
+passed the portrait geometry check and captured the complete two-line hint. Its
+first compact landscape check then measured the title block as 14px while its
+computed line-height was 14.3px (11px × 1.3); the failure screenshot shows the
+complete title. The single-line assertion now accepts the computed height or its
+nearest whole-pixel representation, retaining the original 0.05px precision
+around each. It does not add a blanket half-pixel tolerance. Unit regressions
+reject clipped, intermediate and multiple-line heights. Card containment,
+48px touch size, integer line-height precision, nowrap/ellipsis and the two-line
+hint checks are unchanged. This assertion-only correction still requires a new
+WebKit CI pass; no game styling or browser capability is changed.

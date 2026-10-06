@@ -248,3 +248,23 @@ NET-A05/06の旧「edit数だけ」という不足はこの実行で閉じた。
 - Nodeのローカルauthorityは空のroomを保持する実装のため、ローカル結果は全員退出後の状態/UI復帰として記録し、storage cold reloadと称さない。公開先でWorkerのmarkerが欠けた場合はこのローカル条件へ降格せず失敗する。
 
 各試行のwelcome、前後の完全観測/構造投影、全編集、bag行、timingを `browser-recovery-state.json` の `allLeaveRejoin` へ残す。型検査、recovery/decoder/aimの関連11単体、6browserケースのdiscoveryが合格した。実ブラウザおよび公開Workerでのこの新しい全員退出経路は未実行であり、次の対象commitのCI結果を待つ。
+
+## Recovery setup correction after run 37404827306
+
+The first host attempt on `7c7caae9` failed before submitting a dig. Its saved
+browser recovery evidence recorded 16 downed samples and the first living actor
+16.28 seconds into the 20-second terrain-ray poll. The trace showed 13 seconds
+remaining on the normal downed timer at poll entry; respawn then has its own
+transition. Final sampled ray displacements were 4.81584m, 0.28959m and 0.04787m,
+against the unchanged 0.03m stability requirement. Diagnostics 4.1 seconds later
+showed a healthy grounded actor and converged camera. The serial retry passed and
+received an accepted ACK for the single submitted dig. This is a setup timing
+failure, not proof that the failed attempt completed recovery successfully.
+
+The test now waits for an ordinary living actor before disconnecting B and
+capturing B's baseline inventory/history. It does not change game health, clock,
+respawn, camera, terrain or network state. The subsequent offline-period ray
+check retains its 20-second limit and all health, grounded, fresh-draw, epoch and
+0.03m conditions, with bounded 100/200ms sampling rather than backing off to one
+second. The one-click/specific accepted ACK and complete recovered state checks
+remain mandatory. Exact-commit host and public browser validation is pending.
