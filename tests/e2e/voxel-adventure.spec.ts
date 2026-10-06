@@ -19,7 +19,25 @@ test('voxel adventure creates, holds, moves, records and releases a visible auth
  await page.locator('#system-menu').click();await page.locator('#import-file').setInputFiles({name:'ability-world.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});await page.locator('#system-close').click();await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
  await page.locator('#powers-menu').click();await page.getByRole('button',{name:'照準の先に作る',exact:true}).click();await expect(page.locator('#power-preview')).toBeVisible();await expect.poll(async()=>(await sky(page))?.parts.length).toBe(0);await page.locator('#power-preview [data-power=preview-confirm]').click();await expect.poll(async()=>(await sky(page))?.parts.length).toBe(1);
  await page.getByRole('button',{name:'選んだ部品を掴む',exact:true}).click();await expect.poll(async()=>!!(await sky(page))?.parts[0].lease).toBe(true);const y=(await sky(page))!.parts[0].position.y;
- await page.locator('#powers-close').click();await expect(page.locator('#powers-quick')).toBeVisible();await expect(page.locator('#compass')).toBeHidden();await expect(page.locator('#journey')).toBeHidden();await page.screenshot({path:info.outputPath('held-part-layout.png'),scale:'css'});await page.locator('#powers-menu').click();
+ await page.locator('#powers-close').click();await expect(page.locator('#powers-quick')).toBeVisible();await expect(page.locator('#compass')).toBeHidden();await expect(page.locator('#journey')).toBeHidden();
+ const holdTick=Number(await page.locator('#app').getAttribute('data-tick'));
+ // Stay held beyond the original 150-tick expiry without extra grab/move input.
+ await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-tick')),{timeout:20000}).toBeGreaterThan(holdTick+180);
+ await expect.poll(async()=>!!(await sky(page))?.parts[0].lease).toBe(true);
+ const tray=await page.locator('#powers-quick').boundingBox(),reticle=await page.locator('.reticle').boundingBox();expect(tray).not.toBeNull();expect(reticle).not.toBeNull();expect(tray!.y+tray!.height).toBeLessThan(reticle!.y);
+ await expect(page.locator('#power-quick-release')).toBeVisible();await expect(page.locator('#water-cast')).toBeVisible();await expect(page.locator('#jump')).toBeVisible();
+ await page.screenshot({path:info.outputPath('held-part-layout.png'),scale:'css'});
+ if(info.project.name==='android-chromium'){
+  await page.setViewportSize({width:568,height:320});
+  const compact=await page.locator('#powers-quick').boundingBox(),aimBox=await page.locator('.reticle').boundingBox();expect(compact!.y+compact!.height).toBeLessThan(aimBox!.y);
+  await expect(page.locator('#power-quick-release')).toBeVisible();const area=await page.locator('#power-quick-actions').boundingBox();if(!area)throw Error('Carry controls missing');
+  const touch=await page.context().newCDPSession(page);await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:area.x+area.width-12,y:area.y+24,id:71}]});
+  for(let step=1;step<=8;step++){await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:area.x+area.width-12-(area.width-24)*step/8,y:area.y+24,id:71}]});await page.waitForTimeout(35);}
+  await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await expect.poll(()=>page.locator('#power-quick-actions').evaluate(el=>el.scrollLeft)).toBeGreaterThan(30);
+  await expect(page.locator('#power-preview')).toBeHidden();await expect(page.locator('#power-quick-release')).toBeVisible();await page.screenshot({path:info.outputPath('held-part-compact.png'),scale:'css'});
+  await page.setViewportSize({width:844,height:390});
+ }
+ await page.locator('#powers-menu').click();
 
  await page.getByRole('button',{name:'持ち上げる',exact:true}).click();await expect(page.locator('#power-preview')).toBeVisible();await page.locator('#power-preview [data-power=preview-confirm]').click();await expect.poll(async()=>(await sky(page))!.parts[0].position.y).toBeGreaterThan(y+.3);
  await page.getByRole('button',{name:'設計帳に記録',exact:true}).click();await expect.poll(async()=>(await sky(page))?.blueprints.length).toBe(1);

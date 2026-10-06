@@ -29,7 +29,7 @@ function shareField<T extends object, K extends keyof T>(state: T, shared: T, ke
 const prototypeNames=new Set(Object.getOwnPropertyNames(Object.prototype));
 const itemLookupActions=new Set(['equip','spell','eat','upgrade','drop','craft','cook','store','take','chest','plant','landscape','split','move','trade','fuel']);
 const idle: PlayerInput = { x: 0, z: 0, jump: false };
-export interface SessionActor { id: string; player: PlayerState; adventure: Adventure; input: PlayerInput; motor: CharacterMotor; sequence: number; lastAction: number; lastInputTick: number }
+export interface SessionActor { id: string; player: PlayerState; adventure: Adventure; input: PlayerInput; motor: CharacterMotor; sequence: number; lastAction: number; lastHoldTick?: number; lastInputTick: number }
 export class SessionAuthority {
  readonly sim: GameSimulation;
  private readonly revives = new ReviveCoordinator();
@@ -97,6 +97,14 @@ export class SessionAuthority {
   if(message.type==='game-action'&&message.action==='debug-flight'&&(!this.sim.debugFlightAllowed||id!=='host'))throw Error('デバッグ飛行はひとりプレイ専用です。協力プレイでは使えません');
   this.guardProtected(actor,message);
   if(message.type==='game-action'&&message.action==='revive'&&!message.id){this.revives.cancelHelper(id,this.actors);return {dirty:[],message:'救助を中断しました'};}
+  // A hold heartbeat has no gameplay effect beyond an existing lease. Give it
+  // its own bounded cadence, so it cannot consume attack/move input or cancel
+  // a rescue when it happens to arrive in the same simulation tick.
+  if(message.type==='game-action'&&message.action==='sky-hold'){
+   if(this.sim.tick-(actor.lastHoldTick??-100)<15)throw Error('保持の更新間隔を空けてください');
+   actor.lastHoldTick=this.sim.tick;
+   return this.withActor(actor,()=>this.sim.adventure.action('sky-hold',message.id,message.target,message.aim));
+  }
   const waterAction = message.type === 'action' && message.tool === 'water';
   const releaseAction = message.type === 'game-action' && (['charge-release','charge-cancel'].includes(message.action)||message.action==='sky-release'||message.action==='companion-lead'&&(!message.id?.split(':')[1]||message.id.endsWith(':off'))||message.action==='companion-ride'&&this.sim.companions.snapshot(id).riding===Number(message.id)||message.id === 'off' && ['guard','sprint','glide','climb','debug-flight'].includes(message.action));
   if (!waterAction && !releaseAction && this.sim.tick - actor.lastAction < 4) throw new Error('操作の間隔を空けてください');

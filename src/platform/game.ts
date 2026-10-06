@@ -58,7 +58,7 @@ export function startGame() {
   const sound = gameSound(signal);sound.setMix(preferences.audioMix);for(const id of['music-volume','environment-volume','effects-volume'])document.querySelector('#'+id)!.addEventListener('input',()=>sound.setMix(preferences.audioMix),{signal});sound.setVolume(Number(document.querySelector<HTMLInputElement>('#sound-volume')!.value));document.querySelector<HTMLInputElement>('#sound-volume')!.addEventListener('input',e=>sound.setVolume(Number((e.target as HTMLInputElement).value)),{signal});
   document.querySelector('#sound-toggle')!.addEventListener('click', () => { document.querySelector('#sound-toggle')!.textContent = sound.toggle() ? '音 OFF' : '音 ON'; }, { signal });
   let noticeTimer: ReturnType<typeof setTimeout> | undefined, lastNotice = 0;
-  const notice = (message: string) => { const el = document.querySelector<HTMLElement>('#notice')!; if (el.textContent === message && performance.now()-lastNotice<900) return; lastNotice=performance.now(); el.textContent=message; el.classList.add('visible'); clearTimeout(noticeTimer); noticeTimer=setTimeout(()=>el.classList.remove('visible'),2200); sound.effect(message); };
+  const notice = (message: string) => { if(!message)return; const el = document.querySelector<HTMLElement>('#notice')!; if (el.textContent === message && performance.now()-lastNotice<900) return; lastNotice=performance.now(); el.textContent=message; el.classList.add('visible'); clearTimeout(noticeTimer); noticeTimer=setTimeout(()=>el.classList.remove('visible'),2200); sound.effect(message); };
   signal.addEventListener('abort',()=>clearTimeout(noticeTimer),{once:true});
   let photoNext=false;
   let stopped = false, frame = 0, worker: Worker | undefined;

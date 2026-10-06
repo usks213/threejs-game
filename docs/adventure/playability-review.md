@@ -24,3 +24,18 @@ The screenshots' world blur is qualified evidence: their diagnostics report an a
 Thirteen focused unit checks cover opening goal selection, actual person-model bounds, occupied-tree camera retraction, merchant-piece clearance, and rescue interaction labels. The new phone layout case requires eight full-size slots in one row at 750×342. Existing safe-area, rotation, input and menu checks remain; a 750px notched case is added. WebKit captures both automatic and a known fixed 0.75 render scale using ordinary settings controls.
 
 The initial integrated source passed 1,002 tests in 209 files. After the final UI-readiness and interaction-label refinements, typecheck, 34 related tests (including line geometry), and build were checked again. Fresh exact-commit CI/browser/publication results are still pending. Local Chromium cannot open its required process socket, including an escalated attempt; the cloud browser cannot create WebGL. Do not count either as successful direct gameplay. No physical Android/iPhone session or subjective combat-feel validation was performed. Four-client 30Hz throughput and actual Worker heap remain separate unresolved quality gates.
+
+## Carry inspection after the first repair
+
+The first repair was published as `60d45c3587c2384a946e8d06075fb49d0aca278a` in [run 37455665586](https://github.com/usks213/threejs-game/actions/runs/37455665586). Typecheck, 1,001 selected tests/208 files, build, exact publication, PC controls, desktop menu/flight, WebKit and public co-op passed. The new WebKit images confirm the obstructing booth pole is gone, a 750×342 phone has one quick-slot row, and the compass and basic opening goal are visible. Fixed-medium (0.75) output was captured separately from automatic quality.
+
+Android finished 17 passed, two failed and one desktop-only skip. Its layout/safe-area/rotation, aim interaction, voxel rendering and shoulder combat cases passed. Neither failure is counted as a pass:
+
+- Native powers-menu forward scrolling succeeded, but moved the chosen button underneath the sticky trial panel. The reverse test now repositions only an occluded button before recording its independent reverse baseline; native input and all scroll/no-click checks remain.
+- The new screenshot/reopen sequence exposed that an idle held part loses its lease after 150 ticks, despite the player still using the page. The holding tray also covered the avatar and reticle in the actual image.
+
+The carry follow-up uses a bounded one-second heartbeat only for an observed, living player's owned, reachable, unexpired held assembly while visible and connected. The authority cannot acquire or resurrect a lease through this action. It has its own 15-tick rate limit, does not consume manual action cooldown or interrupt rescue, and does not request a world checkpoint. Ingress validation, release, expiry, disconnected-owner cleanup and save behavior remain in place. Tests cover these boundaries, including completing an actual rescue during renewal.
+
+The existing manipulation buttons move into a horizontal strip above the reticle. Release remains pinned; narrow phones can swipe the other buttons. Ordinary water/jump controls remain visible. The browser carry case now waits beyond the old expiry without re-grabbing, checks the clear reticle, and performs a native compact-phone control-strip swipe before continuing the same move/record/release sequence.
+
+This follow-up's exact CI and browser results are pending. The initial resin/stone supply piles still occupy too much of the lower camera view; loose-item presentation remains a known visual issue. Combat contact/guard/dodge assertions and their footage do not alone establish satisfying combat feel or physical-phone performance.

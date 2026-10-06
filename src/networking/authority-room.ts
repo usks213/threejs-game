@@ -102,7 +102,10 @@ export class AuthorityRoom {
     }
     catch (error) { connection.wire.send({ type: 'ack', commandId, accepted: false, message: error instanceof Error ? error.message : '操作を受理できません' }); return { changed: false }; }
     if(actionSequence!==undefined)this.actionSequences.set(connection.playerId,actionSequence);else {seen.add(commandId);this.receipts.set(connection.playerId,seen);}
-    return { changed: true, acknowledgment: () => connection.wire.send({ type: 'ack', commandId, accepted: true, message }) };
+    // Holding is transient and never restored from a checkpoint. A keepalive
+    // must not trigger a whole-world storage write for every visible client.
+    const changed=action.type!=='game-action'||action.action!=='sky-hold';
+    return { changed, acknowledgment: () => connection.wire.send({ type: 'ack', commandId, accepted: true, message }) };
    } else throw new Error('Unknown packet');
   } catch (error) { connection.wire.send({ type: 'notice', message: error instanceof Error ? error.message : '通信データが不正です' }); }
   return { changed: false };

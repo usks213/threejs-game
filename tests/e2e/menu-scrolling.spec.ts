@@ -135,7 +135,13 @@ test('survival adventure menu scrolling uses native swipes from buttons in lands
    expect(await page.evaluate(()=>(window as ObservedWindow).menuScrollEvidence.clicks),'A scroll beginning on a button must not activate it').toBe(clicks);
    await expect(panel).toBeVisible();expect(await page.locator('#app').getAttribute('data-camera-yaw')).toBe(yaw);expect(await page.locator('#app').getAttribute('data-camera-pitch')).toBe(pitch);
    if(mode.tab==='bag')await page.screenshot({path:info.outputPath('menu-scroll-'+(size.height>size.width?'portrait':'landscape')+'.png'),scale:'css'});
-   const down=await scrollState(page,mode.panel);await swipe(page,cdp,mode.panel,{button:mode.button,reverse:true});await expect.poll(async()=>(await scrollState(page,mode.panel)).top).toBeLessThan(down.top-20);
+   // Sticky trial controls can cover the same button after a forward swipe.
+   // Reposition only when occluded, then measure reverse motion independently.
+   if(!await swipePath(page,mode.panel,{button:mode.button,reverse:true})){
+    await prepareButtonSwipe(page,mode.panel,mode.button);
+    await expect.poll(()=>swipePath(page,mode.panel,{button:mode.button,reverse:true})).not.toBeNull();
+   }
+   const down=await scrollState(page,mode.panel);expect(down.top).toBeGreaterThan(20);await swipe(page,cdp,mode.panel,{button:mode.button,reverse:true});await expect.poll(async()=>(await scrollState(page,mode.panel)).top).toBeLessThan(down.top-20);
    expect(await page.evaluate(()=>(window as ObservedWindow).menuScrollEvidence.clicks),'Reverse scrolling from the same button must not activate it').toBe(clicks);
    if(settings){expect(await panel.locator('input[type=range]').evaluateAll(inputs=>inputs.map(input=>({id:input.id,value:(input as HTMLInputElement).value})))).toEqual(settings);await expect(page.locator('#debug-flight-toggle')).toHaveAttribute('aria-pressed','false');}
    await page.keyboard.press('Escape');await expect(panel).toBeHidden();

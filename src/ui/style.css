@@ -159,3 +159,16 @@ header{display:flex!important;left:calc(12px + var(--safe-left));top:calc(8px + 
    in the left objective space rather than drawing navigation beneath the tray. */
 #app:has(#powers-quick:not([hidden])) #compass,#app:has(#powers-quick:not([hidden])) #journey{visibility:hidden}
 #app:has(#powers-quick:not([hidden])) #enemy-focus{left:calc(12px + var(--safe-left));top:auto;bottom:calc(132px + var(--safe-bottom));transform:none;width:min(174px,calc(50% - 132px - var(--safe-left)));max-width:none;padding:7px;font-size:11px}
+
+/* A horizontal construction strip leaves the reticle and avatar unobstructed.
+   The release button stays visible while compact phones can swipe the other
+   existing controls. Water, jump and the ordinary right-side actions remain. */
+#powers-quick{left:calc(196px + var(--safe-left));right:calc(160px + var(--safe-right));top:calc(62px + var(--safe-top));transform:none;width:auto;grid-template-columns:minmax(0,1fr) 48px;gap:4px;padding:4px;border-radius:9px}
+#power-quick-actions{display:flex;gap:4px;min-width:0;overflow-x:auto;overscroll-behavior:contain;touch-action:manipulation;scrollbar-width:thin}
+#power-quick-actions button{flex:0 0 48px;min-width:48px;min-height:48px;touch-action:manipulation}
+#power-quick-release{grid-column:2;grid-row:1;min-width:48px;min-height:48px;background:#74613eea}
+#power-quick-description:empty{display:none}
+#powers-quick[data-preview=true]{grid-template-columns:repeat(2,minmax(48px,1fr))}
+#powers-quick[data-preview=true] #power-quick-actions,#powers-quick[data-preview=true] #power-quick-release{display:none}
+#power-quick-description{max-width:none;line-height:14px;max-height:28px;overflow:hidden}
+@container game (max-height:350px){#power-quick-description{max-height:14px;white-space:nowrap;text-overflow:ellipsis}}

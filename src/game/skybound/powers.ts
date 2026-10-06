@@ -207,6 +207,7 @@ export class SkyboundPowers {
   const root = this.part(numericId);
   if (action === 'sky-release') { if (this.leases.get(root.id)?.owner !== owner) throw new Error('この部品を操作していません'); this.release(owner); return {message: '部品を放しました'}; }
   this.reachable(root, context);
+  if(action==='sky-hold'){const parts=this.owned(owner,root.id,context.tick);this.lease(owner,parts,context.tick);return {message:''};}
   if(action==='sky-store'||action==='sky-take'){
    const parts=this.group(root.id);assertCampRange(root,context);this.assertAvailable(owner,parts,false);
    if(parts.some(p=>!Number.isSafeInteger(p.epoch+1)))throw Error('部品の履歴が上限に達しました');
