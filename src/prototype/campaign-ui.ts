@@ -12,6 +12,7 @@ import {campaignHudText} from './campaign-hud';
 import './campaign-ui.css';
 import {campaignMapData,createCampaignMap,mapPointReferences,mapCoordinates,type CampaignMapData,type MapPosition} from './campaign-map';
 import type {CheckpointArchiveMetadata} from '../save/checkpoint';
+import type {ColdRegionWarning} from './core/regions';
 
 export type CampaignTab='inventory'|'crafting'|'equipment'|'journal'|'map'|'settings'|'homestead'|'cooperation'|'codex';
 export interface CampaignCrafting {
@@ -36,7 +37,7 @@ export function cooperationControls(state:CooperationSnapshot){return {create:st
 export interface CampaignUISnapshot {
  personalQuests?:CampaignRow[];inventory?:InventoryViewModel;map?:CampaignMapData;codex?:CampaignCodexEntry[];
  materials:CampaignRow[];items:CampaignRow[];recipes:CampaignRow[];quests:CampaignRow[];points:CampaignRow[];skills:CampaignRow[];equipment:CampaignRow[];
- stats:{mistWarning?:string;burning?:number;wet?:number;shock?:number;level:number;xp:number;skillPoints:number;region:string;objective:string;shroud?:number;food?:number;rest?:number;oxygen?:number;cold?:number;warmth?:number;focus?:number;weather?:string};
+ stats:{mistWarning?:string;coldWarning?:ColdRegionWarning;burning?:number;wet?:number;shock?:number;level:number;xp:number;skillPoints:number;region:string;objective:string;shroud?:number;food?:number;rest?:number;oxygen?:number;cold?:number;warmth?:number;focus?:number;weather?:string};
  settings:{gamepad?:GamepadSettings;reducedMotion?:boolean;textScale?:number;cameraMode?:'first'|'third';cameraDistance?:number;audioMix?:{music:number;effects:number;ambience:number};volume:number;sensitivity:number;graphics:'balanced'|'performance'|'high'};
  save:{archiveProtection?:Record<string,string>;canCleanup?:boolean;cleanupInfo?:ArchiveCleanupInfo;cleanupPending?:string;canImport?:boolean;canExport?:boolean;fileBusy?:boolean;importInfo?:{name:string;savedAt:number;sizeBytes:number};switchBlocked?:boolean;canExpand?:boolean;expanded?:boolean;expansionBlocked?:boolean;available:boolean;label:string;status:string;archives?:CheckpointArchiveMetadata[];archiveError?:string;archiveScope?:string;disabledForGuest?:boolean};
  bindings?:{action:string;label:string;key:string}[];

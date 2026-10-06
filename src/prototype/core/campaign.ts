@@ -1,4 +1,6 @@
 import {PLAYER_REST_MAX_SECONDS} from './player-rest';
+import {flameBuildRadius,flameShroudMaximum,flameUpgradeSummary} from './flame';
+import {EQUIPMENT_PROFILES,itemBaseStats,type EquipmentProfile} from './equipment-stats';
 import {shroudZoneAt} from './shroud-zones';
 import {CAMPAIGN_SKILLS,MAX_SHROUD_SECONDS,skillRank,skillPointsSpent,validSkillProgress,skillLearnStatus} from './skills';
 import {GEM_ITEMS,GEM_RECIPES,gemDefinition,gemTierLocked,isGemId,type GemId} from './gems';
@@ -13,8 +15,8 @@ import {REGIONS,REGIONAL_POINTS,REGIONAL_ENEMIES,REGIONAL_UPGRADES,REGIONAL_QUES
 /** Original, finite single-player campaign. This module owns progression, never the
  * voxel field, movement, combat hits, or the shared material inventory. */
 export type EquipmentSlot='weapon'|'armor'|'head'|'legs'|'shield'|'tool'|'grapple'|'glider'|'charm';
-export interface CampaignItem {id:string;label:string;category:'weapon'|'armor'|'tool'|'food'|'medicine'|'quest'|'accessory'|'ammunition'|'resource'|'farming';icon:string;stackLimit:number;description:string;source:string;slot?:EquipmentSlot}
-const item=(id:string,label:string,category:CampaignItem['category'],icon:string,description:string,source:string,slot?:EquipmentSlot):CampaignItem=>({id,label,category,icon,stackLimit:slot?1:category==='quest'?1:category==='ammunition'?200:20,description,source,slot});
+export interface CampaignItem {id:string;label:string;category:'weapon'|'armor'|'tool'|'food'|'medicine'|'quest'|'accessory'|'ammunition'|'resource'|'farming';icon:string;stackLimit:number;description:string;source:string;slot?:EquipmentSlot;progression?:EquipmentProfile}
+const item=(id:string,label:string,category:CampaignItem['category'],icon:string,description:string,source:string,slot?:EquipmentSlot):CampaignItem=>({id,label,category,icon,stackLimit:slot?1:category==='quest'?1:category==='ammunition'?200:20,description,source,slot,progression:EQUIPMENT_PROFILES[id]});
 const regionalItems:CampaignItem[]=[
  ...[['field-seal','野の印'],['wood-seal','森の印'],['fen-seal','根の印'],['mesa-seal','段丘の印'],['ash-seal','灰の印'],['rime-seal','雪の印'],['lake-seal','湖の印']].map(([id,label])=>item(id,label,'quest','◇','地域の探索を果たした証。次の土地の解放に必要。','対応する地域の宝箱を開く')),
  ...[['sun-herb','灯穂の薬草','灯穂の野の薬草'],['amber-resin','琥珀樹脂','琥珀枝の森の樹脂と宝箱'],['marsh-fiber','沼繊維','渡り根の窪地の植物と供物'],['singing-copper','鳴銅','鳴銅の段丘の鉱脈と工具箱'],['ash-glass','灰晶','灰鈴の城址の結晶と封印庫'],['rime-heart','霜心','燠雪の峠の結晶と遺物'],['lake-pearl','澄湖の真珠','澄鐘の湖の真珠岩と宝箱']].map(([id,label,source])=>({...item(id,label,'resource','⬡','次の地域への準備に使う特産品。',source),stackLimit:200})),
@@ -151,8 +153,8 @@ export class CampaignSystem {
  get maxStamina(){return 100+this.skillRank('endurance')*20+(this.state.foodSeconds>0?15:0)+(this.state.equipment.charm==='traveler-ring'?15:0);}
  get equippedWeapon(){return this.state.equipment.weapon;}
  get isStaffWeapon(){return this.equippedWeapon==='staff'||this.equippedWeapon==='resin-staff';}
- get spellMultiplier(){const id=this.equippedWeapon;return id==='staff'?1.2*this.gearPower(id):id==='resin-staff'?1.4*this.gearPower(id):1;}
- get attackMultiplier(){const id=this.equippedWeapon;return (id==='iron-blade'?1.3:1)*(id?this.gearPower(id):1);}
+ get spellMultiplier(){const id=this.equippedWeapon;return this.isStaffWeapon?itemBaseStats(id).spellMultiplier*this.gearPower(id!):1;}
+ get attackMultiplier(){const id=this.equippedWeapon;return itemBaseStats(id).attackMultiplier*(id?this.gearPower(id):1);}
  get equippedTool(){return this.state.equipment.tool;}
  get meleeArchetype(){return meleeArchetype(this.equippedWeapon);}
  get canGuard(){return !isTwoHanded(this.equippedWeapon);}
@@ -168,7 +170,8 @@ export class CampaignSystem {
 
  get moveMultiplier(){return (1+this.skillRank('endurance')*.08)*this.armorIds.reduce((n,id)=>n*(ARMOR_STATS[id]?.speed??1),1);}
  get staminaRegenMultiplier(){return this.state.restSeconds>0?1.4:1;}
- get shroudMaximum(){return 60+Math.max(0,this.state.flameTier-1)*30+this.skillRank('attunement')*30;}
+ get shroudMaximum(){return flameShroudMaximum(this.state.flameTier)+this.skillRank('attunement')*30;}
+ get buildingRadius(){return flameBuildRadius(this.state.flameTier);}
  get canGlide(){return this.state.equipment.glider==='glider'||this.state.equipment.glider==='windwoven-glider';}
  get glideSpeedMultiplier(){return this.state.equipment.glider==='windwoven-glider'?1.2:1;}
  get glideStaminaMultiplier(){return this.state.equipment.glider==='windwoven-glider'?.75:1;}
@@ -178,7 +181,8 @@ export class CampaignSystem {
  get overallComplete(){return this.complete&&this.state.claimedPoints.includes('rg-lake-cache');}
  get regionTier(){return this.state.flameTier;}
  regionUnlocked(id:string){return id==='hearthfield'?this.complete:this.state.unlockedRegions.includes(id as RegionId);}
- get spawn(){return {...point(this.state.campUnlocked?'nextcamp':this.state.flameTier>0?'hearth':'hearth')!.position};}
+ get spawnPoint(){return point(this.state.campUnlocked?'nextcamp':'hearth')!;}
+ get spawn(){return {...this.spawnPoint.position};}
  has(id:string){return (this.state.items[id]??0)>0;}
  private awardXp(amount:number){this.state.xp=Math.min(10000,this.state.xp+amount);const level=Math.min(10,1+Math.floor(this.state.xp/80));this.state.skillPoints+=level-this.state.level;this.state.level=level;}
  private finish(id:string){if(this.state.completed.includes(id))return;const quest=CAMPAIGN_QUESTS.find(q=>q.id===id);if(!quest)return;this.state.completed.push(id);this.awardXp(quest.rewardXp);}
@@ -242,7 +246,7 @@ export class CampaignSystem {
  consumeArmorDurability(amount=1):CampaignResult {let result=fail('防具未装備');for(const id of this.armorIds)result=this.wear(id,amount);return result;}
  consumeToolDurability(amount=1){return this.wear(this.equippedTool,amount);}
  consumeShieldDurability(){return this.wear(this.state.equipment.shield,1);}
- get toolEfficiency(){return this.equippedTool?this.gearPower(this.equippedTool):1;}
+ get toolEfficiency(){return this.equippedTool?itemBaseStats(this.equippedTool).toolMultiplier*this.gearPower(this.equippedTool):1;}
  private wear(id:string|null,amount:number):CampaignResult {if(!id||!this.workableGear(id)||!Number.isFinite(amount)||amount<=0)return fail('耐久を消費する装備がない');const g=this.ensureGear(id),old=g.durability;g.durability=Math.max(0,g.durability-Math.min(100,amount));return success(g.durability===0&&old>0?`${CAMPAIGN_ITEMS[id].label}が破損。${id==='build-hammer'?'修理するまで配置・解体できない':id==='copper-shield'?'ガード消費軽減がなくなった':'性能が半減'}。装備画面から修理する`:g.durability<=20&&old>20?`${CAMPAIGN_ITEMS[id].label}の耐久が残り20以下`:'');}
  salvagePreview(id:string):CampaignResult {if(!this.workableGear(id))return fail('武器・防具・採集建築具だけ解体できる。重要品・移動具は保持する');if(Object.values(this.state.equipment).includes(id))return fail('装備中の品は解体できない');const recipe=CAMPAIGN_RECIPES.find(r=>r.output===id);if(!recipe)return fail('解体できない品');const materials:Record<number,number>={};for(const [key,n] of Object.entries(recipe.cost))if(n>=2)materials[Number(key)]=Math.floor(n/2);if(Object.entries(materials).some(([key,n])=>(this.materials[Number(key)]??0)+n>CAMPAIGN_MATERIALS[Number(key)].stackLimit))return fail('解体素材の所持枠がない');const socket=this.gearInfo(id).socket,items:Record<string,number>={};if(socket){if((this.state.items[socket]??0)>=CAMPAIGN_ITEMS[socket].stackLimit)return fail('取り外すジェムの所持枠がない');items[socket]=1;}return {ok:true,message:'元の制作素材の半分を返却（端数切捨て）。強化費用は返却しない',materials,items};}
  salvage(id:string,confirmed=false):CampaignResult {if(!confirmed)return fail('解体の内容を確認してから確定する');const preview=this.salvagePreview(id);if(!preview.ok)return preview;this.state.items[id]--;delete this.state.gearState[id];for(const [key,n] of Object.entries(preview.materials!))this.materials[Number(key)]=(this.materials[Number(key)]??0)+n;for(const [key,n] of Object.entries(preview.items!))this.state.items[key]=(this.state.items[key]??0)+n;return success(CAMPAIGN_ITEMS[id].label+'を解体',preview);}
@@ -264,8 +268,8 @@ export class CampaignSystem {
  resetSkills():CampaignResult {const refund=skillPointsSpent(this.state);if(!refund)return fail('再配分する技能がない');this.state.skillPoints+=refund;this.state.skills=[];this.state.skillRanks={};this.state.shroudSeconds=Math.min(this.state.shroudSeconds,this.shroudMaximum);return success(`${refund}ポイントを返却。スキルを再配分できる`);}
  interact(id:string,position:Vec3):CampaignResult {const p=point(id);if(!p||!finitePosition(position))return fail('対象が無効');if(dist(position,p.position)>2.8)return fail(p.label+'の近くへ移動する');this.refresh();
   if(id==='hearth'){
-   if(this.state.flameTier===0){if((this.materials[4]??0)<8||(this.materials[3]??0)<6)return fail('点火には木材8・石6が必要');this.materials[4]-=8;this.materials[3]-=6;this.state.flameTier=1;this.refresh();return success('灯守りの炉を点火。復活地点と制作設備を解放');}
-   if(this.state.flameTier===1&&this.has('mist-core')&&this.has('warden-core')){this.state.items['mist-core']--;this.state.items['warden-core']--;this.state.flameTier=2;this.state.shroudSeconds=this.shroudMaximum;this.refresh();return success('炉が段階2へ。濃い霞を通過できる。霧滞在 +30秒');}
+   if(this.state.flameTier===0){if((this.materials[4]??0)<8||(this.materials[3]??0)<6)return fail('点火には木材8・石6が必要');this.materials[4]-=8;this.materials[3]-=6;this.state.flameTier=1;this.refresh();return success('灯守りの炉を点火。復活地点と制作設備を解放 / '+flameUpgradeSummary(0,1));}
+   if(this.state.flameTier===1&&this.has('mist-core')&&this.has('warden-core')){this.state.items['mist-core']--;this.state.items['warden-core']--;this.state.flameTier=2;this.state.shroudSeconds=this.shroudMaximum;this.refresh();return success('炉が段階2へ。濃い霞を通過できる / '+flameUpgradeSummary(1,2));}
    if(this.complete){const next=REGIONAL_UPGRADES.find(u=>!this.regionUnlocked(u.opens));if(next)return this.upgradeRegion(next.id,position);return success('すべての地域の準備が整った。最後の湖へ');}return success(this.state.flameTier===1?'炉は段階1。霧の結晶と番人の火種で強化できる':'炉は段階2。尾根の関門へ向かおう');
   }
   if(id==='artisan'){if(this.state.artisanRescued)return success('ナギ「炉のそばで装備を作ろう。金属は入口の鉱材、布は私の支給分を使って」');if(!this.state.flameTier)return fail('先に灯守りの炉を点火し、帰還先を用意する');this.state.artisanRescued=true;for(const [key,n] of [[10,12],[7,12],[6,6]])this.materials[key]=(this.materials[key]??0)+n;this.refresh();return success('鍛冶師ナギを救出。炉の鍛冶設備を解放 / 布12・草葉12・金属6');}
@@ -282,7 +286,7 @@ export class CampaignSystem {
   return {id:q.id,label:q.name,detail:cache.name+'を探して地域の印を得る',waypoint:{id:cache.id,label:cache.name,kind:cache.kind,position:{...cache.position},description:r.description}};
  }
  regionQuestRows(){return REGIONAL_QUESTS.map(q=>({...q,label:q.name,detail:REGIONAL_POINTS.find(p=>p.id===q.objectivePoint)!.name,status:this.state.claimedPoints.includes(q.objectivePoint)?'complete' as const:this.regionUnlocked(q.region)?'active' as const:'locked' as const}));}
- regionUpgradeStatus(id:string,position:Vec3):CampaignResult {const u=REGIONAL_UPGRADES.find(u=>u.id===id);if(!u)return fail('未知の地域強化');const at=this.atForge(position);if(!at.ok)return at;if(!this.complete)return fail('先に尾根の野営地へ到達する');if(this.regionUnlocked(u.opens))return fail('この地域は解放済み');const previous=REGIONS[REGIONS.findIndex(r=>r.id===u.opens)-1];if(!previous||!this.regionUnlocked(previous.id))return fail('先の地域から順に探索する');const missing=u.requires.find(id=>!this.has(id));if(missing)return fail(CAMPAIGN_ITEMS[missing].label+'を前の地域で探す');const lacking=Object.entries(u.cost).filter(([id,n])=>(this.state.items[id]??0)<n);if(lacking.length)return fail('特産品が不足: '+lacking.map(([id,n])=>`${CAMPAIGN_ITEMS[id].label} ${(this.state.items[id]??0)}/${n}`).join(' / '));return {ok:true,message:REGIONS.find(r=>r.id===u.opens)!.name+`を解放 / 炉の段階${u.tier}`,items:{...u.cost}};}
+ regionUpgradeStatus(id:string,position:Vec3):CampaignResult {const u=REGIONAL_UPGRADES.find(u=>u.id===id);if(!u)return fail('未知の地域強化');const at=this.atForge(position);if(!at.ok)return at;if(!this.complete)return fail('先に尾根の野営地へ到達する');if(this.regionUnlocked(u.opens))return fail('この地域は解放済み');const previous=REGIONS[REGIONS.findIndex(r=>r.id===u.opens)-1];if(!previous||!this.regionUnlocked(previous.id))return fail('先の地域から順に探索する');const missing=u.requires.find(id=>!this.has(id));if(missing)return fail(CAMPAIGN_ITEMS[missing].label+'を前の地域で探す');const lacking=Object.entries(u.cost).filter(([id,n])=>(this.state.items[id]??0)<n);if(lacking.length)return fail('特産品が不足: '+lacking.map(([id,n])=>`${CAMPAIGN_ITEMS[id].label} ${(this.state.items[id]??0)}/${n}`).join(' / '));return {ok:true,message:REGIONS.find(r=>r.id===u.opens)!.name+`を解放 / 炉の段階${u.tier} / `+flameUpgradeSummary(this.state.flameTier,Math.max(this.state.flameTier,u.tier)),items:{...u.cost}};}
  upgradeRegion(id:string,position:Vec3):CampaignResult {const check=this.regionUpgradeStatus(id,position);if(!check.ok)return check;const u=REGIONAL_UPGRADES.find(u=>u.id===id)!;for(const [id,n] of Object.entries(u.cost))this.state.items[id]-=n;this.state.unlockedRegions.push(u.opens);this.state.flameTier=Math.max(this.state.flameTier,u.tier);this.state.shroudSeconds=this.shroudMaximum;return success(check.message);}
  private rewardCheck(reward:RegionalReward):CampaignResult {for(const [id,n] of Object.entries(reward.items??{})){if(!Object.hasOwn(CAMPAIGN_ITEMS,id))return fail('未知の報酬');if((this.state.items[id]??0)+n>CAMPAIGN_ITEMS[id].stackLimit)return fail(CAMPAIGN_ITEMS[id].label+'の所持上限。空きを作って再び調べる');}for(const [id,n] of Object.entries(reward.materials??{}))if((this.materials[Number(id)]??0)+n>1000000)return fail('素材の所持上限');return success('受取可能');}
  private grantReward(reward:RegionalReward){for(const [id,n] of Object.entries(reward.items??{}))this.state.items[id]=(this.state.items[id]??0)+n;for(const [id,n] of Object.entries(reward.materials??{}))this.materials[Number(id)]=(this.materials[Number(id)]??0)+n;this.awardXp(reward.xp);}

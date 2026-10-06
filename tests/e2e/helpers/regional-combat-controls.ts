@@ -8,25 +8,24 @@ type Enemy=Motion['enemies'][number];
 const angle=(n:number)=>Math.atan2(Math.sin(n),Math.cos(n));
 const distance=(p:Motion,e:Enemy)=>Math.hypot(e.position.x-p.position.x,e.position.z-p.position.z);
 
-/** Desktop-only reactive route. Every write is a real production keyboard or
- * menu input. The small probe observes tells; it cannot invoke game actions. */
+/** Shared reactive route, using production keyboard or actual Android-emulated
+ * touch controls. The small probe only observes tells; it cannot invoke actions. */
 export class RegionalCombatControls {
  casts=0;doses=0;waterCasts=0;lightningCasts=0;
- private held=new Set<string>();private reacted=new Set<string>();private north=true;
+ private reacted=new Set<string>();private north=true;
  private shoreAim={dx:0,dy:1.2};
  constructor(private page:Page,private controls:PlayerControls){}
  async index(regional:number){const p=await readRegionalMotion(this.page),index=p.enemies.findIndex(e=>e.regional===regional);expect(index,'Authored regional enemy '+regional).toBeGreaterThanOrEqual(0);return index;}
- private async key(key:string,down:boolean){if(down===this.held.has(key))return;if(down){await this.page.keyboard.down(key);this.held.add(key);}else{await this.page.keyboard.up(key);this.held.delete(key);}}
- private async axes(x:number,z:number){await this.key('KeyW',z>.38);await this.key('KeyS',z<-.38);await this.key('KeyD',x>.38);await this.key('KeyA',x<-.38);}
- async stop(){for(const key of [...this.held])await this.key(key,false);}
+ private async axes(x:number,z:number){await this.controls.moveAxes(x,z);}
+ async stop(){await this.controls.moveAxes(0,0);await this.controls.fineLook(0,0);}
  private async alive(){const p=await readRegionalMotion(this.page);expect(p.hp,'Regional input must stop on death').toBeGreaterThan(0);return p;}
  private async evade(p:Motion,index:number,shore=false){
   const e=p.enemies[index],tell=e.tell;if(!tell)return;const id=`${index}:${tell.serial}:${tell.kind}`;if(this.reacted.has(id))return;
   if(p.grounded&&!p.pending&&p.stamina>=12&&tell.kind==='burst'&&tell.remaining<.3){this.reacted.add(id);await this.controls.action('[data-action=jump]','Space');}
   else if(shore&&p.phase==='idle'&&tell.kind==='lunge'&&tell.remaining<.13&&p.stamina>=24){this.reacted.add(id);await this.controls.action('[data-action=dodge]','ControlLeft');}
  }
- /** React to a visible burst while precision look is being delivered. Only the
-  * jump key is shared with this observer; look and movement are not overridden. */
+ /** React to a visible burst while precision look is delivered. A separate
+  * real action finger preserves the held shield and the current look gesture. */
  private async guardedAim(point:Point,index:number){
   let stopped=false,failure:unknown;
   const watch=(async()=>{try{while(!stopped){await this.evade(await this.alive(),index);await this.page.waitForTimeout(50);}}catch(error){failure=error;}})();
@@ -84,8 +83,8 @@ export class RegionalCombatControls {
  private async shoreMove(p:Motion,index:number,track=false){
   expect(p.position.x,'Do not leave the western shore').toBeGreaterThan(8);expect(p.position.x).toBeLessThan(10.8);expect(p.position.z).toBeGreaterThan(-51.3);expect(p.position.z).toBeLessThan(-46.5);
   if(p.position.z< -50)this.north=false;if(p.position.z> -47.5)this.north=true;
-  // Keyboard octants follow the same real shore strip. Correct drift toward its
-  // center before another cast; never walk into the water to chase the guardian.
+  // Keyboard octants / analog touch follow the same real shore strip. Correct
+  // drift before another cast; never walk into water to chase the guardian.
   const vx=p.position.x<9.1?1:p.position.x>10?-1:0,vz=this.north?-1:1;
   // The browser's real fine-look rate cannot reproduce Core's instant tracking
   // while strafing. Plant on the bank for the finite .45-second pending cast,
@@ -94,8 +93,8 @@ export class RegionalCombatControls {
   else await this.axes(Math.cos(p.yaw)*vx-Math.sin(p.yaw)*vz,-Math.sin(p.yaw)*vx-Math.cos(p.yaw)*vz);
   await this.evade(p,index,true);
   if(track&&p.pending){const e=p.enemies[index],dx=e.position.x+this.shoreAim.dx-p.position.x,dz=e.position.z-p.position.z,yaw=angle(Math.atan2(-dx,-dz)-p.yaw),pitch=Math.atan2(e.position.y+this.shoreAim.dy-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch;
-   await this.key('ShiftLeft',true);await this.key('Home',yaw>.015);await this.key('End',yaw<-.015);await this.key('PageUp',pitch>.015);await this.key('PageDown',pitch<-.015);
-  }else for(const key of ['ShiftLeft','Home','End','PageUp','PageDown'])await this.key(key,false);
+   await this.controls.fineLook(yaw,pitch);
+  }else await this.controls.fineLook(0,0);
  }
  async shoreDuel(index:number){
   const initial=await readRegional(this.page),initialMana=initial.combat.mana,initialDoses=initial.campaign.items['mana-draught'];
@@ -124,6 +123,6 @@ export class RegionalCombatControls {
   }
   const done=await readRegional(this.page);expect(done.enemies[index].hp,'Final guardian must fall to finite water/lightning spells').toBeLessThanOrEqual(0);expect(this.casts).toBeGreaterThan(0);expect(this.waterCasts).toBeGreaterThan(0);expect(this.lightningCasts).toBeGreaterThan(0);expect(done.campaign.items['mana-draught']).toBe(initialDoses-this.doses);expect(done.combat.mana).toBe(initialMana+this.doses*60-this.casts*20);expect(done.campaign.deaths).toBe(0);
  }
- /** Swim using the same production forward key, bounded by oxygen and time. */
+ /** Swim using production forward key / analog touch, bounded by oxygen/time. */
  async swim(done:(p:Motion)=>boolean,seconds:number,label:string){await this.until(done,seconds,async p=>{expect(p.oxygen,label+' must leave oxygen to return').toBeGreaterThan(0);await this.axes(0,1);},label);}
 }

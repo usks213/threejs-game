@@ -83,6 +83,20 @@ export const REGIONAL_QUESTS=REGIONS.map((r,i)=>({id:`region-${r.id}`,region:r.i
 export const REGIONAL_WATERS=[{id:'rootfen-shallows',min:p(23,-.25,-16),max:p(31,.45,-12),surfaceY:.45},{id:'mirrorlake-basin',min:p(11,1.25,-52),max:p(16,3,-47),surfaceY:3}] as const;
 export const REGIONAL_UPDRAFTS=[{position:p(-4,5.25,-46),radius:1.5,height:9,strength:6}] as const;
 export function regionAt(position:Vec3){return REGIONS.find(r=>position.x>=r.bounds.minX&&position.x<=r.bounds.maxX&&position.z>=r.bounds.minZ&&position.z<=r.bounds.maxZ);}
+export type ColdRegionWarning='approaching'|'inside';
+/** A local climate cue, with no region identity or discovery/unlock side effects.
+ * Match the hazard's horizontal bounds; warn four metres before their edge. */
+export function coldRegionWarning(position:Vec3):ColdRegionWarning|undefined{
+ if(!Number.isFinite(position.x)||!Number.isFinite(position.z))return undefined;
+ let approaching=false;
+ for(const region of REGIONS){
+  if(region.climate!=='freezing')continue;
+  const b=region.bounds,dx=Math.max(b.minX-position.x,0,position.x-b.maxX),dz=Math.max(b.minZ-position.z,0,position.z-b.maxZ);
+  if(dx===0&&dz===0)return 'inside';
+  if(dx*dx+dz*dz<=16)approaching=true;
+ }
+ return approaching?'approaching':undefined;
+}
 export function regionUnlocked(id:RegionId,tokens:readonly string[]){const r=REGIONS.find(r=>r.id===id);return !!r&&r.requires.every(t=>tokens.includes(t));}
 export function isRegionalOpen(hours:readonly[number,number]|undefined,hour:number){if(!hours)return true;if(!Number.isFinite(hour))return false;const h=((hour%24)+24)%24;return hours[0]<hours[1]?h>=hours[0]&&h<hours[1]:h>=hours[0]||h<hours[1];}
 export function regionalHazard(position:Vec3,flameTier:number){const r=regionAt(position);return {region:r?.id,climate:r?.climate??'temperate',recommendedTier:r?.recommendedTier??1,shroudDrain:!r?0:r.climate==='ash'?(flameTier<r.recommendedTier?6:1):0,coldPerSecond:r?.climate==='freezing'?Math.max(0,5-flameTier):0,submerged:REGIONAL_WATERS.some(w=>position.x>w.min.x&&position.x<w.max.x&&position.z>w.min.z&&position.z<w.max.z&&position.y+1.4<w.surfaceY)};}

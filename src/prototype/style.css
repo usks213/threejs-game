@@ -61,3 +61,9 @@ body:not(.campaign-mode) .values{width:max-content;max-width:100%}
 .soil-fill-mode #recipe-switch{display:none}.campaign-mode.soil-fill-mode.touch #recipe-cost{max-width:min(420px,calc(100vw - 36px));height:auto;max-height:44px;white-space:normal}.campaign-mode.soil-fill-mode #prompt{color:#f2e6cb}
 
 #combat-status{width:max-content;max-width:min(440px,calc(100vw - 36px));margin-top:5px;padding:4px 7px;font-size:12px;line-height:18px;color:#d9dcff;background:#101c24ed;border-radius:4px;white-space:normal}.campaign-mode.touch #combat-status{position:relative;top:53px;max-width:420px;font-size:11px;line-height:16px}
+
+/* During touch building, feedback occupies the material-summary zone. Recipe
+ * costs below the toolbar keep the relevant owned/required materials visible;
+ * the separate region/threat readout and every 48px action stay in place. */
+.campaign-mode.touch.building-mode:not(.soil-fill-mode) #inventory{display:none}
+.campaign-mode.touch.building-mode:not(.soil-fill-mode) #message{top:64px;bottom:auto;left:calc(max(12px,env(safe-area-inset-left)) + 152px);right:max(12px,env(safe-area-inset-right));transform:none;width:auto;max-width:none;margin:0;padding:3px 7px;font-size:12px;line-height:18px;text-align:left;overflow-wrap:anywhere}

@@ -5,20 +5,19 @@ import {RegionalCombatControls} from './helpers/regional-combat-controls';
 import {readRegional,readRegionalMotion,regionalEvidence} from './helpers/regional-evidence';
 import {craftRegional,consumeRegional,recoverRegional,maintainRegionalGear,upgradeRegionalGear} from './helpers/regional-transactions';
 
-test('Q07 regional desktop: fresh game, all seven earned seals, final guardian and save reload',async({page,isMobile},testInfo)=>{
+test('Q07 regional: fresh game, all seven earned seals, final guardian and save reload',async({page,isMobile},testInfo)=>{
  // A new full-campaign budget, independent of the existing 20-minute short
  // jobs and 30-minute chapter case. Zero retries; no per-action relaxation.
  test.setTimeout(90*60*1000);
- test.skip(isMobile,'Desktop proof first. Reactive regional combat currently uses keyboard controls; Android acceptance is not claimed.');
- testInfo.annotations.push({type:'input-mode',description:'Production keyboard movement/look, held shield, jump/dodge and menu clicks; no raw-relative-mouse or physical-device claim'});
+ testInfo.annotations.push({type:'input-mode',description:isMobile?'Android Chromium emulation: CDP analog movement, look, retained shield and action touches, plus actual menu taps; no physical-device claim':'Production keyboard movement/look, held shield, jump/dodge and menu clicks; no raw-relative-mouse or physical-device claim'});
  const errors:string[]=[],consoleErrors:string[]=[],failedResponses:{status:number;url:string}[]=[];
  page.on('pageerror',e=>errors.push(String(e)));page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});page.on('response',response=>{if(response.status()>=400)failedResponses.push({status:response.status(),url:response.url()});});
  // The Core reference uses the supported v3 sampled world. Select it through
  // its public startup URL; no save or world state is injected.
  await page.goto('/?test=1&streaming=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await expect(page.locator('#error')).toBeHidden();
  const initial=await readRegional(page);expect(Object.values(initial.inventory).every(n=>n===0)).toBe(true);expect(initial.campaign.items).toEqual({});expect(initial.campaign.flameTier).toBe(0);expect(initial.campaign.claimedPoints).toEqual([]);expect(initial.campaign.claimedEnemies).toEqual([]);expect(initial.campaign.unlockedRegions).toEqual([]);expect(initial.campaign.skillPoints).toBe(0);expect(initial.campaign.level).toBe(1);expect(initial.combat.mana).toBe(100);expect(initial.streamedWorld).toBe(true);
- await choosePerformance(page,false);await page.locator('#start').click();await expect(page.locator('#game')).toHaveAttribute('data-running','true');
- const controls=new PlayerControls(page,false),combat=new RegionalCombatControls(page,controls);await controls.initialize();
+ await choosePerformance(page,isMobile);const controls=new PlayerControls(page,isMobile),combat=new RegionalCombatControls(page,controls);
+ await controls.activate('#start');await expect(page.locator('#game')).toHaveAttribute('data-running','true');await controls.initialize();
  const walk=async(points:number[][])=>{for(const [x,z] of points)await controls.walkTo(x,z);};
  const checkpoint=(name:string)=>regionalEvidence(page,testInfo,name,false,['12-first-regional-seal','18-fifth-regional-seal','22-final-guardian-defeated'].includes(name));
  const unlock=async(region:string,item:string)=>{const before=await readRegional(page);await controls.interact('hearth',{x:-3,y:.9,z:4});await expect.poll(async()=>(await readRegional(page)).campaign.unlockedRegions).toContain(region);const after=await readRegional(page);expect(after.campaign.unlockedRegions).toHaveLength(before.campaign.unlockedRegions.length+1);expect(after.campaign.items[item]).toBe(before.campaign.items[item]-(item==='sun-herb'?2:3));};
@@ -73,11 +72,11 @@ test('Q07 regional desktop: fresh game, all seven earned seals, final guardian a
    const done=await readRegional(page);expect(done.campaign.deaths).toBe(0);expect(done.campaign.unlockedRegions).toHaveLength(7);for(const seal of ['field','wood','fen','mesa','ash','rime','lake'])expect(done.campaign.items[seal+'-seal']).toBe(1);expect(done.campaign.claimedEnemies).toEqual(expect.arrayContaining([101,102,104,106,107,108,109,110,111].map(id=>'regional:'+id)));expect(done.campaign.claimedPoints).toEqual(expect.arrayContaining(['rg-field-cache','rg-field-herb','rg-wood-cache','rg-fen-cache','rg-mesa-cache','rg-ash-cache','rg-rime-cache','rg-lake-cache']));await expect(page.locator('#objective')).toContainText('七つの灯をつないだ');await regionalEvidence(page,testInfo,'24-completed-shore',true);
   });
   await test.step('Save from the actual menu and reload all earned progression',async()=>{
-   await controls.menu('settings');await expect.poll(async()=>(await readRegional(page)).worldReady,{timeout:120000}).toBe(true);await page.getByRole('button',{name:'今すぐ保存',exact:true}).click();await expect.poll(async()=>(await readRegional(page)).saveStatus).toContain('保存済み');const saved=await readRegional(page);
+   await controls.menu('settings');await expect.poll(async()=>(await readRegional(page)).worldReady,{timeout:120000}).toBe(true);const save=page.getByRole('button',{name:'今すぐ保存',exact:true});if(isMobile)await save.tap();else await save.click();await expect.poll(async()=>(await readRegional(page)).saveStatus).toContain('保存済み');const saved=await readRegional(page);
    await testInfo.attach('25-saved-regional-state',{body:JSON.stringify({campaign:saved.campaign,inventory:saved.inventory,position:saved.position,combat:saved.combat,weather:saved.weather,worldSamples:saved.worldSamples,spells:{casts:combat.casts,doses:combat.doses,water:combat.waterCasts,lightning:combat.lightningCasts}},null,2),contentType:'application/json'});
    await controls.dispose();await page.reload();await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await expect.poll(async()=>(await readRegional(page)).worldReady,{timeout:120000}).toBe(true);await expect.poll(async()=>(await readRegional(page)).saveStatus).toContain('読み込みました');const restored=await readRegional(page);
    expect(restored.restoreFailure).toBeNull();expect(restored.campaign).toEqual(saved.campaign);expect(restored.inventory).toEqual(saved.inventory);expect(restored.worldSamples).toEqual(saved.worldSamples);expect(restored.weather).toEqual(saved.weather);expect(restored.combat.mana).toBe(saved.combat.mana);expect(restored.focus).toBe(saved.focus);expect(restored.position.x).toBeCloseTo(saved.position.x,2);expect(restored.position.y).toBeCloseTo(saved.position.y,2);expect(restored.position.z).toBeCloseTo(saved.position.z,2);expect(restored.settings.graphics).toBe('performance');
-   await page.locator('#start').click();await expect(page.locator('#game')).toHaveAttribute('data-running','true');await controls.initialize();await expect(page.locator('#objective')).toContainText('七つの灯をつないだ');await regionalEvidence(page,testInfo,'26-completed-world-reloaded',true);
+   await controls.activate('#start');await expect(page.locator('#game')).toHaveAttribute('data-running','true');await controls.initialize();await expect(page.locator('#objective')).toContainText('七つの灯をつないだ');await regionalEvidence(page,testInfo,'26-completed-world-reloaded',true);
   });
  }finally{
   await combat.stop();await controls.shield(false);await controls.dispose();await testInfo.attach('browser-diagnostics',{body:JSON.stringify({errors,consoleErrors,failedResponses},null,2),contentType:'application/json'});

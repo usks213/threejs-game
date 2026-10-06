@@ -1,5 +1,7 @@
 import {test,expect,type Page,type CDPSession} from '@playwright/test';
 import {observeAttack} from './transient-observation';
+import {TouchContacts} from './touch-contacts';
+import {pulseKeyboardInput,type LookKey} from './keyboard-pulse';
 
 export interface Point {x:number;y:number;z:number}
 export interface CampaignProbe {
@@ -17,16 +19,40 @@ const angle=(n:number)=>Math.atan2(Math.sin(n),Math.cos(n));
 
 export class PlayerControls {
  private touch:CDPSession|null=null;
- private liveTouch=false;
+ private contacts:TouchContacts|null=null;
+ private heldKeys=new Set<string>();
  private usedFlask=false;
  private shieldHeld=false;
  constructor(private page:Page,private mobile:boolean){}
  async initialize(){
-  if(this.mobile)this.touch=await this.page.context().newCDPSession(this.page);
+  if(this.mobile){this.touch=await this.page.context().newCDPSession(this.page);this.contacts=new TouchContacts(event=>this.touch!.send('Input.dispatchTouchEvent',event));}
   else await expect.poll(()=>this.page.evaluate(()=>!!document.pointerLockElement)).toBe(true);
  }
- async endTouch(){if(!this.touch||!this.liveTouch)return;this.liveTouch=false;this.shieldHeld=false;await this.touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
- async dispose(){if(!this.mobile)for(const key of ['KeyW','KeyS','KeyA','KeyD','KeyZ','ShiftLeft','Home','End','PageUp','PageDown'])await this.page.keyboard.up(key).catch(()=>{});if(this.touch){await this.endTouch().catch(()=>{});await this.touch.detach().catch(()=>{});this.touch=null;}}
+ async endTouch(){await this.contacts?.clear();this.shieldHeld=false;}
+ async dispose(){if(!this.mobile)for(const key of ['KeyW','KeyS','KeyA','KeyD','KeyZ','ShiftLeft','Home','End','PageUp','PageDown'])await this.page.keyboard.up(key).catch(()=>{});this.heldKeys.clear();this.shieldHeld=false;if(this.touch){await this.endTouch().catch(()=>{});await this.touch.detach().catch(()=>{});this.touch=null;this.contacts=null;}}
+ private async key(key:string,down:boolean){if(down===this.heldKeys.has(key))return;if(down){await this.page.keyboard.down(key);this.heldKeys.add(key);}else{await this.page.keyboard.up(key);this.heldKeys.delete(key);}}
+ private async visiblePoint(selector:string){
+  const control=this.page.locator(selector);await expect(control).toBeEnabled();
+  const point=await control.evaluate(element=>{const r=element.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,hit=document.elementFromPoint(x,y);return {x,y,visible:r.width>0&&r.height>0&&!!hit&&element.contains(hit)};});
+  expect(point.visible,'The real control must be visible and unobstructed').toBe(true);return {x:point.x,y:point.y};
+ }
+ /** Continuous normal movement. Releasing it preserves the shield/look fingers. */
+ async moveAxes(x:number,z:number){
+  if(!this.mobile){await this.key('KeyW',z>.38);await this.key('KeyS',z<-.38);await this.key('KeyD',x>.38);await this.key('KeyA',x<-.38);return;}
+  if(!x&&!z){await this.contacts!.release(1);return;}
+  const center=await this.visiblePoint('#move-pad'),box=await this.page.locator('#move-pad').boundingBox();expect(box).not.toBeNull();const scale=box!.width*.32/Math.max(1,Math.hypot(x,z));
+  await this.contacts!.set(1,{x:center.x+x*scale,y:center.y-z*scale});
+ }
+ /** One bounded live aim correction, including while a spell is pending. */
+ async fineLook(yawError:number,pitchError:number){
+  if(!this.mobile){await this.key('ShiftLeft',Math.abs(yawError)>.015||Math.abs(pitchError)>.015);await this.key('Home',yawError>.015);await this.key('End',yawError<-.015);await this.key('PageUp',pitchError>.015);await this.key('PageDown',pitchError<-.015);return;}
+  if(Math.abs(yawError)<=.015&&Math.abs(pitchError)<=.015)return;
+  await this.touchLook(Math.abs(yawError)>.015?Math.max(-140,Math.min(140,-yawError/.004)):0,Math.abs(pitchError)>.015?Math.max(-65,Math.min(65,-pitchError/.004)):0);
+ }
+ private async touchLook(dx:number,dy:number){
+  const point=await this.lookPoint();await this.contacts!.set(7,point);
+  try{await this.contacts!.set(7,{x:point.x+dx,y:point.y+dy});}finally{await this.contacts!.release(7);}
+ }
  async action(selector:string,key:string){
   if(!this.mobile){if(key==='KeyR'){await this.page.keyboard.down(key);try{await expect.poll(()=>this.page.locator('#combat-status').textContent()).toContain('強撃準備完了');}finally{await this.page.keyboard.up(key);}}else await this.page.keyboard.press(key);return;}
   // Digit1/2 select a mode; the touch control toggles. Equipping a weapon
@@ -36,18 +62,14 @@ export class PlayerControls {
   if(requestedTool!==null&&(await read(this.page)).tool===requestedTool)return;
   // Use a real touch on the visible control. Locator.tap's scrolling/stability
   // round trips can consume an entire combat opening on software-rendered CI.
-  const control=this.page.locator(selector);await expect(control).toBeEnabled();
-  const point=await control.evaluate(element=>{const r=element.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,hit=document.elementFromPoint(x,y);return {x,y,visible:r.width>0&&r.height>0&&!!hit&&element.contains(hit)};});
-  expect(point.visible,'The real action control must be visible and unobstructed').toBe(true);
-  await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:9,x:point.x,y:point.y}]});this.liveTouch=true;try{if(key==='KeyR')await expect.poll(()=>this.page.locator('#combat-status').textContent()).toContain('強撃準備完了');}finally{await this.endTouch();}
+  const point=await this.visiblePoint(selector);
+  await this.contacts!.set(9,point);try{if(key==='KeyR')await expect.poll(()=>this.page.locator('#combat-status').textContent()).toContain('強撃準備完了');}finally{await this.contacts!.release(9);}
   if(requestedTool!==null)await expect.poll(async()=>(await read(this.page)).tool).toBe(requestedTool);
  }
  async aim(point:Point,guarded=false){
   if(guarded)await this.shield(true);
   expect((await motion(this.page)).hp,'Aiming requires a living player; report combat death before input accuracy').toBeGreaterThan(0);await expect(this.page.locator('#death')).toBeHidden();await expect(this.page.locator('#game')).toHaveAttribute('data-running','true');
   await expect.poll(async()=>(await motion(this.page)).phase).toBe('idle');
-  const shieldBox=guarded&&this.mobile?await this.page.locator('[data-action=block]').boundingBox():null;
-  const shieldFinger=shieldBox?[{id:8,x:shieldBox.x+shieldBox.width/2,y:shieldBox.y+shieldBox.height/2}]:[];
   if(!this.mobile){await this.keyboardAim(point);return;}
   for(let attempt=0;attempt<8;attempt++){
    const p=await motion(this.page);expect(p.hp,'Touch aiming must not continue on the death overlay').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z,dy=point.y-p.position.y-1.52;
@@ -56,14 +78,8 @@ export class PlayerControls {
    if(this.mobile){
     const mx=-yawError/.004,my=-pitchError/.004,steps=Math.max(1,Math.ceil(Math.max(Math.abs(mx)/140,Math.abs(my)/65)));
     for(let i=0;i<steps;i++){
-     const location=await this.lookPoint(),before=await motion(this.page),finger={...location,id:7};
-     await this.touch!.send('Input.dispatchTouchEvent',{type:guarded?'touchMove':'touchStart',touchPoints:[...shieldFinger,finger]});this.liveTouch=true;
-     await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[...shieldFinger,{...finger,x:finger.x+mx/steps,y:finger.y+my/steps}]});
-     // Android pins SyntheticPointerActions: additions and removals use
-     // touchMove while a contact exists. Empty touchEnd releases every finger.
-     // A changed active set on touchMove
-     // releases only the look finger while the actual shield contact stays down.
-     if(guarded){await this.touch!.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:shieldFinger});await this.assertShieldHeld();}else await this.endTouch();
+     const before=await motion(this.page);await this.touchLook(mx/steps,my/steps);
+     if(guarded)await this.assertShieldHeld();
      await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player died during a touch-look gesture').toBeGreaterThan(0);return Math.abs(angle(p.yaw-before.yaw))+Math.abs(p.pitch-before.pitch);},{timeout:15000,intervals:[50,100]}).toBeGreaterThan(.001);
     }
    }
@@ -79,31 +95,25 @@ export class PlayerControls {
   expect(point,'A visible unobstructed look-pad point must be available').not.toBeNull();return point!;
  }
  async keyboardAim(point:Point){
-  // Genuine production accessibility keys. CDP absolute mouseMove does not
-  // synthesize Pointer Lock's raw relative motion, so this is labeled separately.
+  // Genuine production accessibility keys, with releases independent of slow
+  // browser acknowledgements. No camera writes or synthetic DOM events.
   const error=async(axis:'yaw'|'pitch')=>{const p=await motion(this.page);expect(p.hp,'Keyboard aiming must not continue after combat death').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z;return axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch;};
-  for(const axis of ['yaw','pitch'] as const){
-   let precise=false;
+  const transport=await this.page.context().newCDPSession(this.page);
+  try{for(const axis of ['yaw','pitch'] as const){
+   const started=Date.now();let coarseRate=1.4,fineRate=.056;
    for(let attempt=0;attempt<12;attempt++){
     const remaining=await error(axis);if(Math.abs(remaining)<.015)break;
-    // Coarse look advances at most .14 rad per frame; reserve the .0056-rad
-    // Shift steps for the last .16 rad, rather than spending up to 9 seconds
-    // of simulation time on a medium .5-rad turn. A coarse stop near .1 rad
-    // leaves room for one frame of overshoot before the precision correction.
-    const sign=Math.sign(remaining),fine=precise||Math.abs(remaining)<.16,key=axis==='yaw'?(sign>0?'Home':'End'):(sign>0?'PageUp':'PageDown');
-    // A delayed key-up can overshoot by far more than the fine window. Use
-    // bounded real coarse taps for that correction; do not hold 0.04x fine
-    // input through a large turn on a blocked software-rendering event loop.
-    if(precise&&Math.abs(remaining)>.3){await this.page.keyboard.press(key,{delay:50});continue;}
-    try{if(fine)await this.page.keyboard.down('ShiftLeft');await this.page.keyboard.down(key);await expect.poll(async()=>sign*await error(axis),{timeout:90000,intervals:[50,100]}).toBeLessThan(fine?.012:.1);}
-    finally{await this.page.keyboard.up(key);if(fine)await this.page.keyboard.up('ShiftLeft');}
-    // A delayed key-up may overshoot the fine window. Once the coarse pass
-    // finishes, correct in fine mode instead of oscillating with coarse turns.
-    precise=true;
+    expect(Date.now()-started,'Keyboard aim retains the existing 90-second input budget').toBeLessThan(90000);
+    const sign=Math.sign(remaining),fine=Math.abs(remaining)<.2,key:LookKey=axis==='yaw'?(sign>0?'Home':'End'):(sign>0?'PageUp':'PageDown');
+    const duration=Math.max(60,Math.min(1200,Math.abs(remaining)*.75/(fine?fineRate:coarseRate)*1000));
+    await pulseKeyboardInput(transport,key,fine,duration);
+    const after=await error(axis),travelled=Math.abs(angle(remaining-after));
+    if(travelled>.001){const measured=travelled/(duration/1000);if(fine)fineRate=Math.max(.014,Math.min(.224,measured));else coarseRate=Math.max(.35,Math.min(5.6,measured));}
    }
    expect(Math.abs(await error(axis)),`Actual keyboard look must reach requested ${axis}`).toBeLessThan(.035);
-  }
+  }}finally{await transport.detach();}
  }
+
  async walkTo(x:number,z:number){
   // A signed projection detects crossing the waypoint, not actually arriving.
   // Genuine release latency/inertia can carry us beyond it, especially on CI.
@@ -132,34 +142,36 @@ export class PlayerControls {
    // before deciding whether the real shield control is available.
    await expect(this.page.locator('#tool-switch')).toContainText(/^1 /);guard=await this.page.locator('[data-action=block]').isEnabled();}
   try{
-   if(this.mobile){const box=await this.page.locator('#move-pad').boundingBox();expect(box).not.toBeNull();const magnitude=precise?Math.min(.65,Math.max(.1,length/3)):1;await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:box!.x+box!.width/2,y:box!.y+box!.height/2-box!.width*.32*magnitude}]});this.liveTouch=true;}
-   else {if(guard)await this.page.keyboard.down('KeyZ');if(!precise)await this.page.keyboard.down('KeyW');}
+   if(this.mobile)await this.moveAxes(0,precise?Math.min(.65,Math.max(.1,length/3)):1);
+   else if(guard)await this.page.keyboard.down('KeyZ');
    const brake=precise?Math.min(.12,length*.3):1.2;
-   if(!this.mobile&&precise)await this.pulseDesktopWalk(x,z,dx,dz,length,brake,guard);
+   if(!this.mobile)await this.pulseDesktopWalk(x,z,dx,dz,length,brake,guard,precise);
    else await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player must survive the gathering route').toBeGreaterThan(0);return ((x-p.position.x)*dx+(z-p.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(brake);
-  }catch(error){movementFailed=true;throw error;}finally{try{if(this.mobile)await this.endTouch();else {await this.page.keyboard.up('KeyW');if(guard)await this.page.keyboard.up('KeyZ');}}catch(error){if(!movementFailed)throw error;}}
+  }catch(error){movementFailed=true;throw error;}finally{try{if(this.mobile)await this.moveAxes(0,0);else {await this.page.keyboard.up('KeyW');if(guard)await this.page.keyboard.up('KeyZ');}}catch(error){if(!movementFailed)throw error;}}
   const seconds=(await motion(this.page)).seconds;await expect.poll(async()=>(await motion(this.page)).seconds,{intervals:[50,100]}).toBeGreaterThan(seconds+.3);
   if(restoreTool){await this.action('#tool-switch','Digit2');await expect.poll(async()=>(await read(this.page)).tool).toBe(true);}
  }
- private async pulseDesktopWalk(x:number,z:number,dx:number,dz:number,length:number,brake:number,guard:boolean){
+ private async pulseDesktopWalk(x:number,z:number,dx:number,dz:number,length:number,brake:number,guard:boolean,precise:boolean){
   const started=Date.now(),remaining=(p:Awaited<ReturnType<typeof motion>>)=>((x-p.position.x)*dx+(z-p.position.z)*dz)/length;
-  let metresPerMs=(guard?1.05:2.5)/1000;
-  // These are pulses within one already aimed segment, not extra waypoint
-  // correction attempts. Five corrections and the .18m final gate stay above.
-  for(let pulse=0;pulse<24;pulse++){
-   const before=await motion(this.page);expect(before.hp,'Precision movement must preserve life').toBeGreaterThan(0);const distance=remaining(before);if(distance<brake)return;
-   expect(Date.now()-started,'Precision input retains the existing 60-second segment budget').toBeLessThan(60000);
-   const delay=Math.max(50,Math.min(200,(distance-brake)*.65/metresPerMs));
-   // The server releases W before we request telemetry. Read/poll round trips
-   // can no longer extend the held input past an observed arrival threshold.
-   await this.page.keyboard.press('KeyW',{delay});
-   const released=await motion(this.page);await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Settling a real key pulse must preserve life').toBeGreaterThan(0);return p.seconds;},{timeout:Math.max(1,60000-(Date.now()-started)),intervals:[50,100]}).toBeGreaterThan(released.seconds+.3);
+  let metresPerMs=(guard?1.05:2.5)/1000;const transport=await this.page.context().newCDPSession(this.page);
+  // Both long and short legs release before readback. The failed SDF strafe
+  // reached x12.69 and fell while waiting for key-up; this keeps the same
+  // 60-second segment bound and strict five-correction/.18m arrival gate.
+  try{for(let pulse=0;pulse<(precise?24:120);pulse++){
+   const before=await motion(this.page);expect(before.hp,'Movement must preserve life').toBeGreaterThan(0);const distance=remaining(before);if(distance<brake)return;
+   expect(Date.now()-started,'Movement retains the existing 60-second segment budget').toBeLessThan(60000);
+   const delay=Math.max(50,Math.min(precise?400:1000,(distance-brake)*.65/metresPerMs));
+   await pulseKeyboardInput(transport,'KeyW',false,delay);
+   const released=await motion(this.page);
+   if(precise||remaining(released)<2.25)await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Settling a real key pulse must preserve life').toBeGreaterThan(0);return p.seconds;},{timeout:Math.max(1,60000-(Date.now()-started)),intervals:[50,100]}).toBeGreaterThan(released.seconds+.3);
    const settled=await motion(this.page),travelled=distance-remaining(settled);
    if(travelled>0)metresPerMs=Math.max(metresPerMs*.75,travelled/delay);
    if(remaining(settled)<brake)return;
   }
-  expect(remaining(await motion(this.page)),'A bounded sequence of released key pulses must reach the existing segment brake').toBeLessThan(brake);
+  expect(remaining(await motion(this.page)),'Released key pulses must reach the existing segment brake').toBeLessThan(brake);
+  }finally{await transport.detach();}
  }
+
  async gather(material:number,minimum:number,points:Point[],object:string){
   for(let i=0;i<20&&(await read(this.page)).inventory[material]<minimum;i++){
    await this.aim(points[i%points.length]);
@@ -189,16 +201,17 @@ export class PlayerControls {
  async shield(held:boolean){
   if(held&&this.shieldHeld){await this.assertShieldHeld();return;}
   if(!this.mobile){if(held)await this.page.keyboard.down('KeyZ');else await this.page.keyboard.up('KeyZ');this.shieldHeld=held;return;}
-  if(!held){await this.endTouch();return;}await expect(this.page.locator('[data-action=block]')).toBeEnabled();const box=await this.page.locator('[data-action="block"]').boundingBox();expect(box).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:8,x:box!.x+box!.width/2,y:box!.y+box!.height/2}]});this.liveTouch=true;this.shieldHeld=true;await this.assertShieldHeld();
+  if(!held){await this.contacts?.release(8);this.shieldHeld=false;return;}
+  await this.contacts!.set(8,await this.visiblePoint('[data-action=block]'));this.shieldHeld=true;await this.assertShieldHeld();
  }
  async retreat(){
   const state=await read(this.page),start=state.seconds;
   // Repeated backsteps can leave the southern cliff. Strafe while recovering
   // stamina there; choose the lateral direction that stays north when possible.
   const side=state.position.z>6?(Math.abs(Math.sin(state.yaw))>.15?Math.sign(Math.sin(state.yaw)):state.position.x>5?-1:1):0,key=side>0?'KeyD':side<0?'KeyA':'KeyS';
-  try{if(this.mobile){const b=await this.page.locator('#move-pad').boundingBox();expect(b).not.toBeNull();await this.touch!.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:b!.x+b!.width/2+side*(b!.width/2-10),y:side?b!.y+b!.height/2:b!.y+b!.height-10}]});this.liveTouch=true;}else await this.page.keyboard.down(key);
+  try{if(this.mobile)await this.moveAxes(side,side?0:-1);else await this.page.keyboard.down(key);
    await expect.poll(async()=>{const p=await read(this.page);expect(p.hp,'Stamina recovery must remain on safe terrain').toBeGreaterThan(0);return p.seconds;},{timeout:60000}).toBeGreaterThan(start+2.6);
-  }finally{if(this.mobile)await this.endTouch();else await this.page.keyboard.up(key);}
+  }finally{if(this.mobile)await this.moveAxes(0,0);else await this.page.keyboard.up(key);}
  }
  async healFromInventory(){
   const p=await read(this.page);if(p.hp>=70)return;
@@ -256,7 +269,13 @@ export async function gatherAndLightHearth(page:Page,controls:PlayerControls){
 
 /** A real user-facing quality preset, not a game-time or mechanics override. */
 export async function choosePerformance(page:Page,mobile:boolean){
- for(let i=0;i<3&&(await read(page)).settings.graphics!=='performance';i++){if(mobile)await page.locator('#quality-toggle').tap();else await page.locator('#quality-toggle').click();}
+ for(let i=0;i<3;i++){
+  const before=(await read(page)).settings.graphics;if(before==='performance')break;
+  if(mobile)await page.locator('#quality-toggle').tap();else await page.locator('#quality-toggle').click();
+  // Require this actual tap/click to take effect before sending another; never
+  // hide missing delivery or cycle three times against a stale observation.
+  await expect.poll(async()=>(await read(page)).settings.graphics).not.toBe(before);
+ }
  await expect.poll(async()=>(await read(page)).settings.graphics).toBe('performance');
  await expect(page.locator('#quality-toggle')).toContainText('省電力');
 }

@@ -106,3 +106,37 @@ finite dose budget and all existing timeouts remain unchanged.
 TypeScript and Playwright definition listing only. No local Chromium launch,
 full test suite, build, external write or publication was attempted. Successful
 definition discovery is not evidence that these corrected routes pass.
+
+## Exact 2b9702b2 trace corrections
+
+The desktop staff trace recorded Home release from 16.61s to 19.61s while yaw
+continued from 1.96 to 4.11 radians, past its 1.84 target. The next driver sends
+real CDP key presses and schedules releases on the Node clock before awaiting
+renderer acknowledgements. It does not write camera or game state. The existing
+12 look attempts, 0.035-radian tolerance, five waypoint corrections, 0.18m arrival
+and 60-second walking-segment bound remain. Regression tests block or reject
+key-down acknowledgements and verify release still occurs on schedule.
+
+The SDF reflection failure was observed after an unbounded strafe had reached
+x12.69 and fallen to HP0. Its route now settles at the actual x5.5/z3.2 viewing
+point and asserts life before looking toward the basin; the reflection check is
+retained. Long walking legs also use bounded released pulses.
+
+The Android workbench case had four wood and a remaining wood target after two
+strikes, with no loose drops. Two strokes are not a recipe contract. It now uses
+the established maximum-20-stroke normal miner to earn eight wood before paying
+the same exact workbench cost.
+
+The desktop inventory reload comparison ran while worldReady was false and the
+status still said that regions were loading. The saved meal drop was present;
+no restored world had yet been observed. The case now waits for both completed
+world loading and the actual loaded-save status before comparing the drop and
+storage, and asserts that restoration reported no failure. These corrections
+still require exact-head browser reruns; they are not acceptance claims.
+
+Precision walking pulses are capped at400ms to permit actual simulation frames
+on the measured slow software renderer; near-goal duration is still reduced from
+observed movement. The 24 short-leg pulses, 60-second segment budget and arrival
+tolerance remain. Western resident checks additionally record the live Core target
+and actor pose immediately after aiming, without changing the target assertion;
+the reported pose/angle resolved to the correct actor in a standalone Core check.

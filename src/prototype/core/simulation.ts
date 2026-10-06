@@ -9,6 +9,7 @@ import {type SoilPreview,type SoilContext} from './soil-fill';
 import {WatermillSystem,WATERMILL_ID} from './watermill';
 import {separatesContact} from './contact-separation';
 import {toolPower} from './equipment';
+import {BOW_DAMAGE} from './equipment-stats';
 import {NpcLife} from './npc-life';
 import {WesternNpcLife,WEST_NPC_PROFILES} from './western-npc-life';
 import {EchoVaultSystem,VAULT_PROTECTED_IDS} from './echo-vault';
@@ -18,7 +19,7 @@ import {LadderTraversal} from './climbing';
 import {FishingSystem,createFishingWaterProbe,fishingTargetAlongRay,type FishingActor} from './fishing';
 import {createGuardAwareness,updateGuardAwareness,type GuardAwareness} from './guard-awareness';
 import {createWesternSamplePrototype} from './western-sample-provider';
-import {WEST_EXPEDITION_MANIFEST} from './expedition-west';
+import {WEST_EXPEDITION_MANIFEST,WEST_POINTS} from './expedition-west';
 import {WestExpeditionSystem,WEST_RUNTIME_ENEMIES,WEST_PROTECTED_OBJECT_IDS,type WestActorContext} from './expedition-west-integration';
 import {weatherAt,WeatherReactions} from './weather';
 import {createCampaignSamplePrototype} from './campaign-sample-provider';
@@ -30,7 +31,7 @@ import { ElementSystem,type Element } from './elements';
 import { materialDefinition } from './materials';
 import { SurvivalSystem,type PlacementPreview,type MaterialDrop } from './survival';
 import {HomesteadSystem} from './homestead';
-import {CAMPAIGN_ITEMS,CampaignSystem,isShrouded,isDeepShroud} from './campaign';
+import {CAMPAIGN_ITEMS,CAMPAIGN_POINTS,CampaignSystem,isShrouded,isDeepShroud} from './campaign';
 import {createEnemyTacticState,stepEnemyTactic,type EnemyTacticState,gainCombatFocus,spendCombatFocus} from './enemy-tactics';
 import {extendRegionalWorld} from './regional-world';
 import {REGIONAL_ENEMIES,REGIONAL_POINTS,REGIONAL_WATERS,REGIONAL_UPDRAFTS,regionalHazard,isRegionalOpen} from './regions';
@@ -42,7 +43,7 @@ import { EntityElements } from './entity-elements';
 import { attacks,meleeDefinition,attackPose,bladeWorld,bodyCapsules,segmentDistance,facing,transformPoint,type AttackKind,type WeaponPose } from './motion';
 export interface Controls {x:number;z:number;sprint:boolean;block:boolean;water:boolean}
 export type Action='build-snap'|'attack'|'heavy'|'heavy-start'|'heavy-release'|'cancel-combat'|'dodge'|'jump'|'interact'|'heal'|'tool'|'sword'|'chisel'|'element-next'|'cast'|'recipe-next'|'build'|'special'|'dismantle';
-export interface Event {kind:'swing'|'hit'|'hurt'|'parry'|'step'|'interact'|'water'|'break';text?:string;position?:Vec3}
+export interface Event {kind:'swing'|'hit'|'hurt'|'parry'|'step'|'interact'|'water'|'break';text?:string;hint?:'building';position?:Vec3}
 export interface Enemy {id:number;summonOwner?:number;regional?:number;maxHp?:number;name?:string;position:Vec3;yaw:number;hp:number;vy:number;phase:'idle'|'windup'|'strike'|'recover'|'stagger'|'dead';time:number;hit:boolean;attack:AttackKind;hitstop:number;stride:number;interrupted?:WeaponPose}
 export interface Target {inventoryDrop?:InventoryDrop;npc?:boolean;npcId?:string;animal?:boolean;hit:Hit;enemy?:Enemy;drop?:MaterialDrop;label:string;action:string}
 const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
@@ -204,11 +205,12 @@ export class CoreSimulation {
   const action=object.kind==='door'?(object.open?'閉じる':'開く'):object.kind==='chest'?(object.open?'回収済み':'補給を取る'):object.kind==='valve'?(this.waterOn?'止水':'放水'):object.kind==='altar'?(this.campaignMode?'読む':'番兵を復活'):p.tool?this.toolHint:'斬る';
   return {hit,label:object.name,action:damaged&&(object.kind==='door'||object.kind==='chest')?'破損 · 攻撃で採取':(object.kind==='tree'||object.kind==='resource')?action:object.kind==='chest'&&object.open?'':'E / 操作 · '+action};
  }
+ get buildingHomes(){return this.campaign.state.flameTier?[{id:'hearth',name:'灯守りの炉',position:CAMPAIGN_POINTS.find(p=>p.id==='hearth')!.position},...(this.western?.snapshot().campUnlocked?[WEST_POINTS.find(p=>p.id==='west-return-hearth')!]:[]),...REGIONAL_POINTS.filter(q=>q.kind==='hearth'&&this.campaign.state.claimedPoints.includes(q.id))]:[];}
+ withinBuildingTerritory(target:Vec3){return this.buildingHomes.some(h=>Math.hypot(h.position.x-target.x,h.position.z-target.z)<this.campaign.buildingRadius);}
  private buildingPermission(target:Vec3){
   if(!this.mayEditWorld)return '同行者の地形編集はホストの許可が必要';
   if(this.campaignMode){if(!this.campaign.state.flameTier)return '先に灯守りの炉を点火すると盛土できる';
-   const homes=[{position:{x:-3,y:.25,z:4}},...(this.western?.snapshot().campUnlocked?[{position:{x:-46.5,y:.75,z:-16}}]:[]),...REGIONAL_POINTS.filter(q=>q.kind==='hearth'&&this.campaign.state.claimedPoints.includes(q.id))];
-   if(!homes.some(h=>Math.hypot(h.position.x-target.x,h.position.z-target.z)<10+this.campaign.state.flameTier*3))return '点火した拠点の建築範囲内で盛土する';
+   if(!this.withinBuildingTerritory(target))return `点火した拠点の建築範囲（半径${this.campaign.buildingRadius}m未満）で盛土する`;
   }return '';
  }
  soilContext(target:Vec3):SoilContext{return {player:this.player.position,bodies:[...this.solidBodies().filter(b=>b!==this.player.position),this.primaryPlayer.position,...(this.companion?[this.companion.position]:[]),...(this.campaignMode&&this.animal.visible?[-.4,.27].map(z=>({x:this.animal.position.x+Math.sin(this.animal.yaw)*z,y:this.animal.position.y,z:this.animal.position.z+Math.cos(this.animal.yaw)*z})):[])],bounds:this.survival.buildBounds,protectedObjects:this.elements.protectedObjects,permission:this.buildingPermission(target)};}
@@ -236,8 +238,7 @@ export class CoreSimulation {
   const placement=buildTarget(target.hit.point,this.buildSnap);
   const preview=this.survival.preview(placement,this.player.position,this.solidBodies().filter(b=>b!==this.player.position));
   if(this.campaignMode){if(!this.campaign.state.flameTier)return {...preview,ok:false,message:'先に灯守りの炉を点火すると建築できる'};
-   const homes=[{position:{x:-3,y:.25,z:4}},...(this.western?.snapshot().campUnlocked?[{position:{x:-46.5,y:.75,z:-16}}]:[]),...REGIONAL_POINTS.filter(q=>q.kind==='hearth'&&this.campaign.state.claimedPoints.includes(q.id))];
-   if(!homes.some(h=>Math.hypot(h.position.x-placement.x,h.position.z-placement.z)<10+this.campaign.state.flameTier*3))return {...preview,ok:false,message:'点火した拠点の建築範囲内で設置する'};
+   if(!this.withinBuildingTerritory(placement))return {...preview,ok:false,message:`点火した拠点の建築範囲（半径${this.campaign.buildingRadius}m未満）で設置する`};
   }return preview;
  }
  action(action:Action,input:Controls){
@@ -257,7 +258,7 @@ export class CoreSimulation {
   if(action==='build-snap'){if(p.phase==='idle'&&this.buildMode){this.buildSnap=!this.buildSnap;this.events.push({kind:'interact',text:this.buildSnap?'建築: 1.5m格子に吸着':'建築: 自由配置'});}return;}
   if(action==='recipe-next'){if(p.phase==='idle'){this.buildMode=true;this.survival.cycleRecipe();}return;}
   if(action==='dismantle'){if(p.phase!=='idle')return;const t=this.target(3.2);if(!t?.hit.cell.object?.startsWith('build:')){this.events.push({kind:'interact',text:'自分で建てた部材を狙う'});return;}const r=this.survival.dismantle(t.hit.cell.object,p.position,this.solidBodies().filter(b=>b!==this.player.position));this.events.push({kind:'interact',text:r.message});if(r.ok&&this.activeTool==='build-hammer')this.campaign.consumeToolDurability();this.syncMaterials();return;}
-  if(action==='build'){if(p.phase==='idle'){if(this.campaignMode&&!this.buildMode){this.buildMode=true;this.events.push({kind:'interact',text:'建築: V部品 / F回転 / B設置 / X戻す / G終了'});return;}const preview=this.buildPreview();if(!preview||!preview.ok){this.events.push({kind:'interact',text:preview?.message??'近くの地面に照準を合わせる'});return;}const result=this.survival.place(preview.target,p.position,this.solidBodies().filter(b=>b!==this.player.position));this.events.push({kind:result.ok?'break':'interact',text:result.message});if(result.ok&&this.campaignMode){this.campaign.recordBuild(this.survival.selected);if(this.activeTool==='build-hammer')this.campaign.consumeToolDurability();}this.syncMaterials();}return;}
+  if(action==='build'){if(p.phase==='idle'){if(this.campaignMode&&!this.buildMode){this.buildMode=true;this.events.push({kind:'interact',hint:'building',text:'建築: V部品 / F回転 / B設置 / X戻す / G終了'});return;}const preview=this.buildPreview();if(!preview||!preview.ok){this.events.push({kind:'interact',text:preview?.message??'近くの地面に照準を合わせる'});return;}const result=this.survival.place(preview.target,p.position,this.solidBodies().filter(b=>b!==this.player.position));this.events.push({kind:result.ok?'break':'interact',text:result.message});if(result.ok&&this.campaignMode){this.campaign.recordBuild(this.survival.selected);if(this.activeTool==='build-hammer')this.campaign.consumeToolDurability();}this.syncMaterials();}return;}
   if(action==='cast'){
    if(this.buildMode){this.buildMode=false;return;}
    if(p.phase!=='idle'||input.block||this.castCooldown>0)return;
@@ -421,7 +422,7 @@ export class CoreSimulation {
   }
  }
  private enemyProjectileTick(dt:number,_blocking:boolean){for(let i=this.enemyShots.length-1;i>=0;i--){const shot=this.enemyShots[i],length=Math.hypot(shot.velocity.x,shot.velocity.y,shot.velocity.z)*dt,wall=this.arena.field.ray(shot.position,shot.velocity,length),npcHit=this.campaignMode?this.npcRay(shot.position,shot.velocity,wall?Math.min(length,wall.distance):length):null,animalHit=this.campaignMode?this.animal.ray(shot.position,shot.velocity,Math.min(length,wall?.distance??length,npcHit?.distance??length)):null,end=animalHit?.point??npcHit?.point??wall?.point??{x:shot.position.x+shot.velocity.x*dt,y:shot.position.y+shot.velocity.y*dt,z:shot.position.z+shot.velocity.z*dt};let victim:PlayerState|null=null;for(const actor of this.livingPlayers().sort((a,b)=>Math.hypot(a.position.x-shot.position.x,a.position.y-shot.position.y,a.position.z-shot.position.z)-Math.hypot(b.position.x-shot.position.x,b.position.y-shot.position.y,b.position.z-shot.position.z))){const hit=this.withActor(actor,()=>bodyCapsules(actor.position,actor.yaw,this.pose()).some(c=>segmentDistance(shot.position,end,c.a,c.b)<c.r+shot.radius));if(hit){victim=actor;break;}}if(victim)this.withActor(victim,()=>this.hurtPlayer(shot.damage,shot.position,this.actorBlocking(victim!)));if(animalHit&&!victim)this.animal.nudge(shot.velocity,.7);if(victim||animalHit||npcHit||wall||shot.life<=0){this.enemyShots.splice(i,1);continue;}shot.position=end;shot.life-=dt;}for(const e of this.enemies)if(e.summonOwner!==undefined&&e.summonOwner>=0&&this.enemies[e.summonOwner]?.hp<=0){e.hp=0;e.phase='dead';}}
- private arrowTick(dt:number){for(let i=this.arrows.length-1;i>=0;i--){const a=this.arrows[i],distance=Math.hypot(a.velocity.x,a.velocity.y,a.velocity.z)*dt,wall=this.arena.field.ray(a.position,a.velocity,distance);let struck=!!(this.campaignMode&&this.npcRay(a.position,a.velocity,distance,this.arena.field));const animalHit=this.campaignMode?this.animal.ray(a.position,a.velocity,distance,this.arena.field):null;if(animalHit){this.animal.nudge(a.velocity,1);struck=true;this.events.push({kind:'interact',text:'山羊は保護されています'});}if(!struck)for(const e of this.enemies){if(e.hp<=0||!this.enemyActive(e))continue;const b=this.enemyElements[e.id],local=b.local(a.position,e.position,e.yaw),d=b.local({x:e.position.x+a.velocity.x,y:e.position.y+a.velocity.y,z:e.position.z+a.velocity.z},e.position,e.yaw),hit=b.field.ray(local,d,distance);if(hit&&(!wall||hit.distance<wall.distance)){e.hp=Math.max(0,e.hp-28*this.campaign.attackMultiplier);if(a.owner==='guest')this.withCompanion(()=>gainCombatFocus(this.focus,'arrow:'+(++this.actionSerial)));else gainCombatFocus(this.focus,'arrow:'+(++this.actionSerial));b.reactions.damage(hit,35,.08);b.impulse(a.velocity,.6);this.finishElementDeath(e);this.events.push({kind:'hit',position:{...e.position},text:'矢が命中'});struck=true;break;}}if(struck||wall||a.life<=0){this.arrows.splice(i,1);continue;}a.position.x+=a.velocity.x*dt;a.position.y+=a.velocity.y*dt;a.position.z+=a.velocity.z*dt;a.velocity.y-=3*dt;a.life-=dt;}}
+ private arrowTick(dt:number){for(let i=this.arrows.length-1;i>=0;i--){const a=this.arrows[i],distance=Math.hypot(a.velocity.x,a.velocity.y,a.velocity.z)*dt,wall=this.arena.field.ray(a.position,a.velocity,distance);let struck=!!(this.campaignMode&&this.npcRay(a.position,a.velocity,distance,this.arena.field));const animalHit=this.campaignMode?this.animal.ray(a.position,a.velocity,distance,this.arena.field):null;if(animalHit){this.animal.nudge(a.velocity,1);struck=true;this.events.push({kind:'interact',text:'山羊は保護されています'});}if(!struck)for(const e of this.enemies){if(e.hp<=0||!this.enemyActive(e))continue;const b=this.enemyElements[e.id],local=b.local(a.position,e.position,e.yaw),d=b.local({x:e.position.x+a.velocity.x,y:e.position.y+a.velocity.y,z:e.position.z+a.velocity.z},e.position,e.yaw),hit=b.field.ray(local,d,distance);if(hit&&(!wall||hit.distance<wall.distance)){e.hp=Math.max(0,e.hp-BOW_DAMAGE*this.campaign.attackMultiplier);if(a.owner==='guest')this.withCompanion(()=>gainCombatFocus(this.focus,'arrow:'+(++this.actionSerial)));else gainCombatFocus(this.focus,'arrow:'+(++this.actionSerial));b.reactions.damage(hit,35,.08);b.impulse(a.velocity,.6);this.finishElementDeath(e);this.events.push({kind:'hit',position:{...e.position},text:'矢が命中'});struck=true;break;}}if(struck||wall||a.life<=0){this.arrows.splice(i,1);continue;}a.position.x+=a.velocity.x*dt;a.position.y+=a.velocity.y*dt;a.position.z+=a.velocity.z*dt;a.velocity.y-=3*dt;a.life-=dt;}}
  private castEnemy(e:Enemy,element:Element,hit:Hit){const body=this.enemyElements[e.id],point=body.local(hit.point,e.position,e.yaw),worldDirection=direction(this.player.yaw,this.player.pitch),d=body.local({x:e.position.x+worldDirection.x,y:e.position.y+worldDirection.y,z:e.position.z+worldDirection.z},e.position,e.yaw);e.hp=Math.max(0,e.hp-body.cast(element,{...hit,point},d)*(this.campaignMode?this.campaign.spellMultiplier:1));if(element==='wind'||element==='earth')body.impulse(worldDirection,element==='wind'?4:2);if(body.shock>0){e.interrupted=this.enemyPose(e);e.phase='stagger';e.time=0;}this.finishElementDeath(e);}
  private finishElementDeath(e:Enemy){if(e.hp<=0&&e.phase!=='dead'){e.interrupted=this.enemyPose(e);e.phase='dead';e.time=0;this.defeated++;this.events.push({kind:'break',text:'属性で番兵を倒した'});}}
  private enemyMaterialTick(e:Enemy,dt:number){const b=this.enemyElements[e.id];if(e.hp>0){e.hp=Math.max(0,e.hp-b.tick(dt));this.finishElementDeath(e);const old={...e.position};this.move(e.position,b.velocity.x*dt,b.velocity.z*dt,1.7);if(Math.abs(e.position.x-old.x)<.0001)b.velocity.x=0;if(Math.abs(e.position.z-old.z)<.0001)b.velocity.z=0;const drag=Math.exp(-dt*(this.water.surface(e.position.x,e.position.z)>e.position.y?9:4));b.velocity.x*=drag;b.velocity.z*=drag;}else b.tick(dt);
@@ -463,7 +464,7 @@ export class CoreSimulation {
      e.hit=true;if(p.phase==='dodge'&&p.time>=.035&&p.time<.27)break;e.hitstop=.06;p.impact=1;
      if(blocking&&p.guard>.5&&facing(p.yaw,p.position,e.position)>.45&&segmentDistance(grip,end,transformPoint({x:-.38+p.guard*.2,y:.865+p.guard*.54,z:-.4-p.guard*.15},p.position,p.yaw),transformPoint({x:-.38+p.guard*.2,y:.865+p.guard*.54,z:-.4-p.guard*.15},p.position,p.yaw))<.44&&p.stamina>=(this.campaignMode?this.campaign.guardCost:18)){p.stamina-=this.campaignMode?this.campaign.guardCost:18;if(this.campaignMode)this.campaign.consumeShieldDurability();this.regenDelay=.8;
       if(p.blockTime<.19){e.interrupted=this.enemyPose(e);e.phase='stagger';e.time=0;this.events.push({kind:'parry',text:'パリィ'});}else this.events.push({kind:'parry',text:'ガード'});
-     }else{this.cancelCombat();if(p.phase==='heal'){p.phase='idle';p.time=0;this.events.push({kind:'interact',text:'回復を中断された'});}if(this.campaignMode)this.campaign.consumeArmorDurability();p.hp=Math.max(0,p.hp-(e.attack==='overhead'?38:28)*(this.campaignMode?1-this.campaign.damageReduction:1));p.stamina=Math.max(0,p.stamina-8);this.events.push({kind:'hurt'});}break;
+     }else{this.cancelCombat();if(p.phase==='heal'){p.phase='idle';p.time=0;this.events.push({kind:'interact',text:'回復を中断された'});}if(this.campaignMode)this.campaign.consumeArmorDurability();p.hp=Math.max(0,p.hp-(e.attack==='overhead'?38:28)*(this.campaignMode?1-this.campaign.damageReduction:1));this.deathCause='敵の攻撃';p.stamina=Math.max(0,p.stamina-8);this.events.push({kind:'hurt'});}break;
     }if(npcHit){e.hit=true;e.hitstop=.06;this.events.push({kind:'parry',text:'住人は保護されています'});break;}if(animalHit){e.hit=true;e.hitstop=.06;this.animal.nudge(edge,.5);this.events.push({kind:'parry',text:'山羊は保護されています'});break;}if(wall){e.hit=true;e.hitstop=.08;this.elements.damage(wall,e.attack==='overhead'?35:18,.22);this.events.push({kind:'parry',text:'番兵の刃が壁に当たった'});break;}
    }
    if(e.phase==='strike'&&e.time>=def.strike*slow){e.phase='recover';e.time-=def.strike*slow;}

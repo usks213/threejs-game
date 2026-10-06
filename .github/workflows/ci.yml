@@ -134,6 +134,45 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+  native-pointer-browser:
+    # Separate from the normal headless matrix: one browser owns one X11 display.
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - name: Install native X11 test input from Ubuntu packages
+        run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils
+      - name: Verify native relative mouse and held combat in headed Chromium
+        # Playwright headed Linux: https://playwright.dev/docs/ci#running-headed
+        run: |
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' sh -c '
+            xdpyinfo -queryExtensions | grep -w XTEST &&
+            xdotool version &&
+            npm run e2e -- tests/e2e/native-pointer.spec.ts --project=desktop-chromium --headed --workers=1 --retries=0
+          '
+        env:
+          E2E_NATIVE_MOUSE: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-pointer-desktop
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
   deploy-preview:
     needs: verify
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -227,7 +266,7 @@ jobs:
           retention-days: 7
   regional-campaign-browser:
     # A separate end-to-end campaign budget. Existing short/chapter jobs and
-    # their assertions/timeouts are unchanged. Desktop proof comes first.
+    # their assertions/timeouts are unchanged. Android runs independently below.
     needs: verify
     if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
     runs-on: ubuntu-latest
@@ -252,6 +291,41 @@ jobs:
         with:
           name: regional-campaign-desktop
           path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+  regional-campaign-android-browser:
+    # Same strict seven-region route with genuine CDP touches. Chromium mobile
+    # emulation is independently reported; this is not Android device evidence.
+    needs: verify
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- tests/e2e/campaign-touch-controls.spec.ts --project=android-chromium --output=touch-preflight-results
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: touch-preflight-report
+      - run: npm run e2e -- tests/e2e/campaign-regional-playthrough.spec.ts --project=android-chromium
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regional-campaign-android-emulation
+          path: |
+            touch-preflight-report/
+            touch-preflight-results/
             playwright-report/
             test-results/
           retention-days: 7

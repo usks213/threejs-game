@@ -29,7 +29,12 @@ test('elemental harvesting turns broken wood into a placed SDF workbench',async(
  await aim(page,isMobile,{x:-1.7,y:.58,z:6.25});if(isMobile)await page.locator('#tool-switch').tap();else await page.keyboard.press('Digit2');
  const beforeMeshes=(await probe(page)).stats.remeshes;await chargeHeavy(page,isMobile);
  await expect.poll(async()=>(await probe(page)).inventory[4],{timeout:90000}).toBeGreaterThan(0);await expect.poll(async()=>(await probe(page)).phase).toBe('idle');
- await aim(page,isMobile,{x:-1.7,y:.58,z:6.95});await chargeHeavy(page,isMobile);await expect.poll(async()=>(await probe(page)).phase).not.toBe('idle');await expect.poll(async()=>(await probe(page)).phase).toBe('idle');expect((await probe(page)).inventory[4]).toBeGreaterThanOrEqual(8);
+ // A aimed heavy strike need not break enough surviving voxels for the full
+ // recipe. Gather the actual finite cost with the same bounded normal-play
+ // miner, which checks material hits and walks to physical drops when needed.
+ const controls=new PlayerControls(page,isMobile);await controls.initialize();
+ try{await controls.gather(4,8,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95},{x:-2.2,y:.58,z:6.25}],'sample-wood');}finally{await controls.dispose();}
+ expect((await probe(page)).inventory[4]).toBeGreaterThanOrEqual(8);
  await aim(page,isMobile,{x:.1,y:.25,z:4.8});const before=(await probe(page)).inventory[4];await action(page,isMobile,'build','KeyB');await expect.poll(async()=>(await probe(page)).inventory[4]).toBe(before-8);expect((await probe(page)).stats.remeshes).toBeGreaterThan(beforeMeshes);
  await page.screenshot({path:`test-results/${isMobile?'mobile':'desktop'}-elemental-workbench.png`});expect(errors).toEqual([]);
 });

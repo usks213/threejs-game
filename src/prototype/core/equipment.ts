@@ -1,10 +1,11 @@
 import type {CampaignItem,CampaignRecipe,EquipmentSlot} from './campaign';
+import {EQUIPMENT_PROFILES,itemBaseStats} from './equipment-stats';
 /** Equipment content is shared by crafting, validation, rigs and the codex. */
 export const EQUIPMENT_SLOTS:readonly EquipmentSlot[]=['weapon','armor','head','legs','shield','tool','grapple','glider','charm'];
 export const LEGACY_EQUIPMENT_SLOTS=['weapon','armor','grapple','glider','charm'] as const;
 export const GEAR_SLOTS:readonly EquipmentSlot[]=['weapon','armor','head','legs','shield','tool'];
 export const SLOT_LABELS:Record<EquipmentSlot,string>={weapon:'武器',armor:'胴',head:'頭',legs:'脚',shield:'盾',tool:'採集・建築具',grapple:'鉤縄',glider:'滑空具',charm:'護符・指輪'};
-const entry=(id:string,label:string,category:CampaignItem['category'],slot:EquipmentSlot,description:string,source:string):CampaignItem=>({id,label,category,slot,description,source,icon:category==='weapon'?'⚔':category==='tool'?'⚒':'◇',stackLimit:1});
+const entry=(id:string,label:string,category:CampaignItem['category'],slot:EquipmentSlot,description:string,source:string):CampaignItem=>({id,label,category,slot,description,source,icon:category==='weapon'?'⚔':category==='tool'?'⚒':'◇',stackLimit:1,progression:EQUIPMENT_PROFILES[id]});
 export const EQUIPMENT_ITEMS:readonly CampaignItem[]=[
  entry('wood-axe','木割り斧','tool','tool','道具選択（2）後に攻撃。木・加工木・草に強く、石・金属には弱い。耐久を消費。','木材3・石2で手作り'),
  entry('stone-pick','石穿ちのつるはし','tool','tool','道具選択（2）後に攻撃。石・碑石・金属に強く、木には弱い。耐久を消費。','木材3・石3で手作り'),
@@ -22,10 +23,10 @@ export const EQUIPMENT_ITEMS:readonly CampaignItem[]=[
 const costs:Record<string,Record<number,number>>={'wood-axe':{4:3,3:2},'stone-pick':{4:3,3:3},'terrain-rake':{4:4,3:2},'build-hammer':{4:4,3:2},greatsword:{6:10,4:4},dagger:{4:2,3:3},'cloth-hood':{10:2,7:3},'copper-helm':{6:5,10:1},'cloth-leggings':{10:3,7:3},'copper-greaves':{6:6,10:2},'copper-shield':{4:4,6:5},'traveler-ring':{6:3,3:2}};
 export const EQUIPMENT_RECIPES:readonly CampaignRecipe[]=EQUIPMENT_ITEMS.map(i=>({id:i.id,label:i.label,output:i.id,cost:costs[i.id],station:i.slot==='tool'||i.id==='dagger'?'hand':'forge',requiresArtisan:i.slot!=='tool'&&i.id!=='dagger',description:i.description}));
 export const ARMOR_STATS:Readonly<Record<string,{reduction:number;material:0|6|10;speed:number;cold:number}>>={
- 'hide-coat':{reduction:.2,material:10,speed:1,cold:.5},'copper-mail':{reduction:.3,material:6,speed:.94,cold:1},
- 'cloth-hood':{reduction:.08,material:10,speed:1,cold:1},'copper-helm':{reduction:.12,material:6,speed:.98,cold:1},
- 'cloth-leggings':{reduction:.1,material:10,speed:1,cold:.85},'copper-greaves':{reduction:.15,material:6,speed:.97,cold:1},
- 'copper-shield':{reduction:0,material:6,speed:1,cold:1},
+ 'hide-coat':{reduction:itemBaseStats('hide-coat').reduction,material:10,speed:1,cold:.5},'copper-mail':{reduction:itemBaseStats('copper-mail').reduction,material:6,speed:.94,cold:1},
+ 'cloth-hood':{reduction:itemBaseStats('cloth-hood').reduction,material:10,speed:1,cold:1},'copper-helm':{reduction:itemBaseStats('copper-helm').reduction,material:6,speed:.98,cold:1},
+ 'cloth-leggings':{reduction:itemBaseStats('cloth-leggings').reduction,material:10,speed:1,cold:.85},'copper-greaves':{reduction:itemBaseStats('copper-greaves').reduction,material:6,speed:.97,cold:1},
+ 'copper-shield':{reduction:itemBaseStats('copper-shield').reduction,material:6,speed:1,cold:1},
 };
 export type MeleeArchetype='sword'|'greatsword'|'dagger';
 export const meleeArchetype=(id:string|null):MeleeArchetype=>id==='greatsword'||id==='dagger'?id:'sword';

@@ -1,4 +1,5 @@
 import {chargeHeavy} from './helpers/charge-heavy';
+import {PlayerControls} from './helpers/campaign-controls';
 import {observeAttack} from './helpers/transient-observation';
 import {test,expect,type Page} from '@playwright/test';
 interface Probe {position:{x:number;y:number;z:number};phase:string;phaseTime:number;attack:string;timeScale:number;hp:number;stamina:number;enemies:{position:{x:number;y:number;z:number};phase:string;time:number;hp:number}[];weapon:{tip:{x:number;y:number;z:number}};seconds:number;yaw:number;pitch:number;door:boolean;tool:boolean;stats:{mode:string;shUpdates:number;exposure:number;remeshes:number;triangles:number;reflectionSources:number}}
@@ -81,13 +82,13 @@ test('desktop duel: read enemy windup, raise shield, then punish recovery',async
 });
 test('desktop SDF carve changes the visible mesh and the aimed obstruction together',async({page,isMobile})=>{
  test.setTimeout(420000);
- test.skip(isMobile,'SDF remeshing is shared; this probe uses keyboard equipment selection.');const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await page.locator('#quality-toggle').click();expect((await probe(page)).stats.mode).toBe('performance');await page.locator('#start').click();await page.keyboard.down('KeyW');await expect.poll(async()=>(await probe(page)).position.z,{timeout:60000}).toBeLessThan(3.4);await page.keyboard.up('KeyW');await page.keyboard.press('Digit2');await expect(page.locator('#game')).toHaveAttribute('data-target','door');const meshes=(await probe(page)).stats.remeshes;await page.screenshot({path:'test-results/desktop-sdf-before.png'});await chargeHeavy(page,false);
+ test.skip(isMobile,'SDF remeshing is shared; this probe uses keyboard equipment selection.');const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});await page.locator('#quality-toggle').click();expect((await probe(page)).stats.mode).toBe('performance');await page.locator('#start').click();const controls=new PlayerControls(page,false);await controls.initialize();await controls.walkTo(0,3.2);await page.keyboard.press('Digit2');await expect(page.locator('#game')).toHaveAttribute('data-target','door');const meshes=(await probe(page)).stats.remeshes;await page.screenshot({path:'test-results/desktop-sdf-before.png'});await chargeHeavy(page,false);
  await expect.poll(async()=>(await probe(page)).stats.remeshes,{timeout:60000}).toBeGreaterThan(meshes);await expect(page.locator('#game')).toHaveAttribute('data-target','');await page.screenshot({path:'test-results/desktop-sdf-after.png'});await expect.poll(async()=>(await probe(page)).phase,{timeout:60000}).toBe('idle');
  // Keep the same physical route and arrival assertion. SwiftShader advanced
  // continuously but needed more than60wallseconds for2.2simulationseconds.
- await page.keyboard.down('KeyD');try{await expect.poll(async()=>(await probe(page)).position.x,{timeout:120000}).toBeGreaterThan(5.25);}finally{await page.keyboard.up('KeyD');}
+ await controls.walkTo(5.5,3.2);expect((await probe(page)).hp).toBeGreaterThan(0);await controls.aim({x:5.5,y:1.3,z:-2});
  // Movement/carving use the real lightweight preset; reflection visibility is
  // checked separately after returning to the original balanced presentation.
  await page.keyboard.press('Escape');await page.locator('#quality-toggle').click();await page.locator('#quality-toggle').click();expect((await probe(page)).stats.mode).toBe('balanced');await page.locator('#start').click();
- await expect.poll(async()=>(await probe(page)).stats.reflectionSources,{timeout:60000}).toBeGreaterThan(0);await page.screenshot({path:'test-results/desktop-water-reflection.png'});expect(errors).toEqual([]);
+ await expect.poll(async()=>(await probe(page)).stats.reflectionSources,{timeout:60000}).toBeGreaterThan(0);expect((await probe(page)).hp).toBeGreaterThan(0);await page.screenshot({path:'test-results/desktop-water-reflection.png'});await controls.dispose();expect(errors).toEqual([]);
 });
