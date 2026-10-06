@@ -1,7 +1,12 @@
 // Trigger on contact: secondary fingers never depend on compatibility clicks.
 export function actionInput(button: HTMLButtonElement, action: () => void, signal: AbortSignal): void {
+ pointerSafeClick(button,action,signal);
+ button.addEventListener('pointerdown',event=>{if(event.button!==0||button.disabled)return;event.preventDefault();action();},{signal});
+}
+/** Accept keyboard/accessibility clicks without replaying an already handled pointer contact. */
+export function pointerSafeClick(button: HTMLButtonElement, action: () => void, signal: AbortSignal): void {
  let lastPointer=-Infinity,lastPointerId=-1,keyboardActivation=false;
- button.addEventListener('pointerdown',event=>{if(event.button!==0||button.disabled)return;event.preventDefault();lastPointer=performance.now();lastPointerId=event.pointerId;keyboardActivation=false;action();},{signal});
+ button.addEventListener('pointerdown',event=>{if(event.button!==0||button.disabled)return;lastPointer=performance.now();lastPointerId=event.pointerId;keyboardActivation=false;},{signal});
  button.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' ')keyboardActivation=true;},{signal});
  button.addEventListener('click',event=>{
   const pointer=event as MouseEvent&Partial<PointerEvent>,identifiedPointer=typeof pointer.pointerId==='number'&&pointer.pointerId>=0&&pointer.pointerId===lastPointerId&&!!pointer.pointerType,identifiedKeyboard=pointer.pointerId===-1&&pointer.pointerType==='';
