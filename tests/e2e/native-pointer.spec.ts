@@ -17,10 +17,11 @@ test('native desktop pointer turns both camera axes, attacks, holds shield and r
  // The existing production quality button keeps this input check inexpensive.
  await page.locator('#quality-toggle').click();
  const observed=await page.evaluateHandle(()=>{
-  const events:{sequence:number;type:string;dx:number;dy:number;button:number;buttons:number;x:number;y:number;locked:string;trusted:boolean}[]=[];let sequence=0;
+  const events:{sequence:number;type:string;dx:number;dy:number;button:number;buttons:number;x:number;y:number;locked:string;trusted:boolean}[]=[];let sequence=0,lockFailures=0;
   const record=(event:MouseEvent)=>{events.push({sequence:++sequence,type:event.type,dx:event.movementX,dy:event.movementY,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY,locked:document.pointerLockElement?.id??'',trusted:event.isTrusted});if(events.length>128)events.shift();};
   for(const type of ['mousemove','mousedown','mouseup'])document.addEventListener(type,record as EventListener,true);
-  return {read:()=>({sequence,events}),stop:()=>{for(const type of ['mousemove','mousedown','mouseup'])document.removeEventListener(type,record as EventListener,true);}};
+  const lockFailed=()=>{lockFailures++;};document.addEventListener('pointerlockerror',lockFailed);
+  return {read:()=>({sequence,events,lockFailures}),stop:()=>{for(const type of ['mousemove','mousedown','mouseup'])document.removeEventListener(type,record as EventListener,true);document.removeEventListener('pointerlockerror',lockFailed);}};
  });
  const events=()=>observed.evaluate(value=>value.read());
  const checkpoint=async(label:string)=>{const state=await read(page);checkpoints.push({label,state});return state;};
@@ -83,7 +84,20 @@ test('native desktop pointer turns both camera axes, attacks, holds shield and r
   await moveNativePointerIntoPage(page);
   await expect.poll(async()=>(await events()).events.some(event=>event.sequence>menuSequence&&event.type==='mousemove'&&event.trusted&&event.locked===''&&event.x>20&&event.x<viewport.width-20&&event.y>20&&event.y<viewport.height-20&&(event.dx!==0||event.dy!==0)), 'Native motion must also reach the unlocked menu').toBe(true);
   const menuMotion=await read(page);expect(menuMotion.yaw).toBe(paused.yaw);expect(menuMotion.pitch).toBe(paused.pitch);
-  await page.locator('#start').click();await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id)).toBe('game');
+  await page.locator('#start').click();
+  // A real Escape can trigger Chromium's short anti-relock interval. A rejected
+  // user request must leave a safe paused menu, never running without a camera.
+  await expect.poll(async()=>await page.evaluate(()=>document.pointerLockElement?.id==='game')||await page.locator('#menu').isVisible()).toBe(true);
+  if(!await page.evaluate(()=>document.pointerLockElement)){
+   await expect(page.locator('#game')).toHaveAttribute('data-running','false');
+   await expect(page.locator('#menu-title')).toContainText('視点操作を開始できませんでした');
+   expect((await read(page)).controls).toMatchObject({x:0,z:0,block:false});
+   await checkpoint('rejected-resume-remains-paused');
+   // Wait out the browser's protection, then make one new actual user click.
+   // Do not change browser permissions or retry the API automatically.
+   await page.waitForTimeout(1500);await page.locator('#start').click();
+  }
+  await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id)).toBe('game');
   const resumed=await read(page);await expect.poll(async()=>(await read(page)).seconds).toBeGreaterThan(resumed.seconds+.3);
   const settled=await checkpoint('resumed-with-neutral-controls');
   expect(settled.controls).toMatchObject({x:0,z:0,block:false});

@@ -4,11 +4,11 @@ class Surface extends EventTarget {
  dataset:Record<string,string>={};disabled=false;style={transform:''};classList={add:vi.fn(),remove:vi.fn()};setPointerCapture(){}
  getBoundingClientRect(){return {left:0,top:0,width:100,height:100};}
 }
-function setup(){
- const canvas=new Surface(),stick=new Surface(),knob=new Surface(),look=new Surface(),button=new Surface();button.dataset.action='element-next';
- const document=Object.assign(new EventTarget(),{pointerLockElement:null,querySelector:(s:string)=>s==='#move-pad'?stick:s==='#move-knob'?knob:look,querySelectorAll:()=>[button],exitPointerLock:vi.fn()});
- vi.stubGlobal('document',document);vi.stubGlobal('window',new EventTarget());vi.stubGlobal('matchMedia',()=>({matches:true}));vi.stubGlobal('navigator',{maxTouchPoints:1});
- const action=vi.fn(),onLook=vi.fn(),input=createInput(canvas as unknown as HTMLCanvasElement,action,onLook,vi.fn());input.setEnabled(true);return {button,action,input,onLook,document};
+function setup(mobile=true,buttonAction='element-next'){
+ const canvas=new Surface(),stick=new Surface(),knob=new Surface(),look=new Surface(),button=new Surface(),shield=new Surface();button.dataset.action=buttonAction;shield.dataset.action='block';
+ const document=Object.assign(new EventTarget(),{pointerLockElement:null,querySelector:(s:string)=>s==='#move-pad'?stick:s==='#move-knob'?knob:look,querySelectorAll:()=>[button,shield],exitPointerLock:vi.fn()});
+ vi.stubGlobal('document',document);vi.stubGlobal('window',new EventTarget());vi.stubGlobal('matchMedia',()=>({matches:mobile}));vi.stubGlobal('navigator',{maxTouchPoints:mobile?1:0});
+ const action=vi.fn(),onLook=vi.fn(),input=createInput(canvas as unknown as HTMLCanvasElement,action,onLook,vi.fn());input.setEnabled(true);return {button,shield,action,input,onLook,document,canvas};
 }
 const send=(target:EventTarget,type:string,props:Record<string,unknown>={})=>{const e=new Event(type,{cancelable:true});Object.assign(e,props);target.dispatchEvent(e);};
 afterEach(()=>vi.unstubAllGlobals());
@@ -30,3 +30,45 @@ describe('keyboard combat accessibility',()=>{
 });
 
 describe('precision look under delayed key release',()=>{it('bounds six queued 100ms fine-look frames below .035rad',()=>{const {input,onLook,document}=setup();send(document,'keydown',{code:'ShiftLeft'});send(document,'keydown',{code:'Home'});for(let i=0;i<6;i++)input.tick(.1);const yaw=onLook.mock.calls.reduce((sum,call)=>sum+Math.abs(call[0]),0);expect(yaw).toBeCloseTo(.0336);expect(yaw).toBeLessThan(.035);send(document,'keyup',{code:'Home'});input.tick(.1);expect(onLook).toHaveBeenCalledTimes(6);input.dispose();});});
+
+
+describe('desktop pointer lock outcome',()=>{
+ it('reports browser rejection and permits a later user-initiated request',async()=>{
+  const {input,canvas}=setup(false);
+  const request=vi.fn().mockRejectedValueOnce(new DOMException('Temporarily rejected','NotAllowedError')).mockResolvedValueOnce(undefined);
+  Object.assign(canvas,{requestPointerLock:request});
+  expect(await input.lock()).toBe(false);expect(request).toHaveBeenCalledTimes(1);
+  expect(await input.lock()).toBe(true);expect(request).toHaveBeenCalledTimes(2);input.dispose();
+ });
+ it('reports synchronous unsupported-API failures without an unhandled rejection',async()=>{
+  const {input,canvas}=setup(false);Object.assign(canvas,{requestPointerLock:()=>{throw new TypeError('unsupported');}});
+  expect(await input.lock()).toBe(false);input.dispose();
+ });
+ it('does not request desktop pointer lock for touch input',async()=>{
+  const {input,canvas}=setup();const request=vi.fn();Object.assign(canvas,{requestPointerLock:request});
+  expect(await input.lock()).toBe(true);expect(request).not.toHaveBeenCalled();input.dispose();
+ });
+});
+
+
+describe('secondary touch gameplay controls',()=>{
+ it.each(['heal','tool'])('delivers %s once while another finger keeps the shield held',kind=>{
+  const {button,shield,action,input}=setup(true,kind);
+  send(shield,'pointerdown',{pointerId:8});expect(input.controls().block).toBe(true);
+  send(button,'pointerdown',{pointerId:9});send(button,'pointerup',{pointerId:9});send(button,'click',{detail:0});
+  expect(action.mock.calls).toEqual([[kind]]);expect(input.controls().block).toBe(true);
+  send(shield,'pointerup',{pointerId:8});expect(input.controls().block).toBe(false);input.dispose();
+ });
+});
+
+
+it('releases a delayed pointer acquisition when input was paused during the request',async()=>{
+ const {input,canvas,document}=setup(false);let resolve:()=>void=()=>{};
+ Object.assign(canvas,{requestPointerLock:()=>new Promise<void>(done=>{resolve=done;})});
+ const pending=input.lock();input.setEnabled(false);
+ document.exitPointerLock.mockImplementation(()=>{Reflect.set(document,'pointerLockElement',null);});
+ Reflect.set(document,'pointerLockElement',canvas);document.dispatchEvent(new Event('pointerlockchange'));
+ expect(document.exitPointerLock).toHaveBeenCalledOnce();expect(document.pointerLockElement).toBeNull();
+ expect(input.controls()).toMatchObject({x:0,z:0,block:false});resolve();await pending;
+ expect(document.pointerLockElement).toBeNull();input.dispose();
+});

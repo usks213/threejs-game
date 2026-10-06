@@ -230,6 +230,8 @@ export class PlayerControls {
   // stamina there; choose the lateral direction that stays north when possible.
   const side=state.position.z>6?(Math.abs(Math.sin(state.yaw))>.15?Math.sign(Math.sin(state.yaw)):state.position.x>5?-1:1):0,key=side>0?'KeyD':side<0?'KeyA':'KeyS';
   try{if(this.mobile)await this.moveAxes(side,side?0:-1);else await this.key(key,true);
+   // Establish real retreat movement before lowering the held shield.
+   if(this.shieldHeld)await this.shield(false);
    await expect.poll(async()=>{const p=await read(this.page);expect(p.hp,'Stamina recovery must remain on safe terrain').toBeGreaterThan(0);return p.seconds;},{timeout:60000}).toBeGreaterThan(start+2.6);
   }finally{if(this.mobile)await this.moveAxes(0,0);else await this.key(key,false);}
  }
@@ -239,7 +241,7 @@ export class PlayerControls {
    // Drinking takes 1.6 seconds and an enemy hit interrupts it. Defer the
    // single starting flask until normal movement/combat has opened space;
    // nearby enemies keep the driver on its shield-and-counter route instead.
-   if(this.usedFlask||p.enemies.some(e=>e.hp>0&&Math.hypot(e.position.x-p.position.x,e.position.z-p.position.z)<4))return;
+   if(this.usedFlask||p.enemies.some(e=>e.hp>0&&Math.hypot(e.position.x-p.position.x,e.position.z-p.position.z)<6))return;
    this.usedFlask=true;await this.action('#heal','KeyQ');await expect.poll(async()=>(await motion(this.page)).phase).toBe('heal');await expect.poll(async()=>(await motion(this.page)).phase,{timeout:60000}).toBe('idle');expect((await read(this.page)).hp,'The starting flask must actually heal').toBeGreaterThan(p.hp);return;
   }
   const guarded=this.shieldHeld;if(guarded)await this.shield(false);await this.menu('inventory');await this.row('bandage','consume');await expect.poll(async()=>(await read(this.page)).hp).toBeGreaterThan(p.hp);await this.resume();if(guarded)await this.shield(true);
@@ -252,16 +254,19 @@ export class PlayerControls {
    // gesture on a target that is already directly in front after every strike.
    if(Math.abs(angle(desiredYaw-p.yaw))>.12||Math.abs(desiredPitch-p.pitch)>.12)await this.aim({...enemy.position,y:enemy.position.y+1.52},true);
    p=await read(this.page);
-   if(p.stamina<45){await this.shield(false);await this.retreat();await expect.poll(async()=>(await motion(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
-   await this.shield(true);try{
+   if(p.stamina<45){await this.retreat();await expect.poll(async()=>(await motion(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
+   await this.shield(true);
     // If we arrive in an old recovery, keep guarding through the next attack.
     // Counter only a newly observed opening, not the tail of one spent aiming.
     const opened=['recover','stagger'].includes((await motion(this.page)).enemies[index].phase);
     if(opened)await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return state.enemies[index].hp<=0||!['recover','stagger'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
     await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return ['recover','stagger','dead'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
-   }finally{await this.shield(false);}
-   if((await motion(this.page)).enemies[index].hp<=0)break;
-   const attack=await observeAttack(this.page);try{await this.action('[data-action="attack"]','KeyT');await expect.poll(()=>attack.read()).not.toBeNull();}finally{await attack.dispose();}await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Counter-attack recovery must preserve life').toBeGreaterThan(0);return state.phase;},{timeout:60000,intervals:[100]}).toBe('idle');await this.shield(true);
+   const opening=await motion(this.page);if(opening.enemies[index].hp<=0)break;
+   // A successful block costs stamina too. Keep enough for the20-cost sword
+   // counter and a later18-cost guard; never decide from the pre-block value.
+   if(opening.stamina<55){await this.retreat();await expect.poll(async()=>(await motion(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
+   await this.shield(false);
+   const attack=await observeAttack(this.page);try{await this.action('[data-action="attack"]','KeyT');await this.shield(true);await expect.poll(()=>attack.read()).not.toBeNull();}finally{await attack.dispose();}await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Counter-attack recovery must preserve life').toBeGreaterThan(0);return state.phase;},{timeout:60000,intervals:[100]}).toBe('idle');await this.shield(true);
   }
   expect((await read(this.page)).enemies[index].hp,`Enemy ${index} must be defeated through guarded, aimed attacks`).toBeLessThanOrEqual(0);
   }finally{await this.shield(false);}

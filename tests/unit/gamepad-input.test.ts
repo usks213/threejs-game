@@ -14,7 +14,7 @@ function setup(active=true){
  vi.stubGlobal('document',document);const window=new EventTarget();vi.stubGlobal('window',window);vi.stubGlobal('matchMedia',()=>({matches:false}));vi.stubGlobal('getComputedStyle',()=>({visibility:'visible'}));const navigator={maxTouchPoints:0,getGamepads:vi.fn(()=>pads)};vi.stubGlobal('navigator',navigator);
  const action=vi.fn(),onLook=vi.fn(),pause=vi.fn(),input=createInput(canvas as unknown as HTMLCanvasElement,action,onLook,pause);input.setEnabled(active);
  const connect=()=>{pads=[pad as unknown as Gamepad];input.tick(.016);};const setButton=(id:number,down:boolean)=>{pad.buttons[id].pressed=down;pad.buttons[id].value=down?1:0;};const disconnect=()=>{pads=[];window.dispatchEvent(new Event('gamepaddisconnected'));};
- return {button,fillButton,heavyButton,input,action,onLook,pause,navigator,pad,connect,setButton,disconnect,document,menu,start,next};
+ return {canvas,button,fillButton,heavyButton,input,action,onLook,pause,navigator,pad,connect,setButton,disconnect,document,menu,start,next};
 }
 const key=(target:EventTarget,type:string,code:string)=>{const event=new Event(type,{cancelable:true});Object.assign(event,{code});target.dispatchEvent(event);};
 afterEach(()=>vi.unstubAllGlobals());
@@ -64,3 +64,14 @@ describe('heavy charge input edges',()=>{
 });
 
  it('gamepad spell input is cancelled by pause before its effect resolves',()=>{const t=setup(),s=new CoreSimulation();t.action.mockImplementation((a:Action)=>s.action(a,t.input.controls()));t.connect();t.setButton(5,true);t.input.tick(.016);expect(s.combat.pending).toBe('fire');expect(s.combat.mana).toBe(80);t.input.setEnabled(false);expect(s.combat.pending).toBeNull();for(let i=0;i<45;i++)s.tick(1/60,t.input.controls());expect(s.elements.states.size).toBe(0);expect(s.combat.mana).toBe(80);t.input.dispose();});
+
+
+it('starts from a gamepad menu without requiring mouse lock, then preserves mouse-request rejection',async()=>{
+ const s=setup(false),request=vi.fn().mockRejectedValue(new DOMException('Requires a pointer gesture','NotAllowedError'));
+ Object.assign(s.canvas,{requestPointerLock:request});let started:Promise<boolean>|undefined;
+ s.start.click.mockImplementation(()=>{started=s.input.lock();s.input.setEnabled(true);s.menu.hidden=true;});
+ s.connect();s.setButton(0,true);s.input.tick(.1);expect(await started).toBe(true);expect(request).not.toHaveBeenCalled();
+ s.setButton(0,false);s.pad.axes=[0,0,0,0];s.input.tick(.1);s.pad.axes=[0,-1,1,0];s.input.tick(.1);
+ expect(s.input.controls().z).toBe(1);expect(s.onLook).toHaveBeenCalled();
+ expect(await s.input.lock()).toBe(false);expect(request).toHaveBeenCalledTimes(1);s.input.dispose();
+});

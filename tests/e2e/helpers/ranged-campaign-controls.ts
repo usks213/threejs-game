@@ -46,7 +46,7 @@ export class RangedCampaignControls {
   try{for(let round=0;round<28&&(await readMotion(this.page)).enemies[index].hp>0;round++){
    await expect.poll(async()=>(await readMotion(this.page)).phase).toBe('idle');await this.controls.shield(true);await this.controls.healFromInventory();await this.replenish();
    let p=await readRanged(this.page);expect(p.hp,'The ranged route must remain alive').toBeGreaterThan(0);expect(p.campaign.equipment.weapon).toBe(this.build);
-   if(p.stamina<35){await this.controls.shield(false);await this.controls.retreat();await expect.poll(async()=>(await readRanged(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
+   if(p.stamina<35){await this.controls.retreat();await expect.poll(async()=>(await readRanged(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
    if(this.build==='staff')await this.chooseElement(round%3===0?'water':'lightning');
    const observer=await observeRangedInput(this.page);
    try{
@@ -70,13 +70,13 @@ export class RangedCampaignControls {
     if(!['recover','stagger'].includes(p.enemies[index].phase))continue;
     // Real guard contacts during the aiming/waiting interval can exhaust the
     // action budget. Recover with the normal movement route on the next turn.
-    if(p.stamina<(this.build==='staff'?18:8))continue;
+    if(p.stamina<(this.build==='staff'?55:45)){await this.controls.retreat();await expect.poll(async()=>(await readRanged(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
     await this.controls.shield(false);
     if(this.build==='bow'){
-     expect(p.campaign.items.arrows,'Every shot needs a crafted arrow').toBeGreaterThan(0);await this.controls.action('[data-action=attack]','KeyT');
+     expect(p.campaign.items.arrows,'Every shot needs a crafted arrow').toBeGreaterThan(0);await this.controls.action('[data-action=attack]','KeyT');await this.controls.shield(true);
      await expect.poll(async()=>(await readRanged(this.page)).campaign.items.arrows).toBe(p.campaign.items.arrows-1);this.shots++;
     }else{
-     expect(p.combat.mana).toBeGreaterThanOrEqual(20);await this.controls.action('#cast','KeyG');
+     expect(p.combat.mana).toBeGreaterThanOrEqual(20);await this.controls.action('#cast','KeyG');await this.controls.shield(true);
      await expect.poll(async()=>(await readRanged(this.page)).combat.mana).toBe(p.combat.mana-20);this.casts++;
     }
     await expect.poll(()=>observer.read()).toBe(true);

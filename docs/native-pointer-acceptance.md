@@ -83,3 +83,50 @@ routing suites pass. Thirteen desktop cases across the affected focused/long
 paths are discovered, and desktop/Android campaign group discovery remains
 intact. Workflow YAML, shell/runner syntax and unchanged job deadlines are
 checked. No local browser, full suite, build, push or external write was run.
+
+
+## ed52ca6 resume failure and safe recovery
+
+The exact native job112072264245 passed locked input and native motion over the
+unlocked menu. Its trusted resume click ran about780ms after Escape: the menu
+closed and simulation continued, but Pointer Lock remained absent. The old
+request handler swallowed rejection. Its trace did not capture an exception
+name, so the exact reason is not established.
+
+Chromium's [mouse-lock controller source](https://chromium.googlesource.com/chromium/src/+/6aea6e2a8a3b9a0ca7e8b60190acd9542593cafb/chrome/browser/ui/exclusive_access/mouse_lock_controller.cc)
+documents a1250ms anti-relock interval after user Escape. That is consistent
+with the observed timing; it is not a bypass target. A failed desktop request
+now returns to a paused menu with neutral controls and a visible instruction
+to wait briefly and press Resume. There is no automatic API retry. The native
+case accepts either immediate successful lock or this explicit safe failure,
+then waits1500ms and makes one new real click. It still requires actual relock,
+neutral resumed input and a genuine attack after resuming. Pointer-lock error
+events are recorded as evidence. Browser acceptance of the correction is pending.
+
+
+## Native campaign pacing and job bounds
+
+The ed52ca6 campaign trace retained real lock but a large vertical OS move
+produced a zero-delta event after cross-axis recenter motion. Native corrections
+are now conserved into at most64px steps (smaller for small measured canvases),
+requiring a new trusted nonzero locked event and two browser frames per step.
+Original strict aim, movement and absolute deadline gates remain. This is a
+driver correction awaiting exact-commit browser proof.
+
+The bed-rest test retains its20-minute limit. Its former20-minute CI job also
+contained package installation and artifact upload, so it could cancel a still
+running test before that limit. Only the bed-rest jobs now allow25minutes for
+that setup/collection margin. The test's time bound and assertions are unchanged.
+
+Controller-menu starts keep their independent right-stick camera path. The
+synchronous controller menu activation skips requesting mouse Pointer Lock;
+ordinary mouse starts still require lock or the safe retry menu. A focused
+input integration checks controller start, neutral rearming, stick movement
+and look, then a separate mouse-request rejection. This is simulated standard
+gamepad input, not hardware acceptance.
+
+A pending desktop request is also scoped to its start attempt. Pausing or a
+newer start prevents an old rejection from reopening the wrong menu. If mouse
+lock arrives after input has been disabled, the normal pointer-lock event
+releases it immediately, keeping pause/inventory usable. A deferred-request
+unit regression covers pause-before-acquisition and neutral controls.

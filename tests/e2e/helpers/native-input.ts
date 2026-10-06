@@ -36,10 +36,20 @@ export const desktopKeyDown=(page:Page,code:string)=>nativeInputEnabled()?native
 export const desktopKeyUp=(page:Page,code:string)=>nativeInputEnabled()?nativeKeyboard.up(code):page.keyboard.up(code);
 export const desktopKeyPress=(page:Page,code:string)=>nativeInputEnabled()?nativeKeyboard.pulse(code,40):page.keyboard.press(code);
 export const nativeRelativeMouse=(dx:number,dy:number,timeout=5000)=>{
- if(!Number.isInteger(dx)||!Number.isInteger(dy))throw Error('Native relative motion requires finite integer pixels');
+ if(!Number.isSafeInteger(dx)||!Number.isSafeInteger(dy))throw Error('Native relative motion requires finite integer pixels');
  // Never add --sync: Pointer Lock recentering can outrun its position poll.
  return nativeCommand(['mousemove_relative','--',String(dx),String(dy)],timeout);
 };
+/** Keep each XTEST move well inside the centered canvas while Chromium handles
+ * Pointer Lock recentering. Integer remainders belong to later real OS moves. */
+export function* nativeRelativeSteps(dx:number,dy:number,size:{width:number;height:number}){
+ if(!Number.isSafeInteger(dx)||!Number.isSafeInteger(dy))throw Error('Native relative motion requires finite integer pixels');
+ if(!Number.isFinite(size.width)||!Number.isFinite(size.height)||size.width<8||size.height<8)throw Error('Invalid locked canvas geometry');
+ const limitX=Math.min(64,Math.floor(size.width/4)),limitY=Math.min(64,Math.floor(size.height/4));
+ const count=Math.max(Math.ceil(Math.abs(dx)/limitX),Math.ceil(Math.abs(dy)/limitY));
+ let x=0,y=0;
+ for(let i=1;i<=count;i++){const nextX=Math.round(dx*(i/count)),nextY=Math.round(dy*(i/count));yield {dx:nextX-x,dy:nextY-y};x=nextX;y=nextY;}
+}
 export function nativeInputTimeLeft(deadline:number){const remaining=deadline-Date.now();if(remaining<=0)throw Error('Native input exceeded its existing time budget');return remaining;}
 export async function releaseNativeInput(){
  await nativeCommand(['keyup','w','s','a','d','z','r','Shift_L','Control_L','Alt_L','Home','End','Prior','Next','mouseup','1','mouseup','3']);
@@ -97,33 +107,50 @@ export async function moveNativePointerIntoPage(page:Page){
 
 async function observePointer(page:Page){
  return page.evaluateHandle(()=>{
-  let sequence=0,epoch=0;
-  const events:{sequence:number;dx:number;dy:number;locked:boolean;trusted:boolean}[]=[];
-  const record=(e:MouseEvent)=>{events.push({sequence:++sequence,dx:e.movementX,dy:e.movementY,locked:document.pointerLockElement?.id==='game',trusted:e.isTrusted});if(events.length>128)events.shift();};
+  let sequence=0,epoch=0,frame=0,raf=0;
+  const tick=()=>{frame++;raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);
+  const events:{sequence:number;frame:number;dx:number;dy:number;locked:boolean;trusted:boolean}[]=[];
+  const record=(e:MouseEvent)=>{events.push({sequence:++sequence,frame,dx:e.movementX,dy:e.movementY,locked:document.pointerLockElement?.id==='game',trusted:e.isTrusted});if(events.length>128)events.shift();};
   const lock=()=>{epoch++;};
   document.addEventListener('mousemove',record,true);document.addEventListener('pointerlockchange',lock);
-  return {read:()=>({sequence,epoch,locked:document.pointerLockElement?.id==='game',events}),stop:()=>{document.removeEventListener('mousemove',record,true);document.removeEventListener('pointerlockchange',lock);}};
+  return {read:()=>{const bounds=document.pointerLockElement?.getBoundingClientRect();return {sequence,epoch,frame,locked:document.pointerLockElement?.id==='game',size:{width:bounds?.width??0,height:bounds?.height??0},events};},stop:()=>{cancelAnimationFrame(raf);document.removeEventListener('mousemove',record,true);document.removeEventListener('pointerlockchange',lock);}};
  });
+}
+export function nativeMotionSettled({observer,sequence,epoch,dx,dy,prime=false}:{observer:{read():{epoch:number;frame:number;locked:boolean;events:{sequence:number;frame:number;dx:number;dy:number;locked:boolean;trusted:boolean}[]}};sequence:number;epoch:number;dx:number;dy:number;prime?:boolean}){
+ const after=observer.read();
+ if(!after.locked||after.epoch!==epoch)throw Error('Pointer Lock changed during native relative motion');
+ // A zero-delta recenter event cannot acknowledge an OS move. Two actual
+ // browser frames after delivery give the native recenter a chance to finish.
+ return after.events.some(e=>e.sequence>sequence&&e.trusted&&e.locked&&(e.dx!==0||e.dy!==0)&&(prime||(!dx||e.dx*dx>0)&&(!dy||e.dy*dy>0))&&after.frame>=e.frame+2);
 }
 /** Reads delivery only. This adapter never dispatches DOM events or writes game state. */
 export class NativePointer {
  private preparedEpoch=-1;
- private constructor(private observer:Awaited<ReturnType<typeof observePointer>>){}
- static async create(page:Page){return new NativePointer(await observePointer(page));}
+ private constructor(private page:Page,private observer:Awaited<ReturnType<typeof observePointer>>,private moveRelative:typeof nativeRelativeMouse){}
+ static async create(page:Page,moveRelative=nativeRelativeMouse){return new NativePointer(page,await observePointer(page),moveRelative);}
  read(){return this.observer.evaluate(value=>value.read());}
+ private async deliver(dx:number,dy:number,deadline:number,prime=false){
+  const before=await this.read();nativeInputTimeLeft(deadline);
+  if(!before.locked||(!prime&&before.epoch!==this.preparedEpoch))throw Error('Pointer Lock changed before native relative motion');
+  await this.moveRelative(dx,dy,Math.min(5000,nativeInputTimeLeft(deadline)));
+  let settled:JSHandle<unknown>|null=null;
+  try{
+   settled=await this.page.waitForFunction(nativeMotionSettled,{observer:this.observer,sequence:before.sequence,epoch:before.epoch,dx,dy,prime},{polling:'raf',timeout:nativeInputTimeLeft(deadline)});
+   nativeInputTimeLeft(deadline);
+  }finally{await settled?.dispose().catch(()=>{});}
+  nativeInputTimeLeft(deadline);return before.epoch;
+ }
  async prepare(deadline=Date.now()+60000){
   await expect.poll(async()=>(await this.read()).locked,{message:'Native campaign input requires the real canvas Pointer Lock',timeout:nativeInputTimeLeft(deadline)}).toBe(true);
   const before=await this.read();nativeInputTimeLeft(deadline);if(this.preparedEpoch===before.epoch)return;
   // Consume production's ignored first mouse move with a genuine OS event.
-  await nativeRelativeMouse(1,1,Math.min(5000,nativeInputTimeLeft(deadline)));
-  await expect.poll(async()=>(await this.read()).events.some(e=>e.sequence>before.sequence&&e.trusted&&e.locked&&(e.dx!==0||e.dy!==0)),{timeout:nativeInputTimeLeft(deadline)}).toBe(true);
-  nativeInputTimeLeft(deadline);
-  this.preparedEpoch=before.epoch;
+  this.preparedEpoch=await this.deliver(1,1,deadline,true);
  }
  async move(dx:number,dy:number,deadline=Date.now()+60000){
+  if(!Number.isSafeInteger(dx)||!Number.isSafeInteger(dy))throw Error('Native relative motion requires finite integer pixels');
   await this.prepare(deadline);if(!dx&&!dy)return;
-  const before=await this.read();await nativeRelativeMouse(dx,dy,Math.min(5000,nativeInputTimeLeft(deadline)));
-  await expect.poll(async()=>(await this.read()).events.some(e=>e.sequence>before.sequence&&e.trusted&&e.locked&&(!dx||e.dx*dx>0)&&(!dy||e.dy*dy>0)),{message:'A new trusted locked relative move must reach the game',timeout:nativeInputTimeLeft(deadline)}).toBe(true);
+  const {size}=await this.read();nativeInputTimeLeft(deadline);
+  for(const step of nativeRelativeSteps(dx,dy,size))await this.deliver(step.dx,step.dy,deadline);
   nativeInputTimeLeft(deadline);
  }
  async dispose(){await this.observer.evaluate(value=>value.stop()).catch(()=>{});await this.observer.dispose().catch(()=>{});}

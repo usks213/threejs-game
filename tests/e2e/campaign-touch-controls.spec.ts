@@ -35,6 +35,7 @@ test('Q07 Android touch driver: concurrent contacts retain movement and shield t
   const afterLook=await readRegionalMotion(page);expect(afterLook.yaw-beforeLook.yaw).toBeCloseTo(.08,2);expect(afterLook.pitch-beforeLook.pitch).toBeCloseTo(.04,2);
   await controls.fineLook(.08,.04);const repeatedLook=await readRegionalMotion(page);expect(repeatedLook.yaw-afterLook.yaw).toBeCloseTo(.08,2);expect(repeatedLook.pitch-afterLook.pitch).toBeCloseTo(.04,2);
   await expect.poll(async()=>(await input(page)).x).toBeCloseTo(.1,3);await controls.assertShieldHeld();await expect.poll(()=>observed.evaluate(v=>v.read().jumped)).toBe(true);
+  for(const [key,tool] of [['Digit2',true],['Digit1',false]] as const){await controls.action('#tool-switch',key);expect((await read(page)).tool).toBe(tool);await controls.assertShieldHeld();await expect.poll(async()=>(await input(page)).x).toBeCloseTo(.1,3);}
   await controls.action('#element-switch','KeyF');expect((await readRegionalMotion(page)).selectedElement).toBe('water');await controls.assertShieldHeld();
   await controls.moveAxes(0,0);expect(await input(page)).toMatchObject({x:0,z:0,block:true});
   await expect.poll(async()=>(await readRegionalMotion(page)).grounded).toBe(true);await controls.action('[data-action=jump]','Space');await controls.assertShieldHeld();

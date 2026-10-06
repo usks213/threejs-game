@@ -78,3 +78,33 @@ smith. The route now walks around the hearth's south edge before targeting the
 smith, and compares dialogue rewards only after that physical approach. These
 are driver corrections awaiting exact-commit browser evidence; they do not
 claim a browser pass or change product combat values.
+
+## ed52ca6 post-block stamina reserve
+
+The next Android first-chapter trace confirmed retained guard and correct aim,
+but the warden killed the player after a counter exhausted the action budget:
+47.55 stamina before a successful guard became29.55, then the sword cost20.
+The next strike arrived before the following loop could retreat. The driver
+now checks the actual post-block budget before committing and retreats during
+that opening when a counter plus subsequent guard cannot be afforded. Retreat
+movement is established before the shield is released. Ranged counters also
+reserve a later guard. Costs, enemy damage, finite resources, round limits and
+zero-death assertions are unchanged; this correction awaits browser evidence.
+
+The regional trace also exposed a recovery-to-idle gap: shield input was still
+false when the next enemy strike arrived. After a real attack/cast input has
+been sent, the driver now holds the physical shield contact during recovery.
+The production rules activate blocking only when the player becomes idle, so
+this preserves attack commitment and removes the delayed re-press interval.
+
+## Secondary-finger flask and tool controls
+
+The ed52ca6 staff trace pressed an enabled flask button while the shield finger
+remained held, but HP and the one-flask HUD count never changed. The footer
+flask/tool buttons still used compatibility click handlers while other gameplay
+buttons used pointer actions. Both now use the shared pointer-action binding,
+with keyboard activation and repeat/disabled/paused protection; the old click
+listeners are removed so a later compatibility click cannot double-consume.
+Unit input tests retain a shield contact while a second finger activates each
+button exactly once. The driver also reserves6m of enemy separation before
+attempting the interruptible1.6-second flask action. Browser proof is pending.

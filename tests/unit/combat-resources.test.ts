@@ -10,6 +10,19 @@ const tick=(s:CoreSimulation,t:number)=>{for(let i=0;i<Math.round(t*60);i++)s.ti
 function aim(s:CoreSimulation,p:{x:number;y:number;z:number}){const e=s.eye();s.player.yaw=Math.atan2(-(p.x-e.x),-(p.z-e.z));s.player.pitch=Math.atan2(p.y-e.y,Math.hypot(p.x-e.x,p.z-e.z));}
 function setup(){const s=new CoreSimulation(true,false,true);aim(s,{x:-1.7,y:.58,z:6.25});return s;}
 describe('finite combat resources and authoritative transitions',()=>{
+ it('lets a held shield engage after a committed sword swing without cancelling its hit',()=>{
+  const s=new CoreSimulation();s.player.position={x:0,y:.25,z:-4};s.enemies[1].hp=0;
+  s.action('attack',idle);expect(s.player.phase).toBe('windup');expect(s.player.stamina).toBe(80);
+  for(let i=0;i<90;i++)s.tick(1/60,{...idle,block:true});
+  expect(s.enemies[0].hp).toBeLessThan(100);expect(s.player.phase).toBe('idle');expect(s.player.guard).toBeGreaterThan(.5);
+ });
+ it('holds shield through the committed spell interval and activates guard after resolution',()=>{
+  const s=setup();s.action('cast',idle);expect(s.combat.mana).toBe(80);
+  for(let i=0;i<60;i++)s.tick(1/60,{...idle,block:true});
+  expect(s.combat.pending).toBeNull();expect(s.combat.mana).toBe(80);expect([...s.elements.states.values()].some(v=>v.fire>0)).toBe(true);
+  expect(s.player.phase).toBe('idle');expect(s.player.guard).toBeGreaterThan(.5);
+ });
+
  it('charges without spending stamina or damaging, rejects an early release, bounds the hold and uses the real overhead sweep',()=>{
   const s=new CoreSimulation(),e=s.enemies[0];s.player.position={x:0,y:.25,z:-4};s.enemies[1].hp=0;
   s.action('heavy-start',idle);tick(s,.2);expect(s.player.stamina).toBe(100);expect(e.hp).toBe(100);s.action('heavy-release',idle);expect(s.player.phase).toBe('idle');

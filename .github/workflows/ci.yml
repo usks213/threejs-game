@@ -110,7 +110,9 @@ jobs:
             group: android-campaign-migration
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The bed case already owns a20-minute test deadline. Setup/upload need
+    # separate job margin; the test deadline and assertions stay unchanged.
+    timeout-minutes: ${{ (matrix.group == 'desktop-player-rest' || matrix.group == 'android-player-rest') && 25 || 20 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -140,6 +142,36 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          retention-days: 7
+  mobile-webkit-browser:
+    # Bounded mobile engine acceptance, independent of Chromium/CDP and preview.
+    # Linux WebKit emulation does not establish physical iPhone/Safari or FPS.
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps webkit
+      - name: Verify WebKit rendering, touch menus, rotation and saved settings
+        run: npm run e2e:webkit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-webkit-engine-results
+          path: |
+            playwright-report/webkit/
+            test-results/webkit/
           retention-days: 7
   native-pointer-browser:
     # A focused native-input contract; each desktop job owns its X11 display.
