@@ -25,17 +25,16 @@ it('does not retain time debt across a leave/rejoin or restart during the callba
  let ticks=0;const f=fixture(()=>{if(++ticks===1){f.clock.stop();f.clock.start();}});f.clock.start();f.one();expect(f.scheduled.size).toBe(1);f.clock.stop();f.jump(10000);f.clock.start();f.one();expect(ticks).toBe(2);expect(f.clock.stats.rebases).toBe(0);
 });
 it('rejects invalid scheduler bounds',()=>{for(const options of [{intervalMs:0},{maxCatchUpSteps:0},{maxWorkMs:NaN},{maxBacklogMs:1}])expect(()=>new FixedStepClock(()=>{},options)).toThrow('limits');});
-it('pre-arms a single-step wait before work and cancels it after stop or failure',()=>{
- for(const fail of [false,true]){const f=fixture(()=>{expect(f.scheduled.size).toBe(1);if(fail)throw Error('failed');f.clock.stop();},{maxCatchUpSteps:1,scheduleBeforeStep:true});f.clock.start();if(fail)expect(()=>f.one()).toThrow('failed');else f.one();expect(f.clock.active).toBe(false);expect(f.scheduled.size).toBe(0);}
+it('lets admitted I/O service only a due single step without early timer churn or faster time',()=>{
+ const f=fixture(undefined,{maxCatchUpSteps:1});f.clock.start();const old=f.all[0];for(let i=0;i<33;i++){f.jump(1);expect(f.clock.wake()).toBe(false);}expect(f.all).toHaveLength(1);
+ f.jump(1);expect(f.clock.wake()).toBe(true);expect(f.clock.stats.steps).toBe(1);expect(f.scheduled.size).toBe(1);old();expect(f.clock.stats.steps).toBe(1);
+ for(let i=34;i<1000;i++){f.jump(1);for(let j=0;j<10;j++)f.clock.wake();}expect(f.clock.stats.steps).toBe(30);expect(f.clock.stats.rebases).toBe(0);f.clock.stop();expect(f.clock.wake()).toBe(false);expect(f.scheduled.size).toBe(0);
+ const node=fixture();node.clock.start();node.jump(100);expect(node.clock.wake()).toBe(false);expect(node.clock.stats.steps).toBe(0);node.clock.stop();
 });
-it('does not duplicate a pre-armed timer after a callback restart and does not reuse old callbacks',()=>{
- let ticks=0;const f=fixture(()=>{if(++ticks===1){f.clock.stop();f.clock.start();}},{maxCatchUpSteps:1,scheduleBeforeStep:true});f.clock.start();f.one();expect(f.scheduled.size).toBe(1);f.all[1]();expect(ticks).toBe(1);f.one();expect(ticks).toBe(2);expect(f.scheduled.size).toBe(1);f.clock.stop();
+it('rejects nested wakes and preserves stop/restart and failure cancellation',()=>{
+ let calls=0;const f=fixture(()=>{expect(f.clock.wake()).toBe(false);if(++calls===1){f.clock.stop();f.clock.start();}},{maxCatchUpSteps:1});f.clock.start();f.jump(34);expect(f.clock.wake()).toBe(true);expect(f.scheduled.size).toBe(1);f.jump(34);f.clock.wake();expect(calls).toBe(2);f.clock.stop();
+ const failed=fixture(()=>{throw Error('failed wake');},{maxCatchUpSteps:1});failed.clock.start();failed.jump(34);expect(()=>failed.clock.wake()).toThrow('failed wake');expect(failed.clock.active).toBe(false);expect(failed.scheduled.size).toBe(0);
 });
-it('retains a one-step callback limit and honest rebase accounting with pre-arming',()=>{
- const f=fixture(()=>f.work(80),{maxCatchUpSteps:1,scheduleBeforeStep:true});f.clock.start();f.jump(500);f.one();expect(f.clock.stats).toMatchObject({steps:1,turns:1,catchUpSteps:0,rebases:1});expect(f.clock.stats.droppedMs).toBeCloseTo(500-1000/30);expect(f.scheduled.size).toBe(1);f.one();expect(f.clock.stats.steps).toBe(2);f.clock.stop();
- expect(()=>new FixedStepClock(()=>{},{scheduleBeforeStep:true})).toThrow('single-step');
-});
-it('does not execute a step if pre-arming synchronously stops the run',()=>{
- let callback:()=>void=()=>{},calls=0,steps=0,cancels=0,now=34;const clock=new FixedStepClock(()=>steps++,{now:()=>now,maxCatchUpSteps:1,scheduleBeforeStep:true,intervalMs:1,schedule:run=>{callback=run;if(++calls===2)clock.stop();return()=>cancels++;}});
- clock.start();now=35;callback();expect(steps).toBe(0);expect(clock.active).toBe(false);expect(cancels).toBe(1);
+it('rereads the server event clock after canceling a due wait, preserving honest debt and one step',()=>{
+ let now=0;const clock=new FixedStepClock(()=>{},{maxCatchUpSteps:1,now:()=>now,schedule:()=>()=>{now=1000;}});clock.start();now=34;expect(clock.wake()).toBe(true);expect(clock.stats).toMatchObject({steps:1,turns:1,catchUpSteps:0,rebases:1});expect(clock.stats.droppedMs).toBeCloseTo(1000-1000/30);clock.stop();
 });

@@ -1,5 +1,7 @@
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import {installCoopBrowserImpairment} from '../helpers/coop-browser-impairment';
+import {CoopBrowserRecoveryObserver} from '../helpers/coop-browser-recovery';
+import {ITEM_NAMES} from '../../src/content/catalog';
 import type {SkyboundSnapshot} from '../../src/game/skybound/types';
 import type {EditOperation} from '../../src/world/types';
 import type {PeerRenderSample} from '../../src/rendering/scene/peer-render-probe';
@@ -11,10 +13,36 @@ declare global {interface Window {coopActionSubmissions:{message:CoopAction;resu
 test.use({trace:'off'});
 test.describe.serial('two real browsers',()=>{
  type Ack=Extract<CoopServerPacket,{type:'ack'}>;
- const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>;welcomeEdits:EditOperation[]}>();
- let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',expectedEditCount=0,errors:string[]=[],failed=false,tracePaths:string[]=[];
+ const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>;welcomeEdits:EditOperation[];recovery:CoopBrowserRecoveryObserver}>();
+ let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',sharedPartId=0,expectedEditCount=0,errors:string[]=[],failed=false,tracePaths:string[]=[];
  const stage=(name:string)=>console.log('COOP_BROWSER_PHASE',name);
  const running=(page:Page)=>expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
+ const observeWire=(page:Page)=>{
+  const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>(),welcomeEdits:[] as EditOperation[],recovery:new CoopBrowserRecoveryObserver()};wire.set(page,observed);
+  // Observe native network frames before the impairment's DOM message delay or
+  // suppression, including every reconnect. Keep only tested fields; never
+  // retain or log handshake/resume/delivery capabilities.
+  page.on('websocket',socket=>{
+   if(!/^\/coop\/[a-f0-9]{48}$/.test(new URL(socket.url()).pathname))return;
+   const decode=observed.recovery.connection();
+   socket.on('framereceived',frame=>{try{
+    const packet=JSON.parse(String(frame.payload));decode(packet);
+    if(packet.type==='welcome')observed.welcomeEdits=packet.save.edits;
+    if(packet.type==='welcome')console.log('COOP_BASELINE',JSON.stringify({epoch:packet.epoch,tick:packet.state?.tick,ack:packet.state?.ack,edits:packet.state?.edits,playerId:packet.playerId}));
+    if(packet.type==='welcome'||packet.type==='frame'||packet.type==='delta')for(const edit of packet.edits??packet.save?.edits??[])observed.edits.set(edit.id,edit);
+    if(packet.type==='ack'&&typeof packet.commandId==='string'&&typeof packet.accepted==='boolean'&&typeof packet.message==='string')observed.acks.set(packet.commandId,{type:'ack',commandId:packet.commandId,accepted:packet.accepted,message:packet.message});
+    if(packet.type==='ack'||packet.type==='notice')console.log('COOP_SERVER_REPLY',JSON.stringify(packet));
+   }catch{}});
+   socket.on('framesent',frame=>{try{
+    const packet=JSON.parse(String(frame.payload));
+    if(packet.type==='action'){
+     if(typeof packet.commandId==='string'&&packet.message?.type==='game-action'&&typeof packet.message.action==='string')observed.actions.push({commandId:packet.commandId,action:packet.message.action,id:packet.message.id});
+     console.log('COOP_UI_ACTION',JSON.stringify(packet.message));
+    }
+   }catch{}});
+  });
+  return observed;
+ };
  const diagnostics=async(page:Page)=>{
   console.log('COOP_BROWSER_LOCATION',page.url());
   for(const [selector,attribute]of [['#app','data-diagnostics'],['#app','data-aim'],['#app','data-combat'],['#app','data-skybound'],['#app','data-streaming'],['#game','data-rendered-peers'],['#game','data-peer-render-error'],['#session-status','data-last-ack'],['#session-status','data-last-command'],['#session-status','data-last-command-result']]as const)console.log('COOP_DIAGNOSTIC',attribute,await page.locator(selector).getAttribute(attribute,{timeout:1000}).catch(()=>null));
@@ -31,26 +59,7 @@ test.describe.serial('two real browsers',()=>{
    // Observe the production submission receipt. No action or packet is
    // synthesized; a queued receipt remains final even before native framesent.
    await page.addInitScript(()=>{window.coopActionSubmissions=[];document.addEventListener('coop-action-submission',event=>window.coopActionSubmissions.push((event as CustomEvent<Window['coopActionSubmissions'][number]>).detail));});
-   const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>(),welcomeEdits:[] as EditOperation[]};wire.set(page,observed);
-   // Observe the actual transport before navigation, including reconnects. Keep
-   // only action IDs/results; never retain or log handshake/resume capabilities.
-   page.on('websocket',socket=>{
-    socket.on('framereceived',frame=>{try{
-     const packet=JSON.parse(String(frame.payload));
-     if(packet.type==='welcome')observed.welcomeEdits=packet.save.edits;
-     if(packet.type==='welcome')console.log('COOP_BASELINE',JSON.stringify({epoch:packet.epoch,tick:packet.state?.tick,ack:packet.state?.ack,edits:packet.state?.edits,playerId:packet.playerId}));
-     if(packet.type==='welcome'||packet.type==='frame'||packet.type==='delta')for(const edit of packet.edits??packet.save?.edits??[])observed.edits.set(edit.id,edit);
-     if(packet.type==='ack'&&typeof packet.commandId==='string'&&typeof packet.accepted==='boolean'&&typeof packet.message==='string')observed.acks.set(packet.commandId,{type:'ack',commandId:packet.commandId,accepted:packet.accepted,message:packet.message});
-     if(packet.type==='ack'||packet.type==='notice')console.log('COOP_SERVER_REPLY',JSON.stringify(packet));
-    }catch{}});
-    socket.on('framesent',frame=>{try{
-     const packet=JSON.parse(String(frame.payload));
-     if(packet.type==='action'){
-      if(typeof packet.commandId==='string'&&packet.message?.type==='game-action'&&typeof packet.message.action==='string')observed.actions.push({commandId:packet.commandId,action:packet.message.action,id:packet.message.id});
-      console.log('COOP_UI_ACTION',JSON.stringify(packet.message));
-     }
-    }catch{}});
-   });
+   observeWire(page);
    page.on('requestfailed',r=>console.log('COOP_REQUEST_FAILED',r.url().split('?')[0],r.failure()?.errorText));await page.goto('/?coopRenderProbe=1',{waitUntil:'domcontentloaded',timeout:45000});await running(page);await page.locator('#session-menu').click();
   }
   stage('create room');await a.locator('#session-host').click();await expect(a.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await running(a);await expect(a.locator('#session-panel')).toBeVisible();code=await a.locator('#session-code').inputValue();
@@ -125,7 +134,7 @@ test.describe.serial('two real browsers',()=>{
   await expect(creator.locator('#power-preview')).toBeVisible();await expect(creator.locator('#power-preview-description')).toContainText('3個');expect((await sky(creator))!.parts.map(part=>part.id)).toEqual(originalIds);
   await command(creator,'#power-preview [data-power=preview-confirm]','sky-part','block:wood');
   await expect.poll(async()=>(await sky(creator))?.parts.length).toBe(originalIds.length+1);
-  const created=(await sky(creator))!.parts.find(part=>!originalIds.includes(part.id))!;expect(created).toMatchObject({kind:'block',material:'wood',creator:creatorId});const partId=String(created.id);
+  const created=(await sky(creator))!.parts.find(part=>!originalIds.includes(part.id))!;expect(created).toMatchObject({kind:'block',material:'wood',creator:creatorId});sharedPartId=created.id;const partId=String(created.id);
   const part=async(page:Page)=>(await sky(page))?.parts.find(part=>part.id===created.id);
   for(const page of pages){await expect.poll(async()=>(await part(page))?.id).toBe(created.id);await page.locator('#power-part').selectOption(partId);await expect(page.locator('#power-part')).toHaveValue(partId);await expect(page.locator('#powers-current')).toContainText(page===creator?'木 9 /':'木 0 /');}
   await command(creator,'#power-share','sky-share',partId+':on');
@@ -293,20 +302,43 @@ test.describe.serial('two real browsers',()=>{
   await b.mouse.move(400,130);await b.mouse.down({button:'middle'});await b.mouse.move(400,300,{steps:4});await b.mouse.up({button:'middle'});
   const renderedAim=async()=>JSON.parse(await b.locator('#app').getAttribute('data-aim')??'{}') as {target?:{x:number;y:number;z:number}};
   await expect.poll(async()=>Number(await b.locator('#app').getAttribute('data-camera-pitch'))).toBeCloseTo(1.2,5);
-  const firstAim=await renderedAim();let turnedAroundDebris=false;
-  if(!firstAim.target||firstAim.target.y>=edit.position.y-.3||Math.hypot(firstAim.target.x-edit.position.x,firstAim.target.z-edit.position.z)>=2.3){
-   // This real dig can release loose fragments on the east rim. They correctly
-   // block the shoulder camera's original ray before it reaches the floor. Look
-   // from the opposite side with normal middle drags; never ignore the debris.
-   await b.bringToFront();await expect(b.locator('#app')).toHaveAttribute('data-camera-yaw',/^-?\d/);
-   const yaw=Number(await b.locator('#app').getAttribute('data-camera-yaw'));
-   for(let turn=0;turn<2;turn++){await b.mouse.move(400,150);await b.mouse.down({button:'middle'});try{await b.mouse.move(140,150,{steps:4});}finally{await b.mouse.up({button:'middle'});}}
-   await expect.poll(async()=>Number(await b.locator('#app').getAttribute('data-camera-yaw'))).toBeCloseTo(yaw+3.12,5);turnedAroundDebris=true;
-  }
+  const firstAim=await renderedAim();
+  const viewFloor=async(phase:'collision'|'reentry')=>{
+   const readView=()=>b.evaluate(()=>{const app=document.querySelector<HTMLElement>('#app')!;return {at:performance.now(),yaw:Number(app.dataset.cameraYaw),pitch:Number(app.dataset.cameraPitch),draws:Number(JSON.parse(app.dataset.streaming??'{}').draws??0),aim:JSON.parse(app.dataset.aim??'{}') as {pitch?:number;target?:{x:number;y:number;z:number}|null},interaction:app.dataset.interaction??'',interactionLabel:document.querySelector('#interaction-label')?.textContent??'',cameraProbe:JSON.parse(app.dataset.cameraProbe??'{}') as {reticleTarget?:{x:number;y:number;z:number};cameraDistance?:number}};});
+   const initial=await readView(),views:{requestedYaw:number;requestedPitch:number;fresh:boolean;accepted:boolean;view:Awaited<ReturnType<typeof readView>>}[]=[];let visible=false;
+   // Collapse fragments and the dropped stone pickup are both real blockers.
+   // Search at most eight ordinary orbit headings at two steep pitches. A
+   // blocked/missing ray never passes; only a fresh low-floor terrain hit does.
+   const offsets=[0,3.12,2.34,3.9,1.56,4.68,.78,5.46],pitches=initial.pitch<1.3?[1.2,1.44]:[1.44,1.2];
+   try{
+    await b.bringToFront();expect(Number.isFinite(initial.yaw)&&Number.isFinite(initial.pitch)).toBe(true);
+    for(const pitch of pitches){
+     for(const offset of offsets){
+      const before=await readView(),yaw=initial.yaw+offset,dx=-(yaw-before.yaw)/.006,dy=(pitch-before.pitch)/.006;
+      const attempt={requestedYaw:yaw,requestedPitch:pitch,fresh:false,accepted:false,view:before};views.push(attempt);
+      const drags=Math.ceil(Math.max(Math.abs(dx)/260,Math.abs(dy)/120));
+      for(let drag=0;drag<drags;drag++){
+       await b.mouse.move(320,180);await b.mouse.down({button:'middle'});
+       try{await b.mouse.move(320+dx/drags,180+dy/drags,{steps:4});}finally{await b.mouse.up({button:'middle'});}
+      }
+      // Attribute presence/pose and a subsequent real color draw prevent a
+      // previously cached ray from masquerading as this candidate's result.
+      await expect.poll(async()=>{const view=attempt.view=await readView();return attempt.fresh=Math.abs(view.yaw-yaw)<1e-5&&Math.abs(view.pitch-pitch)<1e-5&&Math.abs((view.aim.pitch??Infinity)-pitch)<1e-5&&view.draws>before.draws;},{message:'The requested camera view has a fresh rendered terrain ray',timeout:15000}).toBe(true);
+      const target=attempt.view.aim.target;
+      visible=!!target&&[target.x,target.y,target.z].every(Number.isFinite)&&target.y<edit.position.y-.3&&Math.hypot(target.x-edit.position.x,target.z-edit.position.z)<2.3;
+      attempt.accepted=visible;
+      if(visible)break;
+     }
+     if(visible)break;
+    }
+    expect(visible,'An ordinary camera view must expose the actual lowered excavation floor, without ignoring debris or pickups').toBe(true);
+   }finally{await info.attach(`terrain-${phase}-view-search.json`,{body:JSON.stringify({edit,initial,views,visible},null,2),contentType:'application/json'});}
+  };
+  await viewFloor('collision');
   await expect.poll(async()=>(await renderedAim()).target?.y??Infinity,{timeout:20000}).toBeLessThan(edit.position.y-.3);
   const target=(await renderedAim()).target!;expect(Math.hypot(target.x-edit.position.x,target.z-edit.position.z)).toBeLessThan(2.3);
   await b.screenshot({path:info.outputPath('remote-excavation-collision.png'),timeout:60000,scale:'css',animations:'disabled'});
-  await info.attach('terrain-render-collision-evidence.json',{body:JSON.stringify({edit,collided,firstAim,turnedAroundDebris,cameraYaw:await b.locator('#app').getAttribute('data-camera-yaw'),renderedAim:await renderedAim(),streaming:JSON.parse(await b.locator('#app').getAttribute('data-streaming')??'{}')},null,2),contentType:'application/json'});
+  await info.attach('terrain-render-collision-evidence.json',{body:JSON.stringify({edit,collided,firstAim,cameraYaw:await b.locator('#app').getAttribute('data-camera-yaw'),renderedAim:await renderedAim(),streaming:JSON.parse(await b.locator('#app').getAttribute('data-streaming')??'{}')},null,2),contentType:'application/json'});
   stage('NET-A04 leave and re-enter the same excavated floor');
   const beforeReentryEdits=[...wire.get(b)!.edits.values()].sort((left,right)=>left.id-right.id);expect(beforeReentryEdits).toHaveLength(expectedEditCount);
   const beforeReentryEpoch=await b.locator('#app').getAttribute('data-world-epoch');await b.locator('#session-menu').click();await b.locator('#session-leave').click();await expect(a.locator('#session-status')).toHaveAttribute('data-players','1');await b.locator('#session-close').click();await running(b);
@@ -315,26 +347,96 @@ test.describe.serial('two real browsers',()=>{
   // A real jump and landing distinguish rebuilt collision from merely loading
   // a saved coordinate inside the hole. No teleport or fixture is introduced.
   await b.keyboard.press('Space');await expect.poll(async()=>(await peer()).y,{intervals:[50,100]}).toBeGreaterThan(restoredFloor+.15);await expect.poll(async()=>(await peer()).grounded).toBe(true);await expect.poll(async()=>(await peer()).y).toBeCloseTo(restoredFloor,1);await expect.poll(async()=>Number(await b.locator('#position').getAttribute('data-y'))).toBeCloseTo(restoredFloor,1);
+  await viewFloor('reentry');
   await expect.poll(async()=>(await renderedAim()).target?.y??Infinity).toBeLessThan(edit.position.y-.3);const reentryTarget=(await renderedAim()).target!;expect(Math.hypot(reentryTarget.x-edit.position.x,reentryTarget.z-edit.position.z)).toBeLessThan(2.3);
   await b.screenshot({path:info.outputPath('remote-excavation-reentry.png'),timeout:60000,scale:'css',animations:'disabled'});await info.attach('terrain-reentry-evidence.json',{body:JSON.stringify({edit,beforeReentryEpoch,afterReentryEpoch:await b.locator('#app').getAttribute('data-world-epoch'),restoredFloor,landed:await peer(),renderedAim:await renderedAim()},null,2),contentType:'application/json'});
   await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('shared edit rendered and collision verified before and after re-entry');
  });
- test('reconnect, restore a late browser and continue after the creator leaves',async({browser})=>{
-  test.setTimeout(180000);stage('disconnect and reconnect');await contexts[1].setOffline(true);
+ test('reconnect, restore a late browser and continue after the creator leaves',async({browser},info)=>{
+  test.setTimeout(180000);stage('disconnect and reconnect');
+  const observedA=wire.get(a)!,observedB=wire.get(b)!,recoveryA=observedA.recovery,recoveryB=observedB.recovery;
+  const evidence:Record<string,unknown>={sharedPartId};let lateRecovery:CoopBrowserRecoveryObserver|undefined;
+  const screenshot=async(page:Page,name:string)=>{
+   const path=info.outputPath(name);await page.screenshot({path,timeout:60000,scale:'css',animations:'disabled'});await info.attach(name,{path,contentType:'image/png'});
+  };
+  const sharedParts=async(other:CoopBrowserRecoveryObserver,afterTick:number,label:string)=>{
+   // Compare the first available common authority tick after recovery. Do not
+   // wait until unequal moving objects happen to settle into matching poses.
+   await expect.poll(()=>!!recoveryA.commonFrame(other,afterTick),{message:`${label} receives the same post-welcome authority tick as A`,timeout:20000}).toBe(true);
+   const pair=recoveryA.commonFrame(other,afterTick)!;
+   evidence[label]={epoch:pair.left.epoch,tick:pair.left.tick,aParts:pair.left.parts,otherParts:pair.right.parts};
+   expect(pair.right.parts,`${label}: complete parts include position, links, revisions and lease ownership`).toEqual(pair.left.parts);
+   expect(pair.left.parts.find(part=>part.id===sharedPartId)).toMatchObject({kind:'block',material:'wood',shared:true});
+  };
+  const showSharedPart=async(page:Page,label:string)=>{
+   await page.locator('#powers-menu').click();await expect(page.locator('#powers-panel')).toBeVisible();
+   await page.locator('#power-part').selectOption(String(sharedPartId));await expect(page.locator('#power-part')).toHaveValue(String(sharedPartId));
+   await expect(page.locator('#power-part option:checked')).toHaveText(`木の箱 #${sharedPartId}`);
+   await expect(page.locator('#powers-panel [data-power=grab]')).toBeEnabled();
+   evidence[label]={selectedId:await page.locator('#power-part').inputValue(),label:await page.locator('#power-part option:checked').textContent()};
+   await screenshot(page,`${label}.png`);await page.locator('#powers-close').click();await page.locator('#session-menu').click();
+  };
   try{
-   await expect(b.locator('#session-status')).toHaveAttribute('data-connection','reconnecting',{timeout:25000});
-   stage('NET-A05 terrain edit while second browser is offline');const before=expectedEditCount;
-   // A retains the real dig tool and clear camera position from the preceding
-   // case. Deepen that visible excavation while B cannot receive any frames.
-   await a.keyboard.press('Escape');await running(a);await expect(a.locator('#use-tool')).toBeEnabled();await a.locator('#use-tool').click();
-   await expect.poll(async()=>Number(await a.locator('#edit-count').getAttribute('data-count')),{timeout:20000}).toBeGreaterThan(before);
-   expectedEditCount=Number(await a.locator('#edit-count').getAttribute('data-count'));await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(before));await a.locator('#session-menu').click();
-  }finally{await contexts[1].setOffline(false);}
-  await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:45000});await expect(b.locator('#session-status')).toHaveAttribute('data-player',identity);await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount));
-  stage('fresh late join');const lateContext=await browser.newContext({viewport:{width:640,height:360},deviceScaleFactor:.5});
-  try{const late=await lateContext.newPage();late.setDefaultTimeout(20000);await late.goto('/#join='+code,{waitUntil:'domcontentloaded',timeout:45000});await late.locator('#session-join').click();await expect(late.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await expect(late.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount),{timeout:30000});await late.locator('#session-leave').click();}finally{await Promise.race([lateContext.close(),new Promise<void>(r=>setTimeout(r,5000))]);}
-  stage('creator leaves');await a.locator('#session-leave').click();await expect(b.locator('#session-status')).toHaveAttribute('data-players','1');const tick=Number(await b.locator('#session-status').getAttribute('data-tick'));await expect.poll(async()=>Number(await b.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThan(tick);
-  await b.keyboard.press('Escape');await running(b);await b.screenshot({path:'test-results/coop-two-browser.png',timeout:60000,scale:'css',animations:'disabled'});expect(errors).toEqual([]);stage('reconnect and persistence verified');
+   for(const page of [a,b])expect(await page.evaluate(()=>({enabled:window.coopDeliveryFault.enabled,skipNextDelta:window.coopDeliveryFault.skipNextDelta,dropNextIdle:window.coopDeliveryFault.dropNextIdle,queued:window.coopDeliveryFault.stats.queued}))).toEqual({enabled:false,skipNextDelta:false,dropNextIdle:false,queued:0});
+   await expect.poll(()=>recoveryB.latest?.tick).toBeGreaterThan(0);
+   const beforeB=structuredClone(recoveryB.latest!),welcomesBefore=recoveryB.welcomeCount,before=expectedEditCount;
+   const priorIds=new Set(observedA.edits.keys());
+   evidence.beforeDisconnect={playerId:identity,epoch:beforeB.epoch,tick:beforeB.tick,inventory:beforeB.inventory};
+   expect(Object.values(beforeB.inventory).some(count=>count>0),'B has real personal possessions before disconnect').toBe(true);
+   await contexts[1].setOffline(true);
+   try{
+    await expect(b.locator('#session-status')).toHaveAttribute('data-connection','reconnecting',{timeout:25000});
+    stage('NET-A05 terrain edit while second browser is offline');
+    // A retains the real dig tool and clear camera position from the preceding
+    // case. Deepen that visible excavation while B cannot receive any frames.
+    await a.keyboard.press('Escape');await running(a);await expect(a.locator('#use-tool')).toBeEnabled();await a.locator('#use-tool').click();
+    await expect.poll(async()=>Number(await a.locator('#edit-count').getAttribute('data-count')),{timeout:20000}).toBeGreaterThan(before);
+    expectedEditCount=Number(await a.locator('#edit-count').getAttribute('data-count'));await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(before));await a.locator('#session-menu').click();
+   }finally{await contexts[1].setOffline(false);}
+   await expect.poll(()=>observedA.edits.size).toBe(expectedEditCount);
+   const acceptedEdits=[...observedA.edits.values()].sort((left,right)=>left.id-right.id),offlineEdits=acceptedEdits.filter(edit=>!priorIds.has(edit.id));
+   evidence.acceptedEdits=acceptedEdits;evidence.offlineEdits=offlineEdits;expect(offlineEdits).toHaveLength(expectedEditCount-before);expect(offlineEdits[0]).toMatchObject({kind:'dig'});
+   await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:45000});await expect(b.locator('#session-status')).toHaveAttribute('data-player',identity);await running(b);await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount));
+   await expect.poll(()=>recoveryB.welcomeCount).toBeGreaterThan(welcomesBefore);
+   const returned=structuredClone(recoveryB.welcome!);evidence.returnedWelcome={playerId:returned.playerId,epoch:returned.epoch,tick:returned.tick,inventory:returned.inventory,edits:returned.edits};
+   expect(returned.playerId).toBe(identity);expect(returned.inventory,'B retains its own entire inventory, never A’s inventory').toEqual(beforeB.inventory);
+   expect(returned.edits,'B’s complete welcome history includes every accepted offline edit').toEqual(acceptedEdits);
+   await sharedParts(recoveryB,returned.tick,'returned-shared-parts');
+
+   stage('NET-A05 restored possessions and shared block in ordinary UI');
+   await b.locator('#session-close').click();await b.locator('#adventure-menu').click();await b.locator('[data-tab=bag]').click();await expect(b.locator('#adventure-panel')).toBeVisible();
+   for(const id of ['wood','stone','resin','iron']){
+    const count=beforeB.inventory[id]??0;await expect(b.locator(`#bag-material-counts [data-item=${id}]`)).toHaveAttribute('data-count',String(count));await expect(b.locator(`#bag-material-counts [data-item=${id}]`)).toHaveText(`${ITEM_NAMES[id]} ${count}`);
+   }
+   const bagRows=()=>b.locator('#adventure-content .slot-grid [data-slot]').evaluateAll(slots=>slots.filter(slot=>slot.querySelector('small')).map(slot=>({label:slot.getAttribute('aria-label')!,count:Number(slot.querySelector('small')!.textContent)})));
+   const expectedBag:Record<string,number>={};for(const [id,count]of Object.entries(beforeB.inventory))if(count>0)expectedBag[ITEM_NAMES[id]]=(expectedBag[ITEM_NAMES[id]]??0)+count;
+   await expect.poll(async()=>{const totals:Record<string,number>={};for(const row of await bagRows()){const name=row.label.replace(/ \d+$/,'');totals[name]=(totals[name]??0)+row.count;}return totals;},{message:'The normal bag renders all of B’s positive item quantities'}).toEqual(expectedBag);
+   const bag=await bagRows();for(const row of bag)expect(row.label).toMatch(new RegExp(` ${row.count}$`));evidence.returnedBag=bag;
+   await b.locator('#adventure-content .slot-grid').scrollIntoViewIfNeeded();await screenshot(b,'returned-personal-bag.png');await b.locator('#adventure-close').click();
+   await showSharedPart(b,'returned-shared-block');
+
+   stage('NET-A06 fresh late join');const lateContext=await browser.newContext({viewport:{width:640,height:360},deviceScaleFactor:.5});
+   try{
+    const late=await lateContext.newPage();late.setDefaultTimeout(20000);late.on('pageerror',error=>errors.push(error.message));lateRecovery=observeWire(late).recovery;
+    await late.goto('/#join='+code,{waitUntil:'domcontentloaded',timeout:45000});await late.locator('#session-join').click();await expect(late.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await running(late);
+    await expect(late.locator('#edit-count')).toHaveAttribute('data-count',String(expectedEditCount),{timeout:30000});await expect(late.locator('#session-status')).toHaveAttribute('data-players','3');
+    const lateId=await late.locator('#session-status').getAttribute('data-player'),lateWelcome=structuredClone(lateRecovery.welcome!);
+    evidence.lateWelcome={playerId:lateWelcome.playerId,epoch:lateWelcome.epoch,tick:lateWelcome.tick,edits:lateWelcome.edits};
+    expect(lateId).toBeTruthy();expect(lateId).not.toBe(identity);expect(lateId).not.toBe(await a.locator('#session-status').getAttribute('data-player'));expect(lateWelcome.playerId).toBe(lateId);
+    expect(lateWelcome.edits,'Fresh C receives the full accepted history, not only its length').toEqual(acceptedEdits);
+    await sharedParts(lateRecovery,lateWelcome.tick,'late-shared-parts');await late.locator('#session-close').click();await showSharedPart(late,'late-shared-block');await late.locator('#session-leave').click();
+   }finally{await Promise.race([lateContext.close(),new Promise<void>(r=>setTimeout(r,5000))]);}
+   stage('creator leaves');await a.locator('#session-leave').click();await expect(b.locator('#session-status')).toHaveAttribute('data-players','1');const tick=Number(await b.locator('#session-status').getAttribute('data-tick'));await expect.poll(async()=>Number(await b.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThan(tick);
+   await b.keyboard.press('Escape');await running(b);await b.screenshot({path:'test-results/coop-two-browser.png',timeout:60000,scale:'css',animations:'disabled'});
+   // Earlier intentional loss suppressed only application delivery. The native
+   // observer still saw those frames, so no historical decode error is expected
+   // or discarded. Real recovery errors must also keep this assertion failing.
+   for(const observer of [recoveryA,recoveryB,lateRecovery])expect(observer?.decodeFailures).toEqual([]);
+   expect(errors).toEqual([]);stage('reconnect, complete personal/shared state and fresh-join UI verified');
+  }finally{
+   evidence.decoderFailures={a:recoveryA.decodeFailures,b:recoveryB.decodeFailures,c:lateRecovery?.decodeFailures};
+   await info.attach('browser-recovery-state.json',{body:JSON.stringify(evidence,null,2),contentType:'application/json'});
+  }
  });
 });
 

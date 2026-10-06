@@ -7,7 +7,7 @@ vi.mock('../../src/networking/coop-identity',()=>({authenticateCoopPacket:async(
 vi.mock('../../src/networking/authority-room',()=>({AuthorityRoom:class{
  authority={sim:{tick:0}};size=1;readOnly=false;send!:(packet:any,serialized?:string)=>void;
  constructor(){fixture.room=this;}connect(_id:string,wire:any){this.send=wire.send;}disconnect(){this.size=0;}
- receive(_id:string,text:string){if(JSON.parse(text).type==='ping')this.send({type:'pong'},'{"type":"pong"}');return{changed:false};}
+ receive(_id:string,text:string){if(JSON.parse(text).type==='ping'){this.send({type:'pong'},'{"type":"pong"}');return{changed:false,schedulerWake:true};}return{changed:false};}
  step(){this.authority.sim.tick++;}notice=vi.fn();checkpoint(){return{};}recordPersistedRevision(){}
 }}));
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();fixture.peers=[];vi.resetModules();});
@@ -39,5 +39,16 @@ it('stops the real adapter and reports a native wait failure rather than leaving
 });
 it('stops native scheduling after a room-step error',async()=>{
  const f=await setup();vi.spyOn(fixture.room,'step').mockImplementation(()=>{throw Error('step failed');});await vi.advanceTimersByTimeAsync(100);
- expect((await f.ping()).timing).toBeUndefined();expect(fixture.room.notice).toHaveBeenCalledOnce();expect(f.wait).toHaveBeenCalledTimes(2);expect(f.wait.mock.calls[1][1].signal.aborted).toBe(true);expect(vi.getTimerCount()).toBe(0);
+ expect((await f.ping()).timing).toBeUndefined();expect(fixture.room.notice).toHaveBeenCalledOnce();expect(f.wait).toHaveBeenCalledOnce();expect(vi.getTimerCount()).toBe(0);
+});
+it('services an admitted due message from the server clock and aborts only its outdated wait',async()=>{
+ const f=await setup(),now=vi.spyOn(performance,'now').mockReturnValue(34);
+ try{await f.ping();expect(fixture.room.authority.sim.tick).toBe(1);expect(f.wait.mock.calls[0][1].signal.aborted).toBe(true);expect(vi.getTimerCount()).toBe(1);
+  const pong=await f.ping();expect(fixture.room.authority.sim.tick).toBe(1);expect(f.wait).toHaveBeenCalledTimes(2);expect(pong.timing.events).toMatchObject({messageEntries:2,stepEntries:1});
+  f.peer.listeners.get('close')!({});expect(vi.getTimerCount()).toBe(0);
+ }finally{now.mockRestore();}
+});
+it('cancels the captured timer if the outer wake gate throws before entering a turn',async()=>{
+ const f=await setup(),{FixedStepClock}=await import('../../src/networking/fixed-step-clock'),wake=vi.spyOn(FixedStepClock.prototype,'wake').mockImplementation(()=>{throw Error('clock read failed');});
+ try{await f.ping();expect(f.wait.mock.calls[0][1].signal.aborted).toBe(true);expect(vi.getTimerCount()).toBe(0);expect((await f.ping()).timing).toBeUndefined();expect(fixture.room.notice).toHaveBeenCalledOnce();}finally{wake.mockRestore();}
 });

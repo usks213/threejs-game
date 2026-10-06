@@ -1,0 +1,373 @@
+{
+  "status": "completed",
+  "startedAt": "2026-10-06T01:03:58.716Z",
+  "finishedAt": "2026-10-06T01:05:07.564Z",
+  "scope": "actual existing Cloudflare preview, fresh room, four sockets, gentle movement",
+  "expectedCommit": "14459fe2594b883a1f26956ec71eec6e7cdb1093",
+  "healthVerified": true,
+  "protocol": 7,
+  "clients": 4,
+  "requiredMs": 60000,
+  "measuredMs": 60017.672228999996,
+  "warmupMs": 5000,
+  "messages": 6994,
+  "sentBytes": 646739,
+  "receivedBytes": 38684398,
+  "measuredReceivedBytes": 26087895,
+  "measuredReceiveBytesPerSecond": 434670.223471189,
+  "targetTickHz": 30,
+  "minimumTickHz": 19.994110991531773,
+  "withinTwoPercentOfTarget": false,
+  "performanceAcceptance": "measurement only; collection success is not performance acceptance",
+  "clientsMeasured": [
+    {
+      "client": 1,
+      "frames": 400,
+      "fullBaselines": 1,
+      "tickDelta": 1200,
+      "observedTickHz": 19.994110991531773,
+      "frameGapsMs": {
+        "count": 399,
+        "p50": 141.97502100000565,
+        "p95": 214.11851100000058,
+        "max": 269.08757800000603
+      },
+      "pingRttMs": {
+        "count": 30,
+        "p50": 41.039121000001614,
+        "p95": 127.45888999999806,
+        "max": 155.14389600000868
+      },
+      "workerTiming": {
+        "status": "observed",
+        "samples": 30,
+        "missingSamples": 0,
+        "invalidSamples": 0,
+        "discontinuities": 0,
+        "first": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791248639297,
+            "nowIoMs": 1791248647578,
+            "lastStepIoMs": 1791248647577,
+            "tick": 125,
+            "active": true,
+            "scheduler": {
+              "steps": 135,
+              "turns": 135,
+              "catchUpSteps": 0,
+              "rebases": 4,
+              "droppedMs": 3779.343017578125,
+              "maxDebtMs": 1547.002197265625
+            }
+          },
+          "clientReceivedMs": 10286.992846
+        },
+        "last": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791248639297,
+            "nowIoMs": 1791248706782,
+            "lastStepIoMs": 1791248706776,
+            "tick": 1302,
+            "active": true,
+            "scheduler": {
+              "steps": 1312,
+              "turns": 1312,
+              "catchUpSteps": 0,
+              "rebases": 24,
+              "droppedMs": 23745.438720703125,
+              "maxDebtMs": 1803.007568359375
+            }
+          },
+          "clientReceivedMs": 69099.514139
+        },
+        "elapsedIoMs": 59204,
+        "elapsedClientMs": 58812.521293000005,
+        "ioMinusClientElapsedMs": 391.47870699999476,
+        "delta": {
+          "steps": 1177,
+          "turns": 1177,
+          "catchUpSteps": 0,
+          "rebases": 20,
+          "droppedMs": 19966.095703125,
+          "ticks": 1177
+        },
+        "stepsPerIoSecond": 19.8804134855753,
+        "maxLastStepAgeIoMs": 32,
+        "maxDebtIoMs": 1803.007568359375,
+        "interpretation": "I/O-clock counters over the first/last measured pong interval; client receive timing includes network jitter. maxDebt is run-cumulative. No CPU-time measurement or causal attribution."
+      },
+      "receivedBytes": 9837171,
+      "measuredReceivedBytes": 6493985
+    },
+    {
+      "client": 2,
+      "frames": 400,
+      "fullBaselines": 1,
+      "tickDelta": 1200,
+      "observedTickHz": 19.994110991531773,
+      "frameGapsMs": {
+        "count": 399,
+        "p50": 142.3228479999998,
+        "p95": 204.8942109999989,
+        "max": 269.5311849999998
+      },
+      "pingRttMs": {
+        "count": 30,
+        "p50": 40.925749000001815,
+        "p95": 127.5729339999998,
+        "max": 155.16621799999848
+      },
+      "workerTiming": {
+        "status": "observed",
+        "samples": 30,
+        "missingSamples": 0,
+        "invalidSamples": 0,
+        "discontinuities": 0,
+        "first": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791248639297,
+            "nowIoMs": 1791248647578,
+            "lastStepIoMs": 1791248647577,
+            "tick": 125,
+            "active": true,
+            "scheduler": {
+              "steps": 135,
+              "turns": 135,
+              "catchUpSteps": 0,
+              "rebases": 4,
+              "droppedMs": 3779.343017578125,
+              "maxDebtMs": 1547.002197265625
+            }
+          },
+          "clientReceivedMs": 10286.022148
+        },
+        "last": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791248639297,
+            "nowIoMs": 1791248706782,
+            "lastStepIoMs": 1791248706776,
+            "tick": 1302,
+            "active": true,
+            "scheduler": {
+              "steps": 1312,
+              "turns": 1312,
+              "catchUpSteps": 0,
+              "rebases": 24,
+              "droppedMs": 23745.438720703125,
+              "maxDebtMs": 1803.007568359375
+            }
+          },
+          "clientReceivedMs": 69099.481598
+        },
+        "elapsedIoMs": 59204,
+        "elapsedClientMs": 58813.459449999995,
+        "ioMinusClientElapsedMs": 390.54055000000517,
+        "delta": {
+          "steps": 1177,
+          "turns": 1177,
+          "catchUpSteps": 0,
+          "rebases": 20,
+          "droppedMs": 19966.095703125,
+          "ticks": 1177
+        },
+        "stepsPerIoSecond": 19.8804134855753,
+        "maxLastStepAgeIoMs": 30,
+        "maxDebtIoMs": 1803.007568359375,
+        "interpretation": "I/O-clock counters over the first/last measured pong interval; client receive timing includes network jitter. maxDebt is run-cumulative. No CPU-time measurement or causal attribution."
+      },
+      "receivedBytes": 9724069,
+      "measuredReceivedBytes": 6480756
+    },
+    {
+      "client": 3,
+      "frames": 400,
+      "fullBaselines": 1,
+      "tickDelta": 1200,
+      "observedTickHz": 19.994110991531773,
+      "frameGapsMs": {
+        "count": 399,
+        "p50": 141.17684000000008,
+        "p95": 208.58466199999384,
+        "max": 274.2684819999995
+      },
+      "pingRttMs": {
+        "count": 30,
+        "p50": 40.884281000002375,
+        "p95": 127.57952600000135,
+        "max": 155.3337920000049
+      },
+      "workerTiming": {
+        "status": "observed",
+        "samples": 30,
+        "missingSamples": 0,
+        "invalidSamples": 0,
+        "discontinuities": 0,
+        "first": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791248639297,
+            "nowIoMs": 1791248647578,
+            "lastStepIoMs": 1791248647577,
+            "tick": 125,
+            "active": true,
+            "scheduler": {
+              "steps": 135,
+              "turns": 135,
+              "catchUpSteps": 0,
+              "rebases": 4,
+              "droppedMs": 3779.343017578125,
+              "maxDebtMs": 1547.002197265625
+            }
+          },
+          "clientReceivedMs": 10285.072408
+        },
+        "last": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791248639297,
+            "nowIoMs": 1791248706782,
+            "lastStepIoMs": 1791248706776,
+            "tick": 1302,
+            "active": true,
+            "scheduler": {
+              "steps": 1312,
+              "turns": 1312,
+              "catchUpSteps": 0,
+              "rebases": 24,
+              "droppedMs": 23745.438720703125,
+              "maxDebtMs": 1803.007568359375
+            }
+          },
+          "clientReceivedMs": 69090.694675
+        },
+        "elapsedIoMs": 59204,
+        "elapsedClientMs": 58805.622267000006,
+        "ioMinusClientElapsedMs": 398.3777329999939,
+        "delta": {
+          "steps": 1177,
+          "turns": 1177,
+          "catchUpSteps": 0,
+          "rebases": 20,
+          "droppedMs": 19966.095703125,
+          "ticks": 1177
+        },
+        "stepsPerIoSecond": 19.8804134855753,
+        "maxLastStepAgeIoMs": 30,
+        "maxDebtIoMs": 1803.007568359375,
+        "interpretation": "I/O-clock counters over the first/last measured pong interval; client receive timing includes network jitter. maxDebt is run-cumulative. No CPU-time measurement or causal attribution."
+      },
+      "receivedBytes": 9709261,
+      "measuredReceivedBytes": 6602329
+    },
+    {
+      "client": 4,
+      "frames": 400,
+      "fullBaselines": 1,
+      "tickDelta": 1200,
+      "observedTickHz": 19.994110991531773,
+      "frameGapsMs": {
+        "count": 399,
+        "p50": 142.65055500000017,
+        "p95": 208.2536940000009,
+        "max": 263.885706999994
+      },
+      "pingRttMs": {
+        "count": 30,
+        "p50": 36.57281999999395,
+        "p95": 112.70611099999951,
+        "max": 133.71899599999597
+      },
+      "workerTiming": {
+        "status": "observed",
+        "samples": 30,
+        "missingSamples": 0,
+        "invalidSamples": 0,
+        "discontinuities": 0,
+        "first": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791248639297,
+            "nowIoMs": 1791248647578,
+            "lastStepIoMs": 1791248647577,
+            "tick": 125,
+            "active": true,
+            "scheduler": {
+              "steps": 135,
+              "turns": 135,
+              "catchUpSteps": 0,
+              "rebases": 4,
+              "droppedMs": 3779.343017578125,
+              "maxDebtMs": 1547.002197265625
+            }
+          },
+          "clientReceivedMs": 10283.800466
+        },
+        "last": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791248639297,
+            "nowIoMs": 1791248706782,
+            "lastStepIoMs": 1791248706776,
+            "tick": 1302,
+            "active": true,
+            "scheduler": {
+              "steps": 1312,
+              "turns": 1312,
+              "catchUpSteps": 0,
+              "rebases": 24,
+              "droppedMs": 23745.438720703125,
+              "maxDebtMs": 1803.007568359375
+            }
+          },
+          "clientReceivedMs": 69090.772921
+        },
+        "elapsedIoMs": 59204,
+        "elapsedClientMs": 58806.972454999996,
+        "ioMinusClientElapsedMs": 397.02754500000447,
+        "delta": {
+          "steps": 1177,
+          "turns": 1177,
+          "catchUpSteps": 0,
+          "rebases": 20,
+          "droppedMs": 19966.095703125,
+          "ticks": 1177
+        },
+        "stepsPerIoSecond": 19.8804134855753,
+        "maxLastStepAgeIoMs": 30,
+        "maxDebtIoMs": 1803.007568359375,
+        "interpretation": "I/O-clock counters over the first/last measured pong interval; client receive timing includes network jitter. maxDebt is run-cumulative. No CPU-time measurement or causal attribution."
+      },
+      "receivedBytes": 9413897,
+      "measuredReceivedBytes": 6510825
+    }
+  ],
+  "workerMemoryUsage": "not exposed; no inference from Node client RSS",
+  "limitations": [
+    "fresh room rather than mature saved world",
+    "not browser rendering or real-device FPS",
+    "no forced Worker restart or backend memory counter",
+    "optional Worker timing covers measured pong endpoints, not the exact full load interval; event-clock time is not CPU time",
+    "not an unlimited-load or long-term service guarantee"
+  ],
+  "failures": []
+}

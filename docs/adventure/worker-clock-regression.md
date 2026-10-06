@@ -57,3 +57,21 @@ Workerだけ`maxCatchUpSteps=1`と`scheduleBeforeStep=true`を組み合わせ、
 stop・例外・leave/restart・古いcallbackを検証。pre-arm中の同期停止でも返ってきたcancel handleを直ちに呼び、次のstepを行わない。pre-armと複数step設定の併用は拒否する。関連33試験と全typecheckに合格。
 
 2a1debf1のfrozen sourceにtimer変更だけを適用し、booleanだけが異なるbundleをローカルworkerdでpost/pre/pre/post順に各5秒測定した。最小Hzは29.891 / 29.823 / 29.366 / 29.781、4接続はいずれも完走。preの一回では初期rebaseもあり、localthroughput改善を証明していない。`docs/benchmarks/worker-prearm-local-abba.json`を参照。公開へ採用する場合も同SHA・load-only条件で再判定する。
+
+## 14459fe2: pre-armを棄却し、admitted-I/O wakeを測定候補にする
+
+browser QA後に順序付けた公開14459fe2の4接続測定は60.017秒・通信失敗0だが、最小19.994Hz。以前のpost-arm版2a1debf1のload-only24.282Hzを上回る証拠はなく、pre-arm optionとその専用試験を除去した。native wait・既存telemetry・固定dt・物理/水・broadcastは保持。失敗した実験の記録は削除せず、`public-worker-load-14459fe2-sequenced.json`を追加した。
+
+測定pong両端はWorker59.204秒/client58.813秒、1,177step/tick、20rebase、19,966.096msのdiscard。最大I/O-clock debtは1,803.008msだが、clientの最大3tick-frame間隔は約274msだった。1.8秒debtを1.8秒の単発CPU停止と呼ばない。runtime時計がvirtual deadlineから外部I/O時刻へ補正される可能性と、実際の処理/待機負荷を分ける。元のreceiptは最初/最後のpongだけで、各rebaseと2秒pingとの一致は証明できない。productionのTimerChannelは公開workerdのinterfaceから先を確認できず、`syncTime()`という名前だけでraw wall clockへの更新を保証しない。
+
+次の候補はタイマーの置換ではなく、既存deadlineを満たしたserver I/Oから同じsingle-step turnを実行する`FixedStepClock.wake()`。admitted input・有効delivery receipt・認証済み/rate内pingのみをAuthorityRoom内部の戻り値で許可する。新しいinput sequenceの採用を確認し、pre-handshake・未保存access変更中・不正/古いinput・偽造/再利用receipt・rate超過・action/resyncはwake対象外。messageの内容にある時刻や送信頻度からdeadlineを作らない。
+
+wakeはrunningかつ非reentrant、maxCatchUpSteps=1、Worker-owned nowが既存deadline以上の場合だけ行う。未到達ならtimerを一切触らない。到達時は古いwaitをcancel/generationで無効化し、clockを読み直して既存の固定stepとrebase規則を一回だけ実行する。deadlineは各stepの固定interval加算または既存overload時の前進だけで、message数による前倒しはない。native timerは引き続きidle時も進める。Nodeの通常timer経路と3step上限は変えない。
+
+sourceからは、pending timeoutを除去すると`now()`へのnext-timeout clamp引数が変わることを確認できる。しかし外部I/O wakeが公開30Hzを回復するかは未実測。これを完成やCPU能力改善と扱わず、次の同SHA・QA終了後の4接続測定でaccept/rejectする。
+
+optional `events`診断も追加し、step entry/message entryで観測したI/O-clockの前回観測からの増分、250ms超のjump数、最大jump、逆行数、最後のjumpだけを保持する。message entryの観測は不正messageを含むが、schedulerのadmissionとは別。これらはCPU/wall-timeではない。probe側は最大8つの異なるsampled jumpを保持し、完全なevent logとは呼ばない。runtimeの進み方を変えるための計測用fetchや外部サービスは追加しない。
+
+このwake候補の関連51試験と全typecheckに合格。early wakeでtimerを再予約しないこと、1,000msのserver-clock上で大量wakeを送っても30stepを超えないこと、reentrant/stale callback/stop/restart/例外、clock clamp除去後の読み直し、admissionとoptional診断の互換性/不正値/逆行を確認した。wakeの外側でnow/cancelが例外になっても、捕捉したtimerをstopしてから同じroom/timerの場合だけ参照を除去する。
+
+ローカルworkerdの実4WebSocket/5秒smokeも通信失敗0で完走し、全員2つの有効なevent telemetry sampleを受信した。対応するpong両端は60tick/2,013msのI/O-clock区間。短い全測定窓では直前のframe到着位置の影響を受けるため、これを公開30Hz合格へ拡大しない。結果はローカルadapterの接続確認だけで、公開でのwake効果やCPU能力は未確認。

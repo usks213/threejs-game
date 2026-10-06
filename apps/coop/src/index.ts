@@ -31,23 +31,26 @@ export class CoopRoom extends DurableObject<Env> {
   server.accept();
   room.connect(id, { send: (packet,serialized) => { try { const timing=packet.type==='pong'&&this.room===room&&this.timer?this.timing?.sample(this.timer,room.authority.sim.tick):undefined;server.send(timing?JSON.stringify({...packet,timing}):serialized??JSON.stringify(packet)); } catch { room.disconnect(id); } }, close: (code, reason) => server.close(code, reason) });
   server.addEventListener('message', event => {
+   if(this.room===room&&this.timer)this.timing?.messageEntered(room.authority.sim.tick);
    this.ctx.waitUntil((async()=>{
    if (typeof event.data !== 'string') { server.close(1003, 'Text only'); return; }
    const verified=await authenticateCoopPacket(event.data),result = room.receive(id,verified.text,verified.playerId);
+   if(result.schedulerWake&&this.room===room){const timer=this.timer;try{timer?.wake();}catch{this.stopSimulation(room,timer);}}
    if(this.recoveryNotice&&JSON.parse(event.data).type==='hello')room.notice('直前の正常な共有保存へ復旧しました。壊れた最新保存は保護されています');
    if (result.changed) this.ctx.waitUntil(this.persist().then(() => result.acknowledgment?.()).catch(() => this.persistenceFailed(room)));else result.acknowledgment?.();
    })().catch(()=>server.close(1008,'Invalid handshake')));
   });
   const leave = () => { room.disconnect(id); if (!room.size&&this.room===room) { this.timer?.stop(); this.timer = undefined; } if(this.room===room&&!room.readOnly)this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); };
   server.addEventListener('close', leave); server.addEventListener('error', leave);
-  if (!this.timer) {const timing=this.timing=new CoopTimingSource(++this.timingRun),stop=()=>{room.notice('共有シミュレーションを停止しました。再接続してください');this.timer?.stop();this.timer=undefined;};this.timer = new FixedStepClock(() => {
-   try { room.step();timing.stepCompleted(); if (Date.now() - this.lastSave > 30000) { this.lastSave = Date.now(); this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); } }
+  if (!this.timer) {const timing=this.timing=new CoopTimingSource(++this.timingRun);let timer:FixedStepClock;const stop=()=>this.stopSimulation(room,timer);timer = new FixedStepClock(() => {
+   try { timing.stepEntered(room.authority.sim.tick);room.step();timing.stepCompleted(); if (Date.now() - this.lastSave > 30000) { this.lastSave = Date.now(); this.ctx.waitUntil(this.persist().catch(() => this.persistenceFailed(room))); } }
    catch { stop(); }
-  // Keep each turn to one fixed step. The native wait resumes outside its timer
-  // callback, so arm the next positive wait before doing synchronous room work.
-  }, {maxCatchUpSteps:1,scheduleBeforeStep:true,schedule:createWorkerSchedule((delay,options)=>scheduler.wait(delay,options),stop),onOverload:event=>console.warn(JSON.stringify({event:'coop-scheduler-overload',...event}))});this.timer.start();}
+  // Keep each turn to one fixed step. Native scheduler.wait returns after the
+  // internal timeout callback; a JS setTimeout callback retains its clock clamp.
+  }, {maxCatchUpSteps:1,schedule:createWorkerSchedule((delay,options)=>scheduler.wait(delay,options),stop),onOverload:event=>console.warn(JSON.stringify({event:'coop-scheduler-overload',...event}))});this.timer=timer;timer.start();}
   return new Response(null, { status: 101, webSocket: client });
  }
+ private stopSimulation(room:AuthorityRoom,timer:FixedStepClock|undefined):void{try{timer?.stop();}finally{if(this.room===room&&this.timer===timer){this.timer=undefined;room.notice('共有シミュレーションを停止しました。再接続してください');}}}
  private persistenceFailed(room:AuthorityRoom):void{room.failPersistence();if(this.room===room){this.timer?.stop();this.timer=undefined;this.room=null;this.loading=null;}}
  private persist(): Promise<void> { return this.saves.request(); }
  private async writeCheckpoint(): Promise<void> {

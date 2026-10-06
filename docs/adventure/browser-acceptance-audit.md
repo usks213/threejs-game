@@ -1,6 +1,8 @@
 # 原仕様9章のブラウザ受入監査
 
-2026-10-05 UTC。対象はPR5の新作54項目と、原仕様 `voxel-coop-adventure-spec.md` 9章。全項目に実装経路があることと、全受入に合格したことを分ける。追加ブラウザ試験の実行結果と残る範囲を以下に記録する。試験ソースの存在を合格証明にはしない。
+2026-10-06 UTC。対象はPR5の新作54項目と、原仕様 `voxel-coop-adventure-spec.md` 9章。全項目に実装経路があることと、全受入に合格したことを分ける。追加ブラウザ試験の実行結果と残る範囲を以下に記録する。試験ソースの存在を合格証明にはしない。下の受入表が現在の要約であり、commit別の履歴段落は当時の失敗・未実行をそのまま残す。
+
+現行公開は `14459fe2594b883a1f26956ec71eec6e7cdb1093`。[CI37396450818](https://github.com/usks213/threejs-game/actions/runs/37396450818) の公開経路では共有操作と相互の実GPUジャンプまで通過したが、NET-A04は条件付き半回転後も地形targetが得られず失敗した。直前の `2a1debf1` の公開6ケース合格は独立した履歴証拠として保持し、最新commitの全合格へ継承しない。今回追加するNET-A05/06の完全比較は、次のブラウザ実行結果待ち。
 
 ## 今回追加した限定的な観測
 
@@ -25,6 +27,21 @@
 
 追加の再入室工程ではBが通常UIで退出し、同じ招待先・同じ公開IDで再参加する。新しいローカル地形epochとwelcomeの完全な編集履歴一致を確認し、通常ジャンプから同じ低い床へ着地し直す。保存位置だけの一致とは区別する。再構築した表示地形へのray hitと画像も保存する。CIで実行されるまで合格とは扱わない。
 
+### NET-A05/06: 復帰者の個人在庫・完全な共有部品・編集履歴
+
+最終の切断/後参加ケースを拡張する。`tests/helpers/coop-browser-recovery.ts` はA/B/Cそれぞれの実WebSocketを受動観測し、productionの `CoopFrameDecoder` でwelcomeと差分を復元する。delivery callbackを渡さず、観測側からACK・resync・操作を送らない。新しいsocketには独立decoderを使う。内部の現行water baseline以外には大きなsnapshotを溜めず、履歴はepoch/tick・本人のinventory・完全な `skybound.parts` の120件までに限定する。decode失敗は保存し、次のwelcomeで復帰しても失敗を消さない。
+
+Playwright Chromiumの `framereceived` はCDPの `Network.webSocketFrameReceived` に由来し、故障helperが後段のDOM `message` を遅延/抑止する前のwireを観測する。先行NET-A02/09の意図したDOM配送欠落は、受動decoderの欠落ではない。全履歴のdecode失敗0という条件を維持し、NET-A05開始時には故障設定OFF・追加欠落要求なし・待機queue0も確認する。単体回帰は実helperでDOM側decoderの欠落失敗とnative側の完全観測を区別する。productionの同一世界継続判定は試験flagに依存しない。
+
+- B切断前に、B自身の全inventoryを実受信stateから記録する。切断中のAの追加採掘は通常UIのみで行い、Bの編集数が古いままであることも維持する。
+- Bの新しいwelcomeで同じ公開ID、全inventoryの完全一致、Aが実際に受け取った全編集operationとの完全一致を要求する。切断中に増えたoperationそのものを含め、件数だけの検査にしない。
+- 復帰後の同じauthority epoch/tickをA/Bの有限履歴から選び、完全なparts配列を比較する。位置・回転・速度・links・revision相当のepoch・lease所有者/期限・その他の部品fieldを削らない。違うtickの物理状態を比較せず、一致する姿勢になるまで待つ方法も採らない。
+- Bの通常の持物画面を開き、全正数の品物を実スロットの表示数量へ照合する。素材のゼロ数量も通常表示で確認する。Bの在庫をAへ一致させず、個人blueprint/fusionも共有部品として比較しない。
+- 空の新規browser contextのCは通常の招待画面からjoinし、running・A/Bと異なる公開ID・3人接続・完全なwelcome編集履歴を要求する。C/Aでもwelcome後の同じauthority tickの完全partsを比較する。
+- B/Cの創作画面で、先行ケースで実際に作成した共有の木箱を同じIDで選択し、部品名/番号と操作可能な通常UIを確認する。追加の箱や地形fixture、合成game actionを用意しない。
+
+`browser-recovery-state.json` と `returned-personal-bag.png`、`returned-shared-block.png`、`late-shared-block.png` を保存する。JSONは比較対象の個人在庫、受理編集、同tick部品、公開IDとUI選択に限り、hello・resume key・delivery token・全保存worldを含まない。既存NET-A04の再入室後の地形描画/衝突検査を、最終ケースでもう一度歩いて繰り返すことはしない。追加assertionのブラウザ実行前にNET-A05/06の完全受入とは記録しない。
+
 ### NET-A08 / UX-A01: 拒否説明と復帰
 
 追加の単一UIケースは同じ実endpointを使う。PlaywrightのWebSocket経路で、実際にゲームが送るhelloだけを意図的に変更する。サーバーの返答をmockしない。
@@ -41,31 +58,34 @@ handshakeの秘密値やresume capabilityは記録しない。記録するのは
 
 | 受入 | 現在ある証拠 / 今回の追加 | 残る範囲 |
 |---|---|---|
-| NET-A01 | 763c7902で最初の方向の実GPU移動/向きが通過。host retryでは空中の実pixelも後から確認 | 相互の空中pixel条件はCI失敗。非同期query読出しと描画間隔を下記で区別 |
-| NET-A02 | 763c7902の公開/ローカル実2browserで箱作成・共有・同時掴み一方拒否・移動・期限切れ/切断lease回収が合格 | この条件は検証済み |
-| NET-A03 | 763c7902の公開/ローカルUIで同時拾得、成功操作の同一ID再送拒否後も木12の一度だけ移転 | 経済効果の二重適用防止を検証済み。映像/音の重複再生は未観測 |
-| NET-A04 | 今回の地形operation一致、穴への歩行/接地、renderer ray、画像 | 新ケースCI。再入室後の地形再構築、通常ジャンプ/接地、同じ穴へのrenderer rayも追加 |
-| NET-A05/06 | 公開UIの切断中追加編集・同一ID復帰・独立新context参加。実WSの完全state比較 | 公開UIでは在庫/全物体までの完全比較を主張しない |
-| NET-A07 | 保存checkpointからの実サーバープロセス再起動と完全state/水/進行一致 | 公開Workerの任意強制停止をブラウザから実施した証拠はない |
-| NET-A08 | 763c7902の公開/ローカルで実endpoint拒否説明/復帰UIケースが合格。既存protocol/room-access試験 | ネットワーク到達不能のTCP障害はoffline条件と同一視しない |
-| NET-A09 | 実WS試験に加え、763c7902の公開/ローカル2browserで150ms追加RTT・限定loss・成功操作の再送・キー解放が合格 | literalな映像/音の重複再生は未観測。実TCP packet lossの測定とは称さない |
-| NET-A10 | 実UI送信commandIdと権威ACKを対応。今回、表示画像とGPU/地形観測JSONを追加 | CI artifactの実行結果を確認してから対象条項だけ閉じる |
+| NET-A01 | 2a1debf1公開6ケースの一つとして相互の移動/向き/空中pixelが合格。14459fe2公開でも通過 | 実機FPS/美術全体の確認へ読み替えない |
+| NET-A02 | 2a1debf1と14459fe2の公開実2browserで箱作成・共有・同時掴み一方拒否・移動・期限切れ/切断lease回収が合格 | この条件は検証済み |
+| NET-A03 | 2a1debf1と14459fe2の公開UIで同時拾得、成功操作の同一ID再送拒否後も木12の一度だけ移転 | 経済効果の二重適用防止を検証済み。映像/音の重複再生は未観測 |
+| NET-A04 | 2a1debf1公開で完全operation、掘削面/衝突、再入室後の同じ床へのジャンプ/接地まで合格 | 最新14459fe2公開では半回転後のterrain targetがnullで失敗。通常視点の観測経路を再検証中 |
+| NET-A05/06 | 2a1debf1公開で切断中追加編集・同一ID復帰・独立新context参加が合格。実WSの完全state証拠も維持 | 今回のB全inventory、全編集operation、A/B・A/Cの同tick全parts、通常持物/創作UIの追加assertionはブラウザ実行待ち |
+| NET-A07 | 保存checkpointから実Nodeサーバープロセスを再起動し、完全state/水/進行が一致。2WS証拠と合格済み4WS・15分receiptを維持 | 原仕様のサーバー停止/再開条件の証拠あり。公開Workerの任意強制停止を新しい必須条件にしない。最新sourceの耐久確認は別途扱う |
+| NET-A08 | 2a1debf1公開で接続不能/offline・別room・版違い・満室・不正payloadの説明/安全な拒否と復帰が合格 | 原仕様の区分を確認済み。DNS/TCP障害の追加種類を新しい必須ゲートにしない |
+| NET-A09 | 実WSに加え2a1debf1/14459fe2公開2browserで150ms追加RTT・限定loss・成功操作の再送・キー解放が合格 | literalな映像/音の重複再生は未観測。実TCP packet lossの測定とは称さない |
+| NET-A10 | 実UI送信commandIdと権威ACK、2a1debf1公開の表示画像・GPU/地形JSONを保持 | 今回の復帰状態JSON/持物・創作画像はCIで実際の生成と内容を確認するまで追加受入待ち |
 | WORLD/MOVE | 実2WS三層・登攀/水泳/岸上がり・滑空・立乗りの通常入力ルート | ブラウザのカメラ遮蔽/復帰、実機での視認・操作 |
 | POWER/PHYS/COMBAT | 橋・lease・設計再建・合成消費・能力競合・車両/重量/水上/立乗り・戦闘の実2WS | 同じ経路の全てをブラウザ操作/実GPUで再現した証拠ではない |
 | QUEST | 新規開始→導入→七試練→三地域→最終目標、保存再開/人数減少、後日談の実2WS | ブラウザでの全行程は未確認。任意18室全訪問を主導線へ追加しない |
-| UX/SAVE | 設定保存・字幕・検索/設計・長押し取消・次周確認/取消・旧保存保護などの既存browser/単体 | 実端末の可読性/操作。拒否/復帰UIは763c7902で合格 |
+| UX/SAVE | 設定保存・字幕・検索/設計・長押し取消・次周確認/取消・旧保存保護などの既存browser/単体 | 実端末の可読性/操作。拒否/復帰UIは2a1debf1公開でも合格 |
 | PERF-A01 | 実WSの4接続整合とNode測定。性能担当の本番hot path計測は別証拠 | Android/iPhone実機、解像度つきframe time/p95/メモリ、公開権威負荷・net bytes。CI SwiftShaderを実機FPSと呼ばない |
-| M5 | PR5専用公開とcommit/authority build照合、公開2browser経路は既存 | 最新commitのCI/deploy/asset/console結果と今回artifact。PR3/4/main/旧previewは変更対象外 |
+| M5 | PR5専用公開14459fe2とcommit/authority build照合。2a1debf1の公開6ケース合格を保持 | 14459fe2公開NET-A04失敗と今回の追加assertionは未解消/未実行。PR3/4/main/旧previewは変更対象外 |
 
 `full-spec-audit.md` と各機能の `*-acceptance.md` の証拠を維持する。この表は未確認を実装不足と取り違えず、原仕様にない規模・厳密物理・追加コンテンツを新しい必須条件にしないための監査である。
+
+NET-A07の既存証拠は単なるsaveのメモリ内再読込ではない。`scripts/playthrough-coop-websocket.ts` は子サーバーの終了を待って新しいprocessを起動し、そのrun自身が獲得したcheckpointから再接続する。`standing-deck-water-acceptance.md` の実2WS記録は3回のprocess再起動と1,090件の完全snapshot/水比較を含む。`optimized-four-player-soak.md` と `docs/benchmarks/four-player-soak-2026-10-05.json` は903.307秒・再起動1回・完全snapshot/水各358比較・失敗0を記録する。これらのソース・日付・限界を保持し、最新sourceの耐久試験や公開Workerでの停止と混同しない。
 
 ## この変更の検証と実行方法
 
 - `peer-render-probe.test.ts`: 完了GPU結果だけの記録、負の遮蔽結果/offscreen除外、context lostでの解放を単体で確認。
+- `coop-browser-recovery.test.ts`: 実protocol decoderの全比較field、履歴件数、epoch/tick境界、個人在庫分離、decode失敗の保持、socketごとのbaseline、秘密値/大きなwater履歴の除外、native観測とDOM配送欠落の分離を5単体で確認。既存decoder/impairment/continuationと合わせ関連16単体と型検査が合格。
 - TypeScriptとPlaywright discoveryを実行。全ゲームの単体/buildおよびブラウザの成否は統合担当の最終commit結果を参照する。
 - この実行環境はChromiumのソケット起動がEPERM、cloud browserはWebGLが利用できないため、ブラウザを再試行していない。実Android/iPhoneも未接続。未実行を失敗したゲーム機能とはしない。
 - CIの既存public-coop jobは `--project=desktop-chromium --grep 'two real browsers' --retries=0` で6ケースを発見する。公開URLを `E2E_BASE_URL` に指定し、同じコマンドで再現する。
-- 新しく保存するartifact: `mutual-avatar-render-evidence.json`、`peer-east-visible.png`、`peer-west-visible.png`、`terrain-render-collision-evidence.json`、`remote-excavation-collision.png`、`room-refusal-and-recovery.json`、`room-recovered.png`。ファイルが実際に生成されたことと内容をCIで確認するまで、この追加は受入待ち。
+- 保存するartifact: `mutual-avatar-render-evidence.json`、`peer-east-visible.png`、`peer-west-visible.png`、`terrain-render-collision-evidence.json`、`remote-excavation-collision.png`、`room-refusal-and-recovery.json`、`room-recovered.png`。今回の追加は `browser-recovery-state.json`、`returned-personal-bag.png`、`returned-shared-block.png`、`late-shared-block.png`。実際の生成と内容をCIで確認するまで追加条件は受入待ち。
 
 ## 公開11f702bで実際に失敗した再同期境界
 
@@ -176,3 +196,19 @@ Bのカメラはpitch1.2・yawほぼ0まで実際に下がっていた。Bの足
 browser試験は最初の視点で実際に低い掘削面が見えた場合、その成功経路を維持する。見えない場合だけ中ボタンドラッグ2回で反対側から覗き、実際のcamera yaw更新を待つ。fragmentの削除・不可視化・遮蔽の無視はせず、terrain targetが編集前より0.3m低いこと、編集中心から2.3m以内、権威の接地と0.4m以上の落差、再入室後の同じ床への通常ジャンプ/着地という元の条件をすべて保持する。最初のtargetと視点変更の有無も証拠JSONへ残す。
 
 変更後は型検査、掘削の遮蔽再現と既存camera/field-renderingの関連20単体試験、6browserケースのdiscoveryが合格。追加した反対側視点の実ブラウザ検証は次のCI待ち。
+
+## 14459fe2の拾得物遮蔽と有限の視点探索（2026-10-06）
+
+[CI run 37396450818](https://github.com/usks213/threejs-game/actions/runs/37396450818) の[公開trace/画面](https://github.com/usks213/threejs-game/actions/runs/37396450818/artifacts/11383414443) では、相互の実pixel・ジャンプまで通過したが、掘削面の照準で停止した。反対側へのドラッグ自体は完了し、camera yaw=3.12、pitch=1.2だった。しかし `data-interaction=r:3000425`、画面の「石×5を拾う E」が示す通り、今度は実際の石のDropが地形の手前で交差していた。reticleTargetは(7.0864,.5854,5.5587)、terrain targetはnull。この低いreticleTargetを地形のhitと読み替えない。
+
+直前のソース回帰はfragmentを静止させていたが、Dropを生成時の高さから落下させておらず、この後発の拾得物遮蔽を再現できていなかった。新しい回帰は `stepDrops` も使い、両方の記録された採掘位置でfragmentと石を落ち着かせる。公開失敗のyaw3.12では石の拾得判定がy.5848で交差することを再現し、別の実カメラ方向では遮蔽のない低いfield-terrainの面があることを確認した。Dropの存在や接触を無効にした結果ではない。
+
+[ホストtrace](https://github.com/usks213/threejs-game/actions/runs/37396450818/artifacts/11383620862) の初回は、最初の地形観測を通過した後、再入室したepoch4のyawほぼ0でfragmentに遮られている。retryはepoch2の最初の観測で、yaw3.12の石の拾得物に遮られた。初回だけ直して再入室を未対処にしない。
+
+固定した二方向だけで成功を仮定する方法を止め、通常の中ボタンドラッグで最大8方位×2段階の俯角（1.2/1.44rad）を調べる。各候補は要求したyaw/pitchへの到達、照準rayの同じpitch、その後の実描画回数の増加を要求する。その新しいrayに実terrain targetがあり、編集前の高さから0.3m以上低く、同じ掘削中心から2.3m未満である場合だけ採用する。最初に見えた有効な視点で終了し、16候補とも不適切なら失敗する。画面外・pickupだけのhit・無限遠・過去のrayを成功へ数えない。
+
+同じ探索を、最初の低い接地を確認した後と、再入室して通常ジャンプ/着地を確認した後の両方で行う。fragment/Drop/保存状態の削除や変更、teleport、合成snapshotはない。権威の0.4m以上の落差、地形面の高さ/水平範囲、同じ床への復帰、ジャンプ0.15m超の元の条件は維持する。
+
+成功時も失敗時も `terrain-collision-view-search.json` と `terrain-reentry-view-search.json` に、試した各視点の要求角度・実角度・時刻・描画回数・terrain ray・reticleTarget・interaction ID/表示名・新鮮な観測か・採用したかを残す。候補に届かない場合も、その要求と最後に観測できた状態を残す。
+
+型検査と関連21単体試験、6browserケースのdiscoveryに合格。有限の視点探索を加えた実ブラウザの合格は次のCI待ちであり、過去2aの公開合格を新しいソースへ移し替えない。

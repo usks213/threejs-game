@@ -12,6 +12,7 @@ The constant-size payload contains only:
 - `lastStepIoMs`: the observed I/O clock directly after a successful return from
   `room.step()`, or null before the first return. This is not an actual CPU
   completion timestamp, and a room-step return need not advance the simulation.
+- Optional version-1 `events` entry-clock observations, described below.
 - Current simulation `tick`, scheduler `active`, and its existing six counters:
   `steps`, `turns`, `catchUpSteps`, `rebases`, `droppedMs`, `maxDebtMs`.
 
@@ -88,3 +89,26 @@ exists; this is not a CPU measurement. The large difference between the two runs
 prevents attributing the concurrent slowdown solely to scheduler reentry. The
 upstream ordering is now traced to fixed commits in `worker-clock-regression.md`;
 deployed cadence remains an empirical acceptance gate.
+
+## Bounded entry-clock observations
+
+Optional `events` version 1 preserves compatibility with existing pongs. It counts
+step-callback entries and WebSocket-message entries, attributes each observed
+positive clock advance to the kind of entry that first saw it, counts advances
+strictly above 250 ms and regressions, and keeps the maximum advance and last
+jump. A jump contains only previous/current entry kinds, before/after I/O-clock
+values, their difference, and simulation tick. It contains no message content,
+identity, room capability or client-provided timestamp.
+
+These advances are between consecutive observations of either kind, not CPU
+measurements or per-step durations. Message observations include rejected traffic;
+that does not authorize a scheduler wake. The probe keeps at most eight distinct
+sampled last-jumps with the run and client receipt timestamp. Sampling can miss
+intervening jumps; it is not an event trace. Missing telemetry stays optional,
+malformed fields are rejected, and new clock-regression evidence invalidates the
+sample interval even if the final clock later catches up.
+
+The sequenced 14459fe2 run had 1,803 ms maximum I/O-clock debt but only about
+274 ms maximum received frame gap. Its 19,966 ms discard is recorded logical
+schedule debt, not measured CPU or lost wall time. Pre-arm was rejected; the next
+admitted-I/O wake candidate must be judged from a fresh public measurement.

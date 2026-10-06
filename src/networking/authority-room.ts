@@ -43,7 +43,7 @@ export class AuthorityRoom {
   if (connection.playerId && ![...this.connections.values()].some(c => c.playerId === connection.playerId)) this.authority.leave(connection.playerId);
   this.broadcastAccess();
  }
- receive(id: string, text: string,authenticatedPlayerId?:string): { changed: boolean; acknowledgment?: () => void } {
+ receive(id: string, text: string,authenticatedPlayerId?:string): { changed: boolean; acknowledgment?: () => void;schedulerWake?:true } {
   const connection = this.connections.get(id); if (!connection||this.failed) return { changed: false };
   if (text.length > 8192) { connection.wire.close(1009, 'Message too large'); return { changed: false }; }
   // Ingress arrives in real time even when the simulation is overloaded.
@@ -77,13 +77,13 @@ export class AuthorityRoom {
     });
    }
    if (!connection.playerId) throw new Error('Handshake required');
-   if(packet.type==='delivery'){connection.delivery.acknowledge(packet.token);return {changed:false};}
+   if(packet.type==='delivery'){const accepted=connection.delivery.acknowledge(packet.token);return {changed:false,...(accepted&&!this.pendingAccess?{schedulerWake:true as const}:{})};}
    if(packet.type==='room-admin')return this.admin(connection,packet);
    if(this.pendingAccess){if(packet.type==='resync')connection.needsWelcome=true;else if(packet.type==='ping')connection.wire.send({type:'pong'});else if(packet.type==='action'&&typeof packet.commandId==='string')connection.wire.send({type:'ack',commandId:packet.commandId,accepted:false,message:'部屋管理の保存中です。保存後に再操作してください'});return {changed:false};}
-   if (packet.type === 'input') { helloInfo({clientTick:packet.clientTick});this.authority.input(connection.playerId, packet.input as Parameters<SessionAuthority['input']>[1], packet.sequence as number); }
+   if (packet.type === 'input') { helloInfo({clientTick:packet.clientTick});const before=this.authority.actors.get(connection.playerId)?.sequence;this.authority.input(connection.playerId, packet.input as Parameters<SessionAuthority['input']>[1], packet.sequence as number);return {changed:false,...(before!==undefined&&this.authority.actors.get(connection.playerId)?.sequence!==before?{schedulerWake:true as const}:{})}; }
    else if (packet.type === 'resync') this.welcome(connection);
    else if(packet.type==='export'){if(typeof packet.requestId!=='string'||!/^[a-zA-Z0-9_-]{1,96}$/.test(packet.requestId))throw Error('Invalid export request');connection.pendingExport??=packet.requestId;this.exportPending(connection);}
-   else if (packet.type === 'ping') connection.wire.send({ type: 'pong' });
+   else if (packet.type === 'ping') {connection.wire.send({ type: 'pong' });return {changed:false,schedulerWake:true};}
    else if (packet.type === 'action') {
     helloInfo({clientTick:packet.clientTick});
     if (typeof packet.commandId !== 'string' || !/^[a-zA-Z0-9_-]{1,96}$/.test(packet.commandId)) throw new Error('Invalid command id');

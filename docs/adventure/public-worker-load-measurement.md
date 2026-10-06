@@ -61,3 +61,9 @@ CIの公開測定も同じpreview上の別部屋のbrowser QAと並行し得る�
 native wait版の同一SHAで2回実測した。browser QAと並行した版は14.896Hz、QA終了後に関連する全socketを閉じて行ったload-onlyは24.282Hz。いずれも4接続・約60秒・通信失敗0だが30Hz未達。結果はそれぞれ`public-worker-load-2a1debf1-concurrent.json`、`public-worker-load-2a1debf1-isolated.json`。比較条件が異なるためnative待機の変更だけに速度差を帰属しない。
 
 load-onlyでも10rebase/9,977.106msのdiscardが残る。公開はCPU時間/peak memoryを直接公開しておらず、scheduler counterとclient実時間だけでCPU容量や原因を断定しない。次の候補の判定も関連する別部屋の負荷を分けて行う。
+
+## 14459fe2: 順序付けた公開測定とpre-arm棄却
+
+browser QAの後に実行するCI条件で、4接続60.017秒、通信失敗0、最小19.994Hz。`public-worker-load-14459fe2-sequenced.json`に元の結果を保持した。pre-armの採用根拠にはならず、runtime optionと専用試験を取り除いた。他の利用者/別roomまで無負荷だったと保証する検査ではない。
+
+20rebase/19,966.096msのI/O-clock discardと、1.803秒の最大debtを観測。一方client最大frame gapは約274ms。これらをCPU停止時間や実時間の欠落と同一視しない。次は従来のnative post-armを保持し、admitted server-I/Oによるdue-step候補とbounded clock-entry診断を検証する。30Hz未達は引き続き未解決。

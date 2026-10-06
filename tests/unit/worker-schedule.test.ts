@@ -33,12 +33,12 @@ it('keeps stopped/restarted clock runs isolated from stale native fulfillment or
  * continuation's timeout clamp has been removed on reentry. The source proves
  * the reentry boundary, not deployed cleanup ordering: a public probe must test
  * that assumption. Callback timers report their scheduled time when late. */
-async function clampedClock(native:boolean,scheduleBeforeStep=false){
+async function clampedClock(native:boolean){
  const epoch=1791234567000;let wall=epoch,reported=epoch,id=0;const ticks:number[]=[];
  const timers=new Map<number,{at:number;logical:number;run:()=>void}>();
  const enqueue=(run:()=>void,delay:number)=>{const key=++id;timers.set(key,{at:wall+delay,logical:reported+delay,run});return()=>{timers.delete(key);};};
  const wait:WorkerWait=(delay,{signal})=>new Promise((resolve,reject)=>{const cancel=enqueue(()=>{reported=wall;resolve(undefined);},delay);signal.addEventListener('abort',()=>{cancel();reject(signal.reason);},{once:true});});
- const failed=vi.fn(),clock=new FixedStepClock(()=>{ticks.push(wall);wall+=10;},{maxCatchUpSteps:1,scheduleBeforeStep,now:()=>reported,schedule:native?createWorkerSchedule(wait,failed):enqueue});
+ const failed=vi.fn(),clock=new FixedStepClock(()=>{ticks.push(wall);wall+=10;},{maxCatchUpSteps:1,now:()=>reported,schedule:native?createWorkerSchedule(wait,failed):enqueue});
  clock.start();const end=wall+3001;
  while(true){const first=[...timers].sort((a,b)=>a[1].at-b[1].at)[0];if(!first||first[1].at>end)break;timers.delete(first[0]);wall=Math.max(wall,first[1].at);reported=first[1].logical;first[1].run();await flush();}
  clock.stop();expect(timers.size).toBe(0);expect(failed).not.toHaveBeenCalled();return{...clock.stats,observedTickHz:(ticks.length-11)*1000/(ticks.at(-1)!-ticks[10])};
@@ -47,8 +47,4 @@ it('recovers drift in a clamp model when native continuation reentry observes po
  const callback=await clampedClock(false),native=await clampedClock(true);
  expect(callback.steps).toBeLessThan(72);expect(callback.maxDebtMs).toBeLessThan(1);
  expect(callback.observedTickHz).toBeLessThan(24);expect(native.observedTickHz).toBeCloseTo(30,1);expect(native.rebases).toBe(0);expect(native.maxDebtMs).toBeGreaterThan(9);expect(native.turns).toBe(native.steps);
-});
-it('avoids adding synchronous work before each wait when the native continuation pre-arms its next step',async()=>{
- const after=await clampedClock(true),before=await clampedClock(true,true);
- expect(before.observedTickHz).toBeCloseTo(30,1);expect(before.steps).toBeGreaterThanOrEqual(after.steps);expect(before.maxDebtMs).toBeLessThan(1);expect(before.catchUpSteps).toBe(0);expect(before.rebases).toBe(0);
 });
