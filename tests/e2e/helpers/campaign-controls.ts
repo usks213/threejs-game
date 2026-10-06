@@ -1,5 +1,6 @@
 import {test,expect,type Page,type CDPSession} from '@playwright/test';
-import {cryptReengagementWaypoint} from './crypt-reengagement';
+import {cryptReengagementWaypoint,cryptRetreatWaypoint} from './crypt-reengagement';
+import {CombatRecoveryNeeded,requireCombatReserve,waypointAxes,safeToLowerGuard} from './combat-navigation';
 import {observeAttack} from './transient-observation';
 import {TouchContacts} from './touch-contacts';
 import {pulseKeyboardInput,type LookKey} from './keyboard-pulse';
@@ -72,19 +73,20 @@ export class PlayerControls {
   await this.contacts!.set(9,point);try{if(key==='KeyR')await expect.poll(()=>this.page.locator('#combat-status').textContent()).toContain('強撃準備完了');}finally{await this.contacts!.release(9);}
   if(requestedTool!==null)await expect.poll(async()=>(await read(this.page)).tool).toBe(requestedTool);
  }
- async aim(point:Point,guarded=false){
+ async aim(point:Point,guarded=false,reserve=0){
+  requireCombatReserve((await motion(this.page)).stamina,reserve);
   if(guarded)await this.shield(true);
   expect((await motion(this.page)).hp,'Aiming requires a living player; report combat death before input accuracy').toBeGreaterThan(0);await expect(this.page.locator('#death')).toBeHidden();await expect(this.page.locator('#game')).toHaveAttribute('data-running','true');
   await expect.poll(async()=>(await motion(this.page)).phase).toBe('idle');
-  if(!this.mobile){if(this.nativePointer)await this.nativeAim(point);else await this.keyboardAim(point);return;}
+  if(!this.mobile){if(this.nativePointer)await this.nativeAim(point,reserve);else await this.keyboardAim(point,reserve);return;}
   for(let attempt=0;attempt<8;attempt++){
-   const p=await motion(this.page);expect(p.hp,'Touch aiming must not continue on the death overlay').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z,dy=point.y-p.position.y-1.52;
+   const p=await motion(this.page);requireCombatReserve(p.stamina,reserve);expect(p.hp,'Touch aiming must not continue on the death overlay').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z,dy=point.y-p.position.y-1.52;
    const yaw=Math.atan2(-dx,-dz),pitch=Math.atan2(dy,Math.hypot(dx,dz)),yawError=angle(yaw-p.yaw),pitchError=pitch-p.pitch;
    if(Math.abs(yawError)<.015&&Math.abs(pitchError)<.015)return;
    if(this.mobile){
     const mx=-yawError/.004,my=-pitchError/.004,steps=Math.max(1,Math.ceil(Math.max(Math.abs(mx)/140,Math.abs(my)/65)));
     for(let i=0;i<steps;i++){
-     const before=await motion(this.page);await this.touchLook(mx/steps,my/steps);
+     const before=await motion(this.page);requireCombatReserve(before.stamina,reserve);await this.touchLook(mx/steps,my/steps);
      if(guarded)await this.assertShieldHeld();
      await expect.poll(async()=>{const p=await motion(this.page);expect(p.hp,'Player died during a touch-look gesture').toBeGreaterThan(0);return Math.abs(angle(p.yaw-before.yaw))+Math.abs(p.pitch-before.pitch);},{timeout:15000,intervals:[50,100]}).toBeGreaterThan(.001);
     }
@@ -100,10 +102,10 @@ export class PlayerControls {
   const point=await this.page.evaluate(()=>{const pad=document.querySelector('#look-pad');for(const y of [.43,.5,.36,.58])for(const x of [.65,.55,.75,.45]){const px=innerWidth*x,py=innerHeight*y;if(document.elementFromPoint(px,py)===pad)return {x:px,y:py};}return null;});
   expect(point,'A visible unobstructed look-pad point must be available').not.toBeNull();return point!;
  }
- private async nativeAim(point:Point){
+ private async nativeAim(point:Point,reserve=0){
   await this.nativePointer!.prepare();
   const sensitivity=(await read(this.page)).settings.sensitivity;
-  const error=async(axis:'yaw'|'pitch')=>{const p=await motion(this.page);expect(p.hp,'Native aiming must not continue after combat death').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z;return {phase:p.phase,value:axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch};};
+  const error=async(axis:'yaw'|'pitch')=>{const p=await motion(this.page);requireCombatReserve(p.stamina,reserve);expect(p.hp,'Native aiming must not continue after combat death').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z;return {phase:p.phase,value:axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch};};
   for(const axis of ['yaw','pitch'] as const){
    const started=Date.now();
    for(let attempt=0;attempt<12;attempt++){
@@ -114,10 +116,10 @@ export class PlayerControls {
    const final=await error(axis);expect(Date.now()-started,'Native aim must finish within its existing 90-second axis budget').toBeLessThan(90000);expect(Math.abs(final.value),`Actual native relative mouse must reach requested ${axis}`).toBeLessThan(.035);
   }
  }
- async keyboardAim(point:Point){
+ async keyboardAim(point:Point,reserve=0){
   // Genuine production accessibility keys, with releases independent of slow
   // browser acknowledgements. No camera writes or synthetic DOM events.
-  const error=async(axis:'yaw'|'pitch')=>{const p=await motion(this.page);expect(p.hp,'Keyboard aiming must not continue after combat death').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z;return axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch;};
+  const error=async(axis:'yaw'|'pitch')=>{const p=await motion(this.page);requireCombatReserve(p.stamina,reserve);expect(p.hp,'Keyboard aiming must not continue after combat death').toBeGreaterThan(0);const dx=point.x-p.position.x,dz=point.z-p.position.z;return axis==='yaw'?angle(Math.atan2(-dx,-dz)-p.yaw):Math.atan2(point.y-p.position.y-1.52,Math.hypot(dx,dz))-p.pitch;};
   const transport=await this.page.context().newCDPSession(this.page);
   try{for(const axis of ['yaw','pitch'] as const){
    const started=Date.now();let coarseRate=1.4,fineRate=.056;
@@ -226,15 +228,31 @@ export class PlayerControls {
   await this.contacts!.set(8,await this.visiblePoint('[data-action=block]'));this.shieldHeld=true;await this.assertShieldHeld();
  }
  async retreat(){
-  const state=await read(this.page),start=state.seconds;
-  // Repeated backsteps can leave the southern cliff. Strafe while recovering
-  // stamina there; choose the lateral direction that stays north when possible.
-  const side=state.position.z>6?(Math.abs(Math.sin(state.yaw))>.15?Math.sign(Math.sin(state.yaw)):state.position.x>5?-1:1):0,key=side>0?'KeyD':side<0?'KeyA':'KeyS';
-  try{if(this.mobile)await this.moveAxes(side,side?0:-1);else await this.key(key,true);
-   // Establish real retreat movement before lowering the held shield.
-   if(this.shieldHeld)await this.shield(false);
-   await expect.poll(async()=>{const p=await read(this.page);expect(p.hp,'Stamina recovery must remain on safe terrain').toBeGreaterThan(0);return p.seconds;},{timeout:60000}).toBeGreaterThan(start+2.6);
-  }finally{if(this.mobile)await this.moveAxes(0,0);else await this.key(key,false);}
+  const initial=await motion(this.page),started=Date.now();let last={...initial.position},stalled=0;
+  await this.shield(true);
+  try{for(let step=0;step<160;step++){
+   expect(Date.now()-started,'Retreat retains the existing 60-second recovery budget').toBeLessThan(60000);
+   const p=await motion(this.page);expect(p.hp,'Stamina recovery must remain on safe terrain').toBeGreaterThan(0);
+   const enemy=p.enemies.filter(e=>e.hp>0).sort((a,b)=>Math.hypot(a.position.x-p.position.x,a.position.z-p.position.z)-Math.hypot(b.position.x-p.position.x,b.position.z-p.position.z))[0];
+   const distance=enemy?Math.hypot(enemy.position.x-p.position.x,enemy.position.z-p.position.z):Infinity;
+   const displacement=Math.hypot(p.position.x-initial.position.x,p.position.z-initial.position.z);
+   if(p.seconds>initial.seconds+2.6&&p.stamina>90&&displacement>.6)return;
+   // Keep facing the threat while steering through the physical doorway. A
+   // blocked input never counts as an escape and never lowers the shield.
+   if(enemy&&distance<4){const yaw=Math.atan2(p.position.x-enemy.position.x,p.position.z-enemy.position.z);if(Math.abs(angle(yaw-p.yaw))>.3){await this.moveAxes(0,0);await this.aim({...enemy.position,y:enemy.position.y+1.52},true,55);}}
+   const now=await motion(this.page),waypoint=cryptRetreatWaypoint(now.position,enemy?.position??{x:0,z:-9});
+   if(waypoint.jump){await this.followCryptWaypoint(waypoint,true);continue;}
+   const axes=waypointAxes(now.position,now.yaw,waypoint);
+   await this.moveAxes(axes.x,axes.z);
+   await expect.poll(async()=>{const after=await motion(this.page);expect(after.hp,'A retreat leg must preserve life').toBeGreaterThan(0);return after.seconds;},{timeout:Math.max(1,60000-(Date.now()-started)),intervals:[50,100]}).toBeGreaterThan(now.seconds+.12);
+   await this.moveAxes(0,0);
+   const after=await motion(this.page),moved=Math.hypot(after.position.x-last.x,after.position.z-last.z);stalled=(Math.abs(axes.x)+Math.abs(axes.z)>0&&moved<.025)?stalled+1:0;last={...after.position};
+   expect(stalled,'Retreat must produce observed displacement instead of pushing into a wall').toBeLessThan(8);
+   const target=enemy?after.enemies[p.enemies.indexOf(enemy)]:undefined,range=target?Math.hypot(target.position.x-after.position.x,target.position.z-after.position.z):Infinity;
+   await this.shield((Math.abs(axes.x)+Math.abs(axes.z)>0&&moved<.025)||!safeToLowerGuard(Math.hypot(after.position.x-initial.position.x,after.position.z-initial.position.z),range,target?.phase??'dead'));
+  }
+  throw Error('Bounded normal-input retreat did not recover stamina');
+  }finally{await this.moveAxes(0,0);}
  }
  async healFromInventory(){
   const p=await read(this.page);if(p.hp>=70)return;
@@ -247,53 +265,75 @@ export class PlayerControls {
   }
   const guarded=this.shieldHeld;if(guarded)await this.shield(false);await this.menu('inventory');await this.row('bandage','consume');await expect.poll(async()=>(await read(this.page)).hp).toBeGreaterThan(p.hp);await this.resume();if(guarded)await this.shield(true);
  }
+ /** Basin exit uses a real jump over its authored curb; the observation only
+  * checks movement and never changes position, terrain, stamina, or contacts. */
+ private async followCryptWaypoint(waypoint:{x:number;z:number;jump?:boolean},guarded=false){
+  if(!waypoint.jump){await this.walkTo(waypoint.x,waypoint.z,guarded);return;}
+  const p=await motion(this.page);await this.aim({x:waypoint.x,y:p.position.y+1.52,z:waypoint.z},guarded);
+  const start=await motion(this.page),dx=waypoint.x-start.position.x,dz=waypoint.z-start.position.z,length=Math.hypot(dx,dz);
+  // This is behind the east wall, outside melee reach. Full walking speed is
+  // needed to clear the .75 m basin lip during the ordinary jump arc.
+  expect(start.enemies.every(e=>e.hp<=0||Math.hypot(e.position.x-start.position.x,e.position.z-start.position.z)>2.5),'Jumping the basin curb requires actual separation from enemies').toBe(true);
+  await this.shield(false);
+  try{await this.moveAxes(0,1);await this.action('[data-action="jump"]','Space');
+   await expect.poll(async()=>{const now=await motion(this.page);expect(now.hp,'The physical basin exit must preserve life').toBeGreaterThan(0);return ((waypoint.x-now.position.x)*dx+(waypoint.z-now.position.z)*dz)/length;},{timeout:60000,intervals:[50,100]}).toBeLessThan(.12);
+  }finally{await this.moveAxes(0,0);if(guarded)await this.shield(true);}
+  await this.walkTo(waypoint.x,waypoint.z,guarded);
+ }
  /** Re-center after combat before crossing the open door, avoiding courtyard
   * props and the doorway wall even after a long sideways stamina retreat. */
  async enterCrypt(){
   for(let leg=0;leg<5;leg++){
    const p=await motion(this.page);if(Math.hypot(p.position.x,p.position.z)<.18)return;
-   const waypoint=cryptReengagementWaypoint(p.position,p.enemies[1].position);
-   await this.walkTo(waypoint.x,waypoint.z);
+   const waypoint=Math.abs(p.position.x)<.18&&p.position.z<=1.3?{x:0,z:0}:cryptReengagementWaypoint(p.position,p.enemies[1].position);
+   await this.followCryptWaypoint(waypoint);
   }
   const p=await motion(this.page);expect(Math.hypot(p.position.x,p.position.z),'The physical crypt entrance must be reached').toBeLessThan(.18);
  }
  /** A retreating warden has no recovery animation to wait for. Re-enter its
   * sight through the real doorway and central aisle, retaining the shield.
-  * Initial sentry lures are deliberately untouched. */
- async waitForOpening(index:number){
+  * A disengaged sentry is re-lured from its original safe doorway stance. */
+ async waitForOpening(index:number,mode:'opening'|'approach'|'leave-opening'='opening',reserve=55){
   let idleSince:number|null=null;const started=Date.now();
   await expect.poll(async()=>{
    expect(Date.now()-started,'Re-engagement retains the existing 90-second opening budget').toBeLessThan(90000);
    const state=await motion(this.page),enemy=state.enemies[index];
    expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);
-   if(['recover','stagger','dead'].includes(enemy.phase)||enemy.hp<=0)return true;
-   const distant=index===1&&enemy.phase==='idle'&&Math.hypot(enemy.position.x-state.position.x,enemy.position.z-state.position.z)>2.5;
+   if(state.stamina<reserve||enemy.hp<=0)return true;
+   if(mode==='approach'&&Math.hypot(enemy.position.x-state.position.x,enemy.position.z-state.position.z)<2.5)return true;
+   if(mode==='opening'&&['recover','stagger','dead'].includes(enemy.phase))return true;
+   if(mode==='leave-opening'&&!['recover','stagger'].includes(enemy.phase))return true;
+   const distant=enemy.phase==='idle'&&Math.hypot(enemy.position.x-state.position.x,enemy.position.z-state.position.z)>2.5;
    if(!distant){idleSince=null;return false;}
    idleSince??=state.seconds;
    if(state.seconds-idleSince<3)return false;
    const waypoint=cryptReengagementWaypoint(state.position,enemy.position);
-   await this.walkTo(waypoint.x,waypoint.z,true);
+   // Re-lure the surviving sentry from the original safe doorway stance.
+   // Entering the crypt here would wake the warden before the first kill.
+   if(index===0&&state.position.z>1.3&&waypoint.z<3.2)waypoint.z=3.2;
+   await this.followCryptWaypoint(waypoint,true);
    const after=await motion(this.page),target=after.enemies[index];
-   if(target.hp>0)await this.aim({...target.position,y:target.position.y+1.52},true);
+   if(target.hp>0)await this.aim({...target.position,y:target.position.y+1.52},true,reserve);
    expect(Date.now()-started,'Walking and aiming must fit the same opening budget').toBeLessThan(90000);
    idleSince=after.seconds;
    return false;
   },{timeout:90000,intervals:[50,100]}).toBe(true);
+  requireCombatReserve((await motion(this.page)).stamina,reserve);
  }
  async fight(index:number){
-  try{for(let strikes=0;strikes<18&&(await read(this.page)).enemies[index].hp>0;strikes++){
+  try{for(let strikes=0;strikes<18&&(await read(this.page)).enemies[index].hp>0;strikes++){try{
    await this.shield(true);await this.healFromInventory();let p=await read(this.page);expect(p.hp,'Combat must preserve a living player').toBeGreaterThan(0);const enemy=p.enemies[index];
    const dx=enemy.position.x-p.position.x,dz=enemy.position.z-p.position.z,desiredYaw=Math.atan2(-dx,-dz),desiredPitch=Math.atan2(enemy.position.y-p.position.y,Math.hypot(dx,dz));
    // Melee/guard have real physical coverage; do not spend a new precision-look
    // gesture on a target that is already directly in front after every strike.
-   if(Math.abs(angle(desiredYaw-p.yaw))>.12||Math.abs(desiredPitch-p.pitch)>.12)await this.aim({...enemy.position,y:enemy.position.y+1.52},true);
+   if(Math.abs(angle(desiredYaw-p.yaw))>.12||Math.abs(desiredPitch-p.pitch)>.12)await this.aim({...enemy.position,y:enemy.position.y+1.52},true,55);
    p=await read(this.page);
    if(p.stamina<45){await this.retreat();await expect.poll(async()=>(await motion(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
    await this.shield(true);
     // If we arrive in an old recovery, keep guarding through the next attack.
     // Counter only a newly observed opening, not the tail of one spent aiming.
     const opened=['recover','stagger'].includes((await motion(this.page)).enemies[index].phase);
-    if(opened)await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Guarding must preserve life').toBeGreaterThan(0);return state.enemies[index].hp<=0||!['recover','stagger'].includes(state.enemies[index].phase);},{timeout:90000,intervals:[50,100]}).toBe(true);
+    if(opened)await this.waitForOpening(index,'leave-opening');
     await this.waitForOpening(index);
    const opening=await motion(this.page);if(opening.enemies[index].hp<=0)break;
    // A successful block costs stamina too. Keep enough for the20-cost sword
@@ -301,6 +341,7 @@ export class PlayerControls {
    if(opening.stamina<55){await this.retreat();await expect.poll(async()=>(await motion(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
    await this.shield(false);
    const attack=await observeAttack(this.page);try{await this.action('[data-action="attack"]','KeyT');await this.shield(true);await expect.poll(()=>attack.read()).not.toBeNull();}finally{await attack.dispose();}await expect.poll(async()=>{const state=await motion(this.page);expect(state.hp,'Counter-attack recovery must preserve life').toBeGreaterThan(0);return state.phase;},{timeout:60000,intervals:[100]}).toBe('idle');await this.shield(true);
+  }catch(error){if(!(error instanceof CombatRecoveryNeeded))throw error;await this.retreat();}
   }
   expect((await read(this.page)).enemies[index].hp,`Enemy ${index} must be defeated through guarded, aimed attacks`).toBeLessThanOrEqual(0);
   }finally{await this.shield(false);}

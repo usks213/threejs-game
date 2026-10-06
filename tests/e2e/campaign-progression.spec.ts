@@ -67,10 +67,16 @@ test('campaign first chapter through normal keyboard or touch play: rescue, gear
    await controls.walkTo(7,-8);await controls.interact('mist-cache',{x:7,y:3.65,z:-9});await expect.poll(async()=>(await read(page)).campaign.items['mist-core']).toBe(1);await checkpoint('05-mist-cache');
   });
   await test.step('Use the equipped glider to return across the basin',async()=>{
-   await controls.walkTo(8,-8);await controls.walkTo(8,-7.5);const p=await read(page);await controls.aim({x:7,y:p.position.y+1.52,z:4});await controls.action('[data-action="jump"]','Space');await expect.poll(async()=>(await read(page)).position.y).toBeGreaterThan(p.position.y+.12);await controls.action('[data-action="jump"]','Space');await expect.poll(async()=>(await read(page)).gliding).toBe(true);
+   // Aim for the clear eastern lane rather than the tree at (8,4). Its north
+   // canopy is a legitimate landing surface, several metres above the ground.
+   await controls.walkTo(8,-8);await controls.walkTo(8,-7.5);const p=await read(page);await controls.aim({x:13,y:p.position.y+1.52,z:1.5});await controls.action('[data-action="jump"]','Space');await expect.poll(async()=>(await read(page)).position.y).toBeGreaterThan(p.position.y+.12);await controls.action('[data-action="jump"]','Space');await expect.poll(async()=>(await read(page)).gliding).toBe(true);
    await expect.poll(async()=>(await read(page)).position.z,{timeout:120000}).toBeGreaterThan(1.4);
-   // Fold over solid southern ground instead of gliding beyond the map edge.
-   await controls.action('[data-action="jump"]','Space');await expect.poll(async()=>(await read(page)).gliding).toBe(false);await expect.poll(async()=>(await read(page)).position.y,{timeout:90000}).toBeLessThan(.4);expect((await read(page)).position.y).toBeGreaterThan(-.1);await controls.healFromInventory();await controls.walkTo(7,4);await controls.walkTo(0,5.3);await controls.walkTo(-3.5,5.3);await checkpoint('06-glide-return');
+   // Contact already folds the glider. Space after a canopy touchdown jumps
+   // again; only fold while flying, then walk north off any raised landing.
+   if((await read(page)).gliding)await controls.action('[data-action="jump"]','Space');
+   await expect.poll(async()=>(await read(page)).gliding).toBe(false);
+   const landing=await read(page);if(landing.position.y>=.4)await controls.walkTo(landing.position.x,1.5);
+   await expect.poll(async()=>(await read(page)).position.y,{timeout:90000}).toBeLessThan(.4);expect((await read(page)).position.y).toBeGreaterThan(-.1);await controls.healFromInventory();await controls.walkTo(11,2.5);await controls.walkTo(0,2.5);await controls.walkTo(0,5.3);await controls.walkTo(-3.5,5.3);await checkpoint('06-glide-return');
   });
   await test.step('Defeat the warden if it stayed in the crypt, then upgrade the flame',async()=>{
    if((await read(page)).enemies[1].hp>0){await controls.walkTo(0,5.3);await controls.walkTo(0,3.2);await controls.walkTo(0,-3);await controls.fight(1);await controls.walkTo(0,3.2);await controls.walkTo(0,5.3);await controls.walkTo(-3.5,5.3);}

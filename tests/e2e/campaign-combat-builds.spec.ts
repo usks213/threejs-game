@@ -44,12 +44,12 @@ for(const build of ['bow','staff'] as const)test(`Q03 ${build}: fresh game, earn
   });
   await test.step('Defeat the entrance guard with the chosen ranged build and physically rescue the artisan',async()=>{
    await controls.walkTo(0,5.3);await controls.walkTo(0,3.2);await controls.interact('door',{x:0,y:1.4,z:1});const lure=await readRanged(page);expect(Math.hypot(lure.position.x,lure.position.z-3.2)).toBeLessThan(.18);expect(lure.enemies[1].awareness,'The first-guard lure must stay outside warden awareness').toBe('idle');await combat.fight(0,()=>screenshot('04-guarded-crypt-combat'));expect((await readRanged(page)).enemies[1].awareness,'Defeat the entrance guard before entering warden range').toBe('idle');await controls.healFromInventory();
-   expect((await readRanged(page)).enemies[0].hp).toBe(0);await controls.walkTo(0,0);
+   expect((await readRanged(page)).enemies[0].hp).toBe(0);await controls.enterCrypt();
    // Entering the crypt wakes the real warden. The Android trace died while
    // turning away to rescue the artisan, so face and defeat it with the same
    // crafted ranged build and finite reserves before making that exposed turn.
    await combat.fight(1,()=>screenshot('05-warden-combat'));await controls.healFromInventory();await checkpoint('03-warden-before-rescue');
-   await controls.walkTo(0,0);await controls.walkTo(-2.4,-1.8);await controls.interact('artisan',{x:-2.5,y:1.1,z:-3.5});await expect.poll(async()=>(await readRanged(page)).campaign.artisanRescued).toBe(true);
+   await controls.enterCrypt();await controls.walkTo(-2.4,-1.8);await controls.interact('artisan',{x:-2.5,y:1.1,z:-3.5});await expect.poll(async()=>(await readRanged(page)).campaign.artisanRescued).toBe(true);
    for(const [x,z] of [[0,0],[0,3.2],[0,5.3],[-3.5,5.3]])await controls.walkTo(x,z);await checkpoint('03-earned-artisan');
   });
   await test.step('Use the earned forge and level point, then prepare finite recovery',async()=>{
