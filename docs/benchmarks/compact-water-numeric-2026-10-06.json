@@ -1,0 +1,575 @@
+{
+  "decision": "Adopt only the measured compact-encoder allocation reduction; whole-room throughput and public30Hz improvement unproven.",
+  "baselineTree": "6e32cfb91e40d92951ed3715f14d4c7a54d9f98a",
+  "freshProfile": {
+    "method": "Real four-player production authority; synchronous transport and 30Hz virtual ingress clock; combined mode includes separate client decode, exact checks, and soak JSON byte accounting; server-only omits all three. Inclusive subphase timers overlap. Node process includes profiling overhead; no persistence/socket/Workers/browser/device claim",
+    "checkpoint": "-",
+    "mode": "server-only",
+    "sourceHash": "e72e14caea1fb2f979af9c124d29d46465cab5d0bee72194015d0aab84fd47a1",
+    "saveDigest": "27b22b20d20748c2e29634632185d9ccc55a16bc4c3e9c5541874d380931e9b4",
+    "exactStateChecks": 0,
+    "ticks": 300,
+    "players": 4,
+    "initializationMs": 635.1265800000001,
+    "elapsedMs": 5996.220005,
+    "cpu": {
+      "user": 7436048,
+      "system": 777370
+    },
+    "stepsPerMeasuredWorkSecond": 51.007370054899106,
+    "bytes": 10544205,
+    "frames": 400,
+    "accountedBytes": 0,
+    "world": {
+      "water": 14019,
+      "resources": 196,
+      "enemies": 12,
+      "edits": 0
+    },
+    "phases": {
+      "simulation": {
+        "count": 300,
+        "mean": 7.515631856666667,
+        "p50": 3.3501729999998133,
+        "p95": 26.02092100000027,
+        "p99": 40.268121000000065,
+        "max": 52.62591399999974,
+        "totalMs": 2254.689557
+      },
+      "productionRoomStep": {
+        "count": 300,
+        "mean": 19.605010000000046,
+        "p50": 3.388191000000006,
+        "p95": 66.68650700000035,
+        "p99": 89.676152,
+        "max": 119.21175200000016,
+        "totalMs": 5881.503000000014
+      },
+      "waterObstacles": {
+        "count": 101,
+        "mean": 3.5711153069307087,
+        "p50": 0.272946999999931,
+        "p95": 18.013130000000046,
+        "p99": 21.211247000000185,
+        "max": 27.882477000000108,
+        "totalMs": 360.68264600000157
+      },
+      "waterNearest": {
+        "count": 500,
+        "mean": 1.6710409679999971,
+        "p50": 1.5078199999998105,
+        "p95": 2.925044000000071,
+        "p99": 4.7181399999999485,
+        "max": 14.847351000000344,
+        "totalMs": 835.5204839999985
+      },
+      "fluidStep": {
+        "count": 100,
+        "mean": 7.840326760000003,
+        "p50": 6.726857999999993,
+        "p95": 14.956255000000056,
+        "p99": 25.092300999999907,
+        "max": 25.092300999999907,
+        "totalMs": 784.0326760000003
+      },
+      "stateView": {
+        "count": 400,
+        "mean": 0.3702477924999971,
+        "p50": 0.30128300000023955,
+        "p95": 0.7185190000000148,
+        "p99": 1.3013670000000275,
+        "max": 2.662623000000167,
+        "totalMs": 148.09911699999884
+      },
+      "fluidSnapshot": {
+        "count": 400,
+        "mean": 4.015754590000014,
+        "p50": 3.5426910000001044,
+        "p95": 7.150469000000157,
+        "p99": 10.890541999999868,
+        "max": 21.596431999999368,
+        "totalMs": 1606.3018360000056
+      },
+      "waterDictionary": {
+        "count": 400,
+        "mean": 1.3048380600000262,
+        "p50": 1.1238910000001852,
+        "p95": 2.3299440000000686,
+        "p99": 5.461423000000195,
+        "max": 6.820633000000271,
+        "totalMs": 521.9352240000105
+      },
+      "stateEncoding": {
+        "count": 400,
+        "mean": 1.9643297924999898,
+        "p50": 1.6939769999999044,
+        "p95": 3.413814999999886,
+        "p99": 5.152852000000166,
+        "max": 11.856124999999793,
+        "totalMs": 785.731916999996
+      }
+    },
+    "gc": {
+      "count": 60,
+      "totalMs": 148.65905003249645,
+      "maxMs": 22.88205100595951,
+      "byKind": {
+        "1": 95.03108202666044,
+        "4": 49.506586007773876,
+        "8": 4.121381998062134
+      }
+    },
+    "nodeMemory": {
+      "explicitGc": true,
+      "beforeFinalGc": {
+        "rss": 459497472,
+        "heapTotal": 320413696,
+        "heapUsed": 140606384,
+        "external": 4560636,
+        "arrayBuffers": 525990
+      },
+      "afterFinalGc": {
+        "rss": 457682944,
+        "heapTotal": 241901568,
+        "heapUsed": 42289392,
+        "external": 4555450,
+        "arrayBuffers": 231663
+      },
+      "rss": {
+        "count": 11,
+        "mean": 381865611.6363636,
+        "p50": 402866176,
+        "p95": 442920960,
+        "p99": 442920960,
+        "max": 442920960
+      },
+      "heapUsed": {
+        "count": 11,
+        "mean": 136928053.8181818,
+        "p50": 138662176,
+        "p95": 241883616,
+        "p99": 241883616,
+        "max": 241883616
+      },
+      "final": {
+        "rss": 457682944,
+        "heapTotal": 241901568,
+        "heapUsed": 43002904,
+        "external": 4555450,
+        "arrayBuffers": 231663
+      }
+    },
+    "topFunctions": [
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/fluid.ts",
+        "line": 1,
+        "selfMs": 535.8879999999999
+      },
+      {
+        "function": "normalized",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/snapshot-wire.ts",
+        "line": 1,
+        "selfMs": 456.571
+      },
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/scripts/profile-authority.ts",
+        "line": 1,
+        "selfMs": 350.409
+      },
+      {
+        "function": "transfer",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/fluid.ts",
+        "line": 1,
+        "selfMs": 308.155
+      },
+      {
+        "function": "(garbage collector)",
+        "file": "",
+        "line": 0,
+        "selfMs": 290.66
+      },
+      {
+        "function": "encode",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/fluid-wire.ts",
+        "line": 1,
+        "selfMs": 270.745
+      },
+      {
+        "function": "position",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/fluid.ts",
+        "line": 1,
+        "selfMs": 247.466
+      },
+      {
+        "function": "nearest",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/indexed-cells.ts",
+        "line": 1,
+        "selfMs": 234.162
+      },
+      {
+        "function": "voxelizeObstacles",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/obstacles.ts",
+        "line": 1,
+        "selfMs": 233.61800000000002
+      },
+      {
+        "function": "bucketNearest",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/indexed-cells.ts",
+        "line": 1,
+        "selfMs": 231.965
+      },
+      {
+        "function": "step",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/fluid.ts",
+        "line": 1,
+        "selfMs": 221.154
+      },
+      {
+        "function": "encodeCompactFluidDelta",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/compact-fluid.ts",
+        "line": 1,
+        "selfMs": 177.49200000000002
+      },
+      {
+        "function": "difference",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/snapshot-wire.ts",
+        "line": 1,
+        "selfMs": 144.71
+      },
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/game/meadows/state.ts",
+        "line": 1,
+        "selfMs": 114.44399999999996
+      },
+      {
+        "function": "toBase64",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/compact-fluid.ts",
+        "line": 1,
+        "selfMs": 107.858
+      },
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/game/skybound/context.ts",
+        "line": 1,
+        "selfMs": 106.77900000000001
+      },
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/indexed-cells.ts",
+        "line": 1,
+        "selfMs": 101.87799999999999
+      },
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/indexed-cells.ts",
+        "line": 1,
+        "selfMs": 97.19599999999998
+      },
+      {
+        "function": "skyboundDensity",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/world/skybound-terrain.ts",
+        "line": 1,
+        "selfMs": 91.99800000000002
+      },
+      {
+        "function": "stepFacilities",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/game/meadows/facilities.ts",
+        "line": 1,
+        "selfMs": 84.90599999999999
+      },
+      {
+        "function": "bottomAt",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/fluid.ts",
+        "line": 1,
+        "selfMs": 68.441
+      },
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/compact-fluid.ts",
+        "line": 1,
+        "selfMs": 66.44500000000001
+      },
+      {
+        "function": "density",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/world/density.ts",
+        "line": 1,
+        "selfMs": 66.345
+      },
+      {
+        "function": "buildingVoxels",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/game/voxel/model.ts",
+        "line": 1,
+        "selfMs": 64.211
+      },
+      {
+        "function": "post",
+        "file": "node:inspector",
+        "line": 115,
+        "selfMs": 60.838
+      },
+      {
+        "function": "setObstacles",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/fluid.ts",
+        "line": 1,
+        "selfMs": 56.26199999999999
+      },
+      {
+        "function": "validateTree",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/snapshot-wire.ts",
+        "line": 1,
+        "selfMs": 48.901
+      },
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/game/skybound/context.ts",
+        "line": 1,
+        "selfMs": 47.425999999999995
+      },
+      {
+        "function": "snapshot",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/fluid.ts",
+        "line": 1,
+        "selfMs": 46.769
+      },
+      {
+        "function": "valid",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/fluid-wire.ts",
+        "line": 1,
+        "selfMs": 45.509
+      },
+      {
+        "function": "encode",
+        "file": "node:internal/encoding",
+        "line": 355,
+        "selfMs": 36.919
+      },
+      {
+        "function": "intersects",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/fluid/obstacles.ts",
+        "line": 1,
+        "selfMs": 36.708999999999996
+      },
+      {
+        "function": "encodeUtf8String",
+        "file": "",
+        "line": 0,
+        "selfMs": 35.187
+      },
+      {
+        "function": "support",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/game/adventure.ts",
+        "line": 1,
+        "selfMs": 32.473
+      },
+      {
+        "function": "",
+        "file": "file:///workspace/scratch/0671f43fff5c/voxel-coop-adventure/src/networking/compact-fluid.ts",
+        "line": 1,
+        "selfMs": 32.048
+      }
+    ]
+  },
+  "micro": {
+    "node": "v24.19.0",
+    "method": "Production fresh four-player authority captured unchanged; paired alternating pure compact encoder, all samples retained; not Worker or real-time capacity",
+    "sourceTree": "6e32cfb91e40d92951ed3715f14d4c7a54d9f98a",
+    "ticks": 300,
+    "frames": 400,
+    "exactStateChecks": 8,
+    "saveDigest": "27b22b20d20748c2e29634632185d9ccc55a16bc4c3e9c5541874d380931e9b4",
+    "expectedSaveDigest": "27b22b20d20748c2e29634632185d9ccc55a16bc4c3e9c5541874d380931e9b4",
+    "saveMatchesPrevious": true,
+    "validParity": 24528,
+    "invalidParity": 73,
+    "byteChecks": 1600,
+    "roundtripChecks": 24528,
+    "changed": {
+      "count": 400,
+      "mean": 817.055,
+      "p50": 561,
+      "p95": 1873,
+      "p99": 2179,
+      "max": 2179
+    },
+    "removed": {
+      "count": 400,
+      "mean": 7.6125,
+      "p50": 3,
+      "p95": 33,
+      "p99": 48,
+      "max": 56
+    },
+    "before": {
+      "count": 1600,
+      "mean": 1.1619629468749884,
+      "p50": 0.7996889999994892,
+      "p95": 2.6918170000008104,
+      "p99": 4.016036000000895,
+      "max": 6.08742600000005
+    },
+    "after": {
+      "count": 1600,
+      "mean": 0.8610974418749925,
+      "p50": 0.5811979999998584,
+      "p95": 2.012016999999105,
+      "p99": 3.059484000001248,
+      "max": 5.159889000000476
+    },
+    "afterOverBefore": {
+      "count": 1600,
+      "mean": 0.7738480991769499,
+      "p50": 0.7182467616793227,
+      "p95": 1.2816373854241674,
+      "p99": 1.947480895959282,
+      "max": 6.497835756823321
+    },
+    "elapsedMs": 3353.274784000001,
+    "consumedBytes": 36720704,
+    "rounds": [
+      {
+        "before": {
+          "count": 400,
+          "mean": 1.1827082299999665,
+          "p50": 0.804243000000497,
+          "p95": 2.845556000000215,
+          "p99": 4.016036000000895,
+          "max": 5.442423000000417
+        },
+        "after": {
+          "count": 400,
+          "mean": 0.9036640574999728,
+          "p50": 0.5987039999999979,
+          "p95": 2.2522289999997156,
+          "p99": 4.018658000000869,
+          "max": 5.159889000000476
+        }
+      },
+      {
+        "before": {
+          "count": 400,
+          "mean": 1.169608777500016,
+          "p50": 0.7711049999998068,
+          "p95": 2.7048090000007505,
+          "p99": 4.2038659999998345,
+          "max": 6.08742600000005
+        },
+        "after": {
+          "count": 400,
+          "mean": 0.830764402499999,
+          "p50": 0.5591789999998582,
+          "p95": 1.9615429999994376,
+          "p99": 2.9417929999999615,
+          "max": 5.159661000001506
+        }
+      },
+      {
+        "before": {
+          "count": 400,
+          "mean": 1.130622014999949,
+          "p50": 0.8103080000000773,
+          "p95": 2.5333969999992405,
+          "p99": 3.635071999999127,
+          "max": 4.281648000000132
+        },
+        "after": {
+          "count": 400,
+          "mean": 0.8484944675000406,
+          "p50": 0.5783699999992677,
+          "p95": 1.967149000000063,
+          "p99": 2.5515419999992446,
+          "max": 3.2886210000015126
+        }
+      },
+      {
+        "before": {
+          "count": 400,
+          "mean": 1.164912765000022,
+          "p50": 0.808324999999968,
+          "p95": 2.657704000001104,
+          "p99": 4.496856000001571,
+          "max": 6.080558999999994
+        },
+        "after": {
+          "count": 400,
+          "mean": 0.8614668399999573,
+          "p50": 0.5865409999987605,
+          "p95": 1.9981729999999516,
+          "p99": 3.059484000001248,
+          "max": 4.0249189999995
+        }
+      }
+    ]
+  },
+  "pairedRoom": {
+    "method": "300 paired production four-player room ticks alternating execution order; room.step only timed; real in-process decoding and exact compact water bytes and full decoded gameplay comparison outside timer; only tickMs/fluidMs/physicsMs profiling metrics excluded from cross-room equality; no persistence/socket/Worker claim",
+    "node": "v24.19.0",
+    "elapsedMs": 62982.785943,
+    "baseline": {
+      "all": {
+        "count": 300,
+        "mean": 25.7713391700001,
+        "p50": 5.132243000000017,
+        "p95": 77.84679500000038,
+        "p99": 145.25717599999916,
+        "max": 430.2150859999965
+      },
+      "broadcast": {
+        "count": 100,
+        "mean": 67.73835735999995,
+        "p50": 57.69148800000039,
+        "p95": 139.75696600000083,
+        "p99": 430.2150859999965,
+        "max": 430.2150859999965
+      },
+      "ordinary": {
+        "count": 200,
+        "mean": 4.787830075000179,
+        "p50": 3.8138580000013462,
+        "p95": 11.038574000000153,
+        "p99": 27.582398000000012,
+        "max": 32.77611899999465
+      },
+      "exactStateChecks": 8
+    },
+    "candidate": {
+      "all": {
+        "count": 300,
+        "mean": 24.771694269999852,
+        "p50": 5.240253000003577,
+        "p95": 77.19021999999677,
+        "p99": 163.53028200000062,
+        "max": 426.33294300000125
+      },
+      "broadcast": {
+        "count": 100,
+        "mean": 65.46910895999984,
+        "p50": 53.6877500000046,
+        "p95": 152.89014599999996,
+        "p99": 426.33294300000125,
+        "max": 426.33294300000125
+      },
+      "ordinary": {
+        "count": 200,
+        "mean": 4.422986924999854,
+        "p50": 3.662162000000535,
+        "p95": 10.341570999997202,
+        "p99": 14.156211000001349,
+        "max": 23.940538999999944
+      },
+      "exactStateChecks": 8
+    },
+    "exactWaterAndGameplayFrames": 400,
+    "initialHarnessIssue": "Initial attempt stopped at first frame comparing nondeterministic timing metrics; corrected to exclude only three performance counters, preserving all gameplay state and water byte checks",
+    "saveDigest": "27b22b20d20748c2e29634632185d9ccc55a16bc4c3e9c5541874d380931e9b4",
+    "expectedSaveMatches": true
+  },
+  "limitations": [
+    "No Worker CPU/heap, sockets or persistence benchmark",
+    "Full-room cross-state checks allocate outside timed steps and may influence GC",
+    "Fresh world only",
+    "No change to decoder, protocol, rates, fidelity, save format, limits or security validation"
+  ]
+}

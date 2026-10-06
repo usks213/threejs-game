@@ -16,10 +16,14 @@ function removedCoordinate(id:string):number[]{if(typeof id!=='string'||id.lengt
 function flags(t:FluidTuple):number{return(t[3]===.5?1:0)|(t[8]?2:0)|(!exact(t[5],32768)?4:0)|(!exact(t[6],1000)?8:0)|(!exact(t[7],1000)?16:0)|((!exact(t[0],2)||!exact(t[1],2)||!exact(t[2],2))?32:0);}
 function toBase64(bytes:Uint8Array):string{const chunks:string[]=[];for(let i=0;i<bytes.length;i+=8192)chunks.push(String.fromCharCode(...bytes.subarray(i,i+8192)));return btoa(chunks.join(''));}
 function fromBase64(data:string):Uint8Array{if(typeof data!=='string'||data.length<12||data.length>MAX_COMPACT_FLUID_BASE64||data.length%4||!/^[A-Za-z0-9+/]*={0,2}$/.test(data))fail();let text:string;try{text=atob(data);}catch{fail();}if(text!.length>MAX_COMPACT_FLUID_BYTES)fail();const result=new Uint8Array(text!.length);for(let i=0;i<result.length;i++)result[i]=text!.charCodeAt(i);return result;}
+// Validated half-cell coordinates are mixed-radix integer digits. This only
+// replaces temporary duplicate-check strings; tuple bytes and signed zero stay intact.
+const xStride=(WORLD.maxX-WORLD.minX)*2+1,zStride=(WORLD.maxZ-WORLD.minZ)*2+1;
+const address=(t:readonly number[])=>((t[1]-WORLD.minY)*2*zStride+(t[2]-WORLD.minZ)*2)*xStride+(t[0]-WORLD.minX)*2;
 export function encodeCompactFluidDelta(d:FluidDelta):CompactFluidDelta{
  metadata(d);if(!Array.isArray(d.changed)||!Array.isArray(d.removed)||d.changed.length>MAX_FLUID_CELLS||d.removed.length>MAX_FLUID_CELLS)fail();
- const seen=new Set<string>(),removed=d.removed.map(id=>{const xyz=removedCoordinate(id);if(seen.has(id))fail();seen.add(id);return xyz;});
- let size=8+removed.length*6;const masks=d.changed.map(t=>{tuple(t);const id=key(t);if(seen.has(id))fail();seen.add(id);const f=flags(t);size+=21+(f&4?6:0)+(f&8?6:0)+(f&16?6:0)+(f&32?18:0);return f;});
+ const seen=new Set<number>(),removed=d.removed.map(id=>{const xyz=removedCoordinate(id),numeric=address(xyz);if(seen.has(numeric))fail();seen.add(numeric);return xyz;});
+ let size=8+removed.length*6;const masks=d.changed.map(t=>{tuple(t);const id=address(t);if(seen.has(id))fail();seen.add(id);const f=flags(t);size+=21+(f&4?6:0)+(f&8?6:0)+(f&16?6:0)+(f&32?18:0);return f;});
  const bytes=new Uint8Array(size),view=new DataView(bytes.buffer);bytes.set([70,87,1,0]);view.setUint16(4,d.changed.length,true);view.setUint16(6,removed.length,true);let at=8;
  const int=(v:number,signed=true)=>{if(signed)view.setInt16(at,v,true);else view.setUint16(at,v,true);at+=2;};const float=(v:number)=>{view.setFloat64(at,v,true);at+=8;};
  for(const xyz of removed)for(const v of xyz)int(v*2);
