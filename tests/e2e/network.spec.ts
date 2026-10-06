@@ -204,9 +204,22 @@ test.describe.serial('two real browsers',()=>{
   await command(other,'#powers-panel [data-power=grab]','sky-grab',partId);
   for(const page of pages)await expect.poll(async()=>(await part(page))?.lease?.owner).toBe(otherId);
   const expiresTick=(await part(other))!.lease!.expiresTick;
-  // Let the real authority clock expire an idle lease; do not advance fake time.
-  for(const page of pages){await expect.poll(async()=>!!(await part(page))?.lease,{timeout:20000}).toBe(false);expect(Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThanOrEqual(expiresTick);}
-  stage('idle lease expired and reusable');await command(other,'#powers-panel [data-power=grab]','sky-grab',partId);
+  // A visible player now keeps the hold without repeated manual grabs. Prove
+  // that, then suppress only real outgoing hold heartbeats to exercise the
+  // unchanged authority expiry on its own clock. No state/tick is fabricated.
+  await expect.poll(async()=>Number(await other.locator('#app').getAttribute('data-tick')),{timeout:20000}).toBeGreaterThan(expiresTick+30);
+  for(const page of pages)expect((await part(page))?.lease?.owner).toBe(otherId);
+  let lastExpires=(await part(other))!.lease!.expiresTick;expect(lastExpires).toBeGreaterThan(expiresTick);
+  await other.evaluate(()=>window.coopDeliveryFault.dropHoldRenewals=true);
+  try{
+   await expect.poll(()=>other.evaluate(()=>window.coopDeliveryFault.stats.droppedHoldRenewals)).toBeGreaterThan(0);
+   await expect.poll(async()=>{const lease=(await part(other))?.lease;if(lease)lastExpires=Math.max(lastExpires,lease.expiresTick);return !!lease;},{timeout:20000}).toBe(false);
+   for(const page of pages){await expect.poll(async()=>!!(await part(page))?.lease).toBe(false);expect(Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThanOrEqual(lastExpires);}
+  }finally{await other.evaluate(()=>window.coopDeliveryFault.dropHoldRenewals=false);}
+  const expiredAt=Number(await other.locator('#app').getAttribute('data-tick'));
+  await expect.poll(async()=>Number(await other.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(expiredAt+30);
+  for(const page of pages)expect((await part(page))?.lease).toBeUndefined();
+  stage('visible hold maintained; lost heartbeat lease expired without reacquisition');await command(other,'#powers-panel [data-power=grab]','sky-grab',partId);
   for(const page of pages)await expect.poll(async()=>(await part(page))?.lease?.owner).toBe(otherId);
   await other.context().setOffline(true);
   try{

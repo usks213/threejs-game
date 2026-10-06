@@ -3,11 +3,11 @@
  * fabricated. Capabilities remain in the browser and are never exported. */
 import {createCoopTransportDiagnostics,type CoopTransportEvidence} from './coop-transport-diagnostics';
 export interface CoopImpairmentStats {
- incoming:number;outgoing:number;receivedDeltas:number;droppedDeltas:number;duplicatedActions:number;droppedIdleInputs:number;
+ incoming:number;outgoing:number;receivedDeltas:number;droppedDeltas:number;duplicatedActions:number;droppedIdleInputs:number;droppedHoldRenewals:number;
  delayedIncoming:number;delayedOutgoing:number;incomingDelayMs:number[];outgoingDelayMs:number[];pingRttMs:number[];queued:number;
 }
 export interface CoopImpairment {
- enabled:boolean;skipNextDelta:boolean;skipped:number;dropNextIdle:boolean;duplicateSuccessfulGather:boolean;
+ enabled:boolean;skipNextDelta:boolean;skipped:number;dropNextIdle:boolean;dropHoldRenewals:boolean;duplicateSuccessfulGather:boolean;
  stats:CoopImpairmentStats;
  transport:()=>CoopTransportEvidence;
 }
@@ -15,8 +15,8 @@ declare global {interface Window {coopDeliveryFault:CoopImpairment}}
 
 export function installCoopBrowserImpairment(createDiagnostics:typeof createCoopTransportDiagnostics=createCoopTransportDiagnostics):void {
  const transport=createDiagnostics();
- const stats:CoopImpairmentStats={incoming:0,outgoing:0,receivedDeltas:0,droppedDeltas:0,duplicatedActions:0,droppedIdleInputs:0,delayedIncoming:0,delayedOutgoing:0,incomingDelayMs:[],outgoingDelayMs:[],pingRttMs:[],queued:0};
- const fault:CoopImpairment={enabled:false,skipNextDelta:false,skipped:0,dropNextIdle:false,duplicateSuccessfulGather:true,stats,transport:()=>transport.snapshot()};window.coopDeliveryFault=fault;
+ const stats:CoopImpairmentStats={incoming:0,outgoing:0,receivedDeltas:0,droppedDeltas:0,duplicatedActions:0,droppedIdleInputs:0,droppedHoldRenewals:0,delayedIncoming:0,delayedOutgoing:0,incomingDelayMs:[],outgoingDelayMs:[],pingRttMs:[],queued:0};
+ const fault:CoopImpairment={enabled:false,skipNextDelta:false,skipped:0,dropNextIdle:false,dropHoldRenewals:false,duplicateSuccessfulGather:true,stats,transport:()=>transport.snapshot()};window.coopDeliveryFault=fault;
  const remember=(values:number[],value:number)=>{values.push(value);if(values.length>200)values.shift();};
  const Native=window.WebSocket;
  window.WebSocket=new Proxy(Native,{construct(Target,args,newTarget){
@@ -50,6 +50,7 @@ export function installCoopBrowserImpairment(createDiagnostics:typeof createCoop
    if(socket.readyState!==Target.OPEN){nativeSend(data);return;}
    let packet:{type?:string;commandId?:string;input?:{x:number;z:number;jump:boolean};message?:{type?:string;action?:string}}|undefined;
    if(typeof data==='string')try{packet=JSON.parse(data);}catch{}
+   if(fault.dropHoldRenewals&&packet?.type==='action'&&packet.message?.type==='game-action'&&packet.message.action==='sky-hold'){stats.droppedHoldRenewals++;return;}
    if(fault.enabled){stats.outgoing++;
     if(packet?.type==='input'&&fault.dropNextIdle&&packet.input?.x===0&&packet.input.z===0&&!packet.input.jump){fault.dropNextIdle=false;stats.droppedIdleInputs++;return;}
     if(packet?.type==='action'&&packet.commandId&&packet.message?.type==='game-action'&&packet.message.action==='gather'&&fault.duplicateSuccessfulGather&&typeof data==='string'){gathers.set(packet.commandId,data);if(gathers.size>8)gathers.delete(gathers.keys().next().value!);}
