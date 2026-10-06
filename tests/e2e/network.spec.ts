@@ -1,6 +1,7 @@
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import {installCoopBrowserImpairment} from '../helpers/coop-browser-impairment';
-import {CoopBrowserRecoveryObserver} from '../helpers/coop-browser-recovery';
+import {CoopBrowserRecoveryObserver,persistentRecoveryParts} from '../helpers/coop-browser-recovery';
+import {settledRecoveryAim,type CoopRecoveryAim} from '../helpers/coop-recovery-aim';
 import {ITEM_NAMES} from '../../src/content/catalog';
 import type {SkyboundSnapshot} from '../../src/game/skybound/types';
 import type {EditOperation} from '../../src/world/types';
@@ -13,17 +14,18 @@ declare global {interface Window {coopActionSubmissions:{message:CoopAction;resu
 test.use({trace:'off'});
 test.describe.serial('two real browsers',()=>{
  type Ack=Extract<CoopServerPacket,{type:'ack'}>;
- const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>;welcomeEdits:EditOperation[];recovery:CoopBrowserRecoveryObserver}>();
+ const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>;welcomeEdits:EditOperation[];recovery:CoopBrowserRecoveryObserver;openSockets:number}>();
  let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',sharedPartId=0,expectedEditCount=0,errors:string[]=[],failed=false,tracePaths:string[]=[];
  const stage=(name:string)=>console.log('COOP_BROWSER_PHASE',name);
  const running=(page:Page)=>expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
  const observeWire=(page:Page)=>{
-  const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>(),welcomeEdits:[] as EditOperation[],recovery:new CoopBrowserRecoveryObserver()};wire.set(page,observed);
+  const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>(),welcomeEdits:[] as EditOperation[],recovery:new CoopBrowserRecoveryObserver(),openSockets:0};wire.set(page,observed);
   // Observe native network frames before the impairment's DOM message delay or
   // suppression, including every reconnect. Keep only tested fields; never
   // retain or log handshake/resume/delivery capabilities.
   page.on('websocket',socket=>{
    if(!/^\/coop\/[a-f0-9]{48}$/.test(new URL(socket.url()).pathname))return;
+   observed.openSockets++;socket.on('close',()=>observed.openSockets--);
    const decode=observed.recovery.connection();
    socket.on('framereceived',frame=>{try{
     const packet=JSON.parse(String(frame.payload));decode(packet);
@@ -353,7 +355,8 @@ test.describe.serial('two real browsers',()=>{
   await b.locator('#session-menu').click();expect(errors).toEqual([]);stage('shared edit rendered and collision verified before and after re-entry');
  });
  test('reconnect, restore a late browser and continue after the creator leaves',async({browser},info)=>{
-  test.setTimeout(180000);stage('disconnect and reconnect');
+  // The added final all-leave/rejoin cycle has its own 60-second allowance.
+  test.setTimeout(240000);stage('disconnect and reconnect');
   const observedA=wire.get(a)!,observedB=wire.get(b)!,recoveryA=observedA.recovery,recoveryB=observedB.recovery;
   const evidence:Record<string,unknown>={sharedPartId};let lateRecovery:CoopBrowserRecoveryObserver|undefined;
   const screenshot=async(page:Page,name:string)=>{
@@ -388,9 +391,20 @@ test.describe.serial('two real browsers',()=>{
    try{
     await expect(b.locator('#session-status')).toHaveAttribute('data-connection','reconnecting',{timeout:25000});
     stage('NET-A05 terrain edit while second browser is offline');
-    // A retains the real dig tool and clear camera position from the preceding
-    // case. Deepen that visible excavation while B cannot receive any frames.
-    await a.keyboard.press('Escape');await running(a);await expect(a.locator('#use-tool')).toBeEnabled();await a.locator('#use-tool').click();
+    // The authority keeps running while menus park rendering. A may have died
+    // and respawned during B's terrain walk. Wait for a living grounded actor
+    // and a stable actual ray, rather than clicking through camera transit.
+    await a.bringToFront();await a.keyboard.press('Escape');await running(a);
+    const readAim=()=>a.evaluate(()=>{const app=document.querySelector<HTMLElement>('#app')!,aim=JSON.parse(app.dataset.aim??'{}'),streaming=JSON.parse(app.dataset.streaming??'{}'),combat=JSON.parse(app.dataset.combat??'{}');return {epoch:streaming.epoch,draws:streaming.draws,health:combat.health,player:aim.player,target:aim.target??null};}) as Promise<CoopRecoveryAim>;
+    let previousAim=await readAim();const observedViews:CoopRecoveryAim[]=[previousAim];evidence.offlineDigViews=observedViews;
+    await expect.poll(async()=>{const current=await readAim(),settled=settledRecoveryAim(previousAim,current);if(current.draws!==previousAim.draws){observedViews.push(current);if(observedViews.length>30)observedViews.shift();}previousAim=current;return settled;},{message:'A is alive and grounded with a stable terrain ray across distinct rendered frames',timeout:20000}).toBe(true);
+    await expect(a.locator('#session-status')).toHaveAttribute('data-connection','online');await expect(a.locator('#use-tool')).toBeEnabled();
+    const submissionStart=await a.evaluate(()=>window.coopActionSubmissions.length);await a.locator('#use-tool').click();
+    const submission=await a.evaluate(start=>window.coopActionSubmissions.slice(start).find(item=>item.message.type==='action'&&item.message.tool==='dig'),submissionStart);
+    evidence.offlineDigSubmission=submission;expect(submission?.result.status,'The single ordinary dig click must enter the replay queue').toBe('queued');
+    if(submission?.result.status!=='queued')throw Error('The offline-period dig was not queued');
+    const commandId=submission.result.commandId;await expect.poll(()=>observedA.acks.has(commandId),{message:'The exact offline-period dig receives its authority ACK',timeout:20000}).toBe(true);
+    const ack=observedA.acks.get(commandId)!;evidence.offlineDigAck=ack;expect(ack,ack.message).toMatchObject({accepted:true});
     await expect.poll(async()=>Number(await a.locator('#edit-count').getAttribute('data-count')),{timeout:20000}).toBeGreaterThan(before);
     expectedEditCount=Number(await a.locator('#edit-count').getAttribute('data-count'));await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(before));await a.locator('#session-menu').click();
    }finally{await contexts[1].setOffline(false);}
@@ -429,11 +443,67 @@ test.describe.serial('two real browsers',()=>{
    }finally{await Promise.race([lateContext.close(),new Promise<void>(r=>setTimeout(r,5000))]);}
    stage('creator leaves');await a.locator('#session-leave').click();await expect(b.locator('#session-status')).toHaveAttribute('data-players','1');const tick=Number(await b.locator('#session-status').getAttribute('data-tick'));await expect.poll(async()=>Number(await b.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThan(tick);
    await b.keyboard.press('Escape');await running(b);await b.screenshot({path:'test-results/coop-two-browser.png',timeout:60000,scale:'css',animations:'disabled'});
+   await test.step('SAVE-03 all players leave and the last participant rejoins',async()=>{
+   stage('SAVE-03 all players leave and the last participant rejoins');
+   await b.locator('#session-menu').click();await expect(b.locator('#session-panel')).toBeVisible();
+   const healthResponse=await b.request.get('/coop/health');expect(healthResponse.ok()).toBe(true);
+   const health=await healthResponse.json() as {service?:string;persistence?:string};expect(health.service).toBe('voxel-coop-authority');
+   const publicEndpoint=!['localhost','127.0.0.1','[::1]'].includes(new URL(b.url()).hostname),workerAuthority=health.persistence==='sqlite';
+   // A missing Worker marker must fail on the public endpoint, never silently
+   // downgrade cold persistence acceptance to the retained Node room harness.
+   if(publicEndpoint)expect(health.persistence).toBe('sqlite');
+   if(workerAuthority)await expect.poll(()=>recoveryB.timing?.epoch,{message:'Normal heartbeat observes Worker timing before final leave',timeout:10000}).toBe(recoveryB.latest!.epoch);
+   const beforeIdleTiming=structuredClone(recoveryB.timing??null),attempts:Record<string,unknown>[]=[],allLeave:Record<string,unknown>={workerAuthority,publicEndpoint,beforeTiming:beforeIdleTiming,attempts};evidence.allLeaveRejoin=allLeave;
+   const openSockets=()=>[...wire.values()].reduce((total,observed)=>total+observed.openSockets,0);
+   let beforeIdle=structuredClone(recoveryB.latest!),idleEdits:EditOperation[]=[],coldWelcome=structuredClone(recoveryB.welcome!);
+   // There is no final-save ACK after the last socket closes. A rejoin can
+   // legitimately overlap that save and reuse its room. Observe, never assume,
+   // cold reconstruction: at most three complete ordinary UI cycles, all
+   // inside this step's 60-second deadline and with no fixed storage sleep.
+   for(let attempt=1;attempt<=3;attempt++){
+    await expect.poll(openSockets,{message:'Only B remains connected before the last leave'}).toBe(1);
+    const beforeLocalEpoch=await b.locator('#app').getAttribute('data-world-epoch'),idleWelcomesBefore=recoveryB.welcomeCount;
+    await b.locator('#session-leave').click();await expect(b.locator('#session-status')).toHaveAttribute('data-connection','closed');
+    await expect.poll(openSockets,{message:'Every observed A/B/C WebSocket has actually closed',timeout:10000}).toBe(0);
+    const idleStarted=Date.now(),cycle:Record<string,unknown>={attempt,closedSockets:openSockets()};attempts.push(cycle);
+    if(attempt===1){
+     beforeIdle=structuredClone(recoveryB.latest!);idleEdits=structuredClone([...observedB.edits.values()].sort((left,right)=>left.id-right.id));
+     allLeave.before=beforeIdle;allLeave.edits=idleEdits;allLeave.structureBefore=persistentRecoveryParts(beforeIdle.parts);
+     expect(idleEdits.slice(0,acceptedEdits.length),'The final history retains every edit accepted earlier in this case').toEqual(acceptedEdits);
+    }
+    await b.locator('#session-close').click();await expect(b.locator('#app')).not.toHaveAttribute('data-world-epoch',beforeLocalEpoch!);await running(b);
+    await expect(b.locator('#session-status')).toHaveAttribute('data-connection','closed');expect(openSockets()).toBe(0);cycle.idleElapsedMs=Date.now()-idleStarted;
+    const restoredLocalEpoch=await b.locator('#app').getAttribute('data-world-epoch');
+    await b.locator('#session-menu').click();await b.locator('#session-code').fill(code);await b.locator('#session-join').click();
+    await expect.poll(()=>recoveryB.welcomeCount,{message:'B receives a new baseline after every player left',timeout:30000}).toBeGreaterThan(idleWelcomesBefore);
+    coldWelcome=structuredClone(recoveryB.welcome!);cycle.welcome=coldWelcome;cycle.authorityEpochChanged=coldWelcome.epoch!==beforeIdle.epoch;
+    expect(coldWelcome.playerId).toBe(identity);expect(coldWelcome.inventory,'Every all-leave return retains B’s complete personal inventory').toEqual(beforeIdle.inventory);
+    expect(coldWelcome.edits,'Every all-leave welcome contains the full final accepted terrain history').toEqual(idleEdits);
+    allLeave.structureAfter=persistentRecoveryParts(coldWelcome.parts);
+    expect(allLeave.structureAfter,'Every persisted part retains its identity, ownership, sharing, material, mass and links').toEqual(allLeave.structureBefore);
+    expect(coldWelcome.parts.find(part=>part.id===sharedPartId)).toMatchObject({kind:'block',material:'wood',shared:true});
+    expect(coldWelcome.parts.every(part=>!part.lease&&!part.recalling),'Disconnected actors cannot restore transient leases or recalls').toBe(true);
+    await expect(b.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:30000});await expect(b.locator('#session-status')).toHaveAttribute('data-player',identity);await expect(b.locator('#session-status')).toHaveAttribute('data-players','1');await expect(b.locator('#app')).not.toHaveAttribute('data-world-epoch',restoredLocalEpoch!);await running(b);
+    await expect(b.locator('#edit-count')).toHaveAttribute('data-count',String(idleEdits.length));await expect.poll(()=>recoveryB.latest?.tick,{message:'The rejoined authority resumes simulation'}).toBeGreaterThan(coldWelcome.tick);
+    if(!workerAuthority||coldWelcome.epoch!==beforeIdle.epoch)break;
+   }
+   if(workerAuthority)expect(coldWelcome.epoch,'Cold authority reload must be observed within three bounded all-leave UI cycles; a warm final-save overlap is not cold-load evidence').not.toBe(beforeIdle.epoch);
+   if(workerAuthority){
+    await expect.poll(()=>recoveryB.timing?.epoch,{message:'A normal new-connection heartbeat reports the resumed Worker run',timeout:10000}).toBe(coldWelcome.epoch);
+    const afterTiming=structuredClone(recoveryB.timing!);allLeave.afterTiming=afterTiming;expect(afterTiming.active).toBe(true);
+    allLeave.schedulerCounter=beforeIdleTiming&&afterTiming.run>beforeIdleTiming.run?'continued':'reset-or-runtime-replaced';
+   }
+   allLeave.interpretation=workerAuthority?'A changed authority epoch proves cold authority reconstruction. A continued timing.run is consistent with the same Durable Object instance; provider eviction, instance identity and heap reclamation are not directly observed.':'The Node harness retains idle rooms: this run proves all-leave/rejoin state retention, not a cold storage reload.';
+   await b.locator('#session-close').click();await b.locator('#adventure-menu').click();await b.locator('[data-tab=bag]').click();await expect(b.locator('#adventure-panel')).toBeVisible();
+   const idleBag:Record<string,number>={};for(const[id,count]of Object.entries(beforeIdle.inventory))if(count>0)idleBag[ITEM_NAMES[id]]=(idleBag[ITEM_NAMES[id]]??0)+count;
+   await expect.poll(async()=>{const totals:Record<string,number>={};for(const row of await bagRows()){const name=row.label.replace(/ \d+$/,'');totals[name]=(totals[name]??0)+row.count;}return totals;},{message:'The ordinary bag renders every positive inventory quantity after all players left'}).toEqual(idleBag);
+   allLeave.bag=await bagRows();await b.locator('#adventure-close').click();await showSharedPart(b,'all-leave-restored-shared-block');
+   },{timeout:60000});
    // Earlier intentional loss suppressed only application delivery. The native
    // observer still saw those frames, so no historical decode error is expected
    // or discarded. Real recovery errors must also keep this assertion failing.
    for(const observer of [recoveryA,recoveryB,lateRecovery])expect(observer?.decodeFailures).toEqual([]);
-   expect(errors).toEqual([]);stage('reconnect, complete personal/shared state and fresh-join UI verified');
+   expect(errors).toEqual([]);stage('reconnect, complete personal/shared state, fresh join and all-leave rejoin UI verified');
   }finally{
    evidence.decoderFailures={a:recoveryA.decodeFailures,b:recoveryB.decodeFailures,c:lateRecovery?.decodeFailures};
    await info.attach('browser-recovery-state.json',{body:JSON.stringify(evidence,null,2),contentType:'application/json'});

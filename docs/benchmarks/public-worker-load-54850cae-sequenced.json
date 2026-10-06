@@ -1,0 +1,917 @@
+{
+  "status": "completed",
+  "startedAt": "2026-10-06T02:06:17.138Z",
+  "finishedAt": "2026-10-06T02:07:27.395Z",
+  "scope": "actual existing Cloudflare preview, fresh room, four sockets, gentle movement",
+  "expectedCommit": "54850cae6bad022940704f3cf98983be00fe86f6",
+  "healthVerified": true,
+  "protocol": 7,
+  "clients": 4,
+  "requiredMs": 60000,
+  "measuredMs": 60038.434968,
+  "warmupMs": 5000,
+  "messages": 6487,
+  "sentBytes": 612065,
+  "receivedBytes": 31426515,
+  "measuredReceivedBytes": 19620604,
+  "measuredReceiveBytesPerSecond": 326800.7237440087,
+  "targetTickHz": 30,
+  "minimumTickHz": 13.941069590606654,
+  "withinTwoPercentOfTarget": false,
+  "performanceAcceptance": "measurement only; collection success is not performance acceptance",
+  "clientsMeasured": [
+    {
+      "client": 1,
+      "frames": 279,
+      "fullBaselines": 1,
+      "tickDelta": 837,
+      "observedTickHz": 13.941069590606654,
+      "frameGapsMs": {
+        "count": 278,
+        "p50": 206.16980599999806,
+        "p95": 304.51291499999934,
+        "max": 534.8181069999991
+      },
+      "pingRttMs": {
+        "count": 30,
+        "p50": 60.55947099999685,
+        "p95": 143.0417299999972,
+        "max": 147.82575299999735
+      },
+      "workerTiming": {
+        "status": "observed",
+        "samples": 30,
+        "missingSamples": 0,
+        "invalidSamples": 0,
+        "discontinuities": 0,
+        "first": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791252377701,
+            "nowIoMs": 1791252387526,
+            "lastStepIoMs": 1791252387524,
+            "tick": 96,
+            "active": true,
+            "scheduler": {
+              "steps": 106,
+              "turns": 106,
+              "catchUpSteps": 0,
+              "rebases": 7,
+              "droppedMs": 6289.341796875,
+              "maxDebtMs": 1352.001220703125
+            },
+            "events": {
+              "version": 1,
+              "stepEntries": 106,
+              "messageEntries": 608,
+              "stepAdvanceIoMs": 4376,
+              "messageAdvanceIoMs": 5449,
+              "stepJumps": 3,
+              "messageJumps": 4,
+              "regressions": 0,
+              "maxAdvanceIoMs": 1385,
+              "lastJump": {
+                "previous": "step",
+                "current": "message",
+                "fromIoMs": 1791252387165,
+                "toIoMs": 1791252387457,
+                "advanceIoMs": 292,
+                "tick": 93
+              }
+            }
+          },
+          "clientReceivedMs": 11599.272786
+        },
+        "last": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791252377701,
+            "nowIoMs": 1791252446608,
+            "lastStepIoMs": 1791252446601,
+            "tick": 918,
+            "active": true,
+            "scheduler": {
+              "steps": 928,
+              "turns": 928,
+              "catchUpSteps": 0,
+              "rebases": 37,
+              "droppedMs": 37966.40869140625,
+              "maxDebtMs": 1631.669677734375
+            },
+            "events": {
+              "version": 1,
+              "stepEntries": 928,
+              "messageEntries": 6464,
+              "stepAdvanceIoMs": 20498,
+              "messageAdvanceIoMs": 48409,
+              "stepJumps": 4,
+              "messageJumps": 34,
+              "regressions": 0,
+              "maxAdvanceIoMs": 1665,
+              "lastJump": {
+                "previous": "step",
+                "current": "message",
+                "fromIoMs": 1791252445565,
+                "toIoMs": 1791252446534,
+                "advanceIoMs": 969,
+                "tick": 915
+              }
+            }
+          },
+          "clientReceivedMs": 70435.395235
+        },
+        "elapsedIoMs": 59082,
+        "elapsedClientMs": 58836.122449,
+        "ioMinusClientElapsedMs": 245.87755099999777,
+        "delta": {
+          "steps": 822,
+          "turns": 822,
+          "catchUpSteps": 0,
+          "rebases": 30,
+          "droppedMs": 31677.06689453125,
+          "ticks": 822
+        },
+        "stepsPerIoSecond": 13.912866863003961,
+        "maxLastStepAgeIoMs": 33,
+        "maxDebtIoMs": 1631.669677734375,
+        "recentClockJumps": [
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252429278,
+              "toIoMs": 1791252430579,
+              "advanceIoMs": 1301,
+              "tick": 678
+            },
+            "clientReceivedMs": 54129.91519
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252432546,
+              "toIoMs": 1791252434135,
+              "advanceIoMs": 1589,
+              "tick": 738
+            },
+            "clientReceivedMs": 58239.643718
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252435003,
+              "toIoMs": 1791252435526,
+              "advanceIoMs": 523,
+              "tick": 765
+            },
+            "clientReceivedMs": 60224.009928
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252436194,
+              "toIoMs": 1791252437222,
+              "advanceIoMs": 1028,
+              "tick": 786
+            },
+            "clientReceivedMs": 62246.302542
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252438389,
+              "toIoMs": 1791252439976,
+              "advanceIoMs": 1587,
+              "tick": 822
+            },
+            "clientReceivedMs": 64264.614655
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252440744,
+              "toIoMs": 1791252441729,
+              "advanceIoMs": 985,
+              "tick": 846
+            },
+            "clientReceivedMs": 66285.029481
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252443476,
+              "toIoMs": 1791252444498,
+              "advanceIoMs": 1022,
+              "tick": 882
+            },
+            "clientReceivedMs": 68414.383278
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252445565,
+              "toIoMs": 1791252446534,
+              "advanceIoMs": 969,
+              "tick": 915
+            },
+            "clientReceivedMs": 70435.395235
+          }
+        ],
+        "interpretation": "I/O-clock counters over the first/last measured pong interval; client receive timing includes network jitter. maxDebt is run-cumulative. At most eight observed clock jumps; not a complete event log. No CPU-time measurement or causal attribution."
+      },
+      "receivedBytes": 8090587,
+      "measuredReceivedBytes": 4887901
+    },
+    {
+      "client": 2,
+      "frames": 279,
+      "fullBaselines": 1,
+      "tickDelta": 837,
+      "observedTickHz": 13.941069590606654,
+      "frameGapsMs": {
+        "count": 278,
+        "p50": 204.1005729999997,
+        "p95": 309.28912200000195,
+        "max": 544.0111160000015
+      },
+      "pingRttMs": {
+        "count": 30,
+        "p50": 46.69892799999798,
+        "p95": 147.85485699999845,
+        "max": 151.27890099999786
+      },
+      "workerTiming": {
+        "status": "observed",
+        "samples": 30,
+        "missingSamples": 0,
+        "invalidSamples": 0,
+        "discontinuities": 0,
+        "first": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791252377701,
+            "nowIoMs": 1791252387526,
+            "lastStepIoMs": 1791252387524,
+            "tick": 96,
+            "active": true,
+            "scheduler": {
+              "steps": 106,
+              "turns": 106,
+              "catchUpSteps": 0,
+              "rebases": 7,
+              "droppedMs": 6289.341796875,
+              "maxDebtMs": 1352.001220703125
+            },
+            "events": {
+              "version": 1,
+              "stepEntries": 106,
+              "messageEntries": 614,
+              "stepAdvanceIoMs": 4376,
+              "messageAdvanceIoMs": 5449,
+              "stepJumps": 3,
+              "messageJumps": 4,
+              "regressions": 0,
+              "maxAdvanceIoMs": 1385,
+              "lastJump": {
+                "previous": "step",
+                "current": "message",
+                "fromIoMs": 1791252387165,
+                "toIoMs": 1791252387457,
+                "advanceIoMs": 292,
+                "tick": 93
+              }
+            }
+          },
+          "clientReceivedMs": 11599.833021
+        },
+        "last": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791252377701,
+            "nowIoMs": 1791252446608,
+            "lastStepIoMs": 1791252446601,
+            "tick": 918,
+            "active": true,
+            "scheduler": {
+              "steps": 928,
+              "turns": 928,
+              "catchUpSteps": 0,
+              "rebases": 37,
+              "droppedMs": 37966.40869140625,
+              "maxDebtMs": 1631.669677734375
+            },
+            "events": {
+              "version": 1,
+              "stepEntries": 928,
+              "messageEntries": 6465,
+              "stepAdvanceIoMs": 20498,
+              "messageAdvanceIoMs": 48409,
+              "stepJumps": 4,
+              "messageJumps": 34,
+              "regressions": 0,
+              "maxAdvanceIoMs": 1665,
+              "lastJump": {
+                "previous": "step",
+                "current": "message",
+                "fromIoMs": 1791252445565,
+                "toIoMs": 1791252446534,
+                "advanceIoMs": 969,
+                "tick": 915
+              }
+            }
+          },
+          "clientReceivedMs": 70435.445831
+        },
+        "elapsedIoMs": 59082,
+        "elapsedClientMs": 58835.612810000006,
+        "ioMinusClientElapsedMs": 246.387189999994,
+        "delta": {
+          "steps": 822,
+          "turns": 822,
+          "catchUpSteps": 0,
+          "rebases": 30,
+          "droppedMs": 31677.06689453125,
+          "ticks": 822
+        },
+        "stepsPerIoSecond": 13.912866863003961,
+        "maxLastStepAgeIoMs": 25,
+        "maxDebtIoMs": 1631.669677734375,
+        "recentClockJumps": [
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252429278,
+              "toIoMs": 1791252430579,
+              "advanceIoMs": 1301,
+              "tick": 678
+            },
+            "clientReceivedMs": 54130.167441
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252432546,
+              "toIoMs": 1791252434135,
+              "advanceIoMs": 1589,
+              "tick": 738
+            },
+            "clientReceivedMs": 58239.595365
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252435003,
+              "toIoMs": 1791252435526,
+              "advanceIoMs": 523,
+              "tick": 765
+            },
+            "clientReceivedMs": 60225.038881
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252436194,
+              "toIoMs": 1791252437222,
+              "advanceIoMs": 1028,
+              "tick": 786
+            },
+            "clientReceivedMs": 62246.336434
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252438389,
+              "toIoMs": 1791252439976,
+              "advanceIoMs": 1587,
+              "tick": 822
+            },
+            "clientReceivedMs": 64264.113609
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252440744,
+              "toIoMs": 1791252441729,
+              "advanceIoMs": 985,
+              "tick": 846
+            },
+            "clientReceivedMs": 66285.499611
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252443476,
+              "toIoMs": 1791252444498,
+              "advanceIoMs": 1022,
+              "tick": 882
+            },
+            "clientReceivedMs": 68418.810468
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252445565,
+              "toIoMs": 1791252446534,
+              "advanceIoMs": 969,
+              "tick": 915
+            },
+            "clientReceivedMs": 70435.445831
+          }
+        ],
+        "interpretation": "I/O-clock counters over the first/last measured pong interval; client receive timing includes network jitter. maxDebt is run-cumulative. At most eight observed clock jumps; not a complete event log. No CPU-time measurement or causal attribution."
+      },
+      "receivedBytes": 7858933,
+      "measuredReceivedBytes": 4853467
+    },
+    {
+      "client": 3,
+      "frames": 279,
+      "fullBaselines": 1,
+      "tickDelta": 837,
+      "observedTickHz": 13.941069590606654,
+      "frameGapsMs": {
+        "count": 278,
+        "p50": 202.12015500000416,
+        "p95": 303.0912160000007,
+        "max": 557.2371399999975
+      },
+      "pingRttMs": {
+        "count": 30,
+        "p50": 60.42421599999943,
+        "p95": 146.7780000000057,
+        "max": 156.9684269999998
+      },
+      "workerTiming": {
+        "status": "observed",
+        "samples": 30,
+        "missingSamples": 0,
+        "invalidSamples": 0,
+        "discontinuities": 0,
+        "first": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791252377701,
+            "nowIoMs": 1791252387526,
+            "lastStepIoMs": 1791252387524,
+            "tick": 96,
+            "active": true,
+            "scheduler": {
+              "steps": 106,
+              "turns": 106,
+              "catchUpSteps": 0,
+              "rebases": 7,
+              "droppedMs": 6289.341796875,
+              "maxDebtMs": 1352.001220703125
+            },
+            "events": {
+              "version": 1,
+              "stepEntries": 106,
+              "messageEntries": 613,
+              "stepAdvanceIoMs": 4376,
+              "messageAdvanceIoMs": 5449,
+              "stepJumps": 3,
+              "messageJumps": 4,
+              "regressions": 0,
+              "maxAdvanceIoMs": 1385,
+              "lastJump": {
+                "previous": "step",
+                "current": "message",
+                "fromIoMs": 1791252387165,
+                "toIoMs": 1791252387457,
+                "advanceIoMs": 292,
+                "tick": 93
+              }
+            }
+          },
+          "clientReceivedMs": 11599.744247
+        },
+        "last": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791252377701,
+            "nowIoMs": 1791252446608,
+            "lastStepIoMs": 1791252446601,
+            "tick": 918,
+            "active": true,
+            "scheduler": {
+              "steps": 928,
+              "turns": 928,
+              "catchUpSteps": 0,
+              "rebases": 37,
+              "droppedMs": 37966.40869140625,
+              "maxDebtMs": 1631.669677734375
+            },
+            "events": {
+              "version": 1,
+              "stepEntries": 928,
+              "messageEntries": 6466,
+              "stepAdvanceIoMs": 20498,
+              "messageAdvanceIoMs": 48409,
+              "stepJumps": 4,
+              "messageJumps": 34,
+              "regressions": 0,
+              "maxAdvanceIoMs": 1665,
+              "lastJump": {
+                "previous": "step",
+                "current": "message",
+                "fromIoMs": 1791252445565,
+                "toIoMs": 1791252446534,
+                "advanceIoMs": 969,
+                "tick": 915
+              }
+            }
+          },
+          "clientReceivedMs": 70444.57849
+        },
+        "elapsedIoMs": 59082,
+        "elapsedClientMs": 58844.834243,
+        "ioMinusClientElapsedMs": 237.1657570000025,
+        "delta": {
+          "steps": 822,
+          "turns": 822,
+          "catchUpSteps": 0,
+          "rebases": 30,
+          "droppedMs": 31677.06689453125,
+          "ticks": 822
+        },
+        "stepsPerIoSecond": 13.912866863003961,
+        "maxLastStepAgeIoMs": 33,
+        "maxDebtIoMs": 1631.669677734375,
+        "recentClockJumps": [
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252429278,
+              "toIoMs": 1791252430579,
+              "advanceIoMs": 1301,
+              "tick": 678
+            },
+            "clientReceivedMs": 54130.02076
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252432546,
+              "toIoMs": 1791252434135,
+              "advanceIoMs": 1589,
+              "tick": 738
+            },
+            "clientReceivedMs": 58249.852861
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252435003,
+              "toIoMs": 1791252435526,
+              "advanceIoMs": 523,
+              "tick": 765
+            },
+            "clientReceivedMs": 60224.447719
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252436194,
+              "toIoMs": 1791252437222,
+              "advanceIoMs": 1028,
+              "tick": 786
+            },
+            "clientReceivedMs": 62246.229863
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252438389,
+              "toIoMs": 1791252439976,
+              "advanceIoMs": 1587,
+              "tick": 822
+            },
+            "clientReceivedMs": 64264.442125
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252440744,
+              "toIoMs": 1791252441729,
+              "advanceIoMs": 985,
+              "tick": 846
+            },
+            "clientReceivedMs": 66285.052286
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252443476,
+              "toIoMs": 1791252444498,
+              "advanceIoMs": 1022,
+              "tick": 882
+            },
+            "clientReceivedMs": 68414.329417
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252445565,
+              "toIoMs": 1791252446534,
+              "advanceIoMs": 969,
+              "tick": 915
+            },
+            "clientReceivedMs": 70444.57849
+          }
+        ],
+        "interpretation": "I/O-clock counters over the first/last measured pong interval; client receive timing includes network jitter. maxDebt is run-cumulative. At most eight observed clock jumps; not a complete event log. No CPU-time measurement or causal attribution."
+      },
+      "receivedBytes": 7868315,
+      "measuredReceivedBytes": 4974844
+    },
+    {
+      "client": 4,
+      "frames": 279,
+      "fullBaselines": 1,
+      "tickDelta": 837,
+      "observedTickHz": 13.941069590606654,
+      "frameGapsMs": {
+        "count": 278,
+        "p50": 204.21959200000128,
+        "p95": 310.1508630000026,
+        "max": 537.3756649999996
+      },
+      "pingRttMs": {
+        "count": 30,
+        "p50": 60.45194800000172,
+        "p95": 151.04457299999922,
+        "max": 156.78231599999708
+      },
+      "workerTiming": {
+        "status": "observed",
+        "samples": 30,
+        "missingSamples": 0,
+        "invalidSamples": 0,
+        "discontinuities": 0,
+        "first": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791252377701,
+            "nowIoMs": 1791252387526,
+            "lastStepIoMs": 1791252387524,
+            "tick": 96,
+            "active": true,
+            "scheduler": {
+              "steps": 106,
+              "turns": 106,
+              "catchUpSteps": 0,
+              "rebases": 7,
+              "droppedMs": 6289.341796875,
+              "maxDebtMs": 1352.001220703125
+            },
+            "events": {
+              "version": 1,
+              "stepEntries": 106,
+              "messageEntries": 611,
+              "stepAdvanceIoMs": 4376,
+              "messageAdvanceIoMs": 5449,
+              "stepJumps": 3,
+              "messageJumps": 4,
+              "regressions": 0,
+              "maxAdvanceIoMs": 1385,
+              "lastJump": {
+                "previous": "step",
+                "current": "message",
+                "fromIoMs": 1791252387165,
+                "toIoMs": 1791252387457,
+                "advanceIoMs": 292,
+                "tick": 93
+              }
+            }
+          },
+          "clientReceivedMs": 11605.641605
+        },
+        "last": {
+          "timing": {
+            "version": 1,
+            "clock": "worker-io",
+            "run": 1,
+            "startedIoMs": 1791252377701,
+            "nowIoMs": 1791252446608,
+            "lastStepIoMs": 1791252446601,
+            "tick": 918,
+            "active": true,
+            "scheduler": {
+              "steps": 928,
+              "turns": 928,
+              "catchUpSteps": 0,
+              "rebases": 37,
+              "droppedMs": 37966.40869140625,
+              "maxDebtMs": 1631.669677734375
+            },
+            "events": {
+              "version": 1,
+              "stepEntries": 928,
+              "messageEntries": 6467,
+              "stepAdvanceIoMs": 20498,
+              "messageAdvanceIoMs": 48409,
+              "stepJumps": 4,
+              "messageJumps": 34,
+              "regressions": 0,
+              "maxAdvanceIoMs": 1665,
+              "lastJump": {
+                "previous": "step",
+                "current": "message",
+                "fromIoMs": 1791252445565,
+                "toIoMs": 1791252446534,
+                "advanceIoMs": 969,
+                "tick": 915
+              }
+            }
+          },
+          "clientReceivedMs": 70444.409445
+        },
+        "elapsedIoMs": 59082,
+        "elapsedClientMs": 58838.76784,
+        "ioMinusClientElapsedMs": 243.23215999999957,
+        "delta": {
+          "steps": 822,
+          "turns": 822,
+          "catchUpSteps": 0,
+          "rebases": 30,
+          "droppedMs": 31677.06689453125,
+          "ticks": 822
+        },
+        "stepsPerIoSecond": 13.912866863003961,
+        "maxLastStepAgeIoMs": 33,
+        "maxDebtIoMs": 1631.669677734375,
+        "recentClockJumps": [
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252429278,
+              "toIoMs": 1791252430579,
+              "advanceIoMs": 1301,
+              "tick": 678
+            },
+            "clientReceivedMs": 54132.38715
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252432546,
+              "toIoMs": 1791252434135,
+              "advanceIoMs": 1589,
+              "tick": 738
+            },
+            "clientReceivedMs": 58249.897468
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252435003,
+              "toIoMs": 1791252435526,
+              "advanceIoMs": 523,
+              "tick": 765
+            },
+            "clientReceivedMs": 60224.264923
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252436194,
+              "toIoMs": 1791252437222,
+              "advanceIoMs": 1028,
+              "tick": 786
+            },
+            "clientReceivedMs": 62250.961682
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252438389,
+              "toIoMs": 1791252439976,
+              "advanceIoMs": 1587,
+              "tick": 822
+            },
+            "clientReceivedMs": 64265.609406
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252440744,
+              "toIoMs": 1791252441729,
+              "advanceIoMs": 985,
+              "tick": 846
+            },
+            "clientReceivedMs": 66284.967398
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252443476,
+              "toIoMs": 1791252444498,
+              "advanceIoMs": 1022,
+              "tick": 882
+            },
+            "clientReceivedMs": 68419.095238
+          },
+          {
+            "run": 1,
+            "jump": {
+              "previous": "step",
+              "current": "message",
+              "fromIoMs": 1791252445565,
+              "toIoMs": 1791252446534,
+              "advanceIoMs": 969,
+              "tick": 915
+            },
+            "clientReceivedMs": 70444.409445
+          }
+        ],
+        "interpretation": "I/O-clock counters over the first/last measured pong interval; client receive timing includes network jitter. maxDebt is run-cumulative. At most eight observed clock jumps; not a complete event log. No CPU-time measurement or causal attribution."
+      },
+      "receivedBytes": 7608680,
+      "measuredReceivedBytes": 4904392
+    }
+  ],
+  "workerMemoryUsage": "not exposed; no inference from Node client RSS",
+  "limitations": [
+    "fresh room rather than mature saved world",
+    "not browser rendering or real-device FPS",
+    "no forced Worker restart or backend memory counter",
+    "optional Worker timing covers measured pong endpoints, not the exact full load interval; event-clock time is not CPU time",
+    "not an unlimited-load or long-term service guarantee"
+  ],
+  "failures": []
+}

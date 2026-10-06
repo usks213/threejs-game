@@ -2,7 +2,7 @@
 
 2026-10-06 UTC。対象はPR5の新作54項目と、原仕様 `voxel-coop-adventure-spec.md` 9章。全項目に実装経路があることと、全受入に合格したことを分ける。追加ブラウザ試験の実行結果と残る範囲を以下に記録する。試験ソースの存在を合格証明にはしない。下の受入表が現在の要約であり、commit別の履歴段落は当時の失敗・未実行をそのまま残す。
 
-現行公開は `14459fe2594b883a1f26956ec71eec6e7cdb1093`。[CI37396450818](https://github.com/usks213/threejs-game/actions/runs/37396450818) の公開経路では共有操作と相互の実GPUジャンプまで通過したが、NET-A04は条件付き半回転後も地形targetが得られず失敗した。直前の `2a1debf1` の公開6ケース合格は独立した履歴証拠として保持し、最新commitの全合格へ継承しない。今回追加するNET-A05/06の完全比較は、次のブラウザ実行結果待ち。
+現行公開は `54850cae6bad022940704f3cf98983be00fe86f6`。[CI37401531255](https://github.com/usks213/threejs-game/actions/runs/37401531255) の公開実2browserは6/6合格。直前の6aa70935でも公開/ローカル各6/6が合格している。548のローカルhost初回はAの復活直後の過渡的な照準へ採掘し、保護領域の正しい拒否でNET-A05が失敗した。serial全体のretry中にjobの10分期限へ達しており、ローカル結果を全合格とは扱わない。今回の試験側の照準安定待ちはブラウザ再実行待ち。
 
 ## 今回追加した限定的な観測
 
@@ -61,8 +61,8 @@ handshakeの秘密値やresume capabilityは記録しない。記録するのは
 | NET-A01 | 2a1debf1公開6ケースの一つとして相互の移動/向き/空中pixelが合格。14459fe2公開でも通過 | 実機FPS/美術全体の確認へ読み替えない |
 | NET-A02 | 2a1debf1と14459fe2の公開実2browserで箱作成・共有・同時掴み一方拒否・移動・期限切れ/切断lease回収が合格 | この条件は検証済み |
 | NET-A03 | 2a1debf1と14459fe2の公開UIで同時拾得、成功操作の同一ID再送拒否後も木12の一度だけ移転 | 経済効果の二重適用防止を検証済み。映像/音の重複再生は未観測 |
-| NET-A04 | 2a1debf1公開で完全operation、掘削面/衝突、再入室後の同じ床へのジャンプ/接地まで合格 | 最新14459fe2公開では半回転後のterrain targetがnullで失敗。通常視点の観測経路を再検証中 |
-| NET-A05/06 | 2a1debf1公開で切断中追加編集・同一ID復帰・独立新context参加が合格。実WSの完全state証拠も維持 | 今回のB全inventory、全編集operation、A/B・A/Cの同tick全parts、通常持物/創作UIの追加assertionはブラウザ実行待ち |
+| NET-A04 | 6aa70935/54850cae公開で完全operation、有限の視点探索、掘削面/衝突、再入室後の同じ床へのジャンプ/接地まで合格 | 548ローカルも初回/retryの両方でこのケースは合格。過去の遮蔽失敗は履歴に保持 |
+| NET-A05/06 | 6aa70935/54850cae公開でB全inventory、全編集operation、A/B・A/C同tick全parts、通常bag/創作UIが合格 | 548ローカル初回の採掘は保護範囲で拒否。復活後の照準安定待ちと正確な採掘ACK確認を追加し、再実行待ち |
 | NET-A07 | 保存checkpointから実Nodeサーバープロセスを再起動し、完全state/水/進行が一致。2WS証拠と合格済み4WS・15分receiptを維持 | 原仕様のサーバー停止/再開条件の証拠あり。公開Workerの任意強制停止を新しい必須条件にしない。最新sourceの耐久確認は別途扱う |
 | NET-A08 | 2a1debf1公開で接続不能/offline・別room・版違い・満室・不正payloadの説明/安全な拒否と復帰が合格 | 原仕様の区分を確認済み。DNS/TCP障害の追加種類を新しい必須ゲートにしない |
 | NET-A09 | 実WSに加え2a1debf1/14459fe2公開2browserで150ms追加RTT・限定loss・成功操作の再送・キー解放が合格 | literalな映像/音の重複再生は未観測。実TCP packet lossの測定とは称さない |
@@ -72,7 +72,7 @@ handshakeの秘密値やresume capabilityは記録しない。記録するのは
 | QUEST | 新規開始→導入→七試練→三地域→最終目標、保存再開/人数減少、後日談の実2WS | ブラウザでの全行程は未確認。任意18室全訪問を主導線へ追加しない |
 | UX/SAVE | 設定保存・字幕・検索/設計・長押し取消・次周確認/取消・旧保存保護などの既存browser/単体 | 実端末の可読性/操作。拒否/復帰UIは2a1debf1公開でも合格 |
 | PERF-A01 | 実WSの4接続整合とNode測定。性能担当の本番hot path計測は別証拠 | Android/iPhone実機、解像度つきframe time/p95/メモリ、公開権威負荷・net bytes。CI SwiftShaderを実機FPSと呼ばない |
-| M5 | PR5専用公開14459fe2とcommit/authority build照合。2a1debf1の公開6ケース合格を保持 | 14459fe2公開NET-A04失敗と今回の追加assertionは未解消/未実行。PR3/4/main/旧previewは変更対象外 |
+| M5 | PR5専用公開54850caeと公開6ケース合格。過去commitの証拠は独立して保持 | 548ローカルNET-A05失敗/serial retryのjob期限切れ、今回の照準待ち変更は再実行待ち。PR3/4/main/旧previewは変更対象外 |
 
 `full-spec-audit.md` と各機能の `*-acceptance.md` の証拠を維持する。この表は未確認を実装不足と取り違えず、原仕様にない規模・厳密物理・追加コンテンツを新しい必須条件にしないための監査である。
 
@@ -219,3 +219,32 @@ browser試験は最初の視点で実際に低い掘削面が見えた場合、�
 [CI37399174801](https://github.com/usks213/threejs-game/actions/runs/37399174801) の公開/ローカル実2browserは各6/6、再試行0で成功。Bの全所持品と通常bag表示、B/Cの完全な編集履歴、同じ権威tickの全共有parts、既存箱のUI選択、地形の視線探索/再参加後の接地と新しい床hitを実行済み。公開artifact11385250050のJSONと画像を確認し、[識別子を省いた照合結果](../benchmarks/public-browser-6aa70935.json)を保存した。通常bagの4品/個数を画像でも確認した。共有箱のスクリーンショットは上側のpanelを写していたため、次の試験では選択欄を通常scrollで画面内へ表示する。6aaのUI選択/内容assertionは実際に合格したが、その画像だけで選択欄の見た目を証明しない。
 
 NET-A05/06の旧「edit数だけ」という不足はこの実行で閉じた。NET-A07の実プロセス停止/復帰は別の固定ソース長時間証拠として引き続き区別する。最新公開版の4人30Hz、Worker最大メモリ、実Android/iPhone、全内容の実機視認/操作はこれらの成功とは別の未完了項目である。
+
+## 54850caeローカルの復活直後の採掘拒否（2026-10-06）
+
+[host job112070557244](https://github.com/usks213/threejs-game/actions/runs/37401531255/job/112070557244) の初回は拾得・創作・相互のGPU移動/ジャンプ・地形/再入室を合格した後、最終の切断復帰ケースで失敗した。[artifact11385981236](https://github.com/usks213/threejs-game/actions/runs/37401531255/artifacts/11385981236) のA traceとjob logを確認した。
+
+- 02:03:27.281 UTC、実UIのdigは `(x=-.3314315752, y=1.1783135867, z=5.6891922901)` を送り、同じcommandIdのACKは02:03:27.363に「開始・復帰地点と案内標の小さな保護範囲には設置・地形編集できません」と明示拒否した。
+- Aはメニューが開いた間にHP0になっていた。採掘click時には通常の復活が進み、本人位置は `(-6,1.2640,8)`、HP25だったが、camera rayは以前の東側の視点から追従中だった。traceの実targetはx=-.3314→-3.3393→-5.0594→-5.3437→-5.3907→-5.3994と推移し、最終的には-5.4へ収束した。
+- 編集数は21のまま。Bの新しいwelcomeも21だった。今回の失敗は、受理後の崩落編集が増えたことや、完全履歴比較の不一致ではない。
+- retryの採掘は収束した `(-5.4,1.1140923678,5.8075701842)` で成功した。Bの復帰inventory/全履歴/同tick部品/通常bag・創作UI、Cの新規参加/同tick部品/創作UIまで到達し、Cの選択欄の画像も残ったが、serial全体の再試行中にjob期限へ達した。retryの最終完走は未確認。公開548の6/6合格とこのローカル未完了を区別する。
+
+試験はAをforegroundへ戻して通常メニューを閉じ、生存・接地・同じlocal epochの異なる実描画2回を確認する。本人位置と実terrain targetが各0.03m未満しか変わらなくなってから、一度だけ通常のdigボタンを押す。過渡的なcamera ray、同じcached draw、HP0、空中、無効targetを安定と数えない。正常な復活を待つだけで、HP・位置・地形・カメラを代入しない。
+
+その一回のqueue receiptと同じcommandIdの権威ACKを要求し、拒否された場合は編集数を待つ前に正確な拒否理由で失敗する。待機中の有限な観測列と実送信内容/ACKを `browser-recovery-state.json` に追加する。保護範囲、操作頻度、B/Cの完全inventory/operation/同tick parts比較、通常UI検査は緩めていない。
+
+`coop-recovery-aim.test.ts` は記録された過渡照準を除外し、収束後だけ受理待ちへ進むことを確認する。同じ記録座標へproduction保護判定を適用し、拒否された照準は保護内、収束後は保護外であることも検査する。新しい2単体と既存recovery/decoderを合わせた9単体が合格し、最終の描画番号検査追加後も2単体と型検査を再確認した。これはソース回帰であり、新たなブラウザ合格ではない。
+
+## SAVE-03 全員退出後の通常UI再参加（2026-10-06、実行待ち）
+
+最終の復帰ケースへ、Cと作成者Aの退出後に最後のBも通常の退出ボタンで離れ、同じ招待コード・同じ本人で再参加する検査を追加した。A/B/Cの実WebSocketがすべて閉じたこと、Bの個人世界が別のlocal epochで準備完了したことを待つ。ゲーム状態の代入・合成操作・追加の検査APIはない。
+
+最後のsocketを閉じた後には保存完了ACKを受け取れない。固定秒数を「保存が終わった証明」にせず、60秒の一つのstep内で通常の退出→個人世界の復元→再参加を最大3回まで行う。保存と再参加が交差して同じ権威epochへ戻った場合も、そのwelcomeと完全状態比較を残す。公開Workerの合格には新しい権威epochを必須とし、最大回数または期限までに観測できなければ失敗のまま。追加の60秒はこの最終ケースだけに割り当て、既存ケースの待機・再試行数は増やしていない。
+
+- 各welcomeで本人ID、全inventory、退出直前までに受信した全terrain operationを完全一致で比較する。以前の切断中に受理された履歴も全件含むことを先に確認する。
+- 全部品のID・kind・material・mass・links・creator・shared・trial・anchored・loan・element・enabled・cargoMassを比較する。これは異なるtick間の永続的な構造/所有権比較である。位置/速度/回転、sleep、環境/動力、recall revisionは物理再開で変わり得るため同一とは要求せず、退出時に消えるlease/recallの復活は別途拒否する。従来のA/B/C同一epoch・同一tickにおける全parts完全一致をこの投影へ置き換えていない。
+- 再参加後の権威tick進行、通常bagの全正数在庫、共有木箱のID・表示名・選択・grab有効状態を確認し、選択欄を画面内にscrollした画像を残す。
+- 既存の `/coop/health` で公開先のSQLite Workerを確認し、通常heartbeatのpongから検証済み `timing.run` とI/O-clockの少数scalarだけを受動観測する。新epochとrun継続は同じDO内の再構築と整合するが、providerのeviction・instanceの同一性・heap解放を直接証明するものではない。追加のpingや内部inspect要求はない。
+- Nodeのローカルauthorityは空のroomを保持する実装のため、ローカル結果は全員退出後の状態/UI復帰として記録し、storage cold reloadと称さない。公開先でWorkerのmarkerが欠けた場合はこのローカル条件へ降格せず失敗する。
+
+各試行のwelcome、前後の完全観測/構造投影、全編集、bag行、timingを `browser-recovery-state.json` の `allLeaveRejoin` へ残す。型検査、recovery/decoder/aimの関連11単体、6browserケースのdiscoveryが合格した。実ブラウザおよび公開Workerでのこの新しい全員退出経路は未実行であり、次の対象commitのCI結果を待つ。

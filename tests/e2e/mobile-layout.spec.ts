@@ -3,6 +3,8 @@ import {test,expect,type Page} from '@playwright/test';
 import {GameSimulation} from '../../src/simulation/game-simulation';
 import {meadowPanel} from '../../src/ui/meadows';
 import {itemIcon} from '../../src/ui/icons/item';
+import {BEACONS} from '../../src/content/adventure-world';
+import {expectJourneyTextFits} from '../helpers/journey-layout';
 
 // Geometry-only acceptance loads production HTML/CSS and real panel renderers without
 // WebGL, so every responsive mode can be inspected quickly and deterministically.
@@ -120,5 +122,26 @@ test('core landscape mobile movement controls keep their place across pressed st
    expect(await page.locator('.movement-modes').boundingBox()).toEqual(before);
   }
   expect(await problems(page),`${size.width}×${size.height} restored`).toEqual([]);
+ }
+});
+test('survival adventure mobile journey keeps complete text lines inside its card across rotation and long objectives',async({page},info)=>{
+ test.skip(info.project.name!=='android-chromium','Touch journey layout');
+ // Include the actual iPhone portrait screenshot dimensions as well as compact phones.
+ for(const size of [...widths,{width:664,height:390},{width:390,height:664}]){
+  await setup(page,size,'game');
+  for(const long of [false,true]){
+   const title=long?BEACONS.map(beacon=>beacon.name).join('・'):BEACONS[0].name;
+   const detail=long?BEACONS.map(beacon=>beacon.hint).join('。'):BEACONS[0].hint;
+   await page.locator('#journey').evaluate((card,{title,detail})=>{
+    card.querySelector('.goal-kicker')!.textContent='JOURNEY · 12345m';
+    card.querySelector('strong')!.textContent=title;
+    card.querySelector('small')!.textContent=detail;
+   },{title,detail});
+   await expectJourneyTextFits(page);
+   // Ellipsis is presentation only: retain the complete mission text in the DOM.
+   await expect(page.locator('#journey strong')).toHaveText(title);
+   await expect(page.locator('#journey small')).toHaveText(detail);
+   expect(await problems(page),`${size.width}×${size.height} ${long?'long':'original'} objective`).toEqual([]);
+  }
  }
 });

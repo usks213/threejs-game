@@ -1,7 +1,25 @@
 import { devices, expect, test, type Page } from '@playwright/test';
+import { expectJourneyTextFits } from '../helpers/journey-layout';
 
 const portrait = devices['iPhone 13'].viewport;
 const landscape = devices['iPhone 13 landscape'].viewport;
+type TouchObservation = { type: string; isTrusted: boolean; targetId: string | null; pointerType: string | null; touches: number | null };
+type TouchWindow = Window & { webkitSmokeTouches?: TouchObservation[] };
+
+const touchEvidence = (page: Page) => page.evaluate(() => (window as TouchWindow).webkitSmokeTouches ?? []);
+
+async function observedTap(page: Page, id: string) {
+ const before = (await touchEvidence(page)).length;
+ // Native Playwright WebKit dispatchTapEvent, never dispatchEvent or property spoofing.
+ await page.locator('#' + id).tap();
+ await expect.poll(async () => {
+  const observed = (await touchEvidence(page)).slice(before).filter(event => event.targetId === id && event.isTrusted);
+  return {
+   touchStart: observed.some(event => event.type === 'touchstart' && event.touches === 1),
+   touchPointer: observed.some(event => event.type === 'pointerdown' && event.pointerType === 'touch'),
+  };
+ }, { message: `WebKit must deliver trusted touchstart and touch pointerdown to #${id}` }).toEqual({ touchStart: true, touchPointer: true });
+}
 
 async function running(page: Page) {
  await expect(page.locator('#app')).toHaveAttribute('data-state', 'running', { timeout: 60000 });
@@ -41,6 +59,23 @@ async function logicalLandscape(page: Page, viewport: { width: number; height: n
 test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adventure settings', async ({ page, browserName }, info) => {
  test.setTimeout(180000);
  expect(browserName).toBe('webkit');
+ expect(info.project.use.hasTouch).toBe(true);
+ expect(info.project.use.isMobile).toBe(true);
+ const touchPhases: { phase: string; events: TouchObservation[] }[] = [];
+ await page.addInitScript(() => {
+  // Passive observation only: do not alter input, browser capabilities or game state.
+  const events: TouchObservation[] = [];
+  (window as TouchWindow).webkitSmokeTouches = events;
+  const observe = (event: Event) => events.push({
+   type: event.type,
+   isTrusted: event.isTrusted,
+   targetId: event.target instanceof Element ? event.target.closest('[id]')?.id ?? null : null,
+   pointerType: event.type === 'pointerdown' ? (event as PointerEvent).pointerType : null,
+   touches: event.type === 'touchstart' ? (event as TouchEvent).touches.length : null,
+  });
+  document.addEventListener('touchstart', observe, { capture: true, passive: true });
+  document.addEventListener('pointerdown', observe, { capture: true, passive: true });
+ });
  const errors: string[] = [];
  page.on('pageerror', error => errors.push(error.message));
  page.on('console', message => {
@@ -55,7 +90,7 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
    await expect(page.locator('#build-version')).toHaveAttribute('data-commit', process.env.EXPECTED_COMMIT);
   }
   await logicalLandscape(page, portrait);
-  expect(await page.evaluate(() => navigator.maxTouchPoints)).toBeGreaterThan(0);
+  await expectJourneyTextFits(page);
   await expect(page).toHaveTitle(/空と灯の大地/);
   await expect(page.locator('#journey')).toContainText('風原');
   await expect(page.locator('#adventure-hud')).toContainText('HP');
@@ -64,32 +99,39 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
 
   await page.setViewportSize(landscape);
   await logicalLandscape(page, landscape);
+  await expectJourneyTextFits(page);
   // Locator taps use WebKit's touch API, without Chromium-only CDP gestures.
-  await page.locator('#powers-menu').tap();
+  await observedTap(page, 'powers-menu');
   await expect(page.getByRole('dialog', { name: '創作能力', exact: true })).toBeVisible();
   await expect(page.locator('#power-kind option')).toHaveCount(13);
-  await page.locator('#powers-close').tap();
+  await observedTap(page, 'powers-close');
   await expect(page.getByRole('dialog', { name: '創作能力', exact: true })).toBeHidden();
 
   await page.setViewportSize(portrait);
   await logicalLandscape(page, portrait);
-  await page.locator('#system-menu').tap();
+  await expectJourneyTextFits(page);
+  await observedTap(page, 'system-menu');
   await expect(page.locator('#invert-camera')).not.toBeChecked();
   await expect(page.locator('#sound-caption-toggle')).not.toBeChecked();
-  await page.locator('#invert-camera').tap();
-  await page.locator('#sound-caption-toggle').tap();
+  await observedTap(page, 'invert-camera');
+  await observedTap(page, 'sound-caption-toggle');
   await expect(page.locator('#invert-camera')).toBeChecked();
   await expect(page.locator('#sound-caption-toggle')).toBeChecked();
-  await page.locator('#system-close').tap();
+  await observedTap(page, 'system-close');
+  await expect(page.locator('#system-panel')).toBeHidden();
+  touchPhases.push({ phase: 'before-reload', events: await touchEvidence(page) });
   await page.reload({ waitUntil: 'domcontentloaded' });
   graphics.push(await running(page));
   await logicalLandscape(page, portrait);
-  await page.locator('#system-menu').tap();
+  await expectJourneyTextFits(page);
+  await observedTap(page, 'system-menu');
   await expect(page.locator('#invert-camera')).toBeChecked();
   await expect(page.locator('#sound-caption-toggle')).toBeChecked();
-  await page.locator('#system-close').tap();
+  await observedTap(page, 'system-close');
+  await expect(page.locator('#system-panel')).toBeHidden();
   await page.setViewportSize(landscape);
   await logicalLandscape(page, landscape);
+  await expectJourneyTextFits(page);
   await expect(page.locator('#error')).toBeHidden();
   await page.screenshot({ path: info.outputPath('iphone-webkit-landscape.png'), scale: 'css' });
   expect(errors).toEqual([]);
@@ -102,11 +144,14 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
    error: document.querySelector('#error')?.textContent,
    commit: document.querySelector<HTMLElement>('#build-version')?.dataset.commit,
    userAgent: navigator.userAgent,
+   maxTouchPoints: navigator.maxTouchPoints,
+   observedTouches: (window as TouchWindow).webkitSmokeTouches ?? [],
   })).catch(error => ({ unavailable: String(error) }));
   await info.attach('iphone-webkit-engine-evidence.json', {
    body: JSON.stringify({
     scope: 'Linux WebKit with the official iPhone 13 profile; not physical iPhone/Safari or phone FPS evidence',
-    expectedCommit: process.env.EXPECTED_COMMIT, graphics, errors, diagnostics,
+    emulation: { profile: 'iPhone 13', browserName, hasTouch: info.project.use.hasTouch, isMobile: info.project.use.isMobile, deviceScaleFactor: info.project.use.deviceScaleFactor, viewport: info.project.use.viewport, userAgent: info.project.use.userAgent },
+    expectedCommit: process.env.EXPECTED_COMMIT, graphics, errors, touchPhases, diagnostics,
    }, null, 2),
    contentType: 'application/json',
   });

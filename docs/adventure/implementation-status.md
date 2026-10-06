@@ -1,5 +1,13 @@
 # 実装台帳
 
+## 現在の公開・検証結果（2026-10-06 02:32 UTC）
+
+公開 `54850cae6bad022940704f3cf98983be00fe86f6` は型・935試験/200ファイル・build・専用SHA/権威health照合・Android選択・公開実2browser 6/6に成功。ローカルhostは復活直後の追従中カメラから採掘して保護領域へ当たり、正しい拒否で失敗しました。serial retryは最後の新規参加まで進みましたがjob期限で中断。生存/接地/実描画と照準の収束を待ち、その一回の実commandに対応する成功ACKを要求する試験修正は次のCI待ちです。
+
+WebKitは公式iPhone profileで実WebGL2/HDR extension・描画・tick進行・横向き配置まで成功しました。LinuxのmaxTouchPoints=0という能力値だけで止まったため、次版は通常tapのtrusted touchstartとtouch pointerdown、および実際のUI効果を検査します。値の偽装はしません。同じ実画像で見つけた目標カードの文字切れは、カードと操作領域を広げず行高/二行省略で修正し、Android/WebKitの配置検査を追加しています。実touch合格や実iPhoneの証拠はまだありません。
+
+4人負荷は60秒13.94Hz、同じSHAで公開browser終了後に一度だけ再測定すると17.69Hzで、どちらも30Hz未達。原因・Worker最大heapは未確定です。最後の退出後にも残っていたroom/loading参照を、保存と参加処理が完了してから解放する修正はローカル944試験/201ファイル・型・buildに成功。同じローカルDurable Objectの保存からの再参加で所持品/編集/管理権/入室制限を保持しました。公開cold rejoinと性能への効果は次版の検証対象です。全54の最終受入・128MiB適合・実端末FPSは引き続き未完了です。
+
 ## 現在の公開・検証結果（2026-10-06 01:49 UTC）
 
 公開 `6aa709354a62470be625abfa3e2e1f3d604bcac5` は型・937試験/200ファイル・build・専用SHA/権威health、Android、公開/ローカル実2browser各6/6に成功。今回の復帰検査はBの全所持品、B/Cの完全な地形履歴、同じtickの共有parts全内容、通常UIの箱選択まで確認しました。画像とJSONも確認済みです。[公開照合結果](../benchmarks/public-browser-6aa70935.json)。

@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from 'vitest';
-import {CoopBrowserRecoveryObserver} from '../helpers/coop-browser-recovery';
+import {CoopBrowserRecoveryObserver,persistentRecoveryParts} from '../helpers/coop-browser-recovery';
 import {installCoopBrowserImpairment} from '../helpers/coop-browser-impairment';
 import {CoopFrameDecoder} from '../../src/networking/coop-frame-decoder';
 import {AuthorityRoom} from '../../src/networking/authority-room';
@@ -68,6 +68,28 @@ it('uses a fresh decoder per WebSocket and ignores a superseded socket without r
  for(let tick=63;tick<100;tick+=3){next.tick=tick;newSocket(delta(next));}
  expect(observer.decodeFailures).toHaveLength(8);expect(observer.latest?.tick).toBe(60);
  for(const limit of [0,-1,Infinity,1.5])expect(()=>new CoopBrowserRecoveryObserver(limit)).toThrow('positive finite');
+});
+
+it('records only validated normal pong timing for the current welcomed connection and epoch',()=>{
+ const observer=new CoopBrowserRecoveryObserver(),first=observer.connection(),{welcome}=fixture();
+ const timing={version:1 as const,clock:'worker-io' as const,run:1,startedIoMs:10,nowIoMs:20,lastStepIoMs:19,tick:30,active:true,scheduler:{steps:3,turns:3,catchUpSteps:0,rebases:0,droppedMs:0,maxDebtMs:0}};
+ first({type:'pong',timing});expect(observer.timing).toBeUndefined();first(welcome);first({type:'pong',timing});
+ expect(observer.timing).toEqual({epoch:welcome.epoch,run:1,startedIoMs:10,nowIoMs:20,tick:30,active:true});
+ first({type:'pong',timing:{...timing,run:NaN}});expect(observer.timing?.run).toBe(1);
+ const second=observer.connection();expect(observer.timing).toBeUndefined();first({type:'pong',timing});expect(observer.timing).toBeUndefined();
+ second({...welcome,epoch:'cold'});second({type:'pong',timing:{...timing,run:2}});expect(observer.timing?.epoch).toBe('cold');expect(observer.timing?.run).toBe(2);
+ second({...welcome,epoch:'another'});expect(observer.timing).toBeUndefined();expect(observer.decodeFailures).toEqual([]);
+});
+
+it('compares every persisted part structure without treating cross-tick physics or released leases as identical',()=>{
+ const before=fixture().welcome.state.adventure.skybound!.parts,after=structuredClone(before),part=after[0];
+ part.position.x+=.25;part.velocity.y=0;part.rotation+=.1;part.epoch++;part.sleeping=false;part.lease=undefined;part.recalling=false;part.powered=true;part.lightRadius=4;part.wet=.2;
+ expect(persistentRecoveryParts(after)).toEqual(persistentRecoveryParts(before));
+ for(const change of [(p:typeof part)=>{p.id++;},(p:typeof part)=>{p.links.push(99);},(p:typeof part)=>{p.shared=false;},(p:typeof part)=>{p.creator='another';},(p:typeof part)=>{p.mass++;},(p:typeof part)=>{p.material='stone';}]){
+  const corrupted=structuredClone(after);change(corrupted[0]);expect(persistentRecoveryParts(corrupted)).not.toEqual(persistentRecoveryParts(before));
+ }
+ const projected=persistentRecoveryParts(before);projected[0].links.push(99);expect(before[0].links).toEqual([8]);
+ expect(persistentRecoveryParts([])).not.toEqual(persistentRecoveryParts(before));
 });
 
 it('keeps native observation complete when the impairment drops an application delta and the app resynchronizes',()=>{

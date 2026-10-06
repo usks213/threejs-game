@@ -87,3 +87,11 @@ QA終了後に順序付けた公開6aa70935の4接続は60.019秒、通信失敗
 [Cloudflareのperformance仕様](https://developers.cloudflare.com/workers/runtime-apis/performance/)では、公開Workerの時計は同期CPU実行中には進まない。[scheduler仕様](https://developers.cloudflare.com/workers/runtime-apis/scheduler/)も同じ制約を説明している。sourceで確認したnative promise/timeoutの順序は、このclockをCPU計測器に変えない。現時点で言える制約は「この計測ではWorker CPU/peak memoryとclock補正を直接分離できず、30Hz未達の原因を特定できていない」こと。Cloudflare上で30Hzが不可能だという結論ではない。追加判断には実WorkerのCPU/メモリ指標や対応するruntime観測が必要で、Nodeの値を代用しない。
 
 rollback後の関連46試験/9ファイル、全typecheck、diff checkに合格。message entry観測だけではtimerをcancelしたりsimulationを進めたりしないこと、captured old timerを停止してもreplacement runを消去/通知しないことも確認した。公開でrollback版をまだ再測定していないため、復旧後のHzは未確定。
+
+## 54850cae: native post-armの公開再測定
+
+[同一SHAのCI37401531255](https://github.com/usks213/threejs-game/actions/runs/37401531255) で公開2browser終了後に4接続を測定した。60.038秒、通信失敗0、最小13.941Hzで30Hz目標は未達。[元receipt](../benchmarks/public-worker-load-54850cae-sequenced.json)を保持する。
+
+他の公開browser接続が終了して数分経ってから、同じSHAの負荷jobだけ一度再実行した。60.017秒、通信失敗0、最小17.695Hzだった。[再測定receipt](../benchmarks/public-worker-load-54850cae-quiet-repeat.json)も保持する。この差だけで、別roomの保持、CPU競合、GC、providerのisolate配置のどれが原因かは判定できない。quietという呼称も専用isolateや他負荷ゼロの証明ではない。
+
+別途、最終切断後にもroomとfulfilled loading promiseが残る参照を発見した。新しい候補は最後の保存完了・保留join/saveなしを待って参照を解放し、次の参加時に保存から再構築する。ローカル同一Durable Objectのcold rejoinで保存状態を確認したが、この変更が公開Hzまたはpeak heapを改善するかはまだ測定していない。30Hz・128MiBの合格へ読み替えない。
