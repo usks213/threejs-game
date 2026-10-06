@@ -305,7 +305,7 @@ export class CoreSimulation {
  private axes(input:Controls){const p=this.player;return {x:Math.cos(p.yaw)*input.x-Math.sin(p.yaw)*input.z,z:-Math.sin(p.yaw)*input.x-Math.cos(p.yaw)*input.z};}
  private move(position:Vec3,dx:number,dz:number,height=1.65){
   const field=this.arena.field,steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dz))/.1));
-  for(let i=0;i<steps;i++){for(const [axis,delta] of [['x',dx/steps],['z',dz/steps]] as const){const trial={...position,[axis]:position[axis]+delta};if(this.campaignMode&&!this.worldReady&&(Math.abs(trial.x)>11||trial.z<-11||trial.z>9))continue;
+  for(let i=0;i<steps;i++){for(const [axis,delta] of [['x',dx/steps],['z',dz/steps]] as const){if(delta===0)continue;const trial={...position,[axis]:position[axis]+delta};if(this.campaignMode&&!this.worldReady&&(Math.abs(trial.x)>11||trial.z<-11||trial.z>9))continue;
    if(this.campaignMode&&(this.animal.overlaps(trial,.27,height)||this.npcActors.some(actor=>actor.overlaps(trial,.27,height)&&!(actor.overlaps(position,.27,height)&&separatesContact(position,trial,actor.position)))))continue;const bodies=this.solidBodies(false);
    if(bodies.some(b=>b!==position&&Math.abs(b.y-trial.y)<1.65&&Math.hypot(b.x-trial.x,b.z-trial.z)<.55))continue;
    if(!field.overlaps(trial,.27,height))position[axis]+=delta;else if(!field.overlaps({...trial,y:trial.y+.26},.27,height)){position[axis]+=delta;position.y+=.25;}}}
@@ -353,7 +353,16 @@ export class CoreSimulation {
  }
  private settle(position:Vec3,vy:number,dt:number,height=1.65){const field=this.arena.field,next=position.y+vy*dt,trial={...position,y:next};
   if(!field.overlaps(trial,.27,height)){position.y=next;return {vy,grounded:false};}
-  if(vy>0)return {vy:0,grounded:false};let lo=next,hi=position.y+.05;for(let i=0;i<10;i++){const mid=(lo+hi)/2;if(field.overlaps({...position,y:mid},.27,height))lo=mid;else hi=mid;}position.y=hi;return {vy:0,grounded:true};
+  if(vy>0)return {vy:0,grounded:false};
+  // A wall/edited solid may already intersect the capsule. Bisection is only
+  // valid with a clear upper endpoint; otherwise +.05 each frame climbs walls
+  // and eventually tunnels through the roof. Keep recovery bounded to 5 cm.
+  let lo=next,hi=position.y;
+  if(field.overlaps(position,.27,height)){
+   hi+=.05;
+   if(field.overlaps({...position,y:hi},.27,height))return {vy:0,grounded:false};
+  }
+  for(let i=0;i<10;i++){const mid=(lo+hi)/2;if(field.overlaps({...position,y:mid},.27,height))lo=mid;else hi=mid;}position.y=hi;return {vy:0,grounded:true};
  }
  private characterTick(dt:number,input:Controls){
   const p=this.player;if(p.hp<=0){this.cancelCombat();return;}if(this.combat.charging){if(input.block||p.phase!=='idle')this.cancelCombat();else this.combat.charge=Math.min(HEAVY_MAX_SECONDS,this.combat.charge+dt);}if(this.combat.pending){if(p.phase!=='cast'){this.cancelCombat();this.events.push({kind:'interact',text:'被弾で詠唱を中断'});}else{this.combat.castRemaining=Math.max(0,this.combat.castRemaining-dt);if(this.combat.castRemaining<1e-9)this.resolveSpell();}}this.castCooldown=Math.max(0,this.castCooldown-dt);if(this.castCooldown<1e-9)this.castCooldown=0;
