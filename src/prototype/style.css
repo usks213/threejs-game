@@ -60,10 +60,28 @@ body:not(.campaign-mode) .values{width:max-content;max-width:100%}
 
 .soil-fill-mode #recipe-switch{display:none}.campaign-mode.soil-fill-mode.touch #recipe-cost{max-width:min(420px,calc(100vw - 36px));height:auto;max-height:44px;white-space:normal}.campaign-mode.soil-fill-mode #prompt{color:#f2e6cb}
 
-#combat-status{width:max-content;max-width:min(440px,calc(100vw - 36px));margin-top:5px;padding:4px 7px;font-size:12px;line-height:18px;color:#d9dcff;background:#101c24ed;border-radius:4px;white-space:normal}.campaign-mode.touch #combat-status{position:relative;top:53px;max-width:420px;font-size:11px;line-height:16px}
+#combat-status{width:max-content;max-width:min(440px,calc(100vw - 36px));margin-top:5px;padding:4px 7px;font-size:12px;line-height:18px;color:#d9dcff;background:#101c24ed;border-radius:4px;white-space:normal}.campaign-mode.touch #combat-status{position:relative;top:53px;max-width:420px;font-size:12px;line-height:18px}
 
 /* During touch building, feedback occupies the material-summary zone. Recipe
  * costs below the toolbar keep the relevant owned/required materials visible;
  * the separate region/threat readout and every 48px action stay in place. */
-.campaign-mode.touch.building-mode:not(.soil-fill-mode) #inventory{display:none}
-.campaign-mode.touch.building-mode:not(.soil-fill-mode) #message{top:64px;bottom:auto;left:calc(max(12px,env(safe-area-inset-left)) + 152px);right:max(12px,env(safe-area-inset-right));transform:none;width:auto;max-width:none;margin:0;padding:3px 7px;font-size:12px;line-height:18px;text-align:left;overflow-wrap:anywhere}
+.campaign-mode.touch.building-mode #inventory{display:none}
+.campaign-mode.touch.building-mode #message{top:64px;bottom:auto;left:calc(max(12px,env(safe-area-inset-left)) + 152px);right:max(12px,env(safe-area-inset-right));transform:none;width:auto;max-width:none;margin:0;padding:3px 7px;font-size:12px;line-height:18px;text-align:left;overflow-wrap:anywhere}
+
+.campaign-mode.touch.building-mode .focus:has(#target:not(:empty)){padding:2px 6px}
+.campaign-mode.touch.building-mode #target,.campaign-mode.touch.building-mode #prompt,.campaign-mode.touch.building-mode #material-status{font-size:12px;line-height:16px;margin:0;overflow-wrap:anywhere}
+.campaign-mode.touch.building-mode #material-status{display:block}
+
+/* Compact construction keeps the complete target/material/prompt card between
+ * the movement and combat controls. Costs and combat resources share the band
+ * above it; the existing top-row instruction and danger status stay separate.
+ * Keep 12px type, full text and 48px controls, including the longer soil preview. */
+@media(max-width:600px) and (orientation:landscape){
+ .campaign-mode.touch.building-mode .survival-readouts{position:absolute;top:100px;left:0;right:0;display:flex;align-items:flex-start;gap:8px}
+ .campaign-mode.touch.building-mode #recipe-cost,.campaign-mode.touch.building-mode #combat-status{position:static;top:auto;max-width:none;max-height:none;width:auto;min-width:0;margin:0;padding:3px 7px;font-size:12px;line-height:18px;overflow:visible}
+ .campaign-mode.touch.building-mode #recipe-cost{flex:0 1 auto}
+ .campaign-mode.touch.building-mode #combat-status{flex:0 1 auto}
+ .campaign-mode.touch.building-mode .focus{top:auto;bottom:calc(max(6px,env(safe-area-inset-bottom)) + 54px);left:calc(max(25px,env(safe-area-inset-left)) + 114px);right:calc(max(22px,env(safe-area-inset-right)) + 168px);width:auto;transform:none;text-align:left}
+ .campaign-mode.touch.building-mode .equipment{left:calc(max(25px,env(safe-area-inset-left)) + 114px)}
+ .campaign-mode.touch.building-mode #move-pad,.campaign-mode.touch.building-mode .touch-actions,.campaign-mode.touch.building-mode .equipment{bottom:max(6px,env(safe-area-inset-bottom))}
+}

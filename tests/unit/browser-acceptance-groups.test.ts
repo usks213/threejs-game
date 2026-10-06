@@ -23,7 +23,11 @@ it('routes each desktop acceptance job through one isolated native browser runne
  const jobs={browser:20,'native-pointer-browser':8,'first-chapter-browser':40,'combat-build-browser':40,'regional-campaign-browser':100,'streamed-world-browser':40};
  for(const [name,minutes] of Object.entries(jobs)){
   const {job,steps}=jobSteps(name),native=steps.filter(step=>step.includes('run: bash scripts/run-native-browser.sh ')),packages=steps.filter(step=>step.includes('run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils'));
-  expect(job).toContain('needs: verify');expect(job).toContain('timeout-minutes: '+minutes);
+  expect(job).toContain('needs: verify');
+  if(name==='browser'){
+   expect(job).toContain("timeout-minutes: ${{ (matrix.group == 'desktop-player-rest' || matrix.group == 'android-player-rest') && 25 || 20 }}");
+   expect(readFileSync('tests/e2e/campaign-player-rest.spec.ts','utf8')).toContain('test.setTimeout(1200000)');
+  }else expect(job).toContain('timeout-minutes: '+minutes);
   expect(native,name).toHaveLength(1);expect(packages,name).toHaveLength(1);
   expect(job).not.toContain('continue-on-error');
   if(['browser','first-chapter-browser','combat-build-browser','streamed-world-browser'].includes(name)){

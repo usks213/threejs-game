@@ -6,6 +6,10 @@
 
 The next local correction adds safe pointer-lock failure recovery, paced native motion, real multitouch flask/tool activation, guarded combat recovery and a separate WebKit engine suite. It has no exact-commit browser result yet.
 
+## Later verification-only attempt
+
+[e9e43f3 / CI 37405003488](https://github.com/usks213/threejs-game/actions/runs/37405003488) finished on 2026-10-06 at 02:50:38 UTC with 1,265 unit tests passed and one failure. The workflow-routing test still required a literal 20-minute job limit, while the workflow gave only the bed-rest jobs 25 minutes to cover setup around the unchanged 20-minute test. The assertion is corrected to enforce that narrow distinction. Build, deployment and browser jobs were skipped; no new preview or browser acceptance resulted.
+
 ## Recorded results
 
 | Job | Result | Verified log | Artifact IDs / first reported error |

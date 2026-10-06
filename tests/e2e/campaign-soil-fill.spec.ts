@@ -1,4 +1,5 @@
 import {test,expect,type Locator,type Page} from '@playwright/test';
+import {expectClearTouchBuildFeedback} from './helpers/hud-layout';
 import {observeAttack} from './helpers/transient-observation';
 import {PlayerControls,read,choosePerformance,type Point} from './helpers/campaign-controls';
 const activate=(button:Locator,mobile:boolean)=>mobile?button.tap():button.click();
@@ -17,6 +18,14 @@ test('H04/I04 zero-grant rake fill has visible mode, cost, physical support and 
   await controls.walkTo(1.6,4.8);await expect.poll(async()=>(await read(page)).inventory[2]).toBeGreaterThanOrEqual(9);
   await controls.menu('crafting');await controls.row('terrain-rake','craft');await activate(page.locator('[data-tab=inventory]'),isMobile);await controls.row('terrain-rake','equip');await controls.resume();await expect(page.locator('#element-switch')).toContainText('削る');
   await controls.walkTo(1.6,5.8);await controls.walkTo(0,6.2);await controls.aim({x:0,y:.25,z:4.85});await controls.action('#element-switch','KeyF');await expect(page.locator('#element-switch')).toContainText('盛土');await expect(page.locator('#recipe-cost')).toContainText('土9');await expect(page.locator('#prompt')).toContainText('平らな盛土');
+  if(isMobile){
+   for(const size of [{width:844,height:390},{width:568,height:320}]){
+    await page.setViewportSize(size);await expect(page.locator('body')).toHaveClass(/soil-fill-mode/);
+    await expectClearTouchBuildFeedback(page);
+    await page.screenshot({path:info.outputPath(`rake-soil-feedback-${size.width}.png`)});
+   }
+   await page.setViewportSize({width:844,height:390});
+  }
   const before=(await read(page)).inventory[2];await controls.action('[data-action=attack]','KeyT');await expect.poll(async()=>(await soilRead(page)).soil.patches.length).toBe(1);expect((await read(page)).inventory[2]).toBe(before-9);const target=(await soilRead(page)).soil.patches[0].position;
   await controls.walkTo(target.x,target.z);await expect.poll(async()=>(await read(page)).position.y).toBeGreaterThan(.45);await page.screenshot({path:info.outputPath('rake-soil-step-standing.png')});
   await controls.walkTo(target.x,6.2);await controls.aim(target);await controls.action('[data-action=heavy]','KeyR');await expect.poll(async()=>(await soilRead(page)).soil.patches.length).toBe(0);expect((await read(page)).inventory[2]).toBe(before);

@@ -16,6 +16,7 @@ export function campaignHudText(s:CampaignUISnapshot['stats']){
 }
 
 /** Refer to the touch toolbar's visible labels instead of unavailable keys. */
-export function campaignBuildingHint(mobile:boolean){
+export function campaignBuildingHint(mobile:boolean,soilFilling=false){
+ if(soilFilling)return mobile?'地面を狙い「盛土」をタップ · 無傷の撤去で土を回収':'盛土: B設置 / Delete撤去 / X戻す / G終了';
  return mobile?'地面を狙い「置く」をタップ · 部材名で切替':'建築: V部品 / F回転 / B設置 / X戻す / G終了';
 }

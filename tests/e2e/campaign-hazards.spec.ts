@@ -10,6 +10,8 @@ test('campaign caster can ignite nearby wood, catch fire, and extinguish with a 
    await expect(page.locator('body')).toHaveClass(/building-mode/);
    await expect(page.locator('#campaign-status')).toHaveClass(/danger/);
    await expect(page.locator('#campaign-status')).toContainText('炎上');
+   await expect(page.locator('#target')).not.toBeEmpty();
+   await expect(page.locator('#material-status')).toContainText('耐久');
    await expectClearTouchBuildFeedback(page);
    await page.screenshot({path:info.outputPath('build-with-active-fire-568.png')});
    await controls.action('#cast','KeyG');
