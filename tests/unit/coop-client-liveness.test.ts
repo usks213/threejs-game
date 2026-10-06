@@ -66,3 +66,20 @@ it('identifies administration, read-only and full-queue refusals without allocat
  const first=results[0];if(first.status==='queued')socket.onmessage?.({data:JSON.stringify({type:'ack',commandId:first.commandId,accepted:true,message:'共有しました'})});
  expect(s.client.action(action).status).toBe('queued');s.client.disconnect();
 });
+it('gives a fresh resync its own deadline after a long healthy socket instead of closing before a delayed welcome',()=>{
+ const s=setup(),socket=Socket.all[0];expect(s.client.input({x:0,z:0,jump:false})).toBe(1);
+ // Keep the world healthy well beyond the initial 15-second handshake budget.
+ for(let i=0;i<13;i++){vi.advanceTimersByTime(2900);socket.welcome();}
+ vi.advanceTimersByTime(1290);s.client.resync();expect(s.states.at(-1)).toBe('syncing');
+ // The next 3-second heartbeat is only 10ms away. The delayed full baseline
+ // must still be admitted through this same live socket and authority epoch.
+ vi.advanceTimersByTime(10);expect(socket.readyState).toBe(Socket.OPEN);expect(s.states.at(-1)).toBe('syncing');
+ vi.advanceTimersByTime(90);socket.welcome();expect(s.states.at(-1)).toBe('online');expect(Socket.all).toHaveLength(1);
+ expect(s.client.input({x:0,z:0,jump:false})).toBe(2);s.client.disconnect();
+});
+it('still expires one stalled resync despite repeated requests and fresh pong traffic',()=>{
+ const s=setup(),socket=Socket.all[0];for(let i=0;i<6;i++){vi.advanceTimersByTime(2900);socket.welcome();}
+ s.client.resync();for(let i=0;i<5;i++){vi.advanceTimersByTime(2900);socket.onmessage?.({data:JSON.stringify({type:'pong'})});s.client.resync();}
+ vi.advanceTimersByTime(1101);expect(s.states.at(-1)).toBe('reconnecting');expect(socket.readyState).not.toBe(Socket.OPEN);
+ expect(s.client.input({x:1,z:0,jump:false})).toBeNull();s.client.disconnect();
+});

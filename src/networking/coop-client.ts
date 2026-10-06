@@ -23,7 +23,8 @@ export class CoopClient {
  private tickAnchor=0;private ackAnchor=0;
  sessionInfo:CoopSessionInfo|null=null;
  private get clientTick(){return this.tickAnchor+Math.max(0,this.sequence-this.ackAnchor);}
- private openedAt=0;
+ // A resync on an old healthy socket needs its own finite welcome budget.
+ private syncStartedAt=0;
  private readonly offline=()=>this.retry();
  private readonly connected=()=>{if(!this.stopped&&!this.online){clearTimeout(this.timer);if(!this.socket)this.connect();}};
  private readonly pending = new Map<string, CoopAction>();
@@ -48,9 +49,9 @@ export class CoopClient {
   const current = () => !this.stopped && generation === this.generation;
   socket.onopen = () => {
    if (!current()) { socket.close(); return; }
-   clearTimeout(this.timer); this.lastWorld = this.lastReceive = this.openedAt = Date.now(); this.state('syncing');
+   clearTimeout(this.timer); this.lastWorld = this.lastReceive = this.syncStartedAt = Date.now(); this.state('syncing');
    socket.send(JSON.stringify({ type: 'hello', protocol: COOP_PROTOCOL, resumeKey: this.resumeKey,buildId:COOP_BUILD_ID,roomId:this.room,clientTick:this.clientTick }));
-   this.heartbeat = setInterval(() => { if (Date.now() - this.lastReceive > 12000||this.online&&Date.now()-this.lastWorld>12000||!this.online&&Date.now()-this.openedAt>15000) this.retry(socket); else if (socket.readyState === WebSocket.OPEN) socket.send('{"type":"ping"}'); }, 3000);
+   this.heartbeat = setInterval(() => { if (Date.now() - this.lastReceive > 12000||this.online&&Date.now()-this.lastWorld>12000||!this.online&&Date.now()-this.syncStartedAt>15000) this.retry(socket); else if (socket.readyState === WebSocket.OPEN) socket.send('{"type":"ping"}'); }, 3000);
   };
   socket.onmessage = event => {
    if (!current()) return;
@@ -112,7 +113,7 @@ export class CoopClient {
   const command:RoomAdminCommand={commandId:crypto.randomUUID(),expectedRevision:this.access.revision,operation,...(targetId?{targetId}:{})};this.pendingAdmin.set(command.commandId,command);if(!this.send({type:'room-admin',...command}))this.retry();return true;
  }
  exportWorld():void{if(!this.online){this.notice('再接続してから書き出してください');return;}if(this.exportRequest)return;this.exportRequest=crypto.randomUUID();this.send({type:'export',requestId:this.exportRequest});}
- resync(): void { this.online = false; this.state('syncing'); this.send({ type: 'resync' }); }
+ resync(): void { if(this.online)this.syncStartedAt=Date.now(); this.online = false; this.state('syncing'); this.send({ type: 'resync' }); }
  disconnect(): void {
   this.stopped = true; this.generation++; this.online = false; clearTimeout(this.timer); clearInterval(this.heartbeat); this.pending.clear();this.pendingAdmin.clear();this.access=null;if(typeof window!=='undefined'){window.removeEventListener('offline',this.offline);window.removeEventListener('online',this.connected);} this.socket?.close(); this.socket = null; this.state('closed');
  }
