@@ -27,6 +27,7 @@ const checks = manual || game || signaling || network || changed(/^tests\/unit\/
 const patterns = new Set();
 // A test-only swipe correction must select its Android case as well as desktop.
 if (scopeChanged || changed(/^tests\/e2e\/menu-scrolling\.spec\.ts$/)) patterns.add('menu scrolling');
+if (changed(/^tests\/e2e\/combat\.spec\.ts$/)) patterns.add('shoulder aim, weapon contact');
 if (config || changed(/^(index\.html$|src\/main\.ts$|tests\/e2e\/game\.spec\.ts$)/)) patterns.add('core landscape');
 if (changed(/^src\/(input\/|platform\/game\.ts$|physics\/character\.ts$)/)) { patterns.add('starts, moves'); patterns.add('two fingers'); }
 if (changed(/^src\/(world\/|fluid\/|save\/|simulation\/(game-simulation|worker)\.ts$)/)) {patterns.add('water is always available');patterns.add('core landscape');patterns.add('renders equipped');}

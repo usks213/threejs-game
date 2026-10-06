@@ -5,7 +5,7 @@ import { leafMaterial } from '../materials/leaves';
 import { TREE_KINDS } from '../../content/meadows/data';
 import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
-import type { AdventureSnapshot } from '../../game/types';
+import type { AdventureSnapshot, ResourceNode } from '../../game/types';
 import { Instances } from './instances';
 
 export function createResources(scene: THREE.Scene, boundedTemplates = false) {
@@ -24,7 +24,13 @@ export function createResources(scene: THREE.Scene, boundedTemplates = false) {
   }));
   const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), scale = new THREE.Vector3(), rotation = new THREE.Quaternion();
   const logDirection=new THREE.Vector3(),axis = new THREE.Vector3(0, 1, 0),leafRotation=new THREE.Euler();
+  const handSized = new Set(['wood','finewood','branch','mushroom','flint','dandelion','perch','pike']);
+  let loose: ResourceNode | null = null;
   function part(id: string, x: number, y: number, z: number, sx: number, sy: number, sz: number): void {
+    // Loose inventory items are hand-sized pickups, not full natural deposits.
+    // Scale around their existing physical anchor; never move the saved node,
+    // change its amount, or shrink the deliberately generous interaction ray.
+    if(loose){const factor=.4;x=loose.x+(x-loose.x)*factor;y=loose.y+(y-loose.y)*factor;z=loose.z+(z-loose.z)*factor;sx*=factor;sy*=factor;sz*=factor;}
     matrix.compose(position.set(x, y, z), rotation, scale.set(sx, sy, sz));
     batches.get(id)?.add(matrix);
   }
@@ -37,6 +43,7 @@ export function createResources(scene: THREE.Scene, boundedTemplates = false) {
       let templatesRemaining = boundedTemplates ? 1 : Infinity;
       for (const n of state.resources) {
         if (n.ready > state.seconds) continue;
+        loose=n.drop&&!handSized.has(n.kind)?n:null;
         if (TREE_KINDS.has(n.kind)) {
           if (!n.removed?.length) {
             const key = n.kind + ':' + n.id % 5;
@@ -70,7 +77,7 @@ export function createResources(scene: THREE.Scene, boundedTemplates = false) {
           group.position.set(n.x, n.y, n.z); continue;
         }
         rotation.setFromAxisAngle(axis, n.id * 2.399);
-        if ((!state.meadows&&n.kind === 'wood')||TREE_KINDS.has(n.kind)) {
+        if ((!n.drop&&!state.meadows&&n.kind === 'wood')||TREE_KINDS.has(n.kind)) {
           const height = (n.kind==='oak'?2:1.35) + (n.id % 7) * 0.1;
           part(n.kind==='birch'?'birchTrunk':'trunk', n.x, n.y + 1.4 * height, n.z, 1.3, height, 1.3);
           if((n.kind==='wood'&&n.id%3===0)||state.biome==='frost'){
@@ -112,6 +119,7 @@ export function createResources(scene: THREE.Scene, boundedTemplates = false) {
           part(batches.has(n.kind)?n.kind:'loot', n.x, n.y + (crystal ? 0.8 : 0.4), n.z, crystal ? 0.9 : 1.5, crystal ? 2.1 : 1.5, crystal ? 0.9 : 1.5);
         }
       }
+      loose=null;
       for(const [id,g]of trees)if(!state.resources.some(n=>n.id===id&&TREE_KINDS.has(n.kind)&&!!n.removed?.length&&n.ready<=state.seconds)){scene.remove(g);disposeVoxelGroup(g);trees.delete(id);}
       for (const batch of batches.values()) batch.end();for(const t of treeBatches.values())for(const b of t.batches)b.end();
     },
