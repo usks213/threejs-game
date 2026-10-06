@@ -92,7 +92,7 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
   await logicalLandscape(page, portrait);
   await expectJourneyTextFits(page);
   await expect(page).toHaveTitle(/空と灯の大地/);
-  await expect(page.locator('#journey')).toContainText('風原');
+  await expect(page.locator('#journey')).toContainText('まずは6m歩こう');
   await expect(page.locator('#adventure-hud')).toContainText('HP');
   await expect(page.locator('#hotbar button')).toHaveCount(8);
   await page.screenshot({ path: info.outputPath('iphone-webkit-portrait.png'), scale: 'css' });
@@ -137,6 +137,20 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
   await expectJourneyTextFits(page);
   await expect(page.locator('#error')).toBeHidden();
   await page.screenshot({ path: info.outputPath('iphone-webkit-landscape.png'), scale: 'css' });
+  const slotRows=await page.locator('#hotbar button').evaluateAll(nodes=>new Set(nodes.map(n=>n.getBoundingClientRect().top)).size);
+  expect(slotRows,'Eight full-size slots should fit one row in this landscape viewport').toBe(1);
+  await expect(page.locator('#compass')).toBeVisible();
+  // Ordinary settings controls produce a known fixed-quality comparison. This
+  // screenshot is visual evidence, never a claim about physical iPhone FPS.
+  await observedTap(page,'system-menu');
+  await page.locator('#render-resolution').selectOption('medium');
+  await observedTap(page,'view-reset');
+  await expect(page.locator('#system-panel')).toBeHidden();
+  await expect.poll(async()=>JSON.parse(await page.locator('#app').getAttribute('data-graphics')??'{}').renderScale).toBe(.75);
+  const beforeFixedDraw=Number(JSON.parse(await page.locator('#app').getAttribute('data-streaming')??'{}').draws);
+  await expect.poll(async()=>Number(JSON.parse(await page.locator('#app').getAttribute('data-streaming')??'{}').draws)).toBeGreaterThan(beforeFixedDraw);
+  await page.screenshot({path:info.outputPath('iphone-webkit-fixed-medium.png'),scale:'css'});
+
   expect(errors).toEqual([]);
  } finally {
   const diagnostics = await page.locator('#app').evaluate(app => ({

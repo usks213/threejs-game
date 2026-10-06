@@ -50,7 +50,7 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
  }
  document.querySelector('#adventure-menu')!.addEventListener('click',()=>{if(panel.hidden)open();else panel.hidden=true;},{signal});
  document.querySelector('#adventure-close')!.addEventListener('click',()=>panel.hidden=true,{signal});
- goal.addEventListener('click',()=>open(goalTab),{signal});
+ goal.addEventListener('click',()=>{if(goalTab==='powers')document.querySelector<HTMLButtonElement>('#powers-menu')?.click();else open(goalTab);},{signal});
  panel.addEventListener('click',event=>{const b=(event.target as HTMLElement).closest<HTMLButtonElement>('button');if(!b)return;
  if(b.dataset.slot!==undefined){const index=Number(b.dataset.slot);if(moveFrom!==null){action('move',moveFrom+':'+index);moveFrom=null;}selectedSlot=index;signature='';render();return;}
  if(b.hasAttribute('data-layout-move')){moveFrom=selectedSlot;signature='';render();return;}
@@ -71,7 +71,8 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
   raceStatus.hidden=!s.race?.run;raceStatus.textContent=s.race?.run?`便り競走 · 門${s.race.run.next+1}/6 · 残り${Math.max(0,90-s.seconds+s.race.run.started).toFixed(1)}秒`:'';
   const mission=journeyGoal(s,player);goalTab=mission.tab;
   const distance=mission.target?Math.round(Math.hypot(mission.target.x-p.x,mission.target.z-p.z)):0;
-  goal.innerHTML=`<span class="goal-kicker">JOURNEY ${mission.target?`· ${distance}m`:''}</span><strong>${mission.title}</strong><small>${mission.detail}</small><i style="width:${mission.progress*100}%"></i>`;
+  goal.setAttribute('aria-label',mission.title+'。'+mission.detail);
+  goal.innerHTML=`<span class="goal-kicker">次の目標 ${mission.target?`· ${distance}m`:''}</span><strong>${mission.title}</strong><small>${mission.detail}</small><i style="width:${mission.progress*100}%"></i>`;
   const bearing=mission.target?Math.atan2(mission.target.x-p.x,mission.target.z-p.z)-(yaw+Math.PI):0;
   document.querySelector('#compass')!.innerHTML=`<span>${['北','北西','西','南西','南','南東','東','北東'][((Math.round(yaw/(Math.PI/4))%8)+8)%8]}</span>${mission.target?`<b style="transform:rotate(${-bearing}rad)">↑</b>`:''}`;
   const nearest=s.resources.filter(n=>n.ready<=s.seconds).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];

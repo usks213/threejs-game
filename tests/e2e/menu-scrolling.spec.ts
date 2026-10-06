@@ -108,6 +108,9 @@ const modes=[{open:'adventure-menu',panel:'adventure-panel',tab:'bag',button:'[d
 async function openMenu(page:Page,mode:typeof modes[number],touch:boolean){
  if(touch)await page.locator('#'+mode.open).tap();else await page.locator('#'+mode.open).click();
  await expect(page.locator('#'+mode.panel)).toBeVisible();
+ // The first production update controls trial/device visibility; measure only
+ // the populated menu, never an intermediate layout before those rows appear.
+ if(mode.panel==='powers-panel')await expect(page.locator('#powers-current')).toContainText('木 30 / 石 30');
  if(mode.tab){const tab=page.locator('[data-tab='+mode.tab+']');if(touch)await tab.tap();else await tab.click();}
 }
 

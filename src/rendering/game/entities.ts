@@ -1,3 +1,5 @@
+import { storyPerson } from '../../content/adventure-people';
+import { addPersonModel } from './person';
 import {createBossParts} from './boss-parts';
 import { voxelizePrimitive } from '../voxel/primitive';
 import { buildingPose,buildingVoxels } from '../../game/voxel/model';
@@ -51,11 +53,10 @@ export function createEntities(scene: THREE.Scene, direct = false) {
     group.getObjectByName('health')!.scale.x = Math.max(0.01, e.health / (def.health * (e.boss ? 1 : (1+(e.stars??0))*(1 + (e.tier - 1) * 0.4))));
    }
    for(const n of state.resources)if(n.kind==='merchant'){
+    const role=state.generator===4?storyPerson(n.id):undefined;
     const group=object('merchant'+n.id,g=>{
-     part(g,box,'#8a6c4d',0,.7,0,.55,1.25,.4);part(g,sphere,'#d1ac81',0,1.6,0,.55,.55,.55);part(g,cone,'#7d5147',0,1.98,0,.37,.22,.37);
-     for(const side of [-1,1]){part(g,box,'#8a6c4d',side*.36,.85,0,.16,.6,.17);part(g,box,'#574632',side*.16,.18,0,.2,.35,.26);}
-     part(g,box,'#a58a5d',0,.65,1.2,2,.15,.8);part(g,box,'#76553d',-1.6,.5,-.6,.8,1,.7);part(g,box,'#c7b483',1.8,.6,-.8,1.2,1.2,1.3);
-     for(const x of [-2,2])part(g,box,'#8a6c4d',x,1.4,0,.1,2.8,.1);part(g,box,'#b99e69',0,2.75,0,4.3,.15,3);
+     g.name='person:'+n.id;
+     addPersonModel(role,(shape,color,x,y,z,sx,sy,sz)=>part(g,{box,sphere,cone}[shape],color,x,y,z,sx,sy,sz));
     });group.position.set(n.x,n.y,n.z);group.visible=true;
    }
    for (const b of state.buildings) {

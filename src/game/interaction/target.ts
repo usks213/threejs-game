@@ -1,3 +1,4 @@
+import { storyPerson } from '../../content/adventure-people';
 import {SITES} from '../../content/adventure-sites';
 import {GUIDES} from '../../content/adventure-trials';
 import { buildingPose,buildingVoxels,treeVoxels,localPoint,rayVoxel,voxelBounds } from '../voxel/model';
@@ -22,8 +23,8 @@ export function interactionTarget(s:AdventureSnapshot,player:Vec3,origin:Vec3,di
  }
  for(const n of s.resources){if(n.ready>s.seconds||TREE_KINDS.has(n.kind)||['fallenLog','stump','sapling','dolmen','stoneCircle','graveyard','bodyPile','beeNest'].includes(n.kind))continue;
  const large=['altar','sacrifice','runestone','merchant'].includes(n.kind),r=large?1:.45,h=large?2:.7;
- const guideName=SITES.find(s=>s.npc===n.id)?.guide??GUIDES.find(g=>g.id===n.id)?.name;const label=guideName?guideName+'と話す':n.drop?`${ITEM_NAMES[n.kind]??n.kind} ×${n.amount}を拾う`:({altar:'供物でボスを呼ぶ',sacrifice:'証を奉納する',runestone:'碑文を読む',merchant:'商人と話す'} as Record<string,string>)[n.kind]??`${ITEM_NAMES[n.kind]??n.kind}を採る`;
- consider('r:'+n.id,label,{x:n.x-r,y:n.y-.15,z:n.z-r},{x:n.x+r,y:n.y+h,z:n.z+r},n.kind==='merchant'?'magic':undefined);
+ const guideName=SITES.find(s=>s.npc===n.id)?.guide??GUIDES.find(g=>g.id===n.id)?.name;const role=s.generator===4?storyPerson(n.id):undefined;const label=role==='practice'?(s.progressionView?.tutorial.step===4?'練習人形を助ける':'練習人形を調べる'):guideName?guideName+'と話す':n.drop?`${ITEM_NAMES[n.kind]??n.kind} ×${n.amount}を拾う`:({altar:'供物でボスを呼ぶ',sacrifice:'証を奉納する',runestone:'碑文を読む',merchant:'商人と話す'} as Record<string,string>)[n.kind]??`${ITEM_NAMES[n.kind]??n.kind}を採る`;
+ consider('r:'+n.id,label,{x:n.x-r,y:n.y-.15,z:n.z-r},{x:n.x+r,y:n.y+h,z:n.z+r},n.kind==='merchant'&&!role?'magic':undefined);
  }
  if(s.death)consider('grave','墓標から回収',{x:s.death.x-.5,y:s.death.y,z:s.death.z-.5},{x:s.death.x+.5,y:s.death.y+1.4,z:s.death.z+.5});
  return best;

@@ -27,7 +27,7 @@ export async function expectJourneyTextFits(page: Page) {
  expect(layout.box.width, 'Journey remains a touch-sized target').toBeGreaterThanOrEqual(48);
  expect(layout.box.height).toBe(layout.compact ? 48 : 64);
  for (const line of layout.lines) {
-  if (layout.compact && line.selector !== 'strong') {
+  if (layout.compact && line.selector === '.goal-kicker') {
    expect(line.display).toBe('none');
    continue;
   }

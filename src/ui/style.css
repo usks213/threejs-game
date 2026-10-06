@@ -78,7 +78,7 @@ header,.world-info,.hint,#combat-more,#combat-extra,#session-menu,#session-statu
 .panel-actions{gap:8px}.panel-actions button{min-height:48px;flex:1 1 110px}
 .quantity-label{flex-wrap:wrap}.quantity-label input{min-width:0}
 #app:has([role=dialog]:not([hidden])) #right-controls,#app:has([role=dialog]:not([hidden])) .controls,#app:has([role=dialog]:not([hidden])) #hotbar,#app:has([role=dialog]:not([hidden])) #interact,#app:has([role=dialog]:not([hidden])) #dismantle,#app:has([role=dialog]:not([hidden])) #build-controls,#app:has([role=dialog]:not([hidden])) .hud-button,#app:has([role=dialog]:not([hidden])) #journey{visibility:hidden}
-@container game (max-width:760px){#hotbar{grid-template-columns:repeat(4,48px)}#interact,#dismantle{bottom:calc(126px + var(--safe-bottom))}#build-controls{grid-template-columns:repeat(3,52px);top:calc(72px + var(--safe-top))}#compass{display:none}#notice{max-width:38%}#enemy-focus{max-width:36%}.slot-grid{grid-template-columns:repeat(8,minmax(48px,1fr))}}
+@container game (max-width:708px){#hotbar{grid-template-columns:repeat(4,48px)}#interact,#dismantle{bottom:calc(126px + var(--safe-bottom))}#build-controls{grid-template-columns:repeat(3,52px);top:calc(72px + var(--safe-top))}#notice{max-width:38%}#enemy-focus{max-width:36%}.slot-grid{grid-template-columns:repeat(8,minmax(48px,1fr))}}
 @container game (max-width:580px){#adventure-hud{width:150px}.vitals{max-width:150px}.food-hud{display:none}.recipe-grid{grid-template-columns:1fr}}
 @container game (max-height:350px){#right-controls{--action-size:48px;--control-gap:4px}#build-controls{top:calc(64px + var(--safe-top))}#build-hint{display:none}#notice{top:calc(64px + var(--safe-top))}#enemy-focus{top:calc(36px + var(--safe-top))}.food-hud{display:none}}
 @media(pointer:fine){.controls,.movement-modes,#combat-controls>button{display:none!important}#app[data-building=true] #use-tool,#app[data-sandbox=true] #use-tool{display:block!important}#interact{pointer-events:none}#dismantle{display:none}#hotbar{grid-template-columns:repeat(8,48px)}}
@@ -109,7 +109,7 @@ header{display:flex!important;left:calc(12px + var(--safe-left));top:calc(8px + 
 #site-rescue{position:absolute;left:50%;bottom:calc(190px + var(--safe-bottom));transform:translateX(-50%);z-index:7;min-height:48px;background:#335768ed;border:1px solid #c1dbb4}#app:has([role=dialog]:not([hidden])) #site-rescue{visibility:hidden}
 #race-status{position:absolute;left:12px;top:123px;z-index:4;pointer-events:none;background:#173a31dc;color:#d8efb2;padding:5px 8px;font-size:11px;border-radius:6px;max-width:40%}
 #app:has(#race-status:not([hidden])) #journey{display:none!important}
-@container game (max-height:350px){#journey{height:48px;max-height:48px}#journey .goal-kicker,#journey small{display:none}#journey strong{margin:0;line-height:1.3}#adventure-hud{max-height:80px}#race-status{left:calc(12px + var(--safe-left));top:calc(112px + var(--safe-top))}}
+@container game (max-height:350px){#journey{height:48px;max-height:48px}#journey .goal-kicker{display:none}#journey small{display:block;white-space:nowrap;text-overflow:ellipsis;font-size:10px;line-height:14px}#journey strong{margin:0;line-height:1.3}#adventure-hud{max-height:80px}#race-status{left:calc(12px + var(--safe-left));top:calc(112px + var(--safe-top))}}
 #room-management{border-top:1px solid #b6d0b755;margin-top:16px;padding-top:8px}#room-management p{font-size:12px;line-height:1.6}.admin-member{margin:8px 0;padding:8px;background:#ffffff0a;border-radius:8px}.admin-member code{display:block;overflow-wrap:anywhere;font-size:11px;margin:8px 0}.admin-member button{margin:3px;min-height:48px}.admin-confirm{border:2px solid #e5c186;border-radius:8px;padding:10px;margin:10px 0;background:#493d26}
 .map-chart{position:absolute;background:#80b79b30;border:1px solid #8cd0bb16;pointer-events:none}.world-map .map-biome,.world-map .map-player{z-index:1}.world-map{overflow:hidden}
 .gear-lots{margin:12px 0;padding:10px;border:1px solid #627b6c;border-radius:10px}.gear-lot{display:grid;gap:6px;padding:10px 0;border-top:1px solid #627b6c55}.gear-lot strong{font-size:.9rem;line-height:1.5}.gear-lot small{opacity:.8}.gear-lot button{min-height:42px}
@@ -131,3 +131,31 @@ header{display:flex!important;left:calc(12px + var(--safe-left));top:calc(8px + 
 #app [role=dialog]{touch-action:manipulation;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 #app [role=dialog] button{touch-action:manipulation}
 .game-settings input[type=range]{touch-action:pan-y}
+
+/* Keep navigation separate from the top action buttons, and reclaim the avatar's
+   lower body on phones wide enough for eight full 48px quick slots. */
+#powers-menu{left:auto;right:calc(232px + var(--safe-right));top:calc(8px + var(--safe-top));transform:none}
+#traverse-glide{left:auto;right:calc(176px + var(--safe-right));top:calc(8px + var(--safe-top))}
+#compass{display:flex;left:50%;top:calc(62px + var(--safe-top));width:96px;min-height:26px;align-items:center;justify-content:center;gap:14px;padding:4px 8px;border-radius:7px;background:#14271fe8;color:#fff5d9;text-shadow:none;font-size:12px;z-index:3}
+#enemy-focus{top:calc(98px + var(--safe-top))}
+#journey{background:#14271fe8;border-left:2px solid #dfc078}
+#journey small{color:#f0eadb}
+#system-panel #view-reset{display:inline-flex!important;position:static;width:auto;min-width:48px;height:48px;align-items:center;justify-content:center;padding:9px;font-size:12px;visibility:visible}
+#quickbar-zone{position:absolute;left:calc(50% + (var(--safe-left) - var(--safe-right))/2);bottom:calc(12px + var(--safe-bottom));transform:translateX(-50%);width:calc(100% - 296px - var(--safe-left) - var(--safe-right));height:100px;container:quickslots / inline-size;pointer-events:none;z-index:4}
+#quickbar-zone #hotbar{bottom:0;grid-template-columns:repeat(4,48px);pointer-events:auto}
+@container quickslots (min-width:412px){#quickbar-zone #hotbar{grid-template-columns:repeat(8,48px)}}
+@media(pointer:fine){#quickbar-zone{width:calc(100% - 24px)}#quickbar-zone #hotbar{grid-template-columns:repeat(8,48px)}}
+
+#notice{top:calc(122px + var(--safe-top))}
+@container game (max-height:350px){#notice{top:calc(112px + var(--safe-top))}}
+
+/* Context actions share the quick-slot width decision, including notched safe
+   areas, so they cannot overlap a second row when landscape space is narrow. */
+#quickbar-zone #interact,#quickbar-zone #dismantle{bottom:114px;pointer-events:auto}
+@container quickslots (min-width:412px){#quickbar-zone #interact,#quickbar-zone #dismantle{bottom:62px}}
+@media(pointer:fine){#quickbar-zone #interact{bottom:62px;pointer-events:none}}
+
+/* Held-part controls already occupy the center. Keep combat warnings readable
+   in the left objective space rather than drawing navigation beneath the tray. */
+#app:has(#powers-quick:not([hidden])) #compass,#app:has(#powers-quick:not([hidden])) #journey{visibility:hidden}
+#app:has(#powers-quick:not([hidden])) #enemy-focus{left:calc(12px + var(--safe-left));top:auto;bottom:calc(132px + var(--safe-bottom));transform:none;width:min(174px,calc(50% - 132px - var(--safe-left)));max-width:none;padding:7px;font-size:11px}

@@ -10,7 +10,7 @@ import {expectJourneyTextFits} from '../helpers/journey-layout';
 // WebGL, so every responsive mode can be inspected quickly and deterministically.
 const html=readFileSync('index.html','utf8').replace(/<script[^>]*src="\/src\/main.ts"[^>]*><\/script>/,'');
 const css=readFileSync('src/ui/style.css','utf8');
-const widths=[{width:568,height:320},{width:320,height:568},{width:667,height:375},{width:844,height:390},{width:390,height:844}];
+const widths=[{width:750,height:342},{width:568,height:320},{width:320,height:568},{width:667,height:375},{width:844,height:390},{width:390,height:844}];
 const modes=['game','interact','hammer','build','sandbox','bag','craft','build-menu','world','trade','chest','system','system-expanded','session'] as const;
 type Mode=typeof modes[number];
 type Insets={top:number;right:number;bottom:number;left:number};
@@ -96,6 +96,7 @@ test('core landscape mobile right controls respect physical safe areas in every 
  const devices=[
   {name:'small-landscape',size:{width:568,height:320},insets:{top:4,right:16,bottom:4,left:24}},
   {name:'small-rotated',size:{width:320,height:568},insets:{top:24,right:4,bottom:16,left:4}},
+  {name:'wide-notched',size:{width:750,height:342},insets:{top:0,right:44,bottom:21,left:44}},
   {name:'home-indicator',size:{width:568,height:320},insets:{top:0,right:44,bottom:21,left:44}},
  ];
  for(const device of devices)for(const mode of modes){
@@ -144,4 +145,18 @@ test('survival adventure mobile journey keeps complete text lines inside its car
    expect(await problems(page),`${size.width}×${size.height} ${long?'long':'original'} objective`).toEqual([]);
   }
  }
+});
+
+// Use the real layout at the viewport that previously put a second row over the
+// avatar. All eight buttons remain present and at least 48px wide/high.
+test('voxel adventure quick slots leave one row of action space on a 750px phone',async({page},info)=>{
+ test.skip(info.project.name!=='android-chromium','Touch layout');
+ await setup(page,{width:750,height:342},'game');
+ const slots=await page.locator('#hotbar button').evaluateAll(nodes=>nodes.map(n=>{const b=n.getBoundingClientRect();return {top:b.top,width:b.width,height:b.height};}));
+ expect(slots).toHaveLength(8);expect(new Set(slots.map(s=>s.top)).size).toBe(1);
+ expect(slots.every(s=>s.width>=48&&s.height>=48)).toBe(true);
+ expect(await problems(page)).toEqual([]);
+ await expect(page.locator('#compass')).toBeVisible();
+ await expect(page.locator('#journey small')).toBeVisible();
+ await page.screenshot({path:info.outputPath('playability-layout-750.png')});
 });
