@@ -3,7 +3,7 @@ import {GameSimulation} from '../../src/simulation/game-simulation';
 
 test.use({deviceScaleFactor:.5,viewport:{width:844,height:390}});
 type ScrollEvidence={clicks:number;touches:number;cancels:number;catalogMoves:number};
-type NativeObservation={gesture:number|null;type:string;time:number;trusted:boolean;target:{tag:string;id:string;value:string|null;touchAction:string;control:string|null}|null;pointerType:string|null;points:{x:number;y:number}[]};
+type NativeObservation={gesture:number|null;type:string;time:number;trusted:boolean;target:{tag:string;id:string;value:string|null;touchAction:string;control:string|null;power:string|null}|null;pointerType:string|null;points:{x:number;y:number}[]};
 type ObservedWindow=typeof window&{menuScrollEvidence:ScrollEvidence;menuNativeTrace:{activeGesture:number|null;events:NativeObservation[]}};
 async function ready(page:Page){
  await page.goto('/',{waitUntil:'domcontentloaded'});
@@ -22,7 +22,7 @@ async function ready(page:Page){
   const observe=(event:Event)=>{
    const target=event.target instanceof Element?event.target:null;
    const points=event instanceof TouchEvent?[...event.changedTouches].map(t=>({x:t.clientX,y:t.clientY})):event instanceof MouseEvent?[{x:event.clientX,y:event.clientY}]:[];
-   trace.events.push({gesture:trace.activeGesture,type:event.type,time:performance.now(),trusted:event.isTrusted,target:target?{tag:target.tagName,id:target.id,value:target instanceof HTMLInputElement||target instanceof HTMLSelectElement?target.value:null,touchAction:getComputedStyle(target).touchAction,control:target.closest('button,input,select,textarea,a[href],summary,[role=slider],[contenteditable=true]')?.tagName??null}:null,pointerType:event instanceof PointerEvent?event.pointerType:null,points});
+   trace.events.push({gesture:trace.activeGesture,type:event.type,time:performance.now(),trusted:event.isTrusted,target:target?{tag:target.tagName,id:target.id,value:target instanceof HTMLInputElement||target instanceof HTMLSelectElement?target.value:null,touchAction:getComputedStyle(target).touchAction,control:target.closest('button,input,select,textarea,a[href],summary,[role=slider],[contenteditable=true]')?.tagName??null,power:target.closest<HTMLButtonElement>('button')?.dataset.power??null}:null,pointerType:event instanceof PointerEvent?event.pointerType:null,points});
    if(trace.events.length>800)trace.events.shift();
   };
   for(const type of ['pointerdown','pointercancel','touchstart','touchend','touchcancel','input','change','click'])document.addEventListener(type,observe,{capture:true,passive:true});
