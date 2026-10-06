@@ -93,6 +93,20 @@ test.describe.serial('two real browsers',()=>{
   test.setTimeout(90000);stage('shared pickup conflict');
   for(const page of[a,b]){await page.keyboard.press('Escape');await page.locator('#adventure-menu').click();await page.locator('[data-tab=bag]').click();await expect(page.locator('[data-drop-kind=wood]')).toBeVisible();}
   const targetA=await a.locator('[data-drop-kind=wood]').getAttribute('data-id'),targetB=await b.locator('[data-drop-kind=wood]').getAttribute('data-id');expect(targetA).toBe(targetB);
+  // Opening the menus under impairment can overlap resync or the reconnect's
+  // room-access save. Such clicks are correctly refused before queue admission.
+  // Wait for both writable clients and a newer synchronized frame; never retry
+  // a gather that might already have transferred the shared supply.
+  let readyTicks:number[]|undefined;
+  await expect.poll(async()=>{
+   const states=await Promise.all([a,b].map(page=>page.locator('#session-status').evaluate(status=>({
+    ready:status.getAttribute('data-connection')==='online'&&status.getAttribute('data-admin-pending')==='false'&&status.getAttribute('data-read-only')==='false',
+    tick:Number(status.getAttribute('data-tick')),
+   }))));
+   if(states.some(state=>!state.ready||!Number.isFinite(state.tick))){readyTicks=undefined;return false;}
+   readyTicks??=states.map(state=>state.tick);
+   return states.every((state,index)=>state.tick>readyTicks![index]);
+  },{message:'Both pickup participants are writable and receiving fresh synchronized frames',timeout:30000}).toBe(true);
   await a.locator('[data-drop-kind=wood]').focus();await b.locator('[data-drop-kind=wood]').focus();
   await Promise.all([a.keyboard.press('Enter'),b.keyboard.press('Enter')]);
   await expect.poll(async()=>Number(await a.locator('#bag-material-counts [data-item=wood]').getAttribute('data-count'))+Number(await b.locator('#bag-material-counts [data-item=wood]').getAttribute('data-count'))).toBe(12);

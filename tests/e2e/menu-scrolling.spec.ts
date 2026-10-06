@@ -3,7 +3,8 @@ import {GameSimulation} from '../../src/simulation/game-simulation';
 
 test.use({deviceScaleFactor:.5,viewport:{width:844,height:390}});
 type ScrollEvidence={clicks:number;touches:number;cancels:number;catalogMoves:number};
-type ObservedWindow=typeof window&{menuScrollEvidence:ScrollEvidence};
+type NativeObservation={gesture:number|null;type:string;time:number;trusted:boolean;target:{tag:string;id:string;value:string|null;touchAction:string;control:string|null}|null;pointerType:string|null;points:{x:number;y:number}[]};
+type ObservedWindow=typeof window&{menuScrollEvidence:ScrollEvidence;menuNativeTrace:{activeGesture:number|null;events:NativeObservation[]}};
 async function ready(page:Page){
  await page.goto('/',{waitUntil:'domcontentloaded'});
  await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
@@ -17,6 +18,14 @@ async function ready(page:Page){
   document.addEventListener('click',event=>{if(event.isTrusted&&(event.target as Element).closest('[role=dialog] button'))evidence.clicks++;},{capture:true,passive:true});
   document.addEventListener('touchstart',event=>{if(event.isTrusted)evidence.touches++;},{capture:true,passive:true});
   document.addEventListener('pointercancel',event=>{if(event.isTrusted)evidence.cancels++;},{capture:true,passive:true});
+  const trace={activeGesture:null as number|null,events:[] as NativeObservation[]};(window as ObservedWindow).menuNativeTrace=trace;
+  const observe=(event:Event)=>{
+   const target=event.target instanceof Element?event.target:null;
+   const points=event instanceof TouchEvent?[...event.changedTouches].map(t=>({x:t.clientX,y:t.clientY})):event instanceof MouseEvent?[{x:event.clientX,y:event.clientY}]:[];
+   trace.events.push({gesture:trace.activeGesture,type:event.type,time:performance.now(),trusted:event.isTrusted,target:target?{tag:target.tagName,id:target.id,value:target instanceof HTMLInputElement||target instanceof HTMLSelectElement?target.value:null,touchAction:getComputedStyle(target).touchAction,control:target.closest('button,input,select,textarea,a[href],summary,[role=slider],[contenteditable=true]')?.tagName??null}:null,pointerType:event instanceof PointerEvent?event.pointerType:null,points});
+   if(trace.events.length>800)trace.events.shift();
+  };
+  for(const type of ['pointerdown','pointercancel','touchstart','touchend','touchcancel','input','change','click'])document.addEventListener(type,observe,{capture:true,passive:true});
  });
 }
 const gestureEvidence=new WeakMap<Page,Record<string,unknown>[]>();
@@ -29,61 +38,70 @@ async function swipePath(page:Page,id:string,options:SwipeOptions={}){
   const rotated=document.querySelector<HTMLElement>('#app')!.dataset.rotated==='true';
   const logical=(r:DOMRect)=>rotated?{left:r.top,right:r.bottom,top:innerWidth-r.right,bottom:innerWidth-r.left}:r;
   const physical=(x:number,y:number)=>rotated?{x:innerWidth-y,y:x}:{x,y};
-  const box=logical(panel.getBoundingClientRect());let x=box.left+(box.right-box.left)*.2,y=options.reverse?box.top+30:box.bottom-30;
+  const box=logical(panel.getBoundingClientRect());let clearance:number|null=null;let x=box.left+(box.right-box.left)*.2,y=options.reverse?box.top+30:box.bottom-30;
   if(options.button){
    // A button can be touched when only part of it is visible. Use the clipped
    // touchable region, not a fully-contained bounding box or a header cutoff.
    const buttons=[...panel.querySelectorAll<HTMLButtonElement>(options.button)].filter(el=>!el.disabled&&el.getClientRects().length).map(el=>{
     const r=logical(el.getBoundingClientRect()),left=Math.max(r.left,box.left+3),right=Math.min(r.right,box.right-3),top=Math.max(r.top,box.top+3),bottom=Math.min(r.bottom,box.bottom-3);
     return {el,left,right,top,bottom,x:(left+right)/2,y:(top+bottom)/2};
-   }).filter(r=>r.right-r.left>=8&&r.bottom-r.top>=8&&r.y-(box.top+25)>=60).sort((a,b)=>b.y-a.y);
+   }).filter(r=>r.right-r.left>=8&&r.bottom-r.top>=8&&(options.reverse?box.bottom-30-r.y:r.y-(box.top+25))>=60).sort((a,b)=>options.reverse?a.y-b.y:b.y-a.y);
    const target=buttons.find(candidate=>{const point=physical(candidate.x,candidate.y);return document.elementFromPoint(point.x,point.y)?.closest('button')===candidate.el;});
    if(!target)return null;
    x=target.x;y=target.y;
   }else{
-   // The panel's text/background gesture must not start on a native slider,
-   // checkbox, button or select. A fixed x fraction can land on any of those.
-   const xs=[box.right-7,box.left+7,box.left+(box.right-box.left)*.8,box.left+(box.right-box.left)*.5,box.left+(box.right-box.left)*.2];
-   const ys=options.reverse?[box.top+30,box.top+55,box.top+80]:[box.bottom-30,box.bottom-55,box.bottom-80];
-   const candidates=ys.flatMap(y=>xs.map(x=>({x,y}))),safe=candidates.find(candidate=>{const point=physical(candidate.x,candidate.y),target=document.elementFromPoint(point.x,point.y);return target&&panel.contains(target)&&!target.closest('button,input,select,textarea,a,summary,[role=slider],[contenteditable=true]');});
-   if(!safe)throw Error('No non-control native swipe start in '+panel.id);
-   x=safe.x;y=safe.y;
+   // Chromium can adjust a touch onto a nearby control even when the point
+   // itself hits the panel. Prefer text with measured clearance, not its gutter.
+   const controlSelector='button,input,select,textarea,a[href],summary,[role=slider],[contenteditable=true]';
+   const controls=[...panel.querySelectorAll<HTMLElement>(controlSelector)].filter(el=>!el.matches(':disabled')&&el.getClientRects().length&&getComputedStyle(el).visibility==='visible').map(el=>logical(el.getBoundingClientRect()));
+   const distance=(x:number,y:number)=>controls.reduce((nearest,r)=>Math.min(nearest,Math.hypot(Math.max(r.left-x,0,x-r.right),Math.max(r.top-y,0,y-r.bottom))),1000);
+   const candidates:{x:number;y:number;text:boolean}[]=[];
+   for(const el of panel.querySelectorAll<HTMLElement>('p,h1,h2,h3,h4,legend,small')){
+    if(!el.getClientRects().length)continue;const r=logical(el.getBoundingClientRect()),left=Math.max(r.left,box.left+12),right=Math.min(r.right,box.right-12),top=Math.max(r.top,box.top+12),bottom=Math.min(r.bottom,box.bottom-12);
+    if(right-left<8||bottom-top<8)continue;
+    for(const x of [left+Math.min(16,(right-left)/2),(left+right)/2,right-Math.min(16,(right-left)/2)])candidates.push({x,y:(top+bottom)/2,text:true});
+   }
+   for(let y=box.top+20;y<=box.bottom-20;y+=24)for(let x=box.left+12;x<=box.right-12;x+=32)candidates.push({x,y,text:false});
+   const safe=candidates.map(candidate=>({...candidate,clearance:distance(candidate.x,candidate.y),travel:options.reverse?box.bottom-30-candidate.y:candidate.y-box.top-25})).filter(candidate=>{
+    if(candidate.clearance<32||candidate.travel<70)return false;
+    const point=physical(candidate.x,candidate.y),target=document.elementFromPoint(point.x,point.y);
+    return target&&panel.contains(target)&&!target.closest(controlSelector);
+   }).sort((a,b)=>Number(b.text)-Number(a.text)||b.clearance-a.clearance||b.travel-a.travel)[0];
+   if(!safe)throw Error('No non-control native swipe start with 32px control clearance and 70px travel in '+panel.id);
+   x=safe.x;y=safe.y;clearance=safe.clearance;
   }
   const endY=options.reverse?Math.min(box.bottom-30,y+140):options.button?box.top+25:Math.max(box.top+25,y-140);
   const start=physical(x,y),end=physical(x,endY),target=document.elementFromPoint(start.x,start.y);
   if(!target||!panel.contains(target))throw Error('Swipe target is outside '+panel.id);
   if(options.button&&(!target.closest('button')||(target.closest('button') as HTMLButtonElement).disabled))throw Error('Swipe must begin on an enabled button');
-  return {start,end,evidence:{panel:panel.id,rotated,button:options.button??null,reverse:!!options.reverse,target:{tag:target.tagName,id:target.id,touchAction:getComputedStyle(target).touchAction},panelTouchAction:getComputedStyle(panel).touchAction,before:{top:panel.scrollTop,max:panel.scrollHeight-panel.clientHeight}}};
+  return {start,end,evidence:{panel:panel.id,rotated,clearance,button:options.button??null,reverse:!!options.reverse,target:{tag:target.tagName,id:target.id,touchAction:getComputedStyle(target).touchAction},panelTouchAction:getComputedStyle(panel).touchAction,before:{top:panel.scrollTop,max:panel.scrollHeight-panel.clientHeight},rangesBefore:[...panel.querySelectorAll<HTMLInputElement>('input[type=range]')].map(input=>({id:input.id,value:input.value,rect:input.getBoundingClientRect().toJSON()}))}};
  },options);
 }
 async function swipe(page:Page,cdp:CDPSession,id:string,options:SwipeOptions={}){
  const path=await swipePath(page,id,options);if(!path)throw Error('No visible enabled button with sufficient native swipe travel in '+id);
- const entry:Record<string,unknown>={...path.evidence,start:path.start,end:path.end},entries=gestureEvidence.get(page);if(entries){entries.push(entry);if(entries.length>80)entries.shift();}
+ const entries=gestureEvidence.get(page),gesture=(entries?.length??0)+1,entry:Record<string,unknown>={gesture,...path.evidence,start:path.start,end:path.end};if(entries){entries.push(entry);if(entries.length>80)entries.shift();}
+ await page.evaluate(gesture=>(window as ObservedWindow).menuNativeTrace.activeGesture=gesture,gesture);
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...path.start,id:61}]});
+ // Observe the browser's actual trusted target after its touch adjustment.
+ const starts=await page.evaluate(()=>(window as ObservedWindow).menuNativeTrace.events.filter(event=>event.gesture===(window as ObservedWindow).menuNativeTrace.activeGesture&&['pointerdown','touchstart'].includes(event.type)));
+ entry.nativeStarts=starts;
+ expect(starts.some(event=>event.trusted&&event.type==='pointerdown')).toBe(true);expect(starts.some(event=>event.trusted&&event.type==='touchstart')).toBe(true);
+ if(!options.button)expect(starts.every(event=>event.trusted&&event.target!==null&&event.target.control===null),'Background swipe must actually start away from native controls').toBe(true);
  for(let step=1;step<=10;step++){
   await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:path.start.x+(path.end.x-path.start.x)*step/10,y:path.start.y+(path.end.y-path.start.y)*step/10,id:61}]});
   await page.waitForTimeout(35);
  }
  // Let the final position settle before release rather than testing fling timing.
  await page.waitForTimeout(100);await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
- entry.after=await scrollState(page,id);
+ await page.waitForTimeout(50);entry.after=await scrollState(page,id);
+ Object.assign(entry,await page.locator('#'+id).evaluate(panel=>{const trace=(window as ObservedWindow).menuNativeTrace,result={nativeEvents:trace.events.filter(event=>event.gesture===trace.activeGesture),rangesAfter:[...panel.querySelectorAll<HTMLInputElement>('input[type=range]')].map(input=>({id:input.id,value:input.value}))};trace.activeGesture=null;return result;}));
 }
-/** Navigate toward a specific known button, rather than blindly searching
- * forward through a settings section made entirely of sliders and checkboxes. */
-async function prepareButtonSwipe(page:Page,cdp:CDPSession,id:string,button:string){
- await expect(page.locator('#'+id).locator(button)).toBeEnabled();
- while(!await swipePath(page,id,{button})){
-  const before=await scrollState(page,id),reverse=await page.locator('#'+id).evaluate((panel,selector)=>{
-   const target=panel.querySelector(selector);if(!target)throw Error('Menu swipe button missing: '+selector);
-   const box=panel.getBoundingClientRect(),r=target.getBoundingClientRect(),rotated=document.querySelector<HTMLElement>('#app')!.dataset.rotated==='true';
-   return rotated?innerWidth-r.right<innerWidth-box.right+85:r.top<box.top+85;
-  },button);
-  const available=reverse?before.top:before.max-before.top;
-  if(available<10)throw Error('Cannot reach native swipe target '+button+' in '+id);
-  await swipe(page,cdp,id,{reverse});
-  const moved=async()=>{const after=await scrollState(page,id);return reverse?before.top-after.top:after.top-before.top;};
-  await expect.poll(moved).toBeGreaterThan(Math.min(10,available/2));
- }
+/** Preparing the target is not evidence of touch scrolling. Center it using the
+ * browser's normal scroll-into-view API, then measure only the native gesture. */
+async function prepareButtonSwipe(page:Page,id:string,button:string){
+ const target=page.locator('#'+id).locator(button);await expect(target).toBeEnabled();
+ await target.evaluate(el=>el.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'}));
+ await expect.poll(()=>swipePath(page,id,{button})).not.toBeNull();
  return scrollState(page,id);
 }
 const modes=[{open:'adventure-menu',panel:'adventure-panel',tab:'bag',button:'[data-slot="16"]'},{open:'adventure-menu',panel:'adventure-panel',tab:'craft',button:'[data-catalog-clear]'},{open:'powers-menu',panel:'powers-panel',button:'[data-power="create"]'},{open:'system-menu',panel:'system-panel',button:'#debug-flight-toggle'}];
@@ -107,18 +125,15 @@ test('survival adventure menu scrolling uses native swipes from buttons in lands
    const settings=mode.panel==='system-panel'?await panel.locator('input[type=range]').evaluateAll(inputs=>inputs.map(input=>({id:input.id,value:(input as HTMLInputElement).value}))):null;
    // Start from text/content, then begin a second real swipe on a menu button.
    await swipe(page,cdp,mode.panel);await expect.poll(async()=>(await scrollState(page,mode.panel)).top).toBeGreaterThan(initial.top+25);
-   let before=await scrollState(page,mode.panel);
-   // A short inventory may already be near the end after the first swipe.
-   // Move back with a real gesture to leave room for the button-start check.
-   if(before.max-before.top<50){await swipe(page,cdp,mode.panel,{reverse:true});before=await scrollState(page,mode.panel);}
-   before=await prepareButtonSwipe(page,cdp,mode.panel,mode.button);
+   const before=await prepareButtonSwipe(page,mode.panel,mode.button);
    expect(before.max-before.top).toBeGreaterThan(20);
    const clicks=await page.evaluate(()=>(window as ObservedWindow).menuScrollEvidence.clicks);
    await swipe(page,cdp,mode.panel,{button:mode.button});await expect.poll(async()=>(await scrollState(page,mode.panel)).top).toBeGreaterThan(before.top+Math.min(20,(before.max-before.top)/2));
    expect(await page.evaluate(()=>(window as ObservedWindow).menuScrollEvidence.clicks),'A scroll beginning on a button must not activate it').toBe(clicks);
    await expect(panel).toBeVisible();expect(await page.locator('#app').getAttribute('data-camera-yaw')).toBe(yaw);expect(await page.locator('#app').getAttribute('data-camera-pitch')).toBe(pitch);
    if(mode.tab==='bag')await page.screenshot({path:info.outputPath('menu-scroll-'+(size.height>size.width?'portrait':'landscape')+'.png'),scale:'css'});
-   const down=await scrollState(page,mode.panel);await swipe(page,cdp,mode.panel,{reverse:true});await expect.poll(async()=>(await scrollState(page,mode.panel)).top).toBeLessThan(down.top-20);
+   const down=await scrollState(page,mode.panel);await swipe(page,cdp,mode.panel,{button:mode.button,reverse:true});await expect.poll(async()=>(await scrollState(page,mode.panel)).top).toBeLessThan(down.top-20);
+   expect(await page.evaluate(()=>(window as ObservedWindow).menuScrollEvidence.clicks),'Reverse scrolling from the same button must not activate it').toBe(clicks);
    if(settings){expect(await panel.locator('input[type=range]').evaluateAll(inputs=>inputs.map(input=>({id:input.id,value:(input as HTMLInputElement).value})))).toEqual(settings);await expect(page.locator('#debug-flight-toggle')).toHaveAttribute('aria-pressed','false');}
    await page.keyboard.press('Escape');await expect(panel).toBeHidden();
   }
@@ -144,7 +159,7 @@ test('survival adventure menu scrolling uses native swipes from buttons in lands
  expect(await page.locator('#game,#stick,#attack').evaluateAll(elements=>elements.map(el=>getComputedStyle(el).touchAction))).toEqual(['none','none','none']);
  await expect(page.locator('#error')).toBeHidden();expect(errors).toEqual([]);
  }catch(error){
-  await info.attach('menu-scroll-gesture-evidence.json',{body:JSON.stringify(gestureEvidence.get(page)??[],null,2),contentType:'application/json'});
+  await info.attach('menu-scroll-gesture-evidence.json',{body:JSON.stringify({gestures:gestureEvidence.get(page)??[],nativeEvents:await page.evaluate(()=>(window as ObservedWindow).menuNativeTrace?.events??[]).catch(()=>[])},null,2),contentType:'application/json'});
   throw error;
  }finally{gestureEvidence.delete(page);}
 });
