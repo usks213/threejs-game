@@ -148,3 +148,17 @@ FIFO/preview保持/記録姿勢の安全判定/既存Skyboundの関連18試験�
 各試行のGPU読出しは最大15秒で、成功pixelを得るか、接地後の描画sampleまでFIFO結果が完了することを要求する。後者の時点で高いpixelがなければ初めて「空中frameを取り逃した」と数える。読出し自体が未完了なら失敗し、成功へ置換しない。最大3回の通常ジャンプ、同一player ID・visible=true・足元より0.15m高い条件を維持し、全体予算は180秒。失敗時も各試行の権威上昇・描画履歴・frame統計をJSONへ保存する。
 
 描画解像度は従来の640×360 CSS / deviceScaleFactor 0.5と既存の自動調整のまま。この変更は試験操作と観測の待機条件だけで、物理・姿勢・描画効果は変更していない。型検査と6ケースのdiscoveryに合格。変更後の実ブラウザ結果はCI待ちであり、SwiftShaderの時間を実機FPSとして扱わない。
+
+## 707a0c46の未送信操作と観測カメラ（2026-10-06）
+
+[CI run 37390246811](https://github.com/usks213/threejs-game/actions/runs/37390246811) の公開NET-A02は共有設定の送信待ちで失敗した。[公開証拠](https://github.com/usks213/threejs-game/actions/runs/37390246811/artifacts/11380463929) のbrowser-0 traceで、`#power-share` のcall@216直後（32580.653ms）に `data-connection=syncing`、試みた操作 `sky-share 1:on`、通知「再接続してから操作してください」が同時にある。ACK紛失を推測したのではなく、再同期とクリックが交差してclientがqueue投入前に拒否していた。取得/再送ケースと拒否説明/復帰は合格、後続3ケースはskipで、公開NET-A02の合格にはしない。
+
+- CoopClientの操作結果を、ローカルqueueへ入った `queued + commandId` と、入らなかった `refused + 理由` に分けた。queuedは権威の成功ACKを意味しない。遅延送信・切断再送でも元のIDを維持し、ACKまで二つ目の操作へ置き換えない。
+- UIは試みた操作だけでなく実際の投入結果を記録する。拒否済みのoffline操作を再接続後に自動実行する変更はない。管理保存中、read-only、64件の待機上限も拒否を維持する。
+- browser試験は実UI入力の結果を観測し、明示したoffline拒否、またはcommit callbackが走らず保持されたpreviewの場合だけ再度本人操作を行う。native framesentがまだないことを再クリックの理由にしない。投入された正確なcommandIdの実WebSocket送信と、その同じIDの成功ACKを引き続き要求する。
+
+同runの[ローカル証拠](https://github.com/usks213/threejs-game/actions/runs/37390246811/artifacts/11381292003) ではNET-A02/NET-A09が両試行で合格したが、NET-A01の二方向目の移動/向きで失敗し、今回のジャンプ条件まで到達していない。先行するBの東移動後もBのカメラはyaw=0のままで、Aが西へ移ると視野外になっていた。最終poseはAのx=-0.44667、heading=-1.57080、screen.x=-1.08741、visible=false。retryでもAがx=.17591で既にscreen.x=-1.07477、visible=falseだった。直前の可視poseはheading=-.86499であり、必要な向きとの差0.25未満を満たさない。
+
+試験の観測側カメラを通常の中ボタンドラッグ100 CSS pxで相手側へ0.6rad振り、移動とジャンプの実pixelを観測する。移動がカメラ相対なので、各方向の観測後は逆ドラッグで元のyawへ戻したことも要求し、次のactor/地形試験へ渡す。非表示の視点リセットを強制クリックせず、teleport・合成snapshot・GPU結果注入は使わない。移動0.35m超、heading差0.25未満、上昇0.15m超、接地までのFIFO結果を最大15秒待つ条件と保護領域の配置拒否は維持する。
+
+投入拒否/同一ID再送/UI結果分離、既存遅延helperとpreview保持の関連22単体試験、型検査に合格。新しいカメラ操作と公開経路のブラウザ合格は次のCI待ち。環境の既知のChromium起動EPERMを回避して実行したとは記録しない。

@@ -49,3 +49,9 @@ CIの公開測定も同じpreview上の別部屋のbrowser QAと並行し得る�
 [CI37386732391のartifact](https://github.com/usks213/threejs-game/actions/runs/37386732391/artifacts/11379312185)。新しい密度/水選択版も4接続・60.033秒を失敗0で完走したが、26.835〜26.885Hzで引き続き30Hz未達。ping p95は148.7〜148.8ms、測定中33,460,971byte。生JSONは`public-worker-load-763c7902.json`。Nodeの短いCPU比較を公開での速度改善へ読み替えない。
 
 次の版では既存pongに任意のI/O時計とscheduler counterだけを追加し、失ったbacklogや実tickとの差を観測する。clockの進め方や入力条件は変えない。これもWorker CPU時間/peak memoryの取得ではない。
+
+## 707a0c46の公開再測定と時計の観測
+
+期待SHA `707a0c46d9f40d9c7feb578ce0dfdf04425070fa` をasset/authority/welcomeで照合した測定は60.052秒、4接続、失敗0で完走。しかし最小22.780Hzで目標未達。元の結果を`docs/benchmarks/public-worker-load-707a0c46.json`へ保持した。
+
+最初の接続のpong両端で、client実時間56,956.524ms、Worker I/O時計43,400ms、実tick/callback各1,302、rebase/drop各0を観測した。I/O時計上の30Hzや小さいdebtを実時間の合格へ読み替えない。CPU時間、実時間backlog、backend peak memoryは依然測れていない。次のnative wait候補とその未証明部分は`worker-clock-regression.md`を参照。公開後に同一条件・新しいSHAで再測定する。

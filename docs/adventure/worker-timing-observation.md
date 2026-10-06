@@ -50,3 +50,26 @@ public observations require publication and a new bounded probe of that exact
 commit.
 
 ローカルworkerdでも4本の本物のWebSocketを5秒接続し、全員が2つずつの有効なtiming sampleを受信した。未知/破損/不連続sampleは0。これは実adapterとprobeの接続確認で、公開時計の挙動や処理能力の証明ではない。
+
+## Public 707a0c46 observation and the native-wait candidate
+
+The verified 60.052-second four-socket run completed without connection failures,
+but the minimum client-observed tick rate was 22.780 Hz. It did not pass the 30 Hz
+acceptance target. The unchanged receipt is
+`docs/benchmarks/public-worker-load-707a0c46.json`.
+
+For client 1, the measured pong endpoints span 56,956.524 ms on the client and
+43,400 ms on the Worker I/O clock. The interval contains 1,302 returned callbacks
+and 1,302 simulation ticks. Rebase/drop counters are zero and the run-cumulative
+maximum I/O-clock debt is 0.784 ms. These are actual values for that clock;
+wall-clock debt and CPU time remain unavailable, not zero. The gap cannot be
+attributed wholly to CPU execution from this telemetry alone. `catchUpSteps=0`
+is also expected with the Worker's one-step callback cap.
+
+The proposed Worker-only native `scheduler.wait` adapter leaves this schema and
+all counters unchanged. Its native-promise reentry may avoid observing time from
+inside a still-clamped timer callback; pending-timeout removal ordering is an
+unverified production hypothesis, detailed in `worker-clock-regression.md`.
+Neither the model test nor local workerd establishes deployed cadence. A new
+probe against the exact published commit must validate the effect; the earlier
+707a0c46 result remains a performance failure.

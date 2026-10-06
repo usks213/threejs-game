@@ -33,3 +33,36 @@ it('keeps input numbers monotonic across a same-epoch baseline and resets them f
  welcome('epoch',8);expect(s.client.input(input)).toBe(9);
  welcome('restarted-authority',0);expect(s.client.input(input)).toBe(1);expect(JSON.parse(socket.sent.at(-1)!).sequence).toBe(1);s.client.disconnect();
 });
+it('reports resync refusal without queueing or later replaying the refused click',()=>{
+ const s=setup(),socket=Socket.all[0],action={type:'game-action',action:'sky-share',id:'1:on',aim:{x:0,y:0,z:1}} as const;
+ s.client.resync();expect(s.client.action(action)).toEqual({status:'refused',reason:'offline'});
+ socket.welcome();expect(socket.sent.map(text=>JSON.parse(text)).filter(packet=>packet.type==='action')).toEqual([]);
+ const result=s.client.action(action);expect(result.status).toBe('queued');if(result.status==='queued')expect(JSON.parse(socket.sent.at(-1)!).commandId).toBe(result.commandId);s.client.disconnect();
+});
+it('returns the pending command identity even when transport delivery is delayed',()=>{
+ const s=setup(),socket=Socket.all[0],action={type:'game-action',action:'sky-share',id:'1:on',aim:{x:0,y:0,z:1}} as const;
+ vi.spyOn(socket,'send').mockImplementationOnce(()=>{});const result=s.client.action(action);expect(result.status).toBe('queued');
+ expect(socket.sent.map(text=>JSON.parse(text)).some(packet=>packet.type==='action')).toBe(false);
+ s.client.resync();socket.welcome();const replay=JSON.parse(socket.sent.at(-1)!);expect(replay).toMatchObject({type:'action',message:action});if(result.status==='queued')expect(replay.commandId).toBe(result.commandId);
+ socket.onmessage?.({data:JSON.stringify({type:'ack',commandId:replay.commandId,accepted:true,message:'共有しました'})});
+ const sent=socket.sent.length;socket.welcome();expect(socket.sent).toHaveLength(sent);s.client.disconnect();
+});
+it('keeps a queued command for exact-ID replay if its online socket is already closing',()=>{
+ const s=setup(),socket=Socket.all[0];socket.readyState=2;
+ const result=s.client.action({type:'game-action',action:'sky-share',id:'1:on',aim:{x:0,y:0,z:1}});expect(result.status).toBe('queued');expect(s.states.at(-1)).toBe('reconnecting');
+ vi.advanceTimersByTime(500);const replacement=Socket.all[1];replacement.open();replacement.welcome();
+ const actions=replacement.sent.map(text=>JSON.parse(text)).filter(packet=>packet.type==='action');expect(actions).toHaveLength(1);if(result.status==='queued')expect(actions[0].commandId).toBe(result.commandId);s.client.disconnect();
+});
+it('identifies administration, read-only and full-queue refusals without allocating commands',()=>{
+ const s=setup(),socket=Socket.all[0],action={type:'game-action',action:'sky-share',id:'1:on',aim:{x:0,y:0,z:1}} as const;
+ const access=(pending:boolean,readOnly:boolean)=>socket.onmessage?.({data:JSON.stringify({type:'room-access',access:{canManage:true,locked:false,revision:3,pending,readOnly,members:[]}})});
+ access(true,false);expect(s.client.action(action)).toEqual({status:'refused',reason:'room-busy'});
+ access(false,true);expect(s.client.action(action)).toEqual({status:'refused',reason:'read-only'});
+ access(false,false);expect(s.client.admin('lock')).toBe(true);expect(s.client.action(action)).toEqual({status:'refused',reason:'room-busy'});
+ const admin=JSON.parse(socket.sent.at(-1)!);socket.onmessage?.({data:JSON.stringify({type:'ack',kind:'room-admin',commandId:admin.commandId,accepted:true,message:'保存しました'})});
+ expect(socket.sent.map(text=>JSON.parse(text)).filter(packet=>packet.type==='action')).toEqual([]);
+ const results=Array.from({length:64},()=>s.client.action(action));expect(results.every(result=>result.status==='queued')).toBe(true);
+ const sent=socket.sent.length;expect(s.client.action(action)).toEqual({status:'refused',reason:'backpressure'});expect(socket.sent).toHaveLength(sent);
+ const first=results[0];if(first.status==='queued')socket.onmessage?.({data:JSON.stringify({type:'ack',commandId:first.commandId,accepted:true,message:'共有しました'})});
+ expect(s.client.action(action).status).toBe('queued');s.client.disconnect();
+});

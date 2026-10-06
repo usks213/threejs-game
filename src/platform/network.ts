@@ -3,8 +3,9 @@ import {canContinueReplica,replicaIdentity,type ReplicaIdentity} from './replica
 import type { ClientMessage, Snapshot, WorkerMessage } from '../simulation/protocol';
 import type { WorldSave } from '../save/format';
 import type { EditOperation } from '../world/types';
-import { CoopClient, type ConnectionState } from '../networking/coop-client';
+import { CoopClient, type ConnectionState, type CoopActionResult } from '../networking/coop-client';
 import { dedicatedIdentity } from '../networking/identity';
+import type {CoopAction} from '../networking/coop-protocol';
 export function networkUI(signal: AbortSignal, post: (message: ClientMessage) => void, notice: (message: string) => void,options?:{savedRevision?:(revision:string|undefined)=>void;loadPersonal?:()=>Promise<WorldSave|null>;exported?:(save:WorldSave)=>void;continueReplica?:(state:Snapshot,edits:EditOperation[])=>void}) {
  const panel = document.querySelector<HTMLElement>('#session-panel')!, status = document.querySelector<HTMLElement>('#session-status')!, token = document.querySelector<HTMLInputElement>('#session-code')!;
  let session: CoopClient | null = null, guest = false, sequence = 0, edits: EditOperation[] = [], generation = 0, lastTick = -1;
@@ -68,6 +69,15 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
  })(); }, { signal });
  const invited=location.hash.match(/^#join=([a-f0-9]{48})$/);const previous=sessionStorage.getItem('voxel-coop-last-room');if(invited){token.value=invited[1];panel.hidden=false;}else if(previous&&/^[a-f0-9]{48}$/.test(previous))token.value=previous;
  signal.addEventListener('abort',()=>close(false),{once:true});
+ const submitAction=(message:CoopAction)=>{
+  status.dataset.lastCommand=JSON.stringify(message);
+  if(dedicated){dedicated.send('action',message);status.dataset.lastCommandResult=JSON.stringify({status:'sent',transport:'dedicated'});return;}
+  const result:CoopActionResult=session?.action(message)??{status:'refused',reason:'offline'};
+  status.dataset.lastCommandResult=JSON.stringify(result);
+  // Expose submission separately from the server ACK. Diagnostic observers can
+  // distinguish an unsent click from a command awaiting transport or replay.
+  status.dispatchEvent(new CustomEvent('coop-action-submission',{bubbles:true,detail:{message,result}}));
+ };
  return {
   get guest(){return guest;},
   exportWorld(){if(session)session.exportWorld();else notice('この接続では共有書出を使えません。管理者側の保存を利用してください');},
@@ -76,8 +86,8 @@ export function networkUI(signal: AbortSignal, post: (message: ClientMessage) =>
    if(message.type==='input'){
     if(dedicated){const seq=++sequence;dedicated.send('input',{input:message.input,sequence:seq});post({type:'replica-input',input:message.input,sequence:seq});}
     else {const seq=session?.input(message.input);if(seq!==undefined&&seq!==null)post({type:'replica-input',input:message.input,sequence:seq});}
-   } else if(message.type==='action'||message.type==='game-action'){status.dataset.lastCommand=JSON.stringify(message);if(dedicated)dedicated.send('action',message);else session?.action(message);}
-   else if(message.type==='reset-player'){const action={type:'game-action',action:'return',aim:{x:0,y:0,z:-1}} as const;if(dedicated)dedicated.send('action',action);else session?.action(action);}
+   } else if(message.type==='action'||message.type==='game-action')submitAction(message);
+   else if(message.type==='reset-player')submitAction({type:'game-action',action:'return',aim:{x:0,y:0,z:-1}});
    else if(message.type==='init')notice('共有ワールドの保存はサーバーが管理しています。個人セーブは退出してから読み込んでください');
    return true;
   },

@@ -3,7 +3,9 @@ import {installCoopBrowserImpairment} from '../helpers/coop-browser-impairment';
 import type {SkyboundSnapshot} from '../../src/game/skybound/types';
 import type {EditOperation} from '../../src/world/types';
 import type {PeerRenderSample} from '../../src/rendering/scene/peer-render-probe';
-import {COOP_PROTOCOL,type CoopServerPacket} from '../../src/networking/coop-protocol';
+import {COOP_PROTOCOL,type CoopAction,type CoopServerPacket} from '../../src/networking/coop-protocol';
+import type {CoopActionResult} from '../../src/networking/coop-client';
+declare global {interface Window {coopActionSubmissions:{message:CoopAction;result:CoopActionResult}[]}}
 // These contexts span tests. Keep their traces under this file's control,
 // including retries; the runner would otherwise start a second trace.
 test.use({trace:'off'});
@@ -15,7 +17,7 @@ test.describe.serial('two real browsers',()=>{
  const running=(page:Page)=>expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
  const diagnostics=async(page:Page)=>{
   console.log('COOP_BROWSER_LOCATION',page.url());
-  for(const [selector,attribute]of [['#app','data-diagnostics'],['#app','data-aim'],['#app','data-combat'],['#app','data-skybound'],['#app','data-streaming'],['#game','data-rendered-peers'],['#game','data-peer-render-error'],['#session-status','data-last-ack'],['#session-status','data-last-command']]as const)console.log('COOP_DIAGNOSTIC',attribute,await page.locator(selector).getAttribute(attribute,{timeout:1000}).catch(()=>null));
+  for(const [selector,attribute]of [['#app','data-diagnostics'],['#app','data-aim'],['#app','data-combat'],['#app','data-skybound'],['#app','data-streaming'],['#game','data-rendered-peers'],['#game','data-peer-render-error'],['#session-status','data-last-ack'],['#session-status','data-last-command'],['#session-status','data-last-command-result']]as const)console.log('COOP_DIAGNOSTIC',attribute,await page.locator(selector).getAttribute(attribute,{timeout:1000}).catch(()=>null));
   console.log('COOP_NOTICE',await page.locator('#notice').textContent({timeout:1000}).catch(()=>null));
  };
  test.beforeAll(async({browser},info)=>{
@@ -26,6 +28,9 @@ test.describe.serial('two real browsers',()=>{
   for(const page of[a,b]){
    page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
    await page.addInitScript(installCoopBrowserImpairment);
+   // Observe the production submission receipt. No action or packet is
+   // synthesized; a queued receipt remains final even before native framesent.
+   await page.addInitScript(()=>{window.coopActionSubmissions=[];document.addEventListener('coop-action-submission',event=>window.coopActionSubmissions.push((event as CustomEvent<Window['coopActionSubmissions'][number]>).detail));});
    const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>(),welcomeEdits:[] as EditOperation[]};wire.set(page,observed);
    // Observe the actual transport before navigation, including reconnects. Keep
    // only action IDs/results; never retain or log handshake/resume capabilities.
@@ -78,10 +83,9 @@ test.describe.serial('two real browsers',()=>{
   test.setTimeout(180000);stage('NET-A02 shared creative block');
   const pages=[a,b],playerIds=await Promise.all(pages.map(page=>page.locator('#session-status').getAttribute('data-player')));
   const sky=async(page:Page)=>JSON.parse(await page.locator('#app').getAttribute('data-skybound')??'null') as SkyboundSnapshot|null;
-  const nextAck=async(page:Page,start:number,action:string,id:string)=>{
-   const observed=wire.get(page)!,sent=()=>observed.actions.slice(start).find(command=>command.action===action&&command.id===id);
-   await expect.poll(()=>sent()?.commandId,{message:`The UI sends ${action} for ${id}`,timeout:20000}).toBeTruthy();
-   const commandId=sent()!.commandId;
+  const nextAck=async(page:Page,commandId:string,action:string,id:string)=>{
+   const observed=wire.get(page)!;
+   await expect.poll(()=>observed.actions.some(command=>command.commandId===commandId&&command.action===action&&command.id===id),{message:`The UI sends queued ${action} for ${id} with its original command ID`,timeout:20000}).toBe(true);
    // Menu/blur release commands can receive delayed ACKs. Only this exact
    // outgoing action's ACK is evidence, even if another ACK arrives afterward.
    await expect.poll(()=>observed.acks.has(commandId),{message:`Authority acknowledges ${action} for ${id}`,timeout:30000}).toBe(true);
@@ -91,12 +95,24 @@ test.describe.serial('two real browsers',()=>{
    const tick=Number(await page.locator('#session-status').getAttribute('data-tick'));
    await expect.poll(async()=>Number(await page.locator('#session-status').getAttribute('data-tick'))).toBeGreaterThanOrEqual(tick+4);
   };
+  const submit=async(page:Page,control:string,action:string,id:string,activate=()=>page.locator(control).click())=>{
+   const deadline=Date.now()+30000;
+   while(Date.now()<deadline){
+    await expect(page.locator('#session-status')).toHaveAttribute('data-connection','online',{timeout:Math.max(1,deadline-Date.now())});
+    const start=await page.evaluate(()=>window.coopActionSubmissions.length);await activate();
+    const result=await page.evaluate(({start,action,id})=>window.coopActionSubmissions.slice(start).find(submission=>submission.message.type==='game-action'&&submission.message.action===action&&submission.message.id===id)?.result,{start,action,id});
+    if(result?.status==='queued')return result.commandId;
+    // Resync may begin between the online check and real input. Retry only a
+    // proven refusal or a draft whose commit callback never ran. Missing native
+    // framesent/ACK alone cannot justify another potentially destructive click.
+    if(!result&&control.includes('preview-confirm')&&await page.locator('#power-preview').isVisible())continue;
+    expect(result,`The ${action} click must report whether it entered the replay queue`).toEqual({status:'refused',reason:'offline'});
+   }
+   throw Error(`The UI could not submit ${action} for ${id} after resync`);
+  };
   const command=async(page:Page,control:string,action:string,id:string)=>{
-   await actionGap(page);await expect(page.locator('#session-status')).toHaveAttribute('data-connection','online');const start=wire.get(page)!.actions.length;await page.locator(control).click();
-   // A loss can start resync between actionability and the click. A retained
-   // preview means nothing was sent; reconfirm only that still-visible draft.
-   if(control.includes('preview-confirm')&&await page.locator('#power-preview').isVisible()){await expect(page.locator('#session-status')).toHaveAttribute('data-connection','online');await page.locator(control).click();}
-   const ack=await nextAck(page,start,action,id);expect(ack,ack.message).toMatchObject({accepted:true});
+   await actionGap(page);const commandId=await submit(page,control,action,id);
+   const ack=await nextAck(page,commandId,action,id);expect(ack,ack.message).toMatchObject({accepted:true});
   };
   // Spend only the winning player's actual shared pickup from the preceding
   // case. No save import, world-state injection or synthetic game actions.
@@ -126,9 +142,8 @@ test.describe.serial('two real browsers',()=>{
   }
   stage('same part concurrent grab after full resync');await Promise.all(pages.map(actionGap));
   for(const page of pages)await page.locator('#powers-panel [data-power=grab]').focus();
-  const starts=pages.map(page=>wire.get(page)!.actions.length);
-  await Promise.all(pages.map(page=>page.keyboard.press('Enter')));
-  const replies=await Promise.all(pages.map((page,i)=>nextAck(page,starts[i],'sky-grab',partId)));
+  const commandIds=await Promise.all(pages.map(page=>submit(page,'#powers-panel [data-power=grab]','sky-grab',partId,()=>page.keyboard.press('Enter'))));
+  const replies=await Promise.all(pages.map((page,i)=>nextAck(page,commandIds[i],'sky-grab',partId)));
   expect(replies.map(reply=>reply.accepted).sort()).toEqual([false,true]);
   const holderIndex=replies.findIndex(reply=>reply.accepted),holder=pages[holderIndex],other=pages[1-holderIndex],holderId=playerIds[holderIndex]!,otherId=playerIds[1-holderIndex]!;
   expect(replies[1-holderIndex].message).toBe('別の冒険者が操作しています');await expect(other.locator('#notice')).toContainText(replies[1-holderIndex].message);
@@ -190,11 +205,21 @@ test.describe.serial('two real browsers',()=>{
  test('move, turn and jump with mutually visible rendered avatars through the public authority',async({},info)=>{
   test.setTimeout(180000);stage('NET-A01 actual peer pixels');
   const rendered=async(page:Page)=>JSON.parse(await page.locator('#game').getAttribute('data-rendered-peers')??'[]') as PeerRenderSample[];
+  const pan=async(page:Page,dx:number)=>{
+   await page.bringToFront();await page.mouse.move(320,180);await page.mouse.down({button:'middle'});
+   try{await page.mouse.move(320+dx,180,{steps:4});}finally{await page.mouse.up({button:'middle'});}
+  };
   const evidence:unknown[]=[];
   for(const [actor,observer,key,direction]of [[b,a,'KeyD',1],[a,b,'KeyA',-1]] as const){
    const id=(await actor.locator('#session-status').getAttribute('data-player'))!;
    const peer=async()=>JSON.parse(await observer.locator('#session-status').getAttribute('data-peers')??'[]').find((p:{id:string})=>p.id===id) as {x:number;y:number;z:number;heading:number;grounded:boolean}|undefined;
    for(const page of[actor,observer]){await page.keyboard.press('Escape');await running(page);}
+   // The lost-idle case already moved B east. The next westward run otherwise
+   // leaves A beyond B's left frustum before its heading settles. Look toward
+   // the peer with ordinary camera input; keep the real pixel/pose thresholds.
+   await expect(observer.locator('#app')).toHaveAttribute('data-camera-yaw',/^-?\d/);await expect(observer.locator('#camera-sensitivity')).toHaveValue('1');
+   const originalYaw=Number(await observer.locator('#app').getAttribute('data-camera-yaw'));
+   await pan(observer,direction*100);await expect.poll(async()=>Number(await observer.locator('#app').getAttribute('data-camera-yaw'))).toBeCloseTo(originalYaw-direction*.6,5);
    const before=(await peer())!,start=await observer.evaluate(()=>performance.now());
    await actor.bringToFront();await actor.keyboard.down(key);try{await expect.poll(async()=>direction*((await peer())!.x-before.x),{intervals:[50,100],timeout:15000}).toBeGreaterThan(.45);}finally{await actor.keyboard.up(key);}
    // Park the moving client after release; the observing client draws the
@@ -230,6 +255,9 @@ test.describe.serial('two real browsers',()=>{
    }
    expect(airborne,'The remote jump must produce visible canvas pixels, not only a received snapshot').toBe(true);
    evidence.push({direction,authoritativeBefore:before,authoritativeMoved:moved,rendered:await rendered(observer)});
+   // Movement is camera-relative. Restore this observer before it becomes the
+   // next actor or performs the following real terrain-tool walk.
+   await pan(observer,-direction*100);await expect.poll(async()=>Number(await observer.locator('#app').getAttribute('data-camera-yaw'))).toBeCloseTo(originalYaw,5);
    await observer.locator('#session-menu').click();
   }
   await info.attach('mutual-avatar-render-evidence.json',{body:JSON.stringify(evidence,null,2),contentType:'application/json'});expect(errors).toEqual([]);stage('mutual movement heading and airborne pixels verified');

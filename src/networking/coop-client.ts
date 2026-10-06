@@ -4,6 +4,8 @@ import type {RoomAccessView,RoomAdminOperation,RoomAdminCommand} from './room-ac
 import { COOP_PROTOCOL, type CoopAction, type CoopServerPacket,type CoopWireServerPacket } from './coop-protocol';
 import type { PlayerInput } from '../simulation/protocol';
 export type ConnectionState = 'connecting' | 'syncing' | 'online' | 'reconnecting' | 'closed';
+/** Queued is a local receipt, not authority acceptance. Keep its ID until ACK. */
+export type CoopActionResult = {status:'queued';commandId:string} | {status:'refused';reason:'offline'|'room-busy'|'read-only'|'backpressure'};
 export class CoopClient {
  private readonly frames=new CoopFrameDecoder(token=>this.send({type:'delivery',token}));
  private socket: WebSocket | null = null;
@@ -95,11 +97,15 @@ export class CoopClient {
  input(input: PlayerInput): number | null {
   if (!this.online||this.pendingAdmin.size>0||this.access?.pending||this.access?.readOnly) return null; const sequence = ++this.sequence; if(!this.send({ type: 'input', input, sequence,clientTick:this.clientTick })){this.retry();return null;}return sequence;
  }
- action(message: CoopAction): void {
-  if (!this.online) { this.notice('再接続してから操作してください'); return; }
-  if(this.pendingAdmin.size>0||this.access?.pending||this.access?.readOnly){this.notice('部屋管理の保存・復旧が終わってから操作してください');return;}
-  if (this.pending.size >= 64) { this.notice('操作を同期しています。少し待ってください'); return; }
-  const commandId = this.sequencedActions?'seq_'+(++this.actionSequence)+'_'+crypto.randomUUID():crypto.randomUUID(); this.pending.set(commandId, message); this.send({ type: 'action', commandId, message,clientTick:this.clientTick });
+ action(message: CoopAction): CoopActionResult {
+  if (!this.online) { this.notice('再接続してから操作してください'); return {status:'refused',reason:'offline'}; }
+  if(this.pendingAdmin.size>0||this.access?.pending||this.access?.readOnly){this.notice('部屋管理の保存・復旧が終わってから操作してください');return {status:'refused',reason:this.access?.readOnly?'read-only':'room-busy'};}
+  if (this.pending.size >= 64) { this.notice('操作を同期しています。少し待ってください'); return {status:'refused',reason:'backpressure'}; }
+  const commandId = this.sequencedActions?'seq_'+(++this.actionSequence)+'_'+crypto.randomUUID():crypto.randomUUID(); this.pending.set(commandId, message);
+  // A closing socket or delayed transport does not undo queue admission. Replay
+  // this exact ID on recovery; callers must not submit a second command.
+  if(!this.send({ type: 'action', commandId, message,clientTick:this.clientTick }))this.retry();
+  return {status:'queued',commandId};
  }
  admin(operation:RoomAdminOperation,targetId?:string):boolean{
   if(!this.online||!this.access?.canManage||this.access.pending||this.access.readOnly||this.pendingAdmin.size){this.notice('オンラインの管理者だけが、保存完了後に操作できます');return false;}

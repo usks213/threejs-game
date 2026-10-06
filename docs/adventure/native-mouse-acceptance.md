@@ -6,4 +6,8 @@
 
 既存の旋回、攻撃、押下ガード、menuによるlock解除を維持し、前後両方向で新しいtrustedかつlockedの相対移動とyaw変化を要求する。CIでは1display/1worker、再試行0。相対移動だけをXTESTで送り、click/キーはPlaywrightであることをartifactへ明記する。入力が来なければ失敗し、skipや別入力の代用で合格させない。
 
-この追加時点でactual CI結果は待機中。Xvfb/SwiftShaderの検証はユーザーの実機や実機FPSの証明ではない。成果物は`mouse-look-input.json`。
+## 実行結果
+
+公開ソース `707a0c46d9f40d9c7feb578ce0dfdf04425070fa` の [CI job 112034474174](https://github.com/usks213/threejs-game/actions/runs/37390246811/job/112034474174) は、再試行なしで3件すべて成功した。取得したartifactの `mouse-look-input.json` を確認し、lock中のtrustedな相対入力 `(480,260)`, `(-70,-20)`, `(70,20)` が実際に届いている。旋回、攻撃、押下ガード、menu解除、移動の関連検査を通過した。元のheadless失敗は上記の履歴として保持する。
+
+入力の[保存結果](../benchmarks/native-mouse-707a0c46.json)はCIのXTEST入力検査であり、ユーザーの実機や実機FPSの証明ではない。

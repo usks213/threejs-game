@@ -26,3 +26,17 @@ it('routes same-world welcome to a local continuation and reinitializes only cha
  welcome('restarted-world',5);expect(continued).toHaveLength(2);welcome('restarted-world',4);expect(posts.filter(message=>message.type==='replica-init')).toHaveLength(3);expect(element('#session-status').dataset.welcomeMode).toBe('reinitialized');
  controller.abort();
 });
+it('exposes the actual queue receipt or refusal for each UI command independently of authority ACKs',()=>{
+ vi.useFakeTimers();const elements=new Map<string,Element>(),element=(selector:string)=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector)!;},storage=new Map<string,string>(),events=new EventTarget();
+ vi.stubGlobal('document',{querySelector:element});vi.stubGlobal('window',events);vi.stubGlobal('WebSocket',Socket);vi.stubGlobal('location',{origin:'https://game.example',hash:''});vi.stubGlobal('sessionStorage',{getItem:(key:string)=>storage.get(key)??null,setItem:(key:string,value:string)=>storage.set(key,value)});
+ const controller=new AbortController(),notices:string[]=[],submissions:unknown[]=[],ui=networkUI(controller.signal,()=>{},notice=>notices.push(notice),{loadPersonal:async()=>null});
+ const status=element('#session-status');status.addEventListener('coop-action-submission',event=>submissions.push((event as CustomEvent).detail));
+ element('#session-host').click();const socket=Socket.all[0];socket.open();const room=new SessionAuthority(null,true);room.join('guest');
+ const welcome={type:'welcome',protocol:COOP_PROTOCOL,epoch:'epoch',playerId:'guest',save:participantSave(room,'guest'),state:sessionFrame(room,'guest')};socket.receive(welcome);
+ const action={type:'game-action',action:'sky-share',id:'1:on',aim:{x:0,y:0,z:1}} as const;expect(ui.forward(action)).toBe(true);
+ const queued=JSON.parse(status.dataset.lastCommandResult);expect(queued).toMatchObject({status:'queued',commandId:expect.any(String)});expect(submissions).toEqual([{message:action,result:queued}]);expect(status.dataset.lastAck).toBeUndefined();
+ events.dispatchEvent(new Event('offline'));expect(ui.forward(action)).toBe(true);const refused={status:'refused',reason:'offline'};
+ expect(JSON.parse(status.dataset.lastCommandResult)).toEqual(refused);expect(JSON.parse(status.dataset.lastCommand)).toEqual(action);expect(submissions).toEqual([{message:action,result:queued},{message:action,result:refused}]);expect(notices.at(-1)).toContain('再接続');
+ vi.advanceTimersByTime(500);const replacement=Socket.all[1];replacement.open();replacement.receive(welcome);const replay=replacement.sent.map(text=>JSON.parse(text)).filter(packet=>packet.type==='action');expect(replay).toHaveLength(1);expect(replay[0].commandId).toBe(queued.commandId);
+ replacement.receive({type:'ack',commandId:queued.commandId,accepted:true,message:'共有しました'});expect(JSON.parse(status.dataset.lastAck)).toMatchObject({commandId:queued.commandId,accepted:true});expect(submissions).toHaveLength(2);controller.abort();
+});

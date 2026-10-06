@@ -1,0 +1,62 @@
+{
+  "source": "X11 XTEST relative motion via xdotool",
+  "note": "CI input emulation; not a real-device performance result. Clicks and keys use Playwright.",
+  "events": [
+    {
+      "sequence": 1,
+      "x": 550,
+      "y": 300,
+      "dx": -410,
+      "dy": -240,
+      "buttons": 0,
+      "locked": "",
+      "trusted": true
+    },
+    {
+      "sequence": 2,
+      "x": 550,
+      "y": 300,
+      "dx": 480,
+      "dy": 260,
+      "buttons": 0,
+      "locked": "game",
+      "trusted": true
+    },
+    {
+      "sequence": 3,
+      "x": 550,
+      "y": 300,
+      "dx": -70,
+      "dy": -20,
+      "buttons": 0,
+      "locked": "game",
+      "trusted": true
+    },
+    {
+      "sequence": 4,
+      "x": 550,
+      "y": 300,
+      "dx": 70,
+      "dy": 20,
+      "buttons": 0,
+      "locked": "game",
+      "trusted": true
+    },
+    {
+      "sequence": 5,
+      "x": 950,
+      "y": 443,
+      "dx": 0,
+      "dy": 0,
+      "buttons": 0,
+      "locked": "",
+      "trusted": true
+    }
+  ],
+  "commit": "707a0c46d9f40d9c7feb578ce0dfdf04425070fa",
+  "workflowRun": 37390246811,
+  "job": 112034474174,
+  "artifact": 11380857749,
+  "testsPassed": 3,
+  "retries": 0
+}
