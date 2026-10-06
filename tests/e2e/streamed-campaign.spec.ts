@@ -1,3 +1,4 @@
+import {desktopInputLabel} from './helpers/native-input';
 import {test,expect,type Page,type Locator,type TestInfo} from '@playwright/test';
 import {PlayerControls,read,choosePerformance,gatherAndLightHearth,type CampaignProbe} from './helpers/campaign-controls';
 const activate=(locator:Locator,mobile:boolean)=>mobile?locator.tap():locator.click();
@@ -16,7 +17,7 @@ async function providerEvidence(page:Page,info:TestInfo,name:string){
 }
 
 test('streamed campaign fresh provider supports actual mining, hearth and v3 continuation',async({page,isMobile},testInfo)=>{
- test.setTimeout(900000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Actual Android touch':'Actual desktop keyboard-look accessibility; no raw-relative-mouse claim'});
+ test.setTimeout(900000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Actual Android touch':desktopInputLabel()});
  const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));await open(page,isMobile,'/?test=1&streaming=1');const pristine=await read(page);expect(pristine.streamedWorld).toBe(true);expect(pristine.campaign.flameTier).toBe(0);
  const controls=await play(page,isMobile);let saved:CampaignProbe;
  try{await gatherAndLightHearth(page,controls);await controls.menu('settings');await save(page,isMobile);saved=await read(page);expect(saved.worldSamples).not.toEqual(pristine.worldSamples);await providerEvidence(page,testInfo,'fresh-provider-after-mining');}finally{await controls.dispose();}

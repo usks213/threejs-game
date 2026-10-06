@@ -1,3 +1,4 @@
+import {desktopInputLabel} from './helpers/native-input';
 import {test,expect,type Locator} from '@playwright/test';
 import {PlayerControls,read,choosePerformance} from './helpers/campaign-controls';
 const activate=(locator:Locator,mobile:boolean)=>mobile?locator.tap():locator.click();
@@ -14,7 +15,7 @@ test('C16 new codex is unknown, searchable, read-only and usable after repeated 
 });
 
 test('C16 real gathering and crafting register once, reveal uses, and survive saved reload',async({page,isMobile},testInfo)=>{
- test.setTimeout(900000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Production Android touch collection and menus':'Production keyboard-look collection and menus'});const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await choosePerformance(page,isMobile);await activate(page.locator('#start'),isMobile);const controls=new PlayerControls(page,isMobile);await controls.initialize();
+ test.setTimeout(900000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Production Android touch collection and menus':desktopInputLabel()});const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await choosePerformance(page,isMobile);await activate(page.locator('#start'),isMobile);const controls=new PlayerControls(page,isMobile);await controls.initialize();
  try{
   await controls.walkTo(-.55,6.15);await controls.action('#tool-switch','Digit2');await controls.gather(4,2,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95}],'sample-wood');
   await controls.walkTo(-.55,5.25);await controls.walkTo(-3.45,5.25);await controls.walkTo(-3.45,6.35);await controls.gather(3,2,[{x:-4.2,y:.55,z:6.8},{x:-4.5,y:.55,z:6.8}],'sample-stone');

@@ -21,7 +21,7 @@ First-chapter ridge correction (2026-10-05): [Android job111722895799](https://g
 | ID | Requirement | Status | Implementation/evidence | Remaining |
 |---|---|---|---|---|
 | F01 | ゲーム開始と再開 | 実装あり・実操作未検証 | src/prototype/campaign-ui.ts; input.ts; app.ts; tests/unit/prototype-input.test.ts | 新規/続き/取消/入力解放を実ブラウザで通す |
-| F02 | 安全な入力状態 | 実装あり・ネイティブ入力ケース定義/実行待ち | src/prototype/campaign-ui.ts; input.ts; app.ts; tests/unit/prototype-input.test.ts; tests/e2e/native-pointer.spec.ts; docs/native-pointer-acceptance.md | 独立headed/XvfbジョブでXTEST相対マウスの両軸視点・斬撃・盾保持・メニュー時入力解放/再開を定義。PR4の実行証拠は未取得。新規/続き/取消と物理機器の受入は別途必要 |
+| F02 | 安全な入力状態 | 実装あり・ネイティブ入力部分確認/経路修正後再実行待ち | src/prototype/campaign-ui.ts; input.ts; app.ts; tests/unit/prototype-input.test.ts; tests/e2e/native-pointer.spec.ts; docs/native-pointer-acceptance.md | 7e5a7772のXTEST相対視点・斬撃・盾保持・メニュー入力解放まで確認し、解放後のポインター配信で失敗。OSカーソルを画面内へ戻す修正と、実時間でなく実際のシミュレーション進行を観測する保持入力をPC経路へ追加。新候補全ケース/物理機器の合格証拠は未取得 |
 | F03 | 地形衝突 | 実装あり・実操作未検証 | src/prototype/core/simulation.ts; tests/unit/prototype.test.ts; player.test.ts | 斜面・段差・走行・落下を各地域の実操作で確認 |
 | F04 | 歩行/走行 | 実装あり・実操作未検証 | src/prototype/core/simulation.ts; tests/unit/prototype.test.ts; player.test.ts | 斜面・段差・走行・落下を各地域の実操作で確認 |
 | F05 | ジャンプ/着地 | 実装あり・実操作未検証 | src/prototype/core/simulation.ts; tests/unit/prototype.test.ts; player.test.ts | 斜面・段差・走行・落下を各地域の実操作で確認 |

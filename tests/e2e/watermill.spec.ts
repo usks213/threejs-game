@@ -1,3 +1,4 @@
+import {desktopInputLabel} from './helpers/native-input';
 import {test,expect,type Page} from '@playwright/test';
 import {PlayerControls,read,choosePerformance} from './helpers/campaign-controls';
 import type {WatermillState} from '../../src/prototype/core/watermill';
@@ -13,7 +14,7 @@ test('H15 waterwheel menu explains finite basin, cost and actual flow; controls 
 });
 
 test('H15 zero-grant waterwheel build, real valve, pause, stop/resume, single claim and saved reload',async({page,isMobile},info)=>{
- test.setTimeout(900000);info.annotations.push({type:'input-mode',description:isMobile?'Production Android touch':'Production keyboard-look and controls'});
+ test.setTimeout(900000);info.annotations.push({type:'input-mode',description:isMobile?'Production Android touch':desktopInputLabel()});
  const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?streaming=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await choosePerformance(page,isMobile);const c=new PlayerControls(page,isMobile);await c.activate('#start');await c.initialize();
  try{
   expect(Object.values((await read(page)).inventory).every(n=>n===0)).toBe(true);await c.walkTo(-.55,6.15);await c.action('#tool-switch','Digit2');await c.gather(4,20,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95},{x:-2.2,y:.58,z:6.25}],'sample-wood');

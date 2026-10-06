@@ -140,3 +140,11 @@ observed movement. The 24 short-leg pulses, 60-second segment budget and arrival
 tolerance remain. Western resident checks additionally record the live Core target
 and actor pose immediately after aiming, without changing the target assertion;
 the reported pose/angle resolved to the correct actor in a standalone Core check.
+
+The 7e5a7772 Android bow route defeated its entrance guard, then died turning
+toward the artisan while the warden pursued. Like the first-chapter route, both
+ranged builds now face and fight that warden before the rescue turn. The same
+32 arrows or12 earned mana doses, 28-round combat bound, exact spending checks
+and no-death assertions remain. The warden fight screenshot is taken there;
+forge armor and the level point are earned and exercised afterward. This case
+does not claim that later armor was worn during the earlier boss fight.

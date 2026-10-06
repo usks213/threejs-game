@@ -1,8 +1,9 @@
+import {desktopInputLabel} from './helpers/native-input';
 import {test,expect} from '@playwright/test';
 import {PlayerControls,read,choosePerformance} from './helpers/campaign-controls';
 
 test('campaign first chapter through normal keyboard or touch play: rescue, gear, grapple, glide, warden and ridge',async({page,isMobile},testInfo)=>{
- test.setTimeout(1800000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Actual Android touches':'Production keyboard-look, T attack and Z held shield; no relative-mouse claim'});
+ test.setTimeout(1800000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Actual Android touches':desktopInputLabel()});
  const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});
  expect((await read(page)).campaign.flameTier).toBe(0);expect((await read(page)).inventory[4]).toBe(0);
  await choosePerformance(page,isMobile);
@@ -52,8 +53,12 @@ test('campaign first chapter through normal keyboard or touch play: rescue, gear
    await checkpoint('04-crypt-threats');
   });
   await test.step('Talk to the rescued moving smith without receiving rescue rewards again',async()=>{
-   await controls.walkTo(0,5.3);await controls.walkTo(-3.5,5.3);await expect.poll(async()=>(await read(page)).npcLife?.activity).not.toBe('walking');const before=await read(page);expect(before.npcLife).not.toBeNull();expect(before.npcLife!.recovery).toBe('none');
-   const point=before.npcLife!.position;await controls.interact('artisan',{...point,y:point.y+1.1});await expect.poll(async()=>(await read(page)).npcLife?.activity).toBe('talking');
+   await controls.walkTo(0,5.3);await controls.walkTo(-3.5,5.3);await expect.poll(async()=>(await read(page)).npcLife?.activity).not.toBe('walking');const located=await read(page);expect(located.npcLife).not.toBeNull();expect(located.npcLife!.recovery).toBe('none');
+   const point=located.npcLife!.position;
+   // The social position is across the solid hearth pedestal from this lane.
+   // Walk around its south edge instead of trying to talk through stone.
+   if(Math.hypot(point.x-located.position.x,point.z-located.position.z)>2.1){await controls.walkTo(point.x,5.3);await controls.walkTo(point.x,point.z+1.3);}
+   const before=await read(page),current=before.npcLife!.position;await controls.interact('artisan',{...current,y:current.y+1.1});await expect.poll(async()=>(await read(page)).npcLife?.activity).toBe('talking');
    const after=await read(page);expect(after.inventory).toEqual(before.inventory);expect(after.campaign.artisanRescued).toBe(true);await page.screenshot({path:testInfo.outputPath('nagi-rescued-conversation.png')});
   });
   await test.step('Reach the mist from the east perimeter, grapple, and collect the cache',async()=>{

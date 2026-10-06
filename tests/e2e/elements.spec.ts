@@ -8,7 +8,7 @@ async function aim(page:Page,isMobile:boolean,point:{x:number;y:number;z:number}
  try{await controls.aim(point);}finally{await controls.dispose();}
 }
 async function start(page:Page,slow=false){await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:60000});if(slow)await page.locator('#motion-toggle').click();await page.locator('#start').click();await expect(page.locator('#game')).toHaveAttribute('data-running','true');
- // Desktop uses the production keyboard-look path; mobile uses actual touch.
+ // Desktop uses native relative look in its CI job and keyboard look in headless fallback; mobile uses actual touch.
  if(!await page.evaluate(()=>matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>0))await expect.poll(()=>page.evaluate(()=>!!document.pointerLockElement)).toBe(true);
  await expect.poll(async()=>(await probe(page)).seconds).toBeGreaterThan(.25);
 }

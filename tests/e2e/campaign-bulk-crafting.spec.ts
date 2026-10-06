@@ -1,3 +1,4 @@
+import {desktopInputLabel} from './helpers/native-input';
 import {test,expect,type Locator} from '@playwright/test';
 import {PlayerControls,read,choosePerformance} from './helpers/campaign-controls';
 const activate=(locator:Locator,mobile:boolean)=>mobile?locator.tap():locator.click();
@@ -19,7 +20,7 @@ test('C08 quantity controls keep drafts through search, tab changes, and unavail
 });
 
 test('C08 one, specified and maximum crafting consume real gathered materials exactly once',async({page,isMobile},testInfo)=>{
- test.setTimeout(900000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Production Android touch controls':'Production keyboard-look and menu controls'});
+ test.setTimeout(900000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Production Android touch controls':desktopInputLabel()});
  const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await choosePerformance(page,isMobile);
  await activate(page.locator('#start'),isMobile);const controls=new PlayerControls(page,isMobile);await controls.initialize();
  try{

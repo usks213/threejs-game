@@ -1,18 +1,10 @@
-import {execFile} from 'node:child_process';
-import {promisify} from 'node:util';
 import {test,expect,type Page} from '@playwright/test';
 import {observeAttack} from './helpers/transient-observation';
+import {nativeCommand,nativeKeyboard,nativeWalkPulse,moveNativePointerIntoPage} from './helpers/native-input';
 
-const execFileAsync=promisify(execFile);
 interface InputProbe {yaw:number;pitch:number;phase:string;seconds:number;position:{x:number;y:number;z:number};controls:{x:number;z:number;block:boolean};running:boolean}
 const read=(page:Page)=>page.evaluate(()=>Reflect.get(window,'__inputProbe') as InputProbe);
-async function nativeMouse(...args:string[]){
- if(process.platform!=='linux'||!process.env.DISPLAY)throw Error('Native pointer acceptance requires headed Linux Chromium on an isolated X11 display');
- // Ubuntu xdotool uses XTEST for these moves/buttons. No CDP pointer coordinates,
- // DOM MouseEvent dispatch or camera/state writes are used in this acceptance.
- // Do not add --sync: Pointer Lock can recenter before xdotool polls position.
- await execFileAsync('xdotool',args,{timeout:5000,maxBuffer:16384});
-}
+const nativeMouse=(...args:string[])=>nativeCommand(args);
 
 test('native desktop pointer turns both camera axes, attacks, holds shield and releases at menus',async({page,isMobile},info)=>{
  test.skip(process.env.E2E_NATIVE_MOUSE!=='1'||isMobile,'Runs only in the independent headed X11 native-input job');
@@ -25,8 +17,8 @@ test('native desktop pointer turns both camera axes, attacks, holds shield and r
  // The existing production quality button keeps this input check inexpensive.
  await page.locator('#quality-toggle').click();
  const observed=await page.evaluateHandle(()=>{
-  const events:{sequence:number;type:string;dx:number;dy:number;button:number;buttons:number;locked:string;trusted:boolean}[]=[];let sequence=0;
-  const record=(event:MouseEvent)=>{events.push({sequence:++sequence,type:event.type,dx:event.movementX,dy:event.movementY,button:event.button,buttons:event.buttons,locked:document.pointerLockElement?.id??'',trusted:event.isTrusted});if(events.length>128)events.shift();};
+  const events:{sequence:number;type:string;dx:number;dy:number;button:number;buttons:number;x:number;y:number;locked:string;trusted:boolean}[]=[];let sequence=0;
+  const record=(event:MouseEvent)=>{events.push({sequence:++sequence,type:event.type,dx:event.movementX,dy:event.movementY,button:event.button,buttons:event.buttons,x:event.clientX,y:event.clientY,locked:document.pointerLockElement?.id??'',trusted:event.isTrusted});if(events.length>128)events.shift();};
   for(const type of ['mousemove','mousedown','mouseup'])document.addEventListener(type,record as EventListener,true);
   return {read:()=>({sequence,events}),stop:()=>{for(const type of ['mousemove','mousedown','mouseup'])document.removeEventListener(type,record as EventListener,true);}};
  });
@@ -65,25 +57,31 @@ test('native desktop pointer turns both camera axes, attacks, holds shield and r
   await expect.poll(async()=>((await read(page)).pitch-turned.pitch)*Math.sign(dy)).toBeGreaterThan(.015);
   await checkpoint('native-reverse-motion');
   await attack();await checkpoint('native-left-attack-recovered');
+  const walkStart=await read(page),dx=-Math.sin(walkStart.yaw),dz=-Math.cos(walkStart.yaw);
+  await nativeWalkPulse(page,{x:walkStart.position.x+dx,z:walkStart.position.z+dz,dx,dz,length:1,brake:.12,seconds:.15},60000);
+  const walked=await checkpoint('native-simulation-observed-key-hold');
+  expect(Math.hypot(walked.position.x-walkStart.position.x,walked.position.z-walkStart.position.z)).toBeGreaterThan(.02);
+  await expect.poll(async()=>(await read(page)).controls.z).toBe(0);
   await button('mousedown',3);await expect.poll(async()=>(await read(page)).controls.block).toBe(true);
   const held=await checkpoint('native-right-held');
   await expect.poll(async()=>(await read(page)).seconds).toBeGreaterThan(held.seconds+.3);
   expect((await read(page)).controls.block,'Shield must remain held across simulation frames').toBe(true);
   await button('mouseup',3);await expect.poll(async()=>(await read(page)).controls.block).toBe(false);
 
-  await button('mousedown',3);await page.keyboard.down('KeyW');
+  await button('mousedown',3);await nativeKeyboard.down('KeyW');
   const moving=await read(page);
   await expect.poll(async()=>{const p=(await read(page)).position;return Math.hypot(p.x-moving.position.x,p.z-moving.position.z);}).toBeGreaterThan(.1);
-  await page.keyboard.press('Escape');await expect(page.locator('#menu')).toBeVisible();
+  await nativeKeyboard.pulse('Escape',40);await expect(page.locator('#menu')).toBeVisible();
   await expect(page.locator('#game')).toHaveAttribute('data-running','false');
   await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id??'')).toBe('');
   const paused=await checkpoint('menu-clears-held-input');
   expect(paused.controls).toMatchObject({x:0,z:0,block:false});
-  // The OS button and browser key remain held until after the neutral assertion.
-  await nativeMouse('mouseup','3');await page.keyboard.up('KeyW');
+  // OS button and key remain held until after the neutral assertion.
+  await nativeMouse('mouseup','3');await nativeKeyboard.up('KeyW');
   const menuSequence=(await events()).sequence;
-  await nativeMouse('mousemove_relative','--','20','10');
-  await expect.poll(async()=>(await events()).events.some(event=>event.sequence>menuSequence&&event.type==='mousemove'&&event.trusted&&event.locked===''&&(event.dx!==0||event.dy!==0)), 'Native motion must also reach the unlocked menu').toBe(true);
+  const viewport=page.viewportSize()!;
+  await moveNativePointerIntoPage(page);
+  await expect.poll(async()=>(await events()).events.some(event=>event.sequence>menuSequence&&event.type==='mousemove'&&event.trusted&&event.locked===''&&event.x>20&&event.x<viewport.width-20&&event.y>20&&event.y<viewport.height-20&&(event.dx!==0||event.dy!==0)), 'Native motion must also reach the unlocked menu').toBe(true);
   const menuMotion=await read(page);expect(menuMotion.yaw).toBe(paused.yaw);expect(menuMotion.pitch).toBe(paused.pitch);
   await page.locator('#start').click();await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id)).toBe('game');
   const resumed=await read(page);await expect.poll(async()=>(await read(page)).seconds).toBeGreaterThan(resumed.seconds+.3);
@@ -95,9 +93,9 @@ test('native desktop pointer turns both camera axes, attacks, holds shield and r
   await page.screenshot({path:info.outputPath('native-pointer-resumed.png')});
  }finally{
   // Always release OS-held buttons, even if an assertion failed mid-gesture.
-  await nativeMouse('mouseup','1','mouseup','3').catch(()=>{});await page.keyboard.up('KeyW').catch(()=>{});
+  await nativeMouse('mouseup','1','mouseup','3').catch(()=>{});await nativeKeyboard.up('KeyW').catch(()=>{});
   const delivery=await events().catch(()=>null);
-  await info.attach('native-pointer-input.json',{body:JSON.stringify({source:'Ubuntu X11 XTEST via xdotool, headed Chromium on isolated Xvfb',scope:'Relative mouse motion and combat buttons use XTEST; menu clicks and keys use Playwright. CI input emulation, not a physical mouse, hardware-GPU or real-device performance result.',checkpoints,delivery,errors},null,2),contentType:'application/json'});
+  await info.attach('native-pointer-input.json',{body:JSON.stringify({source:'Ubuntu X11 XTEST via xdotool, headed Chromium on isolated Xvfb',scope:'Relative mouse motion, combat buttons and held/action keys use XTEST; menu clicks use Playwright. CI input emulation, not a physical mouse, hardware-GPU or real-device performance result.',checkpoints,delivery,errors},null,2),contentType:'application/json'});
   await observed.evaluate(value=>value.stop()).catch(()=>{});await observed.dispose();
  }
 });

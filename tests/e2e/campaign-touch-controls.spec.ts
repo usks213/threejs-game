@@ -35,14 +35,19 @@ test('Q07 Android touch driver: concurrent contacts retain movement and shield t
   const afterLook=await readRegionalMotion(page);expect(afterLook.yaw-beforeLook.yaw).toBeCloseTo(.08,2);expect(afterLook.pitch-beforeLook.pitch).toBeCloseTo(.04,2);
   await controls.fineLook(.08,.04);const repeatedLook=await readRegionalMotion(page);expect(repeatedLook.yaw-afterLook.yaw).toBeCloseTo(.08,2);expect(repeatedLook.pitch-afterLook.pitch).toBeCloseTo(.04,2);
   await expect.poll(async()=>(await input(page)).x).toBeCloseTo(.1,3);await controls.assertShieldHeld();await expect.poll(()=>observed.evaluate(v=>v.read().jumped)).toBe(true);
+  await controls.action('#element-switch','KeyF');expect((await readRegionalMotion(page)).selectedElement).toBe('water');await controls.assertShieldHeld();
   await controls.moveAxes(0,0);expect(await input(page)).toMatchObject({x:0,z:0,block:true});
   await expect.poll(async()=>(await readRegionalMotion(page)).grounded).toBe(true);await controls.action('[data-action=jump]','Space');await controls.assertShieldHeld();
   expect(await observed.evaluate(v=>v.read().events.filter(e=>e.target==='jump').length)).toBe(2);await controls.shield(false);expect((await input(page)).block).toBe(false);
   await expect.poll(async()=>(await readRegionalMotion(page)).grounded).toBe(true);
   await controls.moveAxes(.1,0);await controls.action('[data-action=dodge]','ControlLeft');await expect.poll(()=>observed.evaluate(v=>v.read().phases)).toContain('dodge');
   await expect.poll(async()=>(await input(page)).x).toBeCloseTo(.1,3);await controls.moveAxes(0,0);await expect.poll(async()=>(await readRegionalMotion(page)).phase).toBe('idle');
-  await controls.aim({x:-1.7,y:.58,z:6.25});await expect(page.locator('#target')).toHaveText(/.+/);
-  await controls.action('#element-switch','KeyF');expect((await readRegionalMotion(page)).selectedElement).toBe('water');
+  // The genuine dodge displaced the player to x1.76 in CI, putting this
+  // sample outside the 2.75m reticle range. Walk back through normal controls;
+  // do not reset coordinates or pretend the distant surface was targeted.
+  await controls.walkTo(beforeLook.position.x,beforeLook.position.z);
+  await controls.aim({x:-1.7,y:.58,z:6.25});await expect(page.locator('#game')).toHaveAttribute('data-target','sample-wood');
+  expect((await readRegionalMotion(page)).selectedElement).toBe('water');
   const mana=(await readRegionalMotion(page)).mana;await controls.moveAxes(.1,0);await controls.action('#cast','KeyG');await controls.fineLook(.02,0);
   await expect.poll(async()=>(await readRegionalMotion(page)).mana).toBe(mana-20);await expect.poll(async()=>(await input(page)).x).toBeCloseTo(.1,3);await controls.moveAxes(0,0);
   const evidence=await observed.evaluate(v=>v.read());expect(evidence.events.some(e=>e.type==='keydown')).toBe(false);expect(evidence.events.every(e=>e.pointerType==='touch'&&e.trusted)).toBe(true);

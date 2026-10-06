@@ -26,9 +26,9 @@ export class RangedCampaignControls {
  private async replenish(){
   const p=await readRanged(this.page);if(this.build!=='staff'||p.combat.mana>=20)return;
   expect(p.campaign.items['mana-draught'],'The mage must have crafted a finite recovery dose').toBeGreaterThan(0);
-  await this.controls.menu('inventory');await this.controls.row('mana-draught','consume');
+  await this.controls.shield(false);await this.controls.menu('inventory');await this.controls.row('mana-draught','consume');
   await expect.poll(async()=>(await readRanged(this.page)).combat.mana).toBe(Math.min(100,p.combat.mana+60));
-  expect((await readRanged(this.page)).campaign.items['mana-draught']).toBe(p.campaign.items['mana-draught']-1);this.doses++;await this.controls.resume();
+  expect((await readRanged(this.page)).campaign.items['mana-draught']).toBe(p.campaign.items['mana-draught']-1);this.doses++;await this.controls.resume();await this.controls.shield(true);
  }
  /** Keep the shield up while aiming at surviving enemy material. The target
   * label is rendered by the real reticle ray, not an injected hit/target API. */
@@ -43,10 +43,10 @@ export class RangedCampaignControls {
  }
  async fight(index:number,onCombatReady?:()=>Promise<void>){
   let capturedCombat=false;
-  for(let round=0;round<28&&(await readMotion(this.page)).enemies[index].hp>0;round++){
-   await expect.poll(async()=>(await readMotion(this.page)).phase).toBe('idle');await this.controls.healFromInventory();await this.replenish();
+  try{for(let round=0;round<28&&(await readMotion(this.page)).enemies[index].hp>0;round++){
+   await expect.poll(async()=>(await readMotion(this.page)).phase).toBe('idle');await this.controls.shield(true);await this.controls.healFromInventory();await this.replenish();
    let p=await readRanged(this.page);expect(p.hp,'The ranged route must remain alive').toBeGreaterThan(0);expect(p.campaign.equipment.weapon).toBe(this.build);
-   if(p.stamina<35){await this.controls.retreat();await expect.poll(async()=>(await readRanged(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
+   if(p.stamina<35){await this.controls.shield(false);await this.controls.retreat();await expect.poll(async()=>(await readRanged(this.page)).stamina,{timeout:60000}).toBeGreaterThan(65);continue;}
    if(this.build==='staff')await this.chooseElement(round%3===0?'water':'lightning');
    const observer=await observeRangedInput(this.page);
    try{
@@ -80,9 +80,10 @@ export class RangedCampaignControls {
      await expect.poll(async()=>(await readRanged(this.page)).combat.mana).toBe(p.combat.mana-20);this.casts++;
     }
     await expect.poll(()=>observer.read()).toBe(true);
-    await expect.poll(async()=>{const state=await readMotion(this.page);expect(state.hp,'The committed ranged action must preserve life').toBeGreaterThan(0);return state.phase;},{timeout:60000,intervals:[50,100]}).toBe('idle');
-   }finally{await this.controls.shield(false);await observer.dispose();}
+    await expect.poll(async()=>{const state=await readMotion(this.page);expect(state.hp,'The committed ranged action must preserve life').toBeGreaterThan(0);return state.phase;},{timeout:60000,intervals:[50,100]}).toBe('idle');await this.controls.shield(true);
+   }finally{await observer.dispose();}
   }
   const result=await readRanged(this.page);expect(result.enemies[index].hp,`${this.build} must defeat enemy ${index} with its physical projectiles or real elemental contacts`).toBeLessThanOrEqual(0);expect(result.campaign.deaths).toBe(0);
+  }finally{await this.controls.shield(false);}
  }
 }

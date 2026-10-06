@@ -1,3 +1,4 @@
+import {desktopInputLabel} from './helpers/native-input';
 import {test,expect,type Locator,type Page} from '@playwright/test';
 import {PlayerControls,read,choosePerformance,type CampaignProbe} from './helpers/campaign-controls';
 import type {InventoryState} from '../../src/prototype/core/inventory';
@@ -12,7 +13,7 @@ test('campaign-inventory-stacks empty layouts and storage expose bounded, access
 });
 
 test('campaign-inventory-stacks earned supplies support split combine move storage cancel physical pickup and saved reload',async({page,isMobile},testInfo)=>{
- test.setTimeout(900000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Production Android touch controls':'Production keyboard look and menu controls'});const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await choosePerformance(page,isMobile);await activate(page.locator('#start'),isMobile);const controls=new PlayerControls(page,isMobile);await controls.initialize();
+ test.setTimeout(900000);testInfo.annotations.push({type:'input-mode',description:isMobile?'Production Android touch controls':desktopInputLabel()});const errors:string[]=[];page.on('pageerror',e=>errors.push(String(e)));await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await choosePerformance(page,isMobile);await activate(page.locator('#start'),isMobile);const controls=new PlayerControls(page,isMobile);await controls.initialize();
  try{
   await controls.walkTo(-.55,6.15);await controls.action('#tool-switch','Digit2');await controls.gather(4,18,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95},{x:-2.2,y:.58,z:6.25}],'sample-wood');await controls.walkTo(-.55,5.25);await controls.walkTo(-3.45,5.25);await controls.walkTo(-3.45,6.35);await controls.gather(3,15,[{x:-4.2,y:.55,z:6.8},{x:-4.5,y:.55,z:6.8},{x:-4.5,y:.65,z:6.5}],'sample-stone');await controls.walkTo(-3.45,6.65);await controls.gather(7,8,[{x:-3.45,y:.5,z:7.9},{x:-3.1,y:.5,z:7.9},{x:-3.8,y:.5,z:7.9}],'sample-grass');await controls.walkTo(-3.45,5.3);await controls.interact('hearth',{x:-3,y:.9,z:4});await expect.poll(async()=>(await read(page)).campaign.flameTier).toBe(1);await controls.walkTo(-.75,5.3);await controls.aim({x:-.75,y:.4,z:4.3});
   await controls.menu('crafting');for(const id of ['arrows','berry-meal']){await page.locator(`[data-item="${id}"]`).getByRole('spinbutton').fill('2');await controls.row(id,'craft');}await controls.row('dagger','craft');await expect.poll(async()=>(await read(page)).campaign.items.arrows).toBe(16);await expect.poll(async()=>(await read(page)).campaign.items['berry-meal']).toBe(2);

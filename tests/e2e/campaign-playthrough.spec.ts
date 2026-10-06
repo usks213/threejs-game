@@ -1,9 +1,10 @@
+import {desktopInputLabel} from './helpers/native-input';
 import {test,expect} from '@playwright/test';
 import {PlayerControls,read,choosePerformance,gatherAndLightHearth} from './helpers/campaign-controls';
 
-test('campaign playthrough with desktop keyboard-look or Android touch: gather, light, save and continue',async({page,isMobile},testInfo)=>{
+test('campaign playthrough with desktop input or Android touch: gather, light, save and continue',async({page,isMobile},testInfo)=>{
  test.setTimeout(900000);
- testInfo.annotations.push({type:'input-mode',description:isMobile?'Actual Android touch gestures':'Actual desktop keyboard-look accessibility controls; not a raw-relative-mouse test'});
+ testInfo.annotations.push({type:'input-mode',description:isMobile?'Actual Android touch gestures':desktopInputLabel()});
  const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));
  await page.goto('/?test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});
  await expect(page.locator('#error')).toBeHidden();await choosePerformance(page,isMobile);

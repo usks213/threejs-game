@@ -125,7 +125,14 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
+      - name: Install native X11 test input from Ubuntu packages
+        if: matrix.project == 'desktop-chromium'
+        run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils
+      - name: Run desktop group with native input in headed Chromium
+        if: matrix.project == 'desktop-chromium'
+        run: bash scripts/run-native-browser.sh node scripts/run-browser-group.mjs "${{ matrix.project }}" "${{ matrix.group }}"
       - run: node scripts/run-browser-group.mjs "${{ matrix.project }}" "${{ matrix.group }}"
+        if: matrix.project == 'android-chromium'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -135,7 +142,7 @@ jobs:
             test-results/
           retention-days: 7
   native-pointer-browser:
-    # Separate from the normal headless matrix: one browser owns one X11 display.
+    # A focused native-input contract; each desktop job owns its X11 display.
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -157,14 +164,7 @@ jobs:
         run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils
       - name: Verify native relative mouse and held combat in headed Chromium
         # Playwright headed Linux: https://playwright.dev/docs/ci#running-headed
-        run: |
-          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' sh -c '
-            xdpyinfo -queryExtensions | grep -w XTEST &&
-            xdotool version &&
-            npm run e2e -- tests/e2e/native-pointer.spec.ts --project=desktop-chromium --headed --workers=1 --retries=0
-          '
-        env:
-          E2E_NATIVE_MOUSE: '1'
+        run: bash scripts/run-native-browser.sh npm run e2e -- tests/e2e/native-pointer.spec.ts --project=desktop-chromium
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -223,7 +223,14 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
+      - name: Install native X11 test input from Ubuntu packages
+        if: matrix.project == 'desktop-chromium'
+        run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils
+      - name: Run desktop first chapter with native input in headed Chromium
+        if: matrix.project == 'desktop-chromium'
+        run: bash scripts/run-native-browser.sh npm run e2e -- --project="${{ matrix.project }}" --grep="campaign first chapter"
       - run: npm run e2e -- --project="${{ matrix.project }}" --grep="campaign first chapter"
+        if: matrix.project == 'android-chromium'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -255,7 +262,14 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
+      - name: Install native X11 test input from Ubuntu packages
+        if: matrix.project == 'desktop-chromium'
+        run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils
+      - name: Run desktop combat build with native input in headed Chromium
+        if: matrix.project == 'desktop-chromium'
+        run: bash scripts/run-native-browser.sh npm run e2e -- tests/e2e/campaign-combat-builds.spec.ts --project="${{ matrix.project }}" --grep="Q03 ${{ matrix.build }}:"
       - run: npm run e2e -- tests/e2e/campaign-combat-builds.spec.ts --project="${{ matrix.project }}" --grep="Q03 ${{ matrix.build }}:"
+        if: matrix.project == 'android-chromium'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -285,7 +299,10 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- tests/e2e/campaign-regional-playthrough.spec.ts --project=desktop-chromium
+      - name: Install native X11 test input from Ubuntu packages
+        run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils
+      - name: Run desktop regional campaign with native input in headed Chromium
+        run: bash scripts/run-native-browser.sh npm run e2e -- tests/e2e/campaign-regional-playthrough.spec.ts --project=desktop-chromium
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -351,7 +368,14 @@ jobs:
           name: game-dist
           path: dist/
       - run: npx playwright install --with-deps chromium
+      - name: Install native X11 test input from Ubuntu packages
+        if: matrix.project == 'desktop-chromium'
+        run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils
+      - name: Run desktop streamed campaign with native input in headed Chromium
+        if: matrix.project == 'desktop-chromium'
+        run: bash scripts/run-native-browser.sh npm run e2e -- --project="${{ matrix.project }}" --grep="streamed campaign"
       - run: npm run e2e -- --project="${{ matrix.project }}" --grep="streamed campaign"
+        if: matrix.project == 'android-chromium'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -53,3 +53,28 @@ The source diagnosis and focused checks are not a browser pass. This executor
 did not retry its known Chromium launch socket EPERM. Exact-commit CI must
 verify menu taps and retained contacts together before accepting this fix.
 Android emulation does not certify physical Android or iPhone Safari.
+
+## Preflight world-range correction on 7e5a7772
+
+The corrected normal touch path passed quality/start/pause/resume and retained
+movement/look/shield/jump/dodge stages. Its final cast setup failed because the
+actual dodge left the player at (1.7605, 5.7348) in X/Z, over3.5m from the wood
+aim point. The normal reticle range is2.75m. The preflight now physically walks
+back to its observed starting position before requiring the exact sample-wood
+target and paying20mana. It never resets game state; a rerun is still required.
+
+## Guarded combat and physical dialogue approach
+
+The 7e5a7772 staff and watermill traces show real player deaths after the driver
+released its shield between combat rounds. The next driver keeps the actual
+shield contact held during aim, element selection and observations, releases
+it for committed attacks, and restores it after recovery. Inventory healing
+and finite mana recovery still use visible menus and consumed items. The same
+18/28-round bounds and zero-death assertions remain. The touch preflight also
+changes element while shield and movement contacts stay held.
+
+The first-chapter dialogue trace hit stone between the player and the rescued
+smith. The route now walks around the hearth's south edge before targeting the
+smith, and compares dialogue rewards only after that physical approach. These
+are driver corrections awaiting exact-commit browser evidence; they do not
+claim a browser pass or change product combat values.

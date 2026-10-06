@@ -1,3 +1,4 @@
+import {desktopInputLabel} from './helpers/native-input';
 import {test,expect} from '@playwright/test';
 import {PlayerControls,choosePerformance} from './helpers/campaign-controls';
 import {regionalFirstChapter} from './helpers/regional-first-chapter';
@@ -9,7 +10,7 @@ test('Q07 regional: fresh game, all seven earned seals, final guardian and save 
  // A new full-campaign budget, independent of the existing 20-minute short
  // jobs and 30-minute chapter case. Zero retries; no per-action relaxation.
  test.setTimeout(90*60*1000);
- testInfo.annotations.push({type:'input-mode',description:isMobile?'Android Chromium emulation: CDP analog movement, look, retained shield and action touches, plus actual menu taps; no physical-device claim':'Production keyboard movement/look, held shield, jump/dodge and menu clicks; no raw-relative-mouse or physical-device claim'});
+ testInfo.annotations.push({type:'input-mode',description:isMobile?'Android Chromium emulation: CDP analog movement, look, retained shield and action touches, plus actual menu taps; no physical-device claim':desktopInputLabel()});
  const errors:string[]=[],consoleErrors:string[]=[],failedResponses:{status:number;url:string}[]=[];
  page.on('pageerror',e=>errors.push(String(e)));page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});page.on('response',response=>{if(response.status()>=400)failedResponses.push({status:response.status(),url:response.url()});});
  // The Core reference uses the supported v3 sampled world. Select it through

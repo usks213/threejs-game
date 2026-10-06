@@ -1,3 +1,4 @@
+import {desktopInputLabel} from './native-input';
 import {expect,type Page,type TestInfo} from '@playwright/test';
 import type {CampaignState} from '../../../src/prototype/core/campaign';
 import type {regionalInputObservation} from '../../../src/prototype/regional-input-observation';
@@ -26,5 +27,5 @@ export async function regionalEvidence(page:Page,testInfo:TestInfo,name:string,p
  }
  const after=await readRegional(page);expect(after.hp).toBeGreaterThan(0);expect(after.campaign.deaths).toBe(0);
  const environment=await page.evaluate(()=>({userAgent:navigator.userAgent,platform:navigator.platform,hardwareConcurrency:navigator.hardwareConcurrency,viewport:{width:innerWidth,height:innerHeight},devicePixelRatio,visibility:document.visibilityState,focused:document.hasFocus()}));
- await testInfo.attach(`${name}-evidence`,{body:JSON.stringify({checkpoint:name,project:testInfo.project.name,inputMode:testInfo.project.use.isMobile?'Android Chromium touch emulation; not a physical device':'Desktop production keyboard',browserVersion:page.context().browser()?.version(),quality:'performance',renderer:'Chromium SwiftShader from playwright.config.ts; hardware performance not claimed',environment,performanceSample:sample,gameSecondsBefore:before.seconds,gameSecondsAfter:after.seconds,position:after.position,hp:after.hp,stamina:after.stamina,oxygen:after.oxygen,cold:after.cold,mana:after.combat.mana,inventory:after.inventory,campaign:after.campaign,weather:after.weather,stats:after.stats,enemies:after.enemies},null,2),contentType:'application/json'});
+ await testInfo.attach(`${name}-evidence`,{body:JSON.stringify({checkpoint:name,project:testInfo.project.name,inputMode:testInfo.project.use.isMobile?'Android Chromium touch emulation; not a physical device':desktopInputLabel(),browserVersion:page.context().browser()?.version(),quality:'performance',renderer:'Chromium SwiftShader from playwright.config.ts; hardware performance not claimed',environment,performanceSample:sample,gameSecondsBefore:before.seconds,gameSecondsAfter:after.seconds,position:after.position,hp:after.hp,stamina:after.stamina,oxygen:after.oxygen,cold:after.cold,mana:after.combat.mana,inventory:after.inventory,campaign:after.campaign,weather:after.weather,stats:after.stats,enemies:after.enemies},null,2),contentType:'application/json'});
 }
