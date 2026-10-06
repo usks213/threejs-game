@@ -1,5 +1,6 @@
 import {test,expect,type BrowserContext,type Page} from '@playwright/test';
 import {installCoopBrowserImpairment} from '../helpers/coop-browser-impairment';
+import {createCoopTransportDiagnostics,type CoopTransportDiagnostics} from '../helpers/coop-transport-diagnostics';
 import {CoopBrowserRecoveryObserver,persistentRecoveryParts} from '../helpers/coop-browser-recovery';
 import {settledRecoveryAim,type CoopRecoveryAim} from '../helpers/coop-recovery-aim';
 import {ITEM_NAMES} from '../../src/content/catalog';
@@ -14,29 +15,32 @@ declare global {interface Window {coopActionSubmissions:{message:CoopAction;resu
 test.use({trace:'off'});
 test.describe.serial('two real browsers',()=>{
  type Ack=Extract<CoopServerPacket,{type:'ack'}>;
- const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>;welcomeEdits:EditOperation[];recovery:CoopBrowserRecoveryObserver;openSockets:number}>();
+ const wire=new Map<Page,{actions:{commandId:string;action:string;id?:string}[];acks:Map<string,Ack>;edits:Map<number,EditOperation>;welcomeEdits:EditOperation[];recovery:CoopBrowserRecoveryObserver;transport:CoopTransportDiagnostics;openSockets:number}>();
  let contexts:BrowserContext[]=[],a:Page,b:Page,code='',identity='',sharedPartId=0,expectedEditCount=0,errors:string[]=[],failed=false,tracePaths:string[]=[];
  const stage=(name:string)=>console.log('COOP_BROWSER_PHASE',name);
  const running=(page:Page)=>expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
  const observeWire=(page:Page)=>{
-  const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>(),welcomeEdits:[] as EditOperation[],recovery:new CoopBrowserRecoveryObserver(),openSockets:0};wire.set(page,observed);
+  const observed={actions:[] as {commandId:string;action:string;id?:string}[],acks:new Map<string,Ack>(),edits:new Map<number,EditOperation>(),welcomeEdits:[] as EditOperation[],recovery:new CoopBrowserRecoveryObserver(),transport:createCoopTransportDiagnostics(),openSockets:0};wire.set(page,observed);
   // Observe native network frames before the impairment's DOM message delay or
   // suppression, including every reconnect. Keep only tested fields; never
   // retain or log handshake/resume/delivery capabilities.
   page.on('websocket',socket=>{
    if(!/^\/coop\/[a-f0-9]{48}$/.test(new URL(socket.url()).pathname))return;
-   observed.openSockets++;socket.on('close',()=>observed.openSockets--);
+   const traffic=observed.transport.connection();
+   observed.openSockets++;socket.on('close',()=>{observed.openSockets--;traffic.close();});
    const decode=observed.recovery.connection();
-   socket.on('framereceived',frame=>{try{
-    const packet=JSON.parse(String(frame.payload));decode(packet);
+   socket.on('framereceived',frame=>{
+    let packet;try{packet=JSON.parse(String(frame.payload));}catch{traffic.packet('received',undefined);return;}
+    traffic.packet('received',packet);try{decode(packet);
     if(packet.type==='welcome')observed.welcomeEdits=packet.save.edits;
     if(packet.type==='welcome')console.log('COOP_BASELINE',JSON.stringify({epoch:packet.epoch,tick:packet.state?.tick,ack:packet.state?.ack,edits:packet.state?.edits,playerId:packet.playerId}));
     if(packet.type==='welcome'||packet.type==='frame'||packet.type==='delta')for(const edit of packet.edits??packet.save?.edits??[])observed.edits.set(edit.id,edit);
     if(packet.type==='ack'&&typeof packet.commandId==='string'&&typeof packet.accepted==='boolean'&&typeof packet.message==='string')observed.acks.set(packet.commandId,{type:'ack',commandId:packet.commandId,accepted:packet.accepted,message:packet.message});
     if(packet.type==='ack'||packet.type==='notice')console.log('COOP_SERVER_REPLY',JSON.stringify(packet));
    }catch{}});
-   socket.on('framesent',frame=>{try{
-    const packet=JSON.parse(String(frame.payload));
+   socket.on('framesent',frame=>{
+    let packet;try{packet=JSON.parse(String(frame.payload));}catch{traffic.packet('sent',undefined);return;}
+    traffic.packet('sent',packet);try{
     if(packet.type==='action'){
      if(typeof packet.commandId==='string'&&packet.message?.type==='game-action'&&typeof packet.message.action==='string')observed.actions.push({commandId:packet.commandId,action:packet.message.action,id:packet.message.id});
      console.log('COOP_UI_ACTION',JSON.stringify(packet.message));
@@ -50,6 +54,15 @@ test.describe.serial('two real browsers',()=>{
   for(const [selector,attribute]of [['#app','data-diagnostics'],['#app','data-aim'],['#app','data-combat'],['#app','data-skybound'],['#app','data-streaming'],['#game','data-rendered-peers'],['#game','data-peer-render-error'],['#session-status','data-last-ack'],['#session-status','data-last-command'],['#session-status','data-last-command-result']]as const)console.log('COOP_DIAGNOSTIC',attribute,await page.locator(selector).getAttribute(attribute,{timeout:1000}).catch(()=>null));
   console.log('COOP_NOTICE',await page.locator('#notice').textContent({timeout:1000}).catch(()=>null));
  };
+ const transportEvidence=async()=>Promise.all([a,b].filter(Boolean).map(async(page,client)=>({
+  client,openSockets:wire.get(page)?.openSockets,nativeWire:wire.get(page)?.transport.snapshot(),
+  // This contains only whitelisted metadata and existing numerical impairment
+  // stats. Never attach the wire observer's action, ACK, save or handshake data.
+  browser:await page.evaluate(()=>({stats:window.coopDeliveryFault.stats,transport:window.coopDeliveryFault.transport()})).catch(()=>null)
+ })));
+ const attachTransportFailure=async(info:import('@playwright/test').TestInfo)=>{
+  await info.attach('coop-transport-failure.json',{body:JSON.stringify({note:'Each observer uses its own relative monotonic clock; browser close reasons are exact allowlisted static strings, unknown reasons are redacted. Sent counts are successful native send calls or native framesent, never queued attempts.',clients:await transportEvidence()},null,2),contentType:'application/json'});
+ };
  test.beforeAll(async({browser},info)=>{
   test.setTimeout(180000);stage('startup and room join');errors=[];failed=false;wire.clear();tracePaths=[0,1].map(i=>info.outputPath(`coop-browser-${i}.zip`));try{
   contexts=await Promise.all([0,1].map(()=>browser.newContext({viewport:{width:640,height:360},deviceScaleFactor:.5})));
@@ -57,7 +70,9 @@ test.describe.serial('two real browsers',()=>{
   [a,b]=await Promise.all(contexts.map(context=>context.newPage()));
   for(const page of[a,b]){
    page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
-   await page.addInitScript(installCoopBrowserImpairment);
+   // Explicitly pass the self-contained factory: addInitScript serializes a
+   // function without its module imports. Unit coverage checks this boundary.
+   await page.addInitScript({content:`(${installCoopBrowserImpairment})(${createCoopTransportDiagnostics});`});
    // Observe the production submission receipt. No action or packet is
    // synthesized; a queued receipt remains final even before native framesent.
    await page.addInitScript(()=>{window.coopActionSubmissions=[];document.addEventListener('coop-action-submission',event=>window.coopActionSubmissions.push((event as CustomEvent<Window['coopActionSubmissions'][number]>).detail));});
@@ -70,9 +85,9 @@ test.describe.serial('two real browsers',()=>{
   // Both connections remain live; only one software-GPU view renders at a time.
   for(const page of[a,b]){await expect(page.locator('#session-status')).toHaveAttribute('data-players','2');await page.keyboard.press('Escape');await running(page);await page.locator('#session-menu').click();}
   for(const page of[a,b])await page.evaluate(()=>{window.coopDeliveryFault.enabled=true;});
-  stage('two browsers ready with 150ms injected RTT');}catch(error){failed=true;await Promise.all([a,b].filter(Boolean).map(diagnostics));throw error;}
+  stage('two browsers ready with 150ms injected RTT');}catch(error){failed=true;await attachTransportFailure(info);await Promise.all([a,b].filter(Boolean).map(diagnostics));throw error;}
  });
- test.afterEach(async({},info)=>{if(info.status!==info.expectedStatus){failed=true;for(const page of[a,b].filter(Boolean))await diagnostics(page);}});
+ test.afterEach(async({},info)=>{if(info.status!==info.expectedStatus){failed=true;await attachTransportFailure(info);for(const page of[a,b].filter(Boolean))await diagnostics(page);}});
  test.afterAll(async()=>{await Promise.allSettled(contexts.map((c,i)=>Promise.race([c.tracing.stop(failed?{path:tracePaths[i]}:undefined),new Promise<void>(r=>setTimeout(r,5000))])));await Promise.allSettled(contexts.map(c=>Promise.race([c.close(),new Promise<void>(r=>setTimeout(r,5000))])));});
  test('resolve a simultaneous shared supply pickup without duplicating inventory',async()=>{
   test.setTimeout(90000);stage('shared pickup conflict');
@@ -194,7 +209,9 @@ test.describe.serial('two real browsers',()=>{
   await command(other,'#powers-panel [data-power=release]','sky-release',partId);
   for(const page of pages){await expect.poll(async()=>!!(await part(page))?.lease).toBe(false);await page.locator('#powers-close').click();await page.locator('#session-menu').click();}
   stage('NET-A09 release despite one lost idle packet');
+  for(const [client,page]of pages.entries())await expect(page.locator('#session-status'),`NET-A09 client ${client} must still be online before movement`).toHaveAttribute('data-connection','online');
   await b.locator('#session-close').click();await running(b);
+  for(const [client,page]of pages.entries())await expect(page.locator('#session-status'),`NET-A09 client ${client} must be online immediately before KeyD`).toHaveAttribute('data-connection','online');
   const delayedPeer=async()=>JSON.parse(await a.locator('#session-status').getAttribute('data-peers')??'[]').find((peer:{id:string})=>peer.id===identity) as {x:number;z:number};
   const beforeMotion=(await delayedPeer()).x;await b.keyboard.down('KeyD');
   try{await expect.poll(async()=>(await delayedPeer()).x,{intervals:[50,100]}).toBeGreaterThan(beforeMotion+.35);await b.evaluate(()=>{window.coopDeliveryFault.dropNextIdle=true;});}finally{await b.keyboard.up('KeyD');}
@@ -205,7 +222,7 @@ test.describe.serial('two real browsers',()=>{
   // The preceding ordinary pickup and all original lease assertions ran under
   // this profile. Count actual loss/retry events; never infer them from setup.
   for(const page of pages){await expect.poll(()=>page.evaluate(()=>window.coopDeliveryFault.stats.droppedDeltas),{timeout:20000}).toBe(2);await expect.poll(()=>page.evaluate(()=>window.coopDeliveryFault.stats.pingRttMs.length)).toBeGreaterThan(0);}
-  const impairment=await Promise.all(pages.map(page=>page.evaluate(()=>window.coopDeliveryFault.stats)));
+  const impairment=await Promise.all(pages.map(page=>page.evaluate(()=>({...window.coopDeliveryFault.stats,transport:window.coopDeliveryFault.transport()}))));
   expect(impairment.reduce((sum,stats)=>sum+stats.duplicatedActions,0)).toBe(1);
   for(const stats of impairment){expect(stats.delayedIncoming).toBeGreaterThan(0);expect(stats.delayedOutgoing).toBeGreaterThan(0);expect(Math.min(...stats.incomingDelayMs)).toBeGreaterThanOrEqual(70);expect(Math.min(...stats.outgoingDelayMs)).toBeGreaterThanOrEqual(70);expect(Math.min(...stats.pingRttMs)).toBeGreaterThanOrEqual(140);}
   await info.attach('impaired-browser-transport.json',{body:JSON.stringify({injectedOneWayMs:75,jitterMs:[0,25],note:'150ms added application RTT, plus actual internet and browser scheduling delay; not TCP packet loss or phone performance',clients:impairment,stopped,afterStop},null,2),contentType:'application/json'});

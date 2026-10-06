@@ -1,5 +1,15 @@
 # 実装台帳
 
+## 現在の公開・検証結果（2026-10-06 03:09 UTC）
+
+公開 `138158d1ec387c715fb55e0cac1192643dbc970b` は、CIの型・969試験/203ファイル・build・frontend/authority両SHA照合に成功。Android選択6件、ローカル権威の実2browser6件は初回で合格しました。hostで以前失敗した復帰準備は、通常の復活をB切断前に待ち、その後の実描画・0.03m照準安定・一回だけのdig/成功ACK・全員退出後の保存再参加を通過しています。
+
+WebKitは初回1件合格。実WebGL2/HDR描画、縦横の完全な目標カード、16件のtrusted touch/pointer、創作menu、camera反転/字幕設定、reload後の保存を確認。portrait/landscapeの実画像も確認しました。Linux WebKit+iPhone profileであり、実iPhoneや端末FPSの合格ではありません。
+
+公開2browserは2合格/1失敗/3未実行。共有箱の作成・同時取得競合・lease期限・切断中回収・再取得/解放までは成功。その後NET-A09の移動/idle喪失検査で、Bは生存したままx1.6→7.7へ移動しましたが、Aは既に接続closed・tick816のままで、相手位置が更新されませんでした。fatal noticeから1008経路と分かりますが、raw close reasonは保存されていないためrate制限等の原因を断定しません。後続の公開地形/復帰検査は未実行として扱い、hostの合格で代用しません。
+
+4人公開負荷は60.035秒・通信失敗0・10.994Hzで30Hz未達。現在ソースのローカルNode fresh-world profileは900tick、平均15.48ms/p95 49.35msですが、実WorkerのCPU能力/peak heapを示す値ではありません。全54仕様の最終受入と実端末/Worker性能は未完了です。
+
 ## 現在の公開・検証結果（2026-10-06 02:32 UTC）
 
 公開 `54850cae6bad022940704f3cf98983be00fe86f6` は型・935試験/200ファイル・build・専用SHA/権威health照合・Android選択・公開実2browser 6/6に成功。ローカルhostは復活直後の追従中カメラから採掘して保護領域へ当たり、正しい拒否で失敗しました。serial retryは最後の新規参加まで進みましたがjob期限で中断。生存/接地/実描画と照準の収束を待ち、その一回の実commandに対応する成功ACKを要求する試験修正は次のCI待ちです。
