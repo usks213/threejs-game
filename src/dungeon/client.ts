@@ -2,6 +2,12 @@ import {validSupplyStock} from './economy';
 import {DUNGEON_PROTOCOL, type Action, type ClientPacket, type Input, type Snapshot} from './types';
 
 export const ROOM_PATTERN=/^[a-f0-9]{64}$/;
+const REFUSAL_MESSAGES:Record<string,string>={
+ '送信が多すぎます':'操作の受信頻度が上限に達したため接続を停止しました。少し待って再接続してください。',
+ '操作が多すぎます':'短時間の操作が多すぎるため接続を停止しました。少し待って再接続してください。',
+ '不正な操作です':'操作の通信形式を確認できませんでした。ページを更新して入り直してください。',
+ '参加確認が時間切れです':'参加確認が時間切れになりました。再接続してください。',
+};
 const STORAGE_PREFIX='ashen-dungeon:v1:identity:';
 export interface StorageLike {getItem(key:string):string|null;setItem(key:string,value:string):void}
 export interface RandomSource {getRandomValues<T extends ArrayBufferView>(array:T):T}
@@ -42,7 +48,7 @@ export class DungeonClient {
    ws.onopen=()=>{if(generation!==this.generation||this.stopped)return;this.send({type:'hello',protocol:DUNGEON_PROTOCOL,key:this.options.identity.key,name:this.options.identity.name});};
    ws.onmessage=event=>{if(generation!==this.generation||this.stopped)return;this.receive(event.data);};
    ws.onerror=()=>{/* close provides the retry signal; do not send private keys to logs. */};
-   ws.onclose=event=>{if(generation!==this.generation||this.stopped)return;this.ready=false;this.socket=null;if(event.code===1002){this.options.callbacks.state('更新が必要です');this.options.callbacks.notice('通信形式が一致しません。ページを更新してください。');return;}if(event.code===1008){this.options.callbacks.state('接続を拒否されました');this.options.callbacks.notice('この部屋には入れません。部屋の招待とブラウザの保存状態を確認してください。');return;}if(event.code===4001){this.options.callbacks.state('別のタブに接続しました');this.options.callbacks.notice('同じ探索者の別タブが接続しました。このタブでは操作できません。');return;}this.retry();};
+   ws.onclose=event=>{if(generation!==this.generation||this.stopped)return;this.ready=false;this.socket=null;if(event.code===1002){this.options.callbacks.state('更新が必要です');this.options.callbacks.notice('通信形式が一致しません。ページを更新してください。');return;}if(event.code===1008){this.options.callbacks.state('接続を拒否されました');this.options.callbacks.notice(Object.hasOwn(REFUSAL_MESSAGES,event.reason)?REFUSAL_MESSAGES[event.reason]:'この部屋には入れません。部屋の招待とブラウザの保存状態を確認してください。');return;}if(event.code===4001){this.options.callbacks.state('別のタブに接続しました');this.options.callbacks.notice('同じ探索者の別タブが接続しました。このタブでは操作できません。');return;}this.retry();};
   }catch {this.retry();}
  }
  private receive(data:unknown){

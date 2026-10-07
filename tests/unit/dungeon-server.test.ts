@@ -19,3 +19,36 @@ describe('dungeon durable server',()=>{
  it('releases unjoined sockets after a bounded handshake period instead of reserving every room slot forever',async()=>{let now=1000;const server=new DungeonServer({save:async()=>{}},()=>now),ports=Array.from({length:8},()=>port());ports.forEach((p,i)=>server.connect(String(i),p));now+=11000;await server.tick();expect(ports.every(p=>p.closed[0]?.code===1008)).toBe(true);expect(server.active).toBe(false);const p=port();server.connect('real',p);await server.receive('real',hello());expect(server.sim.state.profiles).toHaveLength(1);expect(p.messages.length).toBeGreaterThan(0);});
 
  it('drops a broken socket without stopping another player or poisoning the room queue',async()=>{const server=new DungeonServer({save:async()=>{}},()=>1000),good=port();server.connect('bad',{send:()=>{throw new Error('closed');},close:()=>{throw new Error('already closed');}});await server.receive('bad',hello());server.connect('good',good);await server.receive('good',hello('b'.repeat(64)));expect(good.messages.length).toBeGreaterThan(0);expect(good.closed).toHaveLength(0);expect(server.sim.state.profiles[0].actor.connected).toBe(false);});
+
+it('counts input arrival time rather than misclassifying a delayed persistence queue as flooding',async()=>{
+ let now=0,blocked=false,release=()=>{},entered=()=>{};
+ const waiting=new Promise<void>(resolve=>{release=resolve;}),saving=new Promise<void>(resolve=>{entered=resolve;});
+ const server=new DungeonServer({save:async()=>{if(blocked){entered();await waiting;}}},()=>now),a=port();server.connect('a',a);await server.receive('a',hello());
+ blocked=true;now=1000;const prepare=server.receive('a',JSON.stringify({type:'action',sequence:1,action:{kind:'ready'}}));await saving;
+ const pending:Promise<void>[]=[];
+ for(let i=1;i<=50;i++){now=1000+i*50;pending.push(server.receive('a',JSON.stringify({type:'input',sequence:i,input:{x:0,z:0,yaw:0,pitch:0,block:false,crouch:false}})));}
+ blocked=false;release();await prepare;await Promise.all(pending);
+ expect(a.closed).toEqual([]);expect(server.sim.state.profiles[0].actor.seq).toBe(50);expect(server.sim.state.profiles[0].actor.connected).toBe(true);
+});
+it('still rejects an actual same-time packet flood at the original budget after a slow save',async()=>{
+ let now=0,blocked=false,release=()=>{},entered=()=>{};
+ const waiting=new Promise<void>(resolve=>{release=resolve;}),saving=new Promise<void>(resolve=>{entered=resolve;});
+ const server=new DungeonServer({save:async()=>{if(blocked){entered();await waiting;}}},()=>now),a=port();server.connect('a',a);await server.receive('a',hello());
+ blocked=true;now=1000;const prepare=server.receive('a',JSON.stringify({type:'action',sequence:1,action:{kind:'ready'}}));await saving;
+ const pending:Promise<void>[]=[];
+ for(let i=1;i<=50;i++)pending.push(server.receive('a',JSON.stringify({type:'input',sequence:i,input:{x:0,z:0,yaw:0,pitch:0,block:false,crouch:false}})));
+ now=4000;blocked=false;release();await prepare;await Promise.all(pending);
+ expect(a.closed).toContainEqual({code:1008,reason:'送信が多すぎます'});expect(server.sim.state.profiles[0].actor.seq).toBe(39);expect(server.sim.state.profiles[0].actor.connected).toBe(false);
+});
+
+it.each([100,0])('uses arrival windows for queued actions and preserves the twelve-action limit (spacing %dms)',async spacing=>{
+ let now=0,blocked=false,release=()=>{},entered=()=>{};
+ const waiting=new Promise<void>(resolve=>{release=resolve;}),saving=new Promise<void>(resolve=>{entered=resolve;});
+ const server=new DungeonServer({save:async()=>{if(blocked){entered();await waiting;}}},()=>now),a=port();server.connect('a',a);await server.receive('a',hello());
+ blocked=true;now=1000;const prepare=server.receive('a',JSON.stringify({type:'action',sequence:1,action:{kind:'ready'}}));await saving;
+ const pending:Promise<void>[]=[];
+ for(let i=1;i<=15;i++){now=1000+i*spacing;pending.push(server.receive('a',JSON.stringify({type:'action',sequence:i+1,action:{kind:'class',classId:'bastion'}})));}
+ now=4000;blocked=false;release();await prepare;await Promise.all(pending);
+ if(spacing){expect(a.closed).toEqual([]);expect(server.sim.state.profiles[0].lastAction).toBe(16);}
+ else{expect(a.closed).toContainEqual({code:1008,reason:'操作が多すぎます'});expect(server.sim.state.profiles[0].lastAction).toBe(12);}
+});

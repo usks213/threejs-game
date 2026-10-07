@@ -8,7 +8,7 @@ function snapshot():Snapshot{const sim=new DungeonSimulation();const p=sim.join(
 class MockSocket implements DungeonSocket {
  readyState=0;onopen:((event:Event)=>void)|null=null;onmessage:((event:MessageEvent)=>void)|null=null;onclose:((event:CloseEvent)=>void)|null=null;onerror:((event:Event)=>void)|null=null;
  sent:string[]=[];closed=false;send(data:string){this.sent.push(data);}close(){this.closed=true;this.readyState=3;}
- open(){this.readyState=1;this.onopen?.(new Event('open'));}receive(value:unknown){this.onmessage?.({data:JSON.stringify(value)} as MessageEvent);}disconnect(code=1006){this.readyState=3;this.onclose?.({code} as CloseEvent);}
+ open(){this.readyState=1;this.onopen?.(new Event('open'));}receive(value:unknown){this.onmessage?.({data:JSON.stringify(value)} as MessageEvent);}disconnect(code=1006,reason=''){this.readyState=3;this.onclose?.({code,reason} as CloseEvent);}
 }
 const neutral:Input={x:0,z:0,yaw:0,pitch:0,block:false,crouch:false};
 function harness(){const sockets:MockSocket[]=[];const state=vi.fn(),notice=vi.fn(),receive=vi.fn();const client=new DungeonClient({base:'https://game.example/?mode=dungeon',room,identity:{key,name:'Player',persistent:true},socket:()=>{const socket=new MockSocket();sockets.push(socket);return socket;},callbacks:{state,notice,snapshot:receive}});return {client,sockets,state,notice,receive};}
@@ -23,4 +23,10 @@ describe('private dungeon client sessions',()=>{
  it('does not replay gameplay actions across reconnect and cancels retry on disposal',()=>{vi.useFakeTimers();const h=harness();h.client.connect();const old=h.sockets[0];old.open();old.receive({type:'snapshot',snapshot:snapshot()});h.client.action({kind:'attack'});old.disconnect();expect(h.client.connected).toBe(false);expect(h.client.action({kind:'attack'})).toBe(false);vi.advanceTimersByTime(750);expect(h.sockets).toHaveLength(2);h.sockets[1].open();expect(h.sockets[1].sent).toHaveLength(1);expect(JSON.parse(h.sockets[1].sent[0]).type).toBe('hello');h.sockets[1].disconnect();h.client.dispose();vi.advanceTimersByTime(60000);expect(h.sockets).toHaveLength(2);});
  it('ignores stale sockets and invalid protocol, and stops retries after refusal',()=>{vi.useFakeTimers();const h=harness();h.client.connect();const old=h.sockets[0];old.open();h.client.reconnect();expect(old.onmessage).toBeNull();expect(old.closed).toBe(true);const current=h.sockets[1];current.open();current.receive({type:'snapshot',snapshot:{...snapshot(),protocol:99}});expect(h.client.connected).toBe(false);expect(h.receive).not.toHaveBeenCalled();expect(h.notice).toHaveBeenCalled();current.disconnect(1008);vi.advanceTimersByTime(60000);expect(h.sockets).toHaveLength(2);h.client.dispose();});
  it.each([1002,4001])('does not reconnect-loop on terminal close %s',code=>{vi.useFakeTimers();const h=harness();h.client.connect();h.sockets[0].open();h.sockets[0].disconnect(code);vi.advanceTimersByTime(60000);expect(h.sockets).toHaveLength(1);expect(h.notice).toHaveBeenCalled();h.client.dispose();});
+});
+
+it('shows allowlisted rate-limit diagnostics without echoing arbitrary close text',()=>{
+ for(const [reason,expected] of [['送信が多すぎます','受信頻度'],['操作が多すぎます','短時間'],['不正な操作です','通信形式'],['参加確認が時間切れです','時間切れ'],['untrusted secret message','この部屋には入れません'],['__proto__','この部屋には入れません']]){
+  const h=harness();h.client.connect();h.sockets[0].open();h.sockets[0].disconnect(1008,reason);expect(h.notice).toHaveBeenCalledWith(expect.stringContaining(expected));expect(h.notice).not.toHaveBeenCalledWith(expect.stringContaining('untrusted secret'));h.client.dispose();
+ }
 });

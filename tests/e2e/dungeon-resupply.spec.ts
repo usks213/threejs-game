@@ -4,7 +4,7 @@ import type {Snapshot} from '../../src/dungeon/types';
 
 async function activate(locator:Locator,mobile:boolean){await locator.scrollIntoViewIfNeeded();if(mobile)await locator.tap();else await locator.click();}
 async function state(page:Page){const value=await read(page);if(!value)throw Error('No authoritative dungeon snapshot');return value;}
-async function until(page:Page,predicate:(snapshot:Snapshot)=>boolean,message:string,timeout=15000){await expect.poll(async()=>{const next=await read(page);return !!next&&predicate(next);},{message,timeout}).toBe(true);return state(page);}
+async function until(page:Page,predicate:(snapshot:Snapshot)=>boolean,message:string,timeout=15000){await expect.poll(async()=>{const next=await read(page);return !!next&&predicate(next);},{message,timeout,intervals:[50,75,100]}).toBe(true);return state(page);}
 /** Ordinary fixed-yaw movement for the safe western route, with real CDP touches on Android. */
 async function walk(page:Page,mobile:boolean,x:number,z:number){
  const session=mobile?await page.context().newCDPSession(page):null;
@@ -51,10 +51,20 @@ test('dungeon recovered treasure funds real resupply and a second finite-resourc
  await inventory(page,isMobile,true);await expect(page.getByTestId('dungeon-buy-potion')).toBeDisabled();await inventory(page,isMobile,false);
  const carried=own(await state(page)).bag.map(i=>i.id).sort();await activate(page.getByTestId('dungeon-start'),isMobile);await until(page,s=>s.raid===2&&s.phase==='raid','second raid begins');
  expect(own(await state(page)).bag.map(i=>i.id).sort()).toEqual(carried);expect((await state(page)).shop).toEqual({potion:6,bandage:10});expect((await state(page)).gold).toBe(60);
- // Earn damage from an actual approaching guard, retreat normally, then use only the bought dose.
- await walk(page,isMobile,-4,11);await until(page,s=>own(s).hp<own(s).maxHp,'guard inflicts ordinary combat damage');await walk(page,isMobile,-12,12);
- const beforeHeal=own(await state(page));expect(beforeHeal.status).toBe('alive');expect(beforeHeal.hp).toBeLessThan(beforeHeal.maxHp);await activate(page.getByTestId('dungeon-action-heal'),isMobile);
+ // This second raid explicitly tests paid consumption and loss, while the separate
+ // full raid gate retains its successful-survival/extraction requirement.
+ // Wait safely at the edge of the guard's real perception instead of pulse-walking
+ // away slower than a pursuer and accidentally treating death as a test success.
+ await walk(page,isMobile,-7.5,11);
+ const bankBeforeFight=(await state(page)).stash.map(i=>i.id).sort();
+ await until(page,s=>own(s).hp<own(s).maxHp,'guard inflicts ordinary combat damage');
+ const beforeHeal=own(await state(page));expect(beforeHeal.status).toBe('alive');
+ await activate(page.getByTestId('dungeon-action-heal'),isMobile);
  await until(page,s=>!own(s).bag.some(i=>i.id===purchased.id)&&own(s).hp>beforeHeal.hp,'purchased medicine heals and is consumed');
- await extract(page,isMobile);await page.screenshot({path:info.outputPath('second-raid-resupply-extracted.png')});const final=await state(page);expect(final.gold).toBe(60);expect(final.stash.some(i=>i.id===purchased.id)).toBe(false);expect(final.stash.some(i=>i.id===treasure.id)).toBe(false);
+ await until(page,s=>own(s).status==='dead'&&s.phase==='finished','unguarded explorer dies and the second raid settles',20000);
+ await page.screenshot({path:info.outputPath('second-raid-funded-loss.png')});
+ const final=await state(page);expect(final.gold).toBe(60);expect(own(final).bag).toEqual([]);expect(final.stash.map(i=>i.id).sort()).toEqual(bankBeforeFight);
+ const corpse=final.containers.find(c=>c.id===`corpse-${final.you}-2`);expect(corpse).toBeTruthy();expect(corpse!.items.map(i=>i.id).sort()).toEqual(carried.filter(id=>id!==purchased.id));
+ expect(final.stash.some(i=>i.id===purchased.id)).toBe(false);expect(final.stash.some(i=>i.id===treasure.id)).toBe(false);
  const saved=final.stash.map(i=>i.id).sort();await page.reload();await activate(page.getByTestId('dungeon-join'),isMobile);await until(page,s=>s.gold===60&&s.raid===2,'gold and second result reconnect');expect((await state(page)).stash.map(i=>i.id).sort()).toEqual(saved);expect((await state(page)).trades).toHaveLength(4);expect(errors).toEqual([]);
 });
