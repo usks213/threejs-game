@@ -313,3 +313,21 @@
   .dungeon-app .dungeon-supply-section { padding: 12px; }
   .dungeon-app .dungeon-supply-offers { grid-template-columns: 1fr; }
 }
+
+/* One private, bounded return batch: keep selectable controls attached during live updates. */
+.dungeon-app .dungeon-pending-return, .dungeon-app .dungeon-pending-summary { margin: 16px 0; padding: 16px; min-width: 0; border: 1px solid #bba16b88; border-radius: 5px; background: #3b33214d; }
+.dungeon-app .dungeon-pending-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.dungeon-app .dungeon-pending-heading h3 { margin: 0; }
+.dungeon-app .dungeon-pending-heading strong { color: var(--dungeon-gold); font-size: 12px; }
+.dungeon-app .dungeon-pending-status, .dungeon-app .dungeon-pending-selection { margin: 10px 0; color: #ead6a8; font-size: 12px; overflow-wrap: anywhere; }
+.dungeon-app .dungeon-pending-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-height: 220px; overflow-y: auto; overscroll-behavior: contain; padding: 4px; }
+.dungeon-app .dungeon-pending-return .dungeon-button, .dungeon-app .dungeon-pending-summary .dungeon-button { min-height: 48px; min-width: 48px; white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+.dungeon-app .dungeon-pending-item { text-align: left; }
+.dungeon-app .dungeon-pending-destinations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dungeon-app .dungeon-pending-destinations > div { min-width: 0; }
+.dungeon-app .dungeon-pending-destinations .dungeon-button { width: 100%; margin-bottom: 5px; }
+.dungeon-app .dungeon-pending-summary .dungeon-button { width: 100%; margin-top: 10px; }
+@media (max-width: 760px) {
+  .dungeon-app .dungeon-pending-return, .dungeon-app .dungeon-pending-summary { padding: 12px; }
+  .dungeon-app .dungeon-pending-list, .dungeon-app .dungeon-pending-destinations { grid-template-columns: 1fr; }
+}

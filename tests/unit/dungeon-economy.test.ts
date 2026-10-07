@@ -133,7 +133,7 @@ it('reports this raid’s returned items rather than counting older stash conten
  const s=setup();place(s.a.stash,item('old-stash'),STASH_HEIGHT);s.action(s.a,{kind:'ready'});s.action(s.b,{kind:'ready'});s.action(s.a,{kind:'start'});
  s.sim.state.enemies=[];s.sim.state.elapsed=46;s.a.actor.position={...s.sim.state.exits[0].position};const carried=s.a.actor.bag.length;
  s.action(s.a,{kind:'interact',target:'exit-west'});for(let i=0;i<81;i++)s.sim.step();
- expect(s.a.actor.status).toBe('extracted');expect(s.a.stash).toHaveLength(carried+1);expect(s.a.result).toBe(`帰還成功。${carried}品を倉庫へ保存`);
+ expect(s.a.actor.status).toBe('extracted');expect(s.a.stash).toHaveLength(carried+1);expect(s.a.result).toBe(`帰還成功。${carried}品を倉庫へ保存、0品は帰還品として保管`);
 });
 
 it('consumes bought medicine once, drops the remaining loadout on death, and keeps unopened corpse contents private',()=>{

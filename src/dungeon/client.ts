@@ -1,4 +1,5 @@
 import {validSupplyStock} from './economy';
+import {validInventory} from './inventory';
 import {DUNGEON_PROTOCOL, type Action, type ClientPacket, type Input, type Snapshot} from './types';
 
 export const ROOM_PATTERN=/^[a-f0-9]{64}$/;
@@ -73,7 +74,11 @@ export class DungeonClient {
  dispose(){if(this.stopped)return;this.stopped=true;this.ready=false;this.generation++;this.clearTimer();this.detachSocket();}
  get connected(){return this.ready&&!this.stopped;}
 }
+// A return batch is one bounded bag, never an arbitrary item queue.
+function validPendingReturn(value:unknown):boolean {
+ try {return validInventory(value)&&value.every(item=>item.found);}catch {return false;}
+}
 export function isSnapshot(value:unknown):value is Snapshot {
  if(!value||typeof value!=='object')return false;
- const v=value as Partial<Snapshot>;return v.protocol===DUNGEON_PROTOCOL&&typeof v.you==='string'&&typeof v.seed==='number'&&Number.isFinite(v.seed)&&typeof v.raid==='number'&&typeof v.tick==='number'&&typeof v.elapsed==='number'&&Number.isFinite(v.elapsed)&&['lobby','raid','finished'].includes(v.phase??'')&&Number.isSafeInteger(v.lastAction)&&v.lastAction!>=0&&Number.isSafeInteger(v.lastInput)&&v.lastInput!>=0&&Array.isArray(v.actors)&&Array.isArray(v.enemies)&&Array.isArray(v.containers)&&Array.isArray(v.doors)&&Array.isArray(v.exits)&&Array.isArray(v.shots)&&Array.isArray(v.stash)&&Array.isArray(v.events)&&typeof v.result==='string'&&Number.isSafeInteger(v.gold)&&v.gold!>=0&&v.gold!<=1e9&&validSupplyStock(v.shop)&&Array.isArray(v.trades)&&v.trades.length<=6&&v.trades.every(entry=>typeof entry==='string'&&entry.length<=96);
+ const v=value as Partial<Snapshot>;return (!Object.hasOwn(v,'pendingReturn')||validPendingReturn(v.pendingReturn))&&v.protocol===DUNGEON_PROTOCOL&&typeof v.you==='string'&&typeof v.seed==='number'&&Number.isFinite(v.seed)&&typeof v.raid==='number'&&typeof v.tick==='number'&&typeof v.elapsed==='number'&&Number.isFinite(v.elapsed)&&['lobby','raid','finished'].includes(v.phase??'')&&Number.isSafeInteger(v.lastAction)&&v.lastAction!>=0&&Number.isSafeInteger(v.lastInput)&&v.lastInput!>=0&&Array.isArray(v.actors)&&Array.isArray(v.enemies)&&Array.isArray(v.containers)&&Array.isArray(v.doors)&&Array.isArray(v.exits)&&Array.isArray(v.shots)&&Array.isArray(v.stash)&&Array.isArray(v.events)&&typeof v.result==='string'&&Number.isSafeInteger(v.gold)&&v.gold!>=0&&v.gold!<=1e9&&validSupplyStock(v.shop)&&Array.isArray(v.trades)&&v.trades.length<=6&&v.trades.every(entry=>typeof entry==='string'&&entry.length<=96);
 }

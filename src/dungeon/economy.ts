@@ -33,12 +33,13 @@ function receipt(profile:Profile,state:RaidState,description:string){
 /** Check all conditions before assigning any item, coin, stock or serial change. */
 export function buySupply(state:RaidState,profile:Profile,supply:SupplyKind):string{
  if(!allowed(state,profile))return '補給所へ戻り、準備を解除してから取引してください';
+ if(profile.pendingReturn?.length)return '帰還品をすべて受け取ってから購入してください';
  const offer=SUPPLIES[supply],stock=state.shop??freshSupplyStock();
  if(!offer||!stock[supply])return 'この補給品は売り切れです。次の遠征開始時に補充されます';
  if(profile.gold<offer.price)return `金貨が足りません（必要${offer.price}）`;
  if(state.serial>=1e9)return '品物の上限に達したため購入できません';
  const item:Item={id:`r${state.raid}-i${state.serial+1}`,kind:supply,quality:0,count:1,x:0,y:0,rotated:false,found:false};
- const owned=[...state.profiles.flatMap(value=>[...value.stash,...value.actor.bag]),...state.enemies.flatMap(value=>value.bag),...state.containers.flatMap(value=>value.items)];
+ const owned=[...state.profiles.flatMap(value=>[...value.stash,...value.actor.bag,...(value.pendingReturn??[])]),...state.enemies.flatMap(value=>value.bag),...state.containers.flatMap(value=>value.items)];
  if(owned.some(value=>value.id===item.id))return '品物の識別子が重複するため購入を停止しました';
  const candidate=profile.stash.map(value=>({...value}));
  if(!place(candidate,item,STASH_HEIGHT))return '倉庫に空きがありません。購入は成立していません';

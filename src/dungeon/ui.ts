@@ -6,6 +6,7 @@ import './style.css';
 import {combatReadout,focusedOpponent,receivedDamage} from './readability';
 import { SUPPLIES, loadoutWeapon, preparationIssue, saleValue } from './economy';
 import type { SupplyKind } from './types';
+import { createPendingReturnPanel, pendingReturnIssue } from './pending-return-panel';
 
 type Callbacks = {
   create(name: string): void;
@@ -211,6 +212,16 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const playersTitle = element('h3', '', '参加中の探索者');
   const participants = element('ul', 'dungeon-participants');
   const preparationActions = element('div', 'dungeon-preparation-actions');
+  const pendingSummary = element('div', 'dungeon-pending-summary');
+  pendingSummary.dataset.testid = 'dungeon-pending-summary';
+  pendingSummary.hidden = true;
+  const pendingSummaryText = element('p', 'dungeon-fine-print');
+  const pendingOpen = button('未受領品を受け取る', '', () => {
+    changeInventory(true, true);
+    inventoryPanel.scrollTop = 0;
+  });
+  pendingOpen.dataset.testid = 'dungeon-pending-open';
+  pendingSummary.append(pendingSummaryText, pendingOpen);
   const inventoryButton = button('鞄と倉庫を確認', '', () => changeInventory(true, true));
   const readyButton = button('準備完了にする', '', () => callbacks.action({ kind: 'ready' }));
   const startButton = button('全員で遠征を開始', 'dungeon-button-primary', () => callbacks.action({ kind: 'start' }));
@@ -219,8 +230,12 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const preparationLoadout = element('p', 'dungeon-loadout-preview');
   preparationLoadout.dataset.testid = 'dungeon-loadout-preview';
   const startHint = element('p', 'dungeon-fine-print', '接続中の全員が準備完了になると開始できます。1人でも出発できます。');
+  startHint.id = 'dungeon-start-hint';
+  startHint.dataset.testid = 'dungeon-start-hint';
+  readyButton.setAttribute('aria-describedby', startHint.id);
+  startButton.setAttribute('aria-describedby', startHint.id);
   preparationActions.append(inventoryButton, readyButton, startButton);
-  preparation.append(classLabel, classList, playersTitle, participants, preparationLoadout, preparationActions, startHint);
+  preparation.append(classLabel, classList, playersTitle, participants, preparationLoadout, pendingSummary, preparationActions, startHint);
   lobbyPanel.append(entry, preparation);
   lobby.append(introduction, lobbyPanel);
 
@@ -414,7 +429,8 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   trades.setAttribute('aria-label', '自分の最新の取引履歴');
   const noTrades = element('p', 'dungeon-fine-print', 'まだ取引はありません。');
   supplySection.append(supplyHeading, supplyHint, supplyStatus, supplyOffers, sellSelected, saleHint, tradeTitle, noTrades, trades);
-  inventoryPanel.append(inventoryHeading, inventoryWarning, inventoryLoadout, selection, supplySection, inventoryColumns, lootSection);
+  const pendingPanel = createPendingReturnPanel(callbacks.action, listeners.signal);
+  inventoryPanel.append(inventoryHeading, inventoryWarning, inventoryLoadout, pendingPanel.root, selection, supplySection, inventoryColumns, lootSection);
   inventoryOverlay.append(inventoryPanel);
   listen(inventoryOverlay, 'keydown', event => {
     const key = event as KeyboardEvent;
@@ -561,7 +577,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     const actor = player();
     if (!actor) return;
     if (selected && !selectedItem()) selected = null;
-    const nextSignature = JSON.stringify([actor.bag, snapshot.stash, selected, snapshot.phase, actor.ready, actor.status, actor.classId, snapshot.gold, snapshot.shop, snapshot.trades]);
+    const nextSignature = JSON.stringify([actor.bag, snapshot.stash, selected, snapshot.phase, actor.ready, actor.status, actor.classId, snapshot.gold, snapshot.shop, snapshot.trades, snapshot.pendingReturn]);
     if (nextSignature !== inventorySignature) {
       inventorySignature = nextSignature;
       renderItems(bagGrid, actor.bag, 'bag');
@@ -579,13 +595,14 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
       inventoryLoadout.classList.toggle('dungeon-loadout-issue', !!preparationIssue(actor.bag));
       text(gold, `${snapshot.gold} 金貨`);
       const trading = canTrade();
-      text(supplyStatus, trading ? '取引できます。購入後は倉庫から鞄へ移して持ち出してください。' : actor.ready ? '準備完了中です。取引するには準備を解除してください。' : '取引は遠征終了後、補給所へ戻ってから行えます。');
+      const pending = pendingReturnIssue(snapshot.pendingReturn);
+      text(supplyStatus, trading ? pending ? '未受領品をすべて受け取るまで購入できません。倉庫の遺宝・鉱石の売却と、鞄・倉庫の移動で空きを作れます。' : '取引できます。購入後は倉庫から鞄へ移して持ち出してください。' : actor.ready ? '準備完了中です。取引するには準備を解除してください。' : '取引は遠征終了後、補給所へ戻ってから行えます。');
       for (const [kind, control] of supplyControls) {
         const candidate: Item = { id: 'supply-capacity-preview', kind, quality: 0, count: 1, x: 0, y: 0, rotated: false, found: false };
         const capacity = place([...snapshot.stash], candidate, STASH_HEIGHT);
         const stock = snapshot.shop[kind];
-        const reason = !trading ? '取引できるのは補給所の準備前のみ' : !stock ? '売り切れ · 次の遠征開始時に補充' : snapshot.gold < SUPPLIES[kind].price ? '金貨が足りません' : !capacity ? '倉庫に空きがありません' : '届け先：倉庫 · 1個';
-        control.buy.disabled = !trading || !stock || snapshot.gold < SUPPLIES[kind].price || !capacity;
+        const reason = !trading ? '取引できるのは補給所の準備前のみ' : pending ? '未受領品をすべて受け取ってください' : !stock ? '売り切れ · 次の遠征開始時に補充' : snapshot.gold < SUPPLIES[kind].price ? '金貨が足りません' : !capacity ? '倉庫に空きがありません' : '届け先：倉庫 · 1個';
+        control.buy.disabled = !trading || !!pending || !stock || snapshot.gold < SUPPLIES[kind].price || !capacity;
         text(control.stock, `共有在庫 ${stock} / ${SUPPLIES[kind].stock}`);
         text(control.reason, reason);
       }
@@ -718,6 +735,9 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     if (disposed) return;
     damageFlash = receivedDamage(snapshot, next) > 0 ? .65 : next?.raid === snapshot?.raid ? damageFlash : 0;
     snapshot = next;
+    const pendingHadFocus = document.activeElement instanceof HTMLElement && pendingPanel.root.contains(document.activeElement);
+    pendingPanel.update(next);
+    if (pendingHadFocus && pendingPanel.root.hidden && inventoryOpen) closeInventory.focus({ preventScroll: true });
     const actor = player();
     const inRaid = alive();
     const awaitingRaid = !!actor && snapshot?.phase === 'raid' && actor.status === 'lobby';
@@ -741,13 +761,17 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     }
     text(readyButton, actor.ready ? '準備を解除' : '準備完了にする');
     readyButton.setAttribute('aria-pressed', String(actor.ready));
+    const pending = pendingReturnIssue(snapshot.pendingReturn);
+    pendingSummary.hidden = !pending;
+    text(pendingSummaryText, pending ?? '');
+    text(pendingOpen, `未受領品を受け取る · ${snapshot.pendingReturn?.length ?? 0}品`);
     const issue = preparationIssue(actor.bag);
-    readyButton.disabled = snapshot.phase === 'raid' || actor.status !== 'lobby' || (!actor.ready && !!issue);
+    readyButton.disabled = snapshot.phase === 'raid' || actor.status !== 'lobby' || (!actor.ready && (!!issue || !!pending));
     text(preparationLoadout, loadoutLabel(actor));
     preparationLoadout.classList.toggle('dungeon-loadout-issue', !!issue);
     const connected = snapshot.actors.filter(value => value.connected);
-    startButton.disabled = snapshot.phase === 'raid' || !connected.length || connected.some(value => !value.ready || value.status !== 'lobby' || !!preparationIssue(value.bag));
-    text(startHint, issue ?? (connected.some(value => !!preparationIssue(value.bag)) ? '武器のない携行品があります。該当する探索者は準備を解除して装備を確認してください。' : '接続中の全員が準備完了になると開始できます。1人でも出発できます。'));
+    startButton.disabled = !!pending || snapshot.phase === 'raid' || !connected.length || connected.some(value => !value.ready || value.status !== 'lobby' || !!preparationIssue(value.bag));
+    text(startHint, pending ?? issue ?? (connected.some(value => !!preparationIssue(value.bag)) ? '武器のない携行品があります。該当する探索者は準備を解除して装備を確認してください。' : '接続中の全員が準備完了になると開始できます。1人でも出発できます。'));
     const playersSignature = JSON.stringify(snapshot.actors.map(value => [value.id, value.name, value.classId, value.ready, value.connected]));
     if (playersSignature !== participantsSignature) {
       participantsSignature = playersSignature;
@@ -764,10 +788,11 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
       text(resultEyebrow, awaitingRaid ? 'EXPEDITION IN PROGRESS' : extracted ? 'EXTRACTION COMPLETE' : 'EXPEDITION LOST');
       text(resultTitle, awaitingRaid ? '遠征の終了を待っています' : extracted ? '帰還の灯は消えなかった' : '回廊に倒れる');
       text(resultText, awaitingRaid ? '進行中の遠征には途中入場できません。次の出発から参加できます。' : snapshot.result || (extracted ? '戦利品を倉庫へ持ち帰りました。' : '携行品はその場に残されました。'));
-      text(resultStats, `討伐 ${actor.kills} · 経験 ${actor.xp} · 倉庫 ${snapshot.stash.length}品`);
+      text(resultStats, `討伐 ${actor.kills} · 経験 ${actor.xp} · 倉庫 ${snapshot.stash.length}品${pending ? ` · 未受領 ${snapshot.pendingReturn!.length}品（安全に保管済み）` : ''}`);
+      text(resultInventory, pending ? `未受領品 ${snapshot.pendingReturn!.length}品を確認` : '倉庫を確認');
       const waiting = snapshot.phase === 'raid';
       returnButton.disabled = waiting;
-      text(waitingText, waiting ? 'ほかの探索者の結果を待っています。遠征が終わると補給所へ戻れます。' : '遠征が終わりました。補給して次の探索へ進めます。');
+      text(waitingText, waiting ? 'ほかの探索者の結果を待っています。遠征が終わると補給所へ戻れます。' : pending ? '倉庫に入らなかった品も帰還済みです。補給所へ戻り、未受領品を鞄か倉庫へすべて受け取ってから次の探索へ進んでください。' : '遠征が終わりました。補給して次の探索へ進めます。');
       resultCard.classList.toggle('dungeon-result-success', extracted);
     }
     if (inventoryOpen) renderInventory();

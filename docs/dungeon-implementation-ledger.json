@@ -46,7 +46,8 @@
       "status": "partial",
       "evidence": [
         "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
-        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed."
       ]
     },
     {
@@ -78,7 +79,8 @@
       "status": "partial",
       "evidence": [
         "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
-        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed."
       ]
     },
     {
@@ -156,7 +158,8 @@
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
       "status": "partial",
       "evidence": [
-        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed."
       ]
     },
     {
@@ -686,7 +689,8 @@
       "status": "partial",
       "evidence": [
         "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
-        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed."
       ]
     },
     {

@@ -5,4 +5,10 @@ export function dimensions(item:Item){const d=ITEMS[item.kind];return item.rotat
 export function fits(items:Item[],item:Item,height=BAG_HEIGHT){const {w,h}=dimensions(item);if(!Number.isInteger(item.x)||!Number.isInteger(item.y)||item.x<0||item.y<0||item.x+w>BAG_WIDTH||item.y+h>height)return false;return items.every(other=>{if(other.id===item.id)return true;const d=dimensions(other);return item.x+w<=other.x||item.x>=other.x+d.w||item.y+h<=other.y||item.y>=other.y+d.h;});}
 export function place(items:Item[],item:Item,height=BAG_HEIGHT):boolean{for(let y=0;y<height;y++)for(let x=0;x<BAG_WIDTH;x++){const next={...item,x,y};if(fits(items,next,height)){Object.assign(item,next);items.push(item);return true;}}return false;}
 export function transfer(from:Item[],to:Item[],id:string,height=BAG_HEIGHT){const index=from.findIndex(i=>i.id===id);if(index<0||to.some(i=>i.id===id))return false;const next={...from[index]};if(!place(to,next,height))return false;from.splice(index,1);return true;}
-export function validInventory(items:unknown,height=BAG_HEIGHT):items is Item[]{if(!Array.isArray(items)||items.length>BAG_WIDTH*height)return false;const seen=new Set<string>();for(const i of items){if(!i||typeof i.id!=='string'||i.id.length>96||seen.has(i.id)||!Object.hasOwn(ITEMS,i.kind)||!Number.isInteger(i.quality)||i.quality<0||i.quality>7||!Number.isInteger(i.count)||i.count<1||i.count>ITEMS[i.kind as keyof typeof ITEMS].stack||typeof i.rotated!=='boolean'||typeof i.found!=='boolean'||!fits(items,i,height))return false;seen.add(i.id);}return true;}
+export function validInventory(items:unknown,height=BAG_HEIGHT):items is Item[]{
+ if(!Array.isArray(items)||items.length>BAG_WIDTH*height)return false;
+ const seen=new Set<string>();
+ // Validate every shape before overlap checks, which inspect neighboring items too.
+ for(const i of items){if(!i||typeof i!=='object'||Array.isArray(i)||typeof i.id!=='string'||i.id.length>96||seen.has(i.id)||typeof i.kind!=='string'||!Object.hasOwn(ITEMS,i.kind)||!Number.isInteger(i.quality)||i.quality<0||i.quality>7||!Number.isInteger(i.count)||i.count<1||i.count>ITEMS[i.kind as keyof typeof ITEMS].stack||typeof i.rotated!=='boolean'||typeof i.found!=='boolean')return false;seen.add(i.id);}
+ return items.every(i=>fits(items,i,height));
+}
