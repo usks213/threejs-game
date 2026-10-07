@@ -10,6 +10,8 @@ Dark and Darker型の体験を独自名称・地形・資産で作る、新し�
 
 0a374ddaの[公開CI](https://github.com/usks213/threejs-game/actions/runs/37431664632)で1362単体、型/build、配信SHA/health、PC/Androidの独立2クライアントによる移動・loot・帰還・再読込、WebKitメニューtap、旧協力を確認。全PvE/PvP戦闘のブラウザ経路は次の受入。スマホ実機や実機FPSは未検証。
 
+帰還した遺宝・鉱石を売り、薬/包帯を買って次の遠征へ持ち込む[補給ループ](docs/dungeon-resupply-loop.md)を追加検証中。部屋内のゲーム内金貨だけを使用し、無料装備は買い取りません。公開受入は対象SHAのCI結果を参照してください。
+
 ## 七つの灯（保存を保持する既存キャンペーン）
 
 Enshroudedの仕組みを参照しながら、独自の世界・名称・資産で作るブラウザ向けSDFサバイバルRPG。PR #4 / feature/first-person-voxel-core。既存草原版とネットワーク版は別ブランチ。mainへはマージしない。

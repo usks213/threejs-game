@@ -2,6 +2,8 @@ import type {AttackKind,AttackPhase} from '../prototype/core/motion';
 import type {Vec3} from '../prototype/core/voxel';
 export const DUNGEON_PROTOCOL=1;
 export const RAID_SECONDS=480;
+export type SupplyKind='potion'|'bandage';
+export type SupplyStock=Record<SupplyKind,number>;
 export type ClassId='bastion'|'ravager'|'shade'|'hunter'|'arcanist'|'keeper';
 export type ItemKind='sword'|'greatsword'|'dagger'|'bow'|'staff'|'shield'|'potion'|'bandage'|'arrow'|'relic'|'ore'|'key';
 export interface Item {id:string;kind:ItemKind;quality:number;count:number;x:number;y:number;rotated:boolean;found:boolean}
@@ -13,7 +15,7 @@ export interface Container {id:string;name:string;position:Vec3;items:Item[];ope
 export interface Door {id:string;position:Vec3;open:boolean}
 export interface Exit {id:string;position:Vec3;opensAt:number;remaining:number}
 export interface Shot {id:string;owner:string;position:Vec3;velocity:Vec3;life:number;damage:number;magic:boolean}
-export interface RaidState {version:1;raid:number;seed:number;phase:'lobby'|'raid'|'finished';elapsed:number;tick:number;serial:number;profiles:Profile[];enemies:Enemy[];containers:Container[];doors:Door[];exits:Exit[];shots:Shot[];events:string[]}
-export interface Snapshot {protocol:1;you:string;raid:number;phase:RaidState['phase'];elapsed:number;tick:number;seed:number;actors:Omit<Actor,'input'|'inputAt'|'seq'|'hit'>[];enemies:Omit<Enemy,'input'|'inputAt'|'seq'|'hit'>[];containers:Container[];doors:Door[];exits:Exit[];shots:Shot[];stash:Item[];gold:number;result:string;events:string[];lastAction:number;lastInput:number}
-export type Action = {kind:'ready'}|{kind:'start'}|{kind:'return'}|{kind:'class';classId:ClassId}|{kind:'attack';heavy?:boolean}|{kind:'cast'}|{kind:'shoot'}|{kind:'heal'}|{kind:'interact';target:string}|{kind:'loot';target:string;item:string}|{kind:'transfer';item:string;to:'bag'|'stash'}|{kind:'move-item';item:string;x:number;y:number;rotate:boolean};
+export interface RaidState {version:1;shop?:SupplyStock;raid:number;seed:number;phase:'lobby'|'raid'|'finished';elapsed:number;tick:number;serial:number;profiles:Profile[];enemies:Enemy[];containers:Container[];doors:Door[];exits:Exit[];shots:Shot[];events:string[]}
+export interface Snapshot {protocol:1;you:string;raid:number;phase:RaidState['phase'];elapsed:number;tick:number;seed:number;actors:Omit<Actor,'input'|'inputAt'|'seq'|'hit'>[];enemies:Omit<Enemy,'input'|'inputAt'|'seq'|'hit'>[];containers:Container[];doors:Door[];exits:Exit[];shots:Shot[];stash:Item[];gold:number;shop:SupplyStock;trades:string[];result:string;events:string[];lastAction:number;lastInput:number}
+export type Action = {kind:'buy-supply';supply:SupplyKind}|{kind:'sell-treasure';item:string}|{kind:'ready'}|{kind:'start'}|{kind:'return'}|{kind:'class';classId:ClassId}|{kind:'attack';heavy?:boolean}|{kind:'cast'}|{kind:'shoot'}|{kind:'heal'}|{kind:'interact';target:string}|{kind:'loot';target:string;item:string}|{kind:'transfer';item:string;to:'bag'|'stash'}|{kind:'move-item';item:string;x:number;y:number;rotate:boolean};
 export type ClientPacket={type:'hello';protocol:number;key:string;name:string}|{type:'input';sequence:number;input:Input}|{type:'action';sequence:number;action:Action};

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "specVersion": "PR4-DUNGEON-1.0",
-  "asOf": "2026-10-06",
+  "asOf": "2026-10-07",
   "referenceVersion": "DAD-EAS10-HF127",
   "statusDisclaimer": "All entries unassessed; specification does not certify implementation or complete original-game parity.",
   "items": [
@@ -45,7 +45,8 @@
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
       "status": "partial",
       "evidence": [
-        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
       ]
     },
     {
@@ -76,7 +77,8 @@
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
       "status": "partial",
       "evidence": [
-        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
       ]
     },
     {
@@ -121,7 +123,8 @@
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
       "status": "partial",
       "evidence": [
-        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
       ]
     },
     {
@@ -136,7 +139,8 @@
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
       "status": "partial",
       "evidence": [
-        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
       ]
     },
     {
@@ -260,7 +264,8 @@
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
       "status": "partial",
       "evidence": [
-        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
       ]
     },
     {
@@ -680,7 +685,8 @@
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
       "status": "partial",
       "evidence": [
-        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
       ]
     },
     {
@@ -1250,9 +1256,10 @@
       ],
       "acceptance": "同時購入で負残高/在庫増殖なし。売ったitemが手元に残らない",
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
-      "status": "missing",
+      "status": "partial",
       "evidence": [
-        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
       ]
     },
     {
@@ -1330,9 +1337,10 @@
       ],
       "acceptance": "購入/死亡/抽出/quest/製作の収支を試合単位で照合可能",
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
-      "status": "missing",
+      "status": "partial",
       "evidence": [
-        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
       ]
     },
     {

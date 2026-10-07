@@ -294,3 +294,22 @@
 .dungeon-app .dungeon-combat-state progress { width: 80px; height: 3px; border: 0; accent-color: #c5ac74; }
 .dungeon-app .dungeon-combat-state[data-phase=idle] { opacity: .65; }
 @media (orientation: landscape) and (max-height: 600px) { .dungeon-app .dungeon-opponent { top: 31%; font-size: 10px; gap: 3px; } .dungeon-app .dungeon-combat-state { top: 59%; } }
+
+/* Shared supplies retain the inventory dialog's touch and keyboard navigation. */
+.dungeon-app .dungeon-loadout-preview { margin-top: 14px; padding: 12px; border: 1px solid var(--dungeon-line); border-radius: 4px; color: #c9d1bf; font-size: 12px; overflow-wrap: anywhere; }
+.dungeon-app .dungeon-loadout-issue { color: #ffd3a6; border-color: #b98d69; }
+.dungeon-app .dungeon-supply-section { margin: 16px 0 22px; padding: 16px; border: 1px solid var(--dungeon-line); border-radius: 5px; background: #1d281c; }
+.dungeon-app .dungeon-supply-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.dungeon-app .dungeon-supply-heading h3 { margin: 0; }
+.dungeon-app .dungeon-gold { color: var(--dungeon-gold); font-variant-numeric: tabular-nums; }
+.dungeon-app .dungeon-supply-status { margin: 10px 0; font-size: 12px; color: #dfcc9f; }
+.dungeon-app .dungeon-supply-offers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0; }
+.dungeon-app .dungeon-supply-offer { display: grid; align-content: start; gap: 5px; min-width: 0; }
+.dungeon-app .dungeon-supply-section .dungeon-button { min-height: 48px; min-width: 48px; white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+.dungeon-app .dungeon-supply-section > .dungeon-button { margin-bottom: 8px; max-width: 100%; }
+.dungeon-app .dungeon-trades { max-height: 150px; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding-left: 23px; font-size: 11px; color: #c9d1bf; overflow-wrap: anywhere; }
+.dungeon-app .dungeon-trades li + li { margin-top: 5px; }
+@media (max-width: 760px) {
+  .dungeon-app .dungeon-supply-section { padding: 12px; }
+  .dungeon-app .dungeon-supply-offers { grid-template-columns: 1fr; }
+}

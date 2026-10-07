@@ -1,9 +1,11 @@
 import { CLASSES, ITEMS } from './catalog';
-import { BAG_HEIGHT, BAG_WIDTH, STASH_HEIGHT, dimensions, fits } from './inventory';
+import { BAG_HEIGHT, BAG_WIDTH, STASH_HEIGHT, dimensions, fits, place } from './inventory';
 import { RAID_SECONDS, type Action, type ClassId, type Item, type Snapshot, type Input } from './types';
 import { distance, wallRay } from './world';
 import './style.css';
 import {combatReadout,focusedOpponent,receivedDamage} from './readability';
+import { SUPPLIES, loadoutWeapon, preparationIssue, saleValue } from './economy';
+import type { SupplyKind } from './types';
 
 type Callbacks = {
   create(name: string): void;
@@ -214,9 +216,11 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const startButton = button('全員で遠征を開始', 'dungeon-button-primary', () => callbacks.action({ kind: 'start' }));
   readyButton.dataset.testid = 'dungeon-ready';
   startButton.dataset.testid = 'dungeon-start';
+  const preparationLoadout = element('p', 'dungeon-loadout-preview');
+  preparationLoadout.dataset.testid = 'dungeon-loadout-preview';
   const startHint = element('p', 'dungeon-fine-print', '接続中の全員が準備完了になると開始できます。1人でも出発できます。');
   preparationActions.append(inventoryButton, readyButton, startButton);
-  preparation.append(classLabel, classList, playersTitle, participants, preparationActions, startHint);
+  preparation.append(classLabel, classList, playersTitle, participants, preparationLoadout, preparationActions, startHint);
   lobbyPanel.append(entry, preparation);
   lobby.append(introduction, lobbyPanel);
 
@@ -332,6 +336,8 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const closeInventory = button('閉じる · I / Esc', '', () => changeInventory(false, true));
   inventoryHeading.append(inventoryTitle, closeInventory);
   const inventoryWarning = element('p', 'dungeon-inventory-warning');
+  const inventoryLoadout = element('p', 'dungeon-loadout-preview');
+  inventoryLoadout.dataset.testid = 'dungeon-inventory-loadout';
   const selection = element('div', 'dungeon-selection');
   const selectedDescription = element('p', '', '品物を選ぶと詳細を確認できます。');
   const rotateButton = button('90°回転', '', rotateSelected);
@@ -361,7 +367,54 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const lootTitle = element('h3', '', '手の届く戦利品');
   const lootContent = element('div', 'dungeon-loot-content');
   lootSection.append(lootTitle, lootContent);
-  inventoryPanel.append(inventoryHeading, inventoryWarning, selection, inventoryColumns, lootSection);
+  const supplySection = element('section', 'dungeon-supply-section');
+  supplySection.setAttribute('aria-labelledby', 'dungeon-supply-title');
+  const supplyHeading = element('div', 'dungeon-supply-heading');
+  const supplyTitle = element('h3', '', '部屋の補給商');
+  supplyTitle.id = 'dungeon-supply-title';
+  const gold = element('strong', 'dungeon-gold');
+  gold.dataset.testid = 'dungeon-gold';
+  gold.setAttribute('aria-live', 'polite');
+  supplyHeading.append(supplyTitle, gold);
+  const supplyHint = element('p', 'dungeon-fine-print', '金貨と倉庫はこの部屋・このブラウザの探索者専用です。購入品は1個ずつ倉庫へ届きます。在庫は部屋の全員で共有し、遠征開始時に補充されます。');
+  const supplyStatus = element('p', 'dungeon-supply-status');
+  supplyStatus.setAttribute('aria-live', 'polite');
+  const supplyOffers = element('div', 'dungeon-supply-offers');
+  const supplyControls = new Map<SupplyKind, { buy: HTMLButtonElement; stock: HTMLElement; reason: HTMLElement }>();
+  for (const kind of Object.keys(SUPPLIES) as SupplyKind[]) {
+    const offer = SUPPLIES[kind];
+    const card = element('div', 'dungeon-supply-offer');
+    const stock = element('span', 'dungeon-fine-print');
+    stock.dataset.testid = `dungeon-shop-stock-${kind}`;
+    const reason = element('span', 'dungeon-fine-print');
+    reason.id = `dungeon-buy-${kind}-reason`;
+    const buy = button(`${offer.name}を1個購入 · ${offer.price}金貨`, '', () => {
+      if (canTrade() && !buy.disabled) callbacks.action({ kind: 'buy-supply', supply: kind });
+    });
+    buy.dataset.testid = `dungeon-buy-${kind}`;
+    buy.setAttribute('aria-describedby', reason.id);
+    card.append(buy, stock, reason);
+    supplyControls.set(kind, { buy, stock, reason });
+    supplyOffers.append(card);
+  }
+  const sellSelected = button('選択した倉庫の品を売却', '', () => {
+    const item = selectedItem();
+    if (canTrade() && !sellSelected.disabled && selected?.source === 'stash' && item && saleValue(item)) {
+      callbacks.action({ kind: 'sell-treasure', item: item.id });
+    }
+  });
+  sellSelected.dataset.testid = 'dungeon-sell-selected';
+  const saleHint = element('p', 'dungeon-fine-print', '買い取りは抽出して持ち帰った遺宝・鉱石だけ。倉庫の品を選ぶと、選択した品の全個数を売却できます。初期装備・薬・包帯は売れません。');
+  saleHint.id = 'dungeon-sale-hint';
+  sellSelected.setAttribute('aria-describedby', saleHint.id);
+  const tradeTitle = element('h3', '', '自分の取引履歴 · 最新6件');
+  const trades = element('ol', 'dungeon-trades');
+  trades.tabIndex = 0;
+  trades.dataset.testid = 'dungeon-trades';
+  trades.setAttribute('aria-label', '自分の最新の取引履歴');
+  const noTrades = element('p', 'dungeon-fine-print', 'まだ取引はありません。');
+  supplySection.append(supplyHeading, supplyHint, supplyStatus, supplyOffers, sellSelected, saleHint, tradeTitle, noTrades, trades);
+  inventoryPanel.append(inventoryHeading, inventoryWarning, inventoryLoadout, selection, supplySection, inventoryColumns, lootSection);
   inventoryOverlay.append(inventoryPanel);
   listen(inventoryOverlay, 'keydown', event => {
     const key = event as KeyboardEvent;
@@ -455,6 +508,17 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     });
     return grid;
   }
+  function canTrade() {
+    const actor = player();
+    return !!snapshot && snapshot.phase !== 'raid' && actor?.status === 'lobby' && !actor.ready;
+  }
+  function loadoutLabel(actor: Player) {
+    const weapon = loadoutWeapon(actor.bag, actor.classId);
+    if (!actor.bag.length) {
+      return `鞄が空のため出発時に無料補給：${ITEMS[CLASSES[actor.classId].weapon].name}、${ITEMS.potion.name}×2${actor.classId === 'bastion' || actor.classId === 'keeper' ? `、${ITEMS.shield.name}` : ''}。`;
+    }
+    return `${weapon ? `携行武器：${ITEMS[weapon].name}。` : '携行武器：なし。'}携行品があるため初期補給は追加されません。${preparationIssue(actor.bag) ?? ''}`;
+  }
   function selectedItem() {
     return selected && (selected.source === 'bag' ? player()?.bag : snapshot?.stash)?.find(item => item.id === selected?.id);
   }
@@ -468,7 +532,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   }
   function transferSelected() {
     const item = selectedItem();
-    if (!item || !selected || !snapshot || snapshot.phase === 'raid' || player()?.ready) return;
+    if (!item || !selected || !canTrade()) return;
     callbacks.action({ kind: 'transfer', item: item.id, to: selected.source === 'bag' ? 'stash' : 'bag' });
   }
   function renderItems(grid: HTMLElement, items: Item[], source: InventorySource) {
@@ -497,7 +561,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     const actor = player();
     if (!actor) return;
     if (selected && !selectedItem()) selected = null;
-    const nextSignature = JSON.stringify([actor.bag, snapshot.stash, selected, snapshot.phase, actor.ready]);
+    const nextSignature = JSON.stringify([actor.bag, snapshot.stash, selected, snapshot.phase, actor.ready, actor.status, actor.classId, snapshot.gold, snapshot.shop, snapshot.trades]);
     if (nextSignature !== inventorySignature) {
       inventorySignature = nextSignature;
       renderItems(bagGrid, actor.bag, 'bag');
@@ -508,8 +572,30 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
       const data = item && ITEMS[item.kind];
       text(selectedDescription, item && data ? `${data.name} ×${item.count} · 品質${item.quality} · ${selected?.source === 'bag' ? '携行品' : '倉庫'}` : '品物を選ぶと詳細を確認できます。');
       rotateButton.disabled = !item || selected?.source !== 'bag';
-      transferButton.disabled = !item || snapshot.phase === 'raid' || actor.ready;
+      transferButton.disabled = !item || !canTrade();
       text(transferButton, selected?.source === 'stash' ? '鞄へ移す' : '倉庫へ移す');
+      inventoryLoadout.hidden = snapshot.phase === 'raid' || actor.status !== 'lobby';
+      text(inventoryLoadout, loadoutLabel(actor));
+      inventoryLoadout.classList.toggle('dungeon-loadout-issue', !!preparationIssue(actor.bag));
+      text(gold, `${snapshot.gold} 金貨`);
+      const trading = canTrade();
+      text(supplyStatus, trading ? '取引できます。購入後は倉庫から鞄へ移して持ち出してください。' : actor.ready ? '準備完了中です。取引するには準備を解除してください。' : '取引は遠征終了後、補給所へ戻ってから行えます。');
+      for (const [kind, control] of supplyControls) {
+        const candidate: Item = { id: 'supply-capacity-preview', kind, quality: 0, count: 1, x: 0, y: 0, rotated: false, found: false };
+        const capacity = place([...snapshot.stash], candidate, STASH_HEIGHT);
+        const stock = snapshot.shop[kind];
+        const reason = !trading ? '取引できるのは補給所の準備前のみ' : !stock ? '売り切れ · 次の遠征開始時に補充' : snapshot.gold < SUPPLIES[kind].price ? '金貨が足りません' : !capacity ? '倉庫に空きがありません' : '届け先：倉庫 · 1個';
+        control.buy.disabled = !trading || !stock || snapshot.gold < SUPPLIES[kind].price || !capacity;
+        text(control.stock, `共有在庫 ${stock} / ${SUPPLIES[kind].stock}`);
+        text(control.reason, reason);
+      }
+      const value = item && selected?.source === 'stash' ? saleValue(item) : 0;
+      sellSelected.disabled = !trading || !value || snapshot.gold + value > 1e9;
+      text(sellSelected, value && item ? `${ITEMS[item.kind].name}×${item.count}を売却 · +${value}金貨` : '選択した倉庫の品を売却');
+      const receipts = snapshot.trades.slice(-6);
+      noTrades.hidden = receipts.length > 0;
+      trades.hidden = !receipts.length;
+      trades.replaceChildren(...receipts.map(receipt => element('li', '', receipt)));
       text(inventoryWarning, snapshot.phase === 'raid' ? '鞄を開いている間は操作が止まります。周囲の敵と制限時間は止まりません。倉庫への移動は補給所のみです。' : actor.ready ? '準備完了中です。倉庫と移すには先に準備を解除してください。' : '死亡すると携行品を失います。持ち帰った品はこの部屋・このブラウザの倉庫に保管されます。');
     }
     renderLoot(actor);
@@ -655,9 +741,13 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     }
     text(readyButton, actor.ready ? '準備を解除' : '準備完了にする');
     readyButton.setAttribute('aria-pressed', String(actor.ready));
-    readyButton.disabled = snapshot.phase === 'raid';
+    const issue = preparationIssue(actor.bag);
+    readyButton.disabled = snapshot.phase === 'raid' || actor.status !== 'lobby' || (!actor.ready && !!issue);
+    text(preparationLoadout, loadoutLabel(actor));
+    preparationLoadout.classList.toggle('dungeon-loadout-issue', !!issue);
     const connected = snapshot.actors.filter(value => value.connected);
-    startButton.disabled = snapshot.phase === 'raid' || !connected.length || connected.some(value => !value.ready);
+    startButton.disabled = snapshot.phase === 'raid' || !connected.length || connected.some(value => !value.ready || value.status !== 'lobby' || !!preparationIssue(value.bag));
+    text(startHint, issue ?? (connected.some(value => !!preparationIssue(value.bag)) ? '武器のない携行品があります。該当する探索者は準備を解除して装備を確認してください。' : '接続中の全員が準備完了になると開始できます。1人でも出発できます。'));
     const playersSignature = JSON.stringify(snapshot.actors.map(value => [value.id, value.name, value.classId, value.ready, value.connected]));
     if (playersSignature !== participantsSignature) {
       participantsSignature = playersSignature;

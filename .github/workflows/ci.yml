@@ -475,7 +475,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- tests/e2e/dungeon.spec.ts tests/e2e/dungeon-input.spec.ts --project=${{ matrix.project }}
+      - run: npm run e2e -- tests/e2e/dungeon.spec.ts tests/e2e/dungeon-input.spec.ts tests/e2e/dungeon-resupply.spec.ts --project=${{ matrix.project }}
         env:
           E2E_BASE_URL: https://pr-4-threejs-game.usks213.workers.dev
           E2E_DUNGEON: '1'
