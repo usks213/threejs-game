@@ -2,6 +2,7 @@ import {expect, type Page} from '@playwright/test';
 import {distance, wallRay} from '../../../src/dungeon/world';
 import {closeApproachKey} from './dungeon-approach';
 import {dungeonActionObserved} from './dungeon-action-observed';
+import {raidCombatMovement, raidMeleeKey} from './dungeon-combat-choice';
 import type {Action, Snapshot} from '../../../src/dungeon/types';
 
 export type Point = {x: number; z: number};
@@ -176,12 +177,14 @@ export class RaidControls {
           continue;
         }
         const d = range(actor, enemy.position);
-        const steering = this.steering(actor, enemy.position, d > 1.35, true);
+        const steering = this.steering(actor, enemy.position, false, true);
+        const movement = raidCombatMovement(actor.phase, d, Math.abs(steering.error) < .3);
+        if (movement) steering.keys.push(movement);
         await this.keys(steering.keys);
         // Keeping Z held is ordinary input. The server must lower the shield
         // during windup/strike/recovery; this test never edits guard or HP.
         if (actor.phase === 'idle' && d < 1.65 && Math.abs(steering.error) < .2 && (enemy.phase === 'idle' || enemy.phase === 'recover')) {
-          await this.press('KeyR');
+          await this.press(raidMeleeKey(enemy.hp));
         }
         await this.next(snapshot);
       }
