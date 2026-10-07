@@ -101,3 +101,23 @@ beside a live visible threat. The desktop smoke approaches the chest well inside
 its ordinary reach rather than resting on a latency-sensitive boundary. No health,
 damage, enemy count, kill requirements, time limits or server authority are relaxed.
 The new candidate's exact-commit browser acceptance remains required.
+
+## Input-heartbeat candidate acceptance
+
+Candidate `86714b04d28863a785629a728fb185e65955c39e` passed all
+1,390 unit tests / 165 files locally and in CI, types/build, and exact-SHA preview
+and service health. Both desktop and Android passed all five browser cases,
+including loot/extraction/reconnect and the independent input heartbeat.
+
+The full raid now survives all four AI enemies and completes both contested loot
+checks. Its remaining failure is the original 240-second route bound: the driver
+passes through a close waypoint and overshoots by roughly a metre, then turns
+180 degrees and repeats. The same orbiting costs over 30 seconds before the
+all-four-AI milestone. The next driver correction uses brief ordinary crouched
+WASD pulses near a waypoint, settles on server ticks, and preserves the exact
+waypoint tolerances and time limits. The production game is unchanged by this
+follow-up. Its pure direction/convergence tests pass.
+
+WebKit's screenshot and DOM confirm the menu opened with the new control wording;
+its old exact-text selector was stale. The selector now checks visible instructions
+and the still-required WASD movement text. This browser check still needs rerunning.

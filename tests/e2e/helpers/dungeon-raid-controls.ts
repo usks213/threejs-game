@@ -1,5 +1,6 @@
 import {expect, type Page} from '@playwright/test';
 import {distance, wallRay} from '../../../src/dungeon/world';
+import {closeApproachKey} from './dungeon-approach';
 import type {Action, Snapshot} from '../../../src/dungeon/types';
 
 export type Point = {x: number; z: number};
@@ -125,8 +126,25 @@ export class RaidControls {
           await this.recover();
           continue;
         }
-        await this.keys(this.steering(actor, target, true).keys);
-        await this.next(snapshot);
+        if (range(actor, target) < 1.5) {
+          // Full-speed held forward can cross a 15cm waypoint during one delayed
+          // snapshot. A short crouched strafe/backstep needs no 180-degree turn.
+          await this.stop();
+          const stationary = own(await this.next(snapshot));
+          if (range(stationary, target) <= tolerance) continue;
+          const key = closeApproachKey(stationary.yaw, target.x - stationary.position.x, target.z - stationary.position.z);
+          await this.keys(['KeyC', key]);
+          await this.page.waitForTimeout(70);
+          // Release motion before the crouch modifier, so a rate-limited key
+          // update cannot briefly send an unintended full-speed movement.
+          await this.keys(['KeyC']);
+          await this.stop();
+          const released = await this.state();
+          await this.until(next => next.tick >= released.tick + 4, 'close approach has settled');
+        } else {
+          await this.keys(this.steering(actor, target, true).keys);
+          await this.next(snapshot);
+        }
       }
       throw new Error(`${this.name}: ordinary movement stalled at ${JSON.stringify(own(await this.state()).position)} en route to ${JSON.stringify(target)}`);
     } finally { await this.stop(); }
