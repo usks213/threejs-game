@@ -475,7 +475,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- tests/e2e/dungeon.spec.ts --project=${{ matrix.project }}
+      - run: npm run e2e -- tests/e2e/dungeon.spec.ts tests/e2e/dungeon-input.spec.ts --project=${{ matrix.project }}
         env:
           E2E_BASE_URL: https://pr-4-threejs-game.usks213.workers.dev
           E2E_DUNGEON: '1'
@@ -484,6 +484,34 @@ jobs:
         if: always()
         with:
           name: dungeon-browser-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+  dungeon-raid-browser:
+    needs: [verify, deploy-preview]
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- tests/e2e/dungeon-raid.spec.ts --project=desktop-chromium
+        env:
+          E2E_BASE_URL: https://pr-4-threejs-game.usks213.workers.dev
+          E2E_DUNGEON: '1'
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dungeon-full-pvpve-browser
           path: |
             playwright-report/
             test-results/

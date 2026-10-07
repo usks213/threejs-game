@@ -1,4 +1,16 @@
-# ASH — 七つの灯
+# ASH — 灰の回廊 / 七つの灯
+
+## 新モード: 灰の回廊（ダンジョンPvPvE公開試作）
+
+[灰の回廊で遊ぶ](https://pr-4-threejs-game.usks213.workers.dev/?mode=dungeon)。部屋を作り、招待URLを相手へ渡す。双方が役割と準備を選んで遠征を開始する。探索者同士も敵対し、死亡すると携行品を失う。箱や死体から戦利品を拾い、時間で開く光のそばで4秒静止して倉庫へ持ち帰る。
+
+Dark and Darker型の体験を独自名称・地形・資産で作る、新しいPR #4の方向。実装前の[110要素と独自仕様](docs/reference/dark-and-darker-requirements.md)、[実装台帳](docs/dungeon-implementation-ledger.json)、[範囲と検証](docs/dungeon-vertical-slice.md)を参照。全110項目や原作完全再現は未達。
+
+初期版は最大6人、6職、1ダンジョン、サーバー権威の戦闘/戦利品/抽出、部屋・探索者別の倉庫。アカウント共通倉庫や全体市場ではない。七つの灯の保存にはアクセスしない。[既存キャンペーンへ戻る](https://pr-4-threejs-game.usks213.workers.dev/?mode=campaign)。
+
+0a374ddaの[公開CI](https://github.com/usks213/threejs-game/actions/runs/37431664632)で1362単体、型/build、配信SHA/health、PC/Androidの独立2クライアントによる移動・loot・帰還・再読込、WebKitメニューtap、旧協力を確認。全PvE/PvP戦闘のブラウザ経路は次の受入。スマホ実機や実機FPSは未検証。
+
+## 七つの灯（保存を保持する既存キャンペーン）
 
 Enshroudedの仕組みを参照しながら、独自の世界・名称・資産で作るブラウザ向けSDFサバイバルRPG。PR #4 / feature/first-person-voxel-core。既存草原版とネットワーク版は別ブランチ。mainへはマージしない。
 

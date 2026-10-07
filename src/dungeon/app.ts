@@ -61,7 +61,7 @@ export function startDungeon(){
  }
  function resize(){input?.reset();view?.resize();}window.addEventListener('resize',resize,{signal:lifecycle.signal});
  function frame(now:number){if(disposed)return;const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;
-  const sample=input!.sample(dt);networkAccumulator+=dt;
+  const sample=input!.sample(dt);ui.renderFeedback(dt,sample);networkAccumulator+=dt;
   if(networkAccumulator>=.05){networkAccumulator%=.05;if(!document.hidden&&client?.connected&&snapshot?.phase==='raid')sendInput(sample);}
   if(view&&!document.hidden){view.render(dt,sample);if(view.lost&&!lostReported){lostReported=true;ui.canvas.dataset.ready='false';ui.setGraphicsError('3D 描画の接続が失われました。ページを更新すると、この部屋へ再接続できます。');syncActive();}}
   raf=requestAnimationFrame(frame);

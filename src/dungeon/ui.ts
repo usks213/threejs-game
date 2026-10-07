@@ -1,8 +1,9 @@
 import { CLASSES, ITEMS } from './catalog';
 import { BAG_HEIGHT, BAG_WIDTH, STASH_HEIGHT, dimensions, fits } from './inventory';
-import { RAID_SECONDS, type Action, type ClassId, type Item, type Snapshot } from './types';
+import { RAID_SECONDS, type Action, type ClassId, type Item, type Snapshot, type Input } from './types';
 import { distance, wallRay } from './world';
 import './style.css';
+import {combatReadout,focusedOpponent,receivedDamage} from './readability';
 
 type Callbacks = {
   create(name: string): void;
@@ -81,6 +82,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   let participantsSignature = '';
   let lootSignature = '';
   let disposed = false;
+  let damageFlash = 0;
   let noticeTimer: ReturnType<typeof setTimeout> | null = null;
   const player = () => snapshot?.actors.find(actor => actor.id === snapshot?.you);
   const alive = () => snapshot?.phase === 'raid' && player()?.status === 'alive';
@@ -134,7 +136,8 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const instructions = element('details', 'dungeon-instructions');
   const instructionsSummary = element('summary', '', '操作と遠征のルール');
   instructions.append(instructionsSummary);
-  instructions.append(element('p', '', 'PC：WASD 移動 / マウス 視点 / T 攻撃 / Z 防御 / R 重攻撃 / E 調べる / Q 回復 / G 術 / F 弓 / I 鞄 / Esc マウス解除'));
+  instructions.append(element('p', '', 'PC：画面をクリックして視点操作 / WASD 移動 / 左クリック・T 攻撃 / 右ボタン・Z 防御 / R 重攻撃 / E 調べる / Q 回復 / G 術 / F 弓 / I 鞄 / Esc マウス解除'));
+  instructions.append(element('p', '', 'マウス固定が使えない場合：左ドラッグで視点、短い左クリックで攻撃、右ボタンを押して防御。矢印キーでも視点を動かせます（Shiftで微調整）。'));
   instructions.append(element('p', '', 'タッチ：左パッドで移動、右パッドで視点。攻撃ボタンと防御・しゃがみは同時に操作できます。'));
   instructions.append(element('p', '', '抽出の光は開始45秒・90秒・180秒後に順番に開きます。光のそばで「抽出」を選び、4秒静止してください。移動・被撃で中断します。'));
   instructions.append(element('p', '', '鞄を開くと自分の操作が止まります。遠征の時間と周囲の敵は止まりません。部屋を離れても安全な抽出にはなりません。'));
@@ -252,8 +255,25 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const nearbyPanel = element('div', 'dungeon-nearby');
   const eventLog = element('ol', 'dungeon-events');
   eventLog.setAttribute('aria-label', '遠征の出来事');
-  const controlsHint = element('p', 'dungeon-controls-hint', 'WASD 移動 · マウス 視点 · E 調べる · I 鞄 · Esc マウス解除');
-  hud.append(healthPanel, objective, crosshair, interactionProgress, nearbyPanel, eventLog, controlsHint);
+  const controlsHint = element('p', 'dungeon-controls-hint', '画面クリックで視点 · 左 攻撃 / 右 防御 · WASD 移動 · E 調べる · I 鞄');
+  const damageOverlay = element('div', 'dungeon-damage-overlay');
+  damageOverlay.setAttribute('aria-hidden', 'true');
+  const opponent = element('div', 'dungeon-opponent');
+  opponent.dataset.testid = 'dungeon-opponent';
+  opponent.hidden = true;
+  const opponentName = element('strong');
+  const opponentHealth = element('progress');
+  opponentHealth.setAttribute('aria-label', '照準先の体力');
+  const opponentPhase = element('span');
+  opponent.append(opponentName, opponentHealth, opponentPhase);
+  const combatState = element('div', 'dungeon-combat-state');
+  combatState.dataset.testid = 'dungeon-combat-state';
+  const combatLabel = element('span');
+  const combatProgress = element('progress');
+  combatProgress.max = 1;
+  combatProgress.setAttribute('aria-label', '攻撃動作の進行');
+  combatState.append(combatLabel, combatProgress);
+  hud.append(damageOverlay, healthPanel, objective, crosshair, opponent, combatState, interactionProgress, nearbyPanel, eventLog, controlsHint);
 
   const gameplayControls = element('div', 'dungeon-gameplay-controls');
   gameplayControls.hidden = true;
@@ -565,7 +585,10 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     hpBar.style.width = `${Math.max(0, actor.hp / actor.maxHp * 100)}%`;
     recoverableBar.style.width = `${Math.max(0, actor.recoverable / actor.maxHp * 100)}%`;
     guardBar.style.width = `${Math.max(0, Math.min(1, actor.guard)) * 100}%`;
-    text(resourceText, `回復可能 ${Math.ceil(actor.recoverable)} · 矢 ${actor.arrows} · 術 ${actor.spells}`);
+    const hasShield = actor.bag.some(item => item.kind === 'shield');
+    guardLabel.hidden = guardTrack.hidden = !hasShield;
+    actionButtons.get('block')!.hidden = !hasShield;
+    text(resourceText, `${ITEMS[actor.weapon].name} · 薬 ${actor.bag.filter(item => item.kind === 'potion' || item.kind === 'bandage').reduce((sum, item) => sum + item.count, 0)}${actor.weapon === 'bow' ? ` · 矢 ${actor.arrows}` : ''}${CLASSES[actor.classId].spells ? ` · 術 ${actor.spells}` : ''}`);
     text(timer, timeLabel(RAID_SECONDS - snapshot.elapsed));
     timer.classList.toggle('dungeon-timer-urgent', RAID_SECONDS - snapshot.elapsed <= 60);
     text(aliveCount, `生存 ${snapshot.actors.filter(value => value.status === 'alive').length} / ${snapshot.actors.length}人`);
@@ -600,11 +623,14 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     }
     const cast = actionButtons.get('cast') as HTMLButtonElement;
     const shoot = actionButtons.get('shoot') as HTMLButtonElement;
+    cast.hidden = CLASSES[actor.classId].spells === 0;
+    shoot.hidden = actor.weapon !== 'bow';
     cast.disabled = actor.spells <= 0;
     shoot.disabled = actor.weapon !== 'bow' || actor.arrows <= 0;
   }
   function update(next: Snapshot | null) {
     if (disposed) return;
+    damageFlash = receivedDamage(snapshot, next) > 0 ? .65 : next?.raid === snapshot?.raid ? damageFlash : 0;
     snapshot = next;
     const actor = player();
     const inRaid = alive();
@@ -659,6 +685,30 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
 
   return {
     canvas, movePad, lookPad, actionButtons, update,
+    renderFeedback(dt: number, look: Input) {
+      if (disposed) return;
+      damageFlash = Math.max(0, damageFlash - Math.max(0, dt) * 1.8);
+      damageOverlay.style.opacity = String(damageFlash);
+      const actor = player();
+      const target = snapshot && alive() && !inventoryOpen ? focusedOpponent(snapshot, look) : null;
+      opponent.hidden = !target;
+      if (target) {
+        const readout = combatReadout(target);
+        text(opponentName, target.name);
+        opponentHealth.max = target.maxHp;
+        opponentHealth.value = target.hp;
+        text(opponentPhase, readout.phase === 'recover' ? '隙あり' : readout.label);
+        opponent.dataset.phase = readout.phase;
+      }
+      combatState.hidden = !actor || !alive() || inventoryOpen || !!actor.interaction;
+      if (actor) {
+        const readout = combatReadout(actor, true);
+        text(combatLabel, readout.label);
+        combatProgress.value = readout.progress;
+        combatProgress.hidden = actor.phase === 'idle';
+        combatState.dataset.phase = readout.phase;
+      }
+    },
     setConnection(state: string) {
       if (disposed) return;
       const label: Record<string, string> = { connecting: '接続中…', connected: '接続済み', disconnected: '切断中', offline: 'オフライン', reconnecting: '再接続中…', error: '接続エラー' };
