@@ -1,5 +1,6 @@
 import {DungeonClient,inviteURL,randomToken,roomFromText,roomIdentity} from './client';
 import {createDungeonInput,type DungeonControl} from './input';
+import {startDungeonInputPump} from './input-pump';
 import {createDungeonUI} from './ui';
 import {createDungeonView} from './view';
 import {distance,wallRay} from './world';
@@ -26,7 +27,7 @@ export function startDungeon(){
  const previousTitle=document.title;document.title='灰の回廊 · ASHEN VAULT';const lifecycle=new AbortController();
  let client:DungeonClient|null=null,snapshot:Snapshot|null=null,view:ReturnType<typeof createDungeonView>|null=null,input:ReturnType<typeof createDungeonInput>|null=null;
  if(probeEnabled)window.__dungeonProbe=()=>snapshot?structuredClone(snapshot):null;
- let inventory=false,disposed=false,raf=0,last=performance.now(),networkAccumulator=0,lastInputSent=-Infinity,room='',invite='',initializedLook=false,raid=-1,actorStatus='',lostReported=false;
+ let inventory=false,disposed=false,raf=0,last=performance.now(),lastInputSent=-Infinity,room='',invite='',initializedLook=false,raid=-1,actorStatus='',lostReported=false;
  const ui=createDungeonUI(root,{
   create:name=>{try{join(randomToken(crypto),name);}catch{ui.notice('部屋を作れません。HTTPS で開き直してください。');}},
   join:(text,name)=>{const id=roomFromText(text);if(!id){ui.notice('招待 URL または 64 桁の部屋番号を入力してください。');return;}join(id,name);},
@@ -61,13 +62,13 @@ export function startDungeon(){
  }
  function resize(){input?.reset();view?.resize();}window.addEventListener('resize',resize,{signal:lifecycle.signal});
  function frame(now:number){if(disposed)return;const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;
-  const sample=input!.sample(dt);ui.renderFeedback(dt,sample);networkAccumulator+=dt;
-  if(networkAccumulator>=.05){networkAccumulator%=.05;if(!document.hidden&&client?.connected&&snapshot?.phase==='raid')sendInput(sample);}
+  const sample=input!.sample();ui.renderFeedback(dt,sample);
   if(view&&!document.hidden){view.render(dt,sample);if(view.lost&&!lostReported){lostReported=true;ui.canvas.dataset.ready='false';ui.setGraphicsError('3D 描画の接続が失われました。ページを更新すると、この部屋へ再接続できます。');syncActive();}}
   raf=requestAnimationFrame(frame);
  }
  raf=requestAnimationFrame(frame);
- const dispose=()=>{if(disposed)return;disposed=true;cancelAnimationFrame(raf);lifecycle.abort();input?.dispose();client?.dispose();view?.dispose();ui.dispose();if(probeEnabled)delete window.__dungeonProbe;document.title=previousTitle;};
+ const stopInputPump=startDungeonInputPump({sample:dt=>input!.sample(dt),send:sendInput,enabled:()=>!disposed&&!document.hidden&&!!client?.connected&&snapshot?.phase==='raid'});
+ const dispose=()=>{if(disposed)return;disposed=true;stopInputPump();cancelAnimationFrame(raf);lifecycle.abort();input?.dispose();client?.dispose();view?.dispose();ui.dispose();if(probeEnabled)delete window.__dungeonProbe;document.title=previousTitle;};
  window.addEventListener('pagehide',dispose,{signal:lifecycle.signal,once:true});
  return dispose;
 }

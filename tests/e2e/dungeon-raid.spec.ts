@@ -92,6 +92,9 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     await b.walk({x: 0, z: -11});
     await b.walk({x: 0, z: -7});
     await phase('north-guard-cleared');
+    // Use only the carried medicine while the closed door keeps the duo away.
+    await a.recover(10);
+    expect(own(await a.state()).hp).toBeGreaterThanOrEqual(100);
     await a.face({x: 0, z: 0});
     await a.open('door-south');
     await expect(page.locator('.dungeon-hud')).toBeVisible();

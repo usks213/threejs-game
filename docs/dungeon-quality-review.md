@@ -71,3 +71,33 @@ Do not describe test discovery or shader-string unit tests as browser success.
 - Desktop and Android gameplay screenshots reviewed by a human-capable agent.
 - Full ordinary-input two-browser raid, plus pointer fallback/cancel regressions.
 - Report failures and missing evidence before calling the pass playable or complete.
+
+## First recovered public acceptance and repair
+
+Candidate `6fad15750fde363304409d0ddeb0d36d2613ed0e` passed all
+1,387 unit tests / 164 files both locally and in CI, root/Worker types and build.
+CI verified the existing preview served that exact commit and both service health
+endpoints. Android passed all four cases, including real emulated touch input and
+extraction persistence. Desktop passed both isolated input regressions and legacy
+save isolation, but its chest smoke timed out. Full raid reached both outer guard
+fights and the central hall, then died against the second central enemy. WebKit's
+installation timed out before its browser test began. These are distinct outcomes.
+
+Actual desktop/Android spawn/chest images and the full primary-player recording
+were inspected. Masonry, ceiling structure and sightline enemy state render; the
+recording also shows prolonged frozen render frames. The authoritative trace
+pinpoints a 1.3s gap in input refresh with Z physically held. The server correctly
+expires stale input after 0.35s, so the shield falls and the explorer takes damage.
+
+The next candidate moves normal input sampling/heartbeat to an independent 50ms
+timer. Rendering only samples the current look; it no longer owns keyboard-turn
+integration. The 25Hz send cap, hidden-page reset, lifecycle cleanup and server
+stale-input timeout are unchanged. Keyboard press/release also requests an input
+update. New timer tests and a no-render-frame browser harness cover this contract.
+
+The full raid driver now uses carried medicine safely before opening the central
+door, retains guard while switching to the next nearby enemy, and does not drink
+beside a live visible threat. The desktop smoke approaches the chest well inside
+its ordinary reach rather than resting on a latency-sensitive boundary. No health,
+damage, enemy count, kill requirements, time limits or server authority are relaxed.
+The new candidate's exact-commit browser acceptance remains required.

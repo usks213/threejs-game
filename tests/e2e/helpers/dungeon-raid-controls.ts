@@ -132,6 +132,13 @@ export class RaidControls {
     } finally { await this.stop(); }
   }
 
+  private nearestThreat(snapshot: Snapshot, radius = 6) {
+    const actor = own(snapshot);
+    return snapshot.enemies.filter(enemy => enemy.status === 'alive' && range(actor, enemy.position) < radius && !wallRay(
+      {...actor.position, y: 1.4}, {...enemy.position, y: 1.4}, snapshot.seed, snapshot.doors,
+    )).sort((a, b) => range(actor, a.position) - range(actor, b.position))[0];
+  }
+
   async fight(enemyId: string) {
     const deadline = Date.now() + 30000;
     try {
@@ -141,7 +148,14 @@ export class RaidControls {
         const enemy = snapshot.enemies.find(value => value.id === enemyId);
         expect(actor.status, `${this.name}: fighting ${enemyId}, HP ${actor.hp}`).toBe('alive');
         if (!enemy) throw new Error(`Missing initial enemy ${enemyId}`);
-        if (enemy.status === 'dead') return;
+        if (enemy.status === 'dead') {
+          const next = this.nearestThreat(snapshot);
+          if (!next) return;
+          // Treat a close group as one encounter. Keep guarding and turn toward
+          // the next attacker during recovery instead of drinking beside it.
+          enemyId = next.id;
+          continue;
+        }
         const d = range(actor, enemy.position);
         const steering = this.steering(actor, enemy.position, d > 1.35, true);
         await this.keys(steering.keys);
@@ -156,12 +170,15 @@ export class RaidControls {
     } finally { await this.stop(); }
   }
 
-  async recover() {
-    await this.stop();
+  async recover(missingThreshold = 30) {
     let snapshot = await this.state();
-    if (own(snapshot).hp >= own(snapshot).maxHp - 30) return;
+    if (this.nearestThreat(snapshot)) return;
+    await this.stop();
+    snapshot = await this.state();
+    if (this.nearestThreat(snapshot) || own(snapshot).hp >= own(snapshot).maxHp - missingThreshold) return;
     snapshot = await this.until(state => own(state).status !== 'alive' || own(state).phase === 'idle', 'recovery is available');
     expect(own(snapshot).status).toBe('alive');
+    if (this.nearestThreat(snapshot)) return;
     const actor = own(snapshot);
     const medicine = actor.bag.some(item => item.kind === 'potion' || item.kind === 'bandage');
     expect(medicine || actor.spells > 0, `${this.name}: normal healing resources remain`).toBe(true);

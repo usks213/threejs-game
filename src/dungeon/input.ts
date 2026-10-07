@@ -32,9 +32,9 @@ export function createDungeonInput(elements:InputElements,callbacks:InputCallbac
   // Inventory must remain reopenable while it has disabled gameplay input.
   if(event.code==='KeyI'){if(!event.repeat)callbacks.action('inventory');event.preventDefault();return;}
   if(!active||!movementKeys.has(event.code))return;
-  event.preventDefault();held.add(event.code);if(!event.repeat&&keys[event.code])callbacks.action(keys[event.code]);
+  event.preventDefault();const changed=!held.has(event.code);held.add(event.code);if(changed)callbacks.changed?.();if(!event.repeat&&keys[event.code])callbacks.action(keys[event.code]);
  });
- on(window,'keyup',event=>{held.delete(event.code);});
+ on(window,'keyup',event=>{if(held.delete(event.code))callbacks.changed?.();});
  on(window,'blur',reset);on(window,'resize',reset);on(window,'orientationchange',reset);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)reset();},{signal});
  document.addEventListener('pointerlockerror',denyLock,{signal});
