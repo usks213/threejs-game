@@ -193,7 +193,7 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
         const error = angle(heading(actor, target.position) - actor.yaw);
         const d = range(actor, target.position);
         await controls.keys([...(Math.abs(error) > .12 ? [error > 0 ? 'Home' : 'End'] : []), ...(d > 1.45 && Math.abs(error) < .3 ? ['KeyW'] : [])]);
-        if (actor.phase === 'idle' && d < 1.65 && Math.abs(error) < .2) await controls.press(index === 0 ? 'KeyR' : 'KeyT');
+        if (actor.phase === 'idle' && d < 1.65 && Math.abs(error) < .2) await controls.press(index === 0 ? 'KeyR' : 'KeyT', true);
       }));
       await a.next(snapshots[0]);
     }

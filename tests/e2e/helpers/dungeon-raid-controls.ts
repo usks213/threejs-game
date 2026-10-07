@@ -1,6 +1,7 @@
 import {expect, type Page} from '@playwright/test';
 import {distance, wallRay} from '../../../src/dungeon/world';
 import {closeApproachKey} from './dungeon-approach';
+import {dungeonActionObserved} from './dungeon-action-observed';
 import type {Action, Snapshot} from '../../../src/dungeon/types';
 
 export type Point = {x: number; z: number};
@@ -69,10 +70,10 @@ export class RaidControls {
 
   async stop() { await this.keys(); }
 
-  async press(key: string) {
+  async press(key: string, acceptDeath = false) {
     const before = await this.state();
     await this.page.keyboard.press(key);
-    return this.until(snapshot => snapshot.lastAction > before.lastAction, `${key} acknowledged by the server`, 6000);
+    return this.until(snapshot => dungeonActionObserved(before.lastAction, snapshot.lastAction, own(snapshot).status, acceptDeath), `${key} acknowledged by the server${acceptDeath ? ' or duel death observed' : ''}`, 6000);
   }
 
   private steering(actor: Explorer, target: Point, forward: boolean, guard = false) {

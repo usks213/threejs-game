@@ -6,10 +6,10 @@ async function activate(locator:Locator,mobile:boolean){await locator.scrollInto
 async function state(page:Page){const value=await read(page);if(!value)throw Error('No authoritative dungeon snapshot');return value;}
 async function until(page:Page,predicate:(snapshot:Snapshot)=>boolean,message:string,timeout=15000){await expect.poll(async()=>{const next=await read(page);return !!next&&predicate(next);},{message,timeout,intervals:[50,75,100]}).toBe(true);return state(page);}
 /** Ordinary fixed-yaw movement for the safe western route, with real CDP touches on Android. */
-async function walk(page:Page,mobile:boolean,x:number,z:number){
+async function walk(page:Page,mobile:boolean,x:number,z:number,arrived?:(snapshot:Snapshot)=>boolean){
  const session=mobile?await page.context().newCDPSession(page):null;
  try{for(let step=0;step<70;step++){
-  const actor=own(await state(page));expect(actor.status).toBe('alive');expect(Math.abs(actor.yaw)).toBeLessThan(.01);
+  const current=await state(page),actor=own(current);expect(actor.status).toBe('alive');if(arrived?.(current))return;expect(Math.abs(actor.yaw)).toBeLessThan(.01);
   const dx=x-actor.position.x,dz=z-actor.position.z;if(Math.hypot(dx,dz)<.35)return;
   const horizontal=Math.abs(dx)>Math.abs(dz),positive=horizontal?dx>0:dz<0;
   const ms=Math.max(70,Math.min(200,(horizontal?Math.abs(dx):Math.abs(dz))/3*650));
@@ -27,6 +27,8 @@ async function extract(page:Page,mobile:boolean){await walk(page,mobile,-12,12);
 
 test('dungeon recovered treasure funds real resupply and a second finite-resource raid',async({page,isMobile},info)=>{
  test.skip(process.env.E2E_DUNGEON!=='1','Requires the deployed authoritative dungeon');test.setTimeout(360000);
+ const observed:Array<{raid:number;tick:number;hp:number;maxHp:number;status:string;ids:string[]}>=[];
+ page.on('websocket',socket=>socket.on('framereceived',({payload})=>{try{const packet=JSON.parse(String(payload));if(packet.type!=='snapshot')return;const s=packet.snapshot as Snapshot,actor=own(s);observed.push({raid:s.raid,tick:s.tick,hp:actor.hp,maxHp:actor.maxHp,status:actor.status,ids:actor.bag.map(item=>item.id)});if(observed.length>3000)observed.shift();}catch{/* Passive evidence only. */}}));
  const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));page.on('console',message=>{if(message.type()==='error'&&/WebGL|shader/i.test(message.text()))errors.push(message.text());});
  expect(process.env.EXPECTED_COMMIT).toBeTruthy();expect((await (await page.request.get('/deployment.json')).json()).commit).toBe(process.env.EXPECTED_COMMIT);
  await page.goto('/?mode=dungeon&test=1');await page.getByTestId('dungeon-name').fill('帰還して補給する探索者');await activate(page.getByTestId('dungeon-create'),isMobile);
@@ -51,16 +53,22 @@ test('dungeon recovered treasure funds real resupply and a second finite-resourc
  await inventory(page,isMobile,true);await expect(page.getByTestId('dungeon-buy-potion')).toBeDisabled();await inventory(page,isMobile,false);
  const carried=own(await state(page)).bag.map(i=>i.id).sort();await activate(page.getByTestId('dungeon-start'),isMobile);await until(page,s=>s.raid===2&&s.phase==='raid','second raid begins');
  expect(own(await state(page)).bag.map(i=>i.id).sort()).toEqual(carried);expect((await state(page)).shop).toEqual({potion:6,bandage:10});expect((await state(page)).gold).toBe(60);
+ const bankBeforeFight=(await state(page)).stash.map(i=>i.id).sort();
+ // Resolve the visible touch target while safe. During combat use a normal
+ // physical tap/key, without waiting for two rendered actionability frames.
+ const healButton=page.getByTestId('dungeon-action-heal');await expect(healButton).toBeVisible();
+ const healBounds=await healButton.boundingBox();expect(healBounds).toBeTruthy();
  // This second raid explicitly tests paid consumption and loss, while the separate
  // full raid gate retains its successful-survival/extraction requirement.
  // Wait safely at the edge of the guard's real perception instead of pulse-walking
  // away slower than a pursuer and accidentally treating death as a test success.
- await walk(page,isMobile,-7.5,11);
- const bankBeforeFight=(await state(page)).stash.map(i=>i.id).sort();
- await until(page,s=>own(s).hp<own(s).maxHp,'guard inflicts ordinary combat damage');
- const beforeHeal=own(await state(page));expect(beforeHeal.status).toBe('alive');
- await activate(page.getByTestId('dungeon-action-heal'),isMobile);
- await until(page,s=>!own(s).bag.some(i=>i.id===purchased.id)&&own(s).hp>beforeHeal.hp,'purchased medicine heals and is consumed');
+ await walk(page,isMobile,-7.5,11,s=>own(s).position.x>-8); // Enter perception; do not orbit a precision waypoint under fire.
+ await expect.poll(()=>observed.some(s=>s.raid===2&&s.hp<s.maxHp),{message:'guard inflicts ordinary combat damage',timeout:15000}).toBe(true);
+ expect(observed.at(-1)?.status).toBe('alive');
+ if(isMobile)await page.touchscreen.tap(healBounds!.x+healBounds!.width/2,healBounds!.y+healBounds!.height/2);
+ else await page.keyboard.press('KeyQ');
+ await expect.poll(()=>observed.some((value,index)=>{const before=observed[index-1];return before?.raid===2&&value.raid===2&&before.ids.includes(purchased.id)&&!value.ids.includes(purchased.id)&&value.hp>before.hp;}),{message:'server confirmed purchased medicine healed and was consumed',timeout:15000}).toBe(true);
+ await info.attach('second-raid-paid-healing',{body:JSON.stringify(observed.filter(s=>s.raid===2)),contentType:'application/json'});
  await until(page,s=>own(s).status==='dead'&&s.phase==='finished','unguarded explorer dies and the second raid settles',20000);
  await page.screenshot({path:info.outputPath('second-raid-funded-loss.png')});
  const final=await state(page);expect(final.gold).toBe(60);expect(own(final).bag).toEqual([]);expect(final.stash.map(i=>i.id).sort()).toEqual(bankBeforeFight);
