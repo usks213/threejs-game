@@ -135,3 +135,18 @@ it('reports this raid’s returned items rather than counting older stash conten
  s.action(s.a,{kind:'interact',target:'exit-west'});for(let i=0;i<81;i++)s.sim.step();
  expect(s.a.actor.status).toBe('extracted');expect(s.a.stash).toHaveLength(carried+1);expect(s.a.result).toBe(`帰還成功。${carried}品を倉庫へ保存`);
 });
+
+it('consumes bought medicine once, drops the remaining loadout on death, and keeps unopened corpse contents private',()=>{
+ const s=setup();s.a.gold=30;place(s.a.stash,item('banked'),STASH_HEIGHT);
+ s.action(s.a,{kind:'buy-supply',supply:'potion'});const medicine=s.a.stash.find(i=>i.kind==='potion')!;
+ s.action(s.a,{kind:'transfer',item:medicine.id,to:'bag'});place(s.a.actor.bag,item('carried-weapon','sword',1,0,false));
+ s.action(s.a,{kind:'ready'});s.action(s.b,{kind:'ready'});s.action(s.a,{kind:'start'});
+ s.a.actor.hp=60;expect(s.action(s.a,{kind:'heal'})).toBe('回復しました');expect(s.a.actor.hp).toBe(95);
+ expect(s.a.actor.bag.map(i=>i.id)).toEqual(['carried-weapon']);
+ s.sim.state.elapsed=479.98;s.sim.step();expect(s.a.actor.status).toBe('dead');expect(s.a.actor.bag).toEqual([]);
+ const corpse=s.sim.state.containers.find(c=>c.id===`corpse-${s.a.actor.id}-1`)!;
+ expect(corpse.items.map(i=>i.id)).toEqual(['carried-weapon']);expect(corpse.opened).toBe(false);
+ expect(s.sim.snapshot(s.a.actor.id).containers.find(c=>c.id===corpse.id)!.items).toEqual([]);
+ expect(s.a.gold).toBe(18);expect(s.a.stash.map(i=>i.id)).toEqual(['banked']);
+ expect(new DungeonSimulation(JSON.parse(JSON.stringify(s.sim.state))).profile(s.a.actor.id)!.stash).toEqual(s.a.stash);
+});

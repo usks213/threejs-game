@@ -27,8 +27,8 @@ async function extract(page:Page,mobile:boolean){await walk(page,mobile,-12,12);
 
 test('dungeon recovered treasure funds real resupply and a second finite-resource raid',async({page,isMobile},info)=>{
  test.skip(process.env.E2E_DUNGEON!=='1','Requires the deployed authoritative dungeon');test.setTimeout(360000);
- const observed:Array<{raid:number;tick:number;hp:number;maxHp:number;status:string;ids:string[]}>=[];
- page.on('websocket',socket=>socket.on('framereceived',({payload})=>{try{const packet=JSON.parse(String(payload));if(packet.type!=='snapshot')return;const s=packet.snapshot as Snapshot,actor=own(s);observed.push({raid:s.raid,tick:s.tick,hp:actor.hp,maxHp:actor.maxHp,status:actor.status,ids:actor.bag.map(item=>item.id)});if(observed.length>3000)observed.shift();}catch{/* Passive evidence only. */}}));
+ const observed:Array<{raid:number;tick:number;hp:number;maxHp:number;status:string;phase:string;lastAction:number;ids:string[]}>=[];
+ page.on('websocket',socket=>socket.on('framereceived',({payload})=>{try{const packet=JSON.parse(String(payload));if(packet.type!=='snapshot')return;const s=packet.snapshot as Snapshot,actor=own(s);observed.push({raid:s.raid,tick:s.tick,hp:actor.hp,maxHp:actor.maxHp,status:actor.status,phase:actor.phase,lastAction:s.lastAction,ids:actor.bag.map(item=>item.id)});if(observed.length>3000)observed.shift();}catch{/* Passive evidence only. */}}));
  const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));page.on('console',message=>{if(message.type()==='error'&&/WebGL|shader/i.test(message.text()))errors.push(message.text());});
  expect(process.env.EXPECTED_COMMIT).toBeTruthy();expect((await (await page.request.get('/deployment.json')).json()).commit).toBe(process.env.EXPECTED_COMMIT);
  await page.goto('/?mode=dungeon&test=1');await page.getByTestId('dungeon-name').fill('帰還して補給する探索者');await activate(page.getByTestId('dungeon-create'),isMobile);
@@ -58,21 +58,27 @@ test('dungeon recovered treasure funds real resupply and a second finite-resourc
  // physical tap/key, without waiting for two rendered actionability frames.
  const healButton=page.getByTestId('dungeon-action-heal');await expect(healButton).toBeVisible();
  const healBounds=await healButton.boundingBox();expect(healBounds).toBeTruthy();
+ const healTouch=isMobile?await page.context().newCDPSession(page):null;
  // This second raid explicitly tests paid consumption and loss, while the separate
  // full raid gate retains its successful-survival/extraction requirement.
  // Wait safely at the edge of the guard's real perception instead of pulse-walking
  // away slower than a pursuer and accidentally treating death as a test success.
  await walk(page,isMobile,-7.5,11,s=>own(s).position.x>-8); // Enter perception; do not orbit a precision waypoint under fire.
- await expect.poll(()=>observed.some(s=>s.raid===2&&s.hp<s.maxHp),{message:'guard inflicts ordinary combat damage',timeout:15000}).toBe(true);
- expect(observed.at(-1)?.status).toBe('alive');
- if(isMobile)await page.touchscreen.tap(healBounds!.x+healBounds!.width/2,healBounds!.y+healBounds!.height/2);
- else await page.keyboard.press('KeyQ');
- await expect.poll(()=>observed.some((value,index)=>{const before=observed[index-1];return before?.raid===2&&value.raid===2&&before.ids.includes(purchased.id)&&!value.ids.includes(purchased.id)&&value.hp>before.hp;}),{message:'server confirmed purchased medicine healed and was consumed',timeout:15000}).toBe(true);
- await info.attach('second-raid-paid-healing',{body:JSON.stringify(observed.filter(s=>s.raid===2)),contentType:'application/json'});
+ try{
+  await expect.poll(()=>{const s=observed.at(-1);return !!s&&s.raid===2&&s.status==='alive'&&s.hp<s.maxHp&&s.phase==='idle';},{message:'guard inflicts damage and the real hit stagger ends',timeout:15000,intervals:[50,75,100]}).toBe(true);
+  // CDP delivers the same ordinary physical touch used by the movement pad.
+  // Avoid Playwright's multi-second before/after DOM snapshots during a live hit.
+  if(healTouch){await healTouch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:7,x:healBounds!.x+healBounds!.width/2,y:healBounds!.y+healBounds!.height/2,radiusX:4,radiusY:4,force:1}]});await healTouch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+  else await page.keyboard.press('KeyQ');
+  await expect.poll(()=>observed.some((value,index)=>{const before=observed[index-1];return before?.raid===2&&value.raid===2&&before.ids.includes(purchased.id)&&!value.ids.includes(purchased.id)&&value.hp>before.hp;}),{message:'server confirmed purchased medicine healed and was consumed',timeout:15000}).toBe(true);
+ }finally{
+  if(healTouch){await healTouch.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]}).catch(()=>{});await healTouch.detach();}
+  await info.attach('second-raid-paid-healing',{body:JSON.stringify(observed.filter(s=>s.raid===2)),contentType:'application/json'});
+ }
  await until(page,s=>own(s).status==='dead'&&s.phase==='finished','unguarded explorer dies and the second raid settles',20000);
  await page.screenshot({path:info.outputPath('second-raid-funded-loss.png')});
  const final=await state(page);expect(final.gold).toBe(60);expect(own(final).bag).toEqual([]);expect(final.stash.map(i=>i.id).sort()).toEqual(bankBeforeFight);
- const corpse=final.containers.find(c=>c.id===`corpse-${final.you}-2`);expect(corpse).toBeTruthy();expect(corpse!.items.map(i=>i.id).sort()).toEqual(carried.filter(id=>id!==purchased.id));
+ const corpse=final.containers.find(c=>c.id===`corpse-${final.you}-2`);expect(corpse).toBeTruthy();expect(corpse!.opened).toBe(false);expect(corpse!.items).toEqual([]); // Unopened contents are intentionally private; exact loss is also covered in simulation tests and the full PvP corpse-loot gate.
  expect(final.stash.some(i=>i.id===purchased.id)).toBe(false);expect(final.stash.some(i=>i.id===treasure.id)).toBe(false);
  const saved=final.stash.map(i=>i.id).sort();await page.reload();await activate(page.getByTestId('dungeon-join'),isMobile);await until(page,s=>s.gold===60&&s.raid===2,'gold and second result reconnect');expect((await state(page)).stash.map(i=>i.id).sort()).toEqual(saved);expect((await state(page)).trades).toHaveLength(4);expect(errors).toEqual([]);
 });
