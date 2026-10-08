@@ -1,5 +1,6 @@
 import {test, expect, type BrowserContext, type Page} from '@playwright/test';
 import type {Snapshot} from '../../src/dungeon/types';
+import {CENTRAL_APPROACH} from './helpers/dungeon-central-approach';
 import {raidCorpseApproaches, raidSafeRoute} from './helpers/dungeon-safe-route';
 import {RaidControls, angle, heading, observeActions, own, range, read} from './helpers/dungeon-raid-controls';
 
@@ -93,26 +94,44 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     await b.walk({x: 0, z: -11});
     await b.walk({x: 0, z: -7});
     await phase('north-guard-cleared');
-    // Use only the carried medicine while the closed door keeps the duo away.
-    await a.recover(10);
-    expect(own(await a.state()).hp).toBeGreaterThanOrEqual(100);
-    await a.face({x: 0, z: 0});
-    await a.open('door-south');
+    // Both players prepare behind closed doors, then each engages the nearer
+    // central guard. This ordinary two-sided approach avoids leaving B idle
+    // while A repeatedly turns/retreats against two simultaneous attackers.
+    await Promise.all([a.recover(10), b.recover(10)]);
+    for (const controls of [a, b]) expect(own(await controls.state()).hp).toBeGreaterThanOrEqual(100);
+    await Promise.all([a, b].map((controls, index) => controls.walk(CENTRAL_APPROACH[index].point, .12)));
+    const staged = await a.state();
+    const stagedActors = [idA, idB].map(id => staged.actors.find(actor => actor.id === id)!);
+    for (const [index, approach] of CENTRAL_APPROACH.entries()) {
+      const guard = staged.enemies.find(enemy => enemy.id === approach.enemy)!;
+      expect(guard).toMatchObject({hp: 70, status: 'alive'});
+      expect(staged.doors.find(door => door.id === approach.door)!.open).toBe(false);
+      expect(range(stagedActors[1 - index], guard.position) - range(stagedActors[index], guard.position)).toBeGreaterThan(.35);
+      await [a, b][index].face(guard.position);
+    }
     await expect(page.locator('.dungeon-hud')).toBeVisible();
     await expect(page.locator('.dungeon-inventory-overlay')).toBeHidden();
-    await phase('central-hall-live-enemies', true);
-    await a.walk({x: 0, z: 2});
-    await b.open('door-north');
-    await b.walk({x: 0, z: -2});
+    await phase('central-two-sided-approach-ready', true);
+    // No screenshot or sequential route between opening and fighting.
+    await Promise.all([a.open('door-south'), b.open('door-north')]);
+    await Promise.all([a.fight('e0'), b.fight('e1')]);
     const cleared = await a.state();
     expect(cleared.enemies.every(enemy => enemy.status === 'dead')).toBe(true);
-    expect(own(cleared).kills).toBe(3);
-    expect(own(await b.state()).kills).toBe(1);
+    expect(own(cleared).kills).toBe(2);
+    expect(own(await b.state()).kills).toBe(2);
     expect(own(cleared).damageTaken).toBeGreaterThan(0);
     expect(own(await b.state()).damageTaken).toBeGreaterThan(0);
     expect(actionsA.some(packet => packet.action.kind === 'attack')).toBe(true);
     expect(actionsB.some(packet => packet.action.kind === 'attack')).toBe(true);
     await phase('all-four-ai-defeated', true);
+
+    // Combat can pull the guard through the doorway into a side aisle. Route
+    // around the real walls/pillars rather than steering straight through them.
+    const navigate = async (controls: RaidControls, target: {x: number; z: number}) => {
+      for (const waypoint of raidSafeRoute(await controls.state(), target)) await controls.walk(waypoint, .12);
+    };
+    await navigate(a, {x: 0, z: 2});
+    await navigate(b, {x: 0, z: -2});
 
     expect(cleared.containers.find(container => container.id === 'chest4')!.locked).toBe(true);
     await a.open('chest4');
@@ -154,11 +173,6 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     await contest('chest4', centralRelic.id);
     await phase('locked-chest-contested', true);
 
-    // Combat can pull the guard through the doorway into a side aisle. Route
-    // around the real walls/pillars rather than steering straight through them.
-    const navigate = async (controls: RaidControls, target: {x: number; z: number}) => {
-      for (const waypoint of raidSafeRoute(await controls.state(), target)) await controls.walk(waypoint, .12);
-    };
     const guardCorpse = (await a.state()).containers.find(container => container.id === 'corpse-e0-1')!;
     expect(guardCorpse).toBeTruthy();
     const approaches = raidCorpseApproaches(await a.state(), guardCorpse.position);
