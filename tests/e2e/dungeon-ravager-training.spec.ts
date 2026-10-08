@@ -72,6 +72,7 @@ async function portraitLayout(page: Page) {
     const visible = (node: Element) => {const rect = node.getBoundingClientRect(); return rect.width > 0 && rect.height > 0;};
     const notice = document.querySelector('.dungeon-notice');
     return {
+      inputProfile: {coarse: matchMedia('(pointer: coarse)').matches, noHover: matchMedia('(hover: none)').matches, maxTouchPoints: navigator.maxTouchPoints},
       controls: [...document.querySelectorAll('.dungeon-action-button, [data-dungeon-pad]')].filter(visible).map(bounds),
       nearby: [...document.querySelectorAll('.dungeon-nearby-target')].filter(visible).map(bounds),
       notice: notice ? {...bounds(notice), visible: visible(notice), text: notice.textContent} : null,
@@ -99,6 +100,16 @@ test('dungeon optional ravager training preserves class choices and really short
   page.on('pageerror', error => errors.push(clean(String(error))));
   page.on('console', message => {if (message.type() === 'error') errors.push(clean(message.text()));});
   const record = (name: string, snapshot: Snapshot) => checkpoints.push({stage: name, snapshot});
+  const assertMobileProfile = async (name: string) => {
+    if (!isMobile) return;
+    const layout = await portraitLayout(page);
+    interfaceEvidence.push({stage: name, details: layout});
+    expect(layout.inputProfile).toMatchObject({coarse: true, noHover: true});
+    expect(layout.inputProfile.maxTouchPoints).toBeGreaterThan(0);
+    for (const id of ['dungeon-move-pad', 'dungeon-look-pad']) {
+      expect(layout.controls.some(control => control.id === id), `${name}: ${id} must remain visible`).toBe(true);
+    }
+  };
   const screenshot = async (name: string, target?: Locator) => {
     if (target) await target.scrollIntoViewIfNeeded();
     const path = info.outputPath(`${name}.png`);
@@ -179,6 +190,7 @@ test('dungeon optional ravager training preserves class choices and really short
     record('fresh-ravager-has-no-training', baseline);
     await start();
     if (isMobile) touch = await page.context().newCDPSession(page);
+    await assertMobileProfile('baseline-mobile-input-profile');
     await expect(page.getByTestId('dungeon-action-skill')).toBeHidden();
     const baselineHeavy = [await attack('baseline-heavy-1', true), await attack('baseline-heavy-2', true)];
     const baselineLight = await attack('baseline-light', false);
@@ -188,7 +200,9 @@ test('dungeon optional ravager training preserves class choices and really short
     }
     // New room via the real leave/create UI keeps both trials at the same safe
     // first spawn with the same weapon; no teleport, fixture or storage writes.
-    if (touch) {await touch.detach(); touch = null;}
+    // Preserve the original Android touch-emulation session across ordinary
+    // leave/create and reload; only detach after all touch assertions finish.
+    if (touch) await touch.send('Input.dispatchTouchEvent', {type: 'touchCancel', touchPoints: []});
     stage = 'trained-lobby';
     await activate(page.getByRole('button', {name: '部屋を離れる', exact: true}), isMobile);
     await page.getByTestId('dungeon-name').fill('荒戦士の任意訓練を試す探索者');
@@ -244,7 +258,7 @@ test('dungeon optional ravager training preserves class choices and really short
     await choose('perk', 'followthrough', {skill: 'frenzy', perk: 'followthrough'});
     expect(actions.filter(entry => entry.action.kind === 'configure-ravager-training')).toHaveLength(sentBeforeNoop);
     const started = await start();
-    if (isMobile) touch = await page.context().newCDPSession(page);
+    await assertMobileProfile('trained-mobile-profile-after-room-change-and-reload');
     expect(own(started).ravagerSkillState).toBeUndefined();
     await expect(page.getByTestId('dungeon-training-panel')).toBeHidden();
     const trainedHeavy = [await attack('followthrough-heavy-1', true), await attack('followthrough-heavy-2', true)];
@@ -274,6 +288,11 @@ test('dungeon optional ravager training preserves class choices and really short
     await expect(page.locator('.dungeon-notice')).toContainText('狂奔を発動しました', {timeout: 2000});
     if (isMobile) {
       const layout = await portraitLayout(page); interfaceEvidence.push({stage: 'fresh-frenzy-portrait-notice', details: layout});
+      expect(layout.inputProfile, 'Portrait remains a real touch-emulated page').toMatchObject({coarse: true, noHover: true});
+      expect(layout.inputProfile.maxTouchPoints).toBeGreaterThan(0);
+      for (const id of ['dungeon-move-pad', 'dungeon-look-pad', 'dungeon-action-skill']) {
+        expect(layout.controls.some(control => control.id === id), `${id} must be visible in the asserted touch geometry`).toBe(true);
+      }
       expect(layout.notice?.visible).toBe(true); expect(layout.notice?.text).toContain('狂奔を発動しました');
       expect(layout.nearby.length, 'The ordinary nearby exit also participates in the portrait check').toBeGreaterThan(0);
       for (const control of layout.controls) {
@@ -304,14 +323,18 @@ test('dungeon optional ravager training preserves class choices and really short
     const settled = await until(page, snapshot => snapshot.elapsed > canceledAt.elapsed + .4, 'Canceled input has settled');
     const afterCancel = await until(page, snapshot => snapshot.elapsed > settled.elapsed + .4, 'A new stationary interval is observed');
     expect(own(afterCancel).position).toEqual(own(settled).position);
-    if (isMobile) {await page.setViewportSize(landscape); await screenshot('frenzy-landscape-after-cancel-and-rotation');}
+    if (isMobile) {
+      await page.setViewportSize(landscape);
+      await assertMobileProfile('mobile-profile-after-landscape-rotation');
+      await screenshot('frenzy-landscape-after-cancel-and-rotation');
+    }
     await until(page, snapshot => snapshot.elapsed >= firstUse.activeUntil, 'The real five-second Frenzy expires');
     await expect(skillButton).toBeDisabled(); await expect(skillHud).toContainText(/再使用|待機|残り/);
     await command('skill'); await command('skill');
     const repeated = await until(page, snapshot => snapshot.elapsed > firstUse.activeUntil + .25, 'Unavailable repeated input is observed');
     expect(own(repeated).ravagerSkillState).toEqual(firstUse);
     record('expired-frenzy-cannot-be-restarted-early', repeated);
-    if (touch) {await touch.detach(); touch = null;}
+    if (touch) await touch.send('Input.dispatchTouchEvent', {type: 'touchCancel', touchPoints: []});
     stage = 'cooldown-reload';
     await page.reload(); await activate(page.getByTestId('dungeon-join'), isMobile);
     const resumed = await until(page, snapshot => snapshot.you === fresh.you && snapshot.phase === 'raid' && own(snapshot).connected,
@@ -322,7 +345,13 @@ test('dungeon optional ravager training preserves class choices and really short
     record('authoritative-cooldown-survives-reload', resumed);
     await until(page, snapshot => snapshot.elapsed >= firstUse.readyAt, 'The real eighteen-second reuse time arrives', 25000);
     await expect(skillButton).toBeEnabled();
-    if (isMobile) touch = await page.context().newCDPSession(page);
+    if (isMobile) {
+      const layout = await portraitLayout(page);
+      interfaceEvidence.push({stage: 'mobile-profile-after-cooldown-reload', details: layout});
+      expect(layout.inputProfile).toMatchObject({coarse: true, noHover: true});
+      expect(layout.inputProfile.maxTouchPoints).toBeGreaterThan(0);
+      for (const id of ['dungeon-move-pad', 'dungeon-look-pad']) expect(layout.controls.some(control => control.id === id)).toBe(true);
+    }
     stage = 'second-frenzy'; await command('skill');
     const second = await until(page, snapshot => (own(snapshot).ravagerSkillState?.readyAt ?? 0) > firstUse.readyAt,
       'The skill is reusable through a second real input');
@@ -355,8 +384,9 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
   test.setTimeout(90000);
   const received: Array<{stage: string; snapshot: Snapshot}> = [];
   const actions = observeActions(page), errors: string[] = [];
+  const inputObservations: Array<Record<string, unknown>> = [];
   const frames: Array<{stage: string; timestamp: number; tick: number | null; jpeg: string}> = [];
-  let stage = 'joining', session: CDPSession | null = null, held = false;
+  let stage = 'joining', session: CDPSession | null = null;
   let evidence: {before: Snapshot; hit: Snapshot; damage: number; zone: 'body' | 'head'} | null = null;
   page.on('pageerror', error => errors.push(clean(String(error))));
   page.on('console', message => {if (message.type() === 'error') errors.push(clean(message.text()));});
@@ -420,13 +450,38 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     const movePoint = isMobile ? await center(page.locator('[data-dungeon-pad=move]')) : null;
     const lookBounds = isMobile ? await page.locator('[data-dungeon-pad=look]').boundingBox() : null;
     if (isMobile) expect(lookBounds).toBeTruthy();
-    const move = async (forward: boolean) => {
-      if (forward === held) return;
-      if (isMobile && movePoint) {
-        if (forward) await session!.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{id: 1, x: movePoint.x, y: movePoint.y - 42}]});
-        else await session!.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
-      } else if (forward) await page.keyboard.down('KeyW'); else await page.keyboard.up('KeyW');
-      held = forward;
+    const noteInput = (label: string, event: 'begin' | 'end') => {
+      const snapshot = received.at(-1)?.snapshot;
+      const actor = snapshot && own(snapshot), guard = snapshot?.enemies.find(enemy => enemy.id === 'e3');
+      inputObservations.push({label, event, wallTime: Date.now(), stage, elapsed: snapshot?.elapsed, tick: snapshot?.tick,
+        hp: actor?.hp, phase: actor?.phase, position: actor?.position, yaw: actor?.yaw,
+        distance: actor && guard ? range(actor, guard.position) : null, guardPhase: guard?.phase});
+    };
+    const timedTouch = async (point: {x: number; y: number}, label: string, hold: number, id: number) => {
+      noteInput(`${label}-start-request`, 'begin');
+      const down = session!.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{id, ...point}]})
+        .then(() => noteInput(`${label}-start-ack`, 'end'));
+      // A CDP start ACK can wait for a slow rendered frame. Request release on
+      // our timer, in the same ordered session, without holding until that ACK.
+      const up = new Promise<void>((resolve, reject) => setTimeout(() => {
+        noteInput(`${label}-release-request`, 'begin');
+        session!.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []})
+          .then(() => {noteInput(`${label}-release-ack`, 'end'); resolve();}, reject);
+      }, hold));
+      await Promise.all([down, up]);
+    };
+    const touchCommand = (point: {x: number; y: number}, label: string) => timedTouch(point, label, 80, 7);
+    const approachPulse = async () => {
+      if (isMobile && movePoint) await timedTouch({x: movePoint.x, y: movePoint.y - 21}, 'approach-pulse', 600, 1);
+      else {
+        noteInput('approach-key-request', 'begin');
+        const down = page.keyboard.down('KeyW');
+        const up = new Promise<void>((resolve, reject) => setTimeout(() => {
+          page.keyboard.up('KeyW').then(() => resolve(), reject);
+        }, 250));
+        await Promise.all([down, up]);
+        noteInput('approach-key-released', 'end');
+      }
     };
     // All look changes are physical keyboard or captured look-pad gestures.
     // We stop turning before entering perception and keep the straight z=11 lane.
@@ -451,27 +506,33 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     }
     expect(Math.abs(angle(-Math.PI / 2 - own(latest()).yaw)), 'Real controls point the greatsword at the south guard').toBeLessThanOrEqual(.06);
     stage = 'ordinary-approach';
-    await move(true);
+    // Short real gestures release independently of renderer ACK latency.
+    // Each half-stick mobile pulse requests only .855m; desktop requests .713m.
+    // Stop at perception and let the guard close, with no further movement.
+    while (own(latest()).position.x <= -7.9) await approachPulse();
+    stage = 'stationary-pull';
+    noteInput('stationary-pull', 'begin');
+    expect(range(own(latest()), target(latest()).position), 'Release movement well outside melee range').toBeGreaterThan(4);
     await expect.poll(() => range(own(latest()), target(latest()).position),
-      {message: 'Ordinary forward input enters the south guard approach', timeout: 12000, intervals: [50, 75]}).toBeLessThanOrEqual(3.4);
-    await move(false);
+      {message: 'The real guard approaches a stationary explorer', timeout: 8000, intervals: [50, 75]}).toBeLessThanOrEqual(4.5);
     stage = 'frenzy-approach';
-    if (isMobile) await touchTap(session, skillPoint); else await page.keyboard.press('KeyV');
+    if (isMobile) await touchCommand(skillPoint, 'skill-tap'); else await page.keyboard.press('KeyV');
     await expect.poll(() => {
       const snapshot = latest(); return (own(snapshot).ravagerSkillState?.activeUntil ?? 0) > snapshot.elapsed;
     }, {message: 'Frenzy activates before the contact', timeout: 4000, intervals: [50, 75]}).toBe(true);
     const before = latest();
     expect(selection(before)).toEqual({skill: 'frenzy', perk: null});
-    await move(true);
+    // Greatsword windup is .56s. Start at2.6m while the1.65m/s guard closes,
+    // instead of waiting point-blank through extra touch start/end roundtrips.
     await expect.poll(() => range(own(latest()), target(latest()).position),
-      {message: 'The ordinary stick/key enters actual sword range', timeout: 4000, intervals: [50, 75]}).toBeLessThanOrEqual(1.45);
-    await move(false);
+      {message: 'The approaching guard enters the normal greatsword windup distance', timeout: 4000, intervals: [50, 75]}).toBeLessThanOrEqual(2.6);
     stage = 'frenzy-strike';
-    if (isMobile) await touchTap(session, attackPoint); else await page.keyboard.press('KeyT');
+    if (isMobile) await touchCommand(attackPoint, 'attack-tap'); else await page.keyboard.press('KeyT');
     await expect.poll(() => received.some(entry => entry.snapshot.phase === 'raid' && target(entry.snapshot).damageTaken > 0),
       {message: 'One ordinary greatsword attack really contacts the guard', timeout: 4500, intervals: [50, 75]}).toBe(true);
     const hit = received.find(entry => entry.snapshot.phase === 'raid' && target(entry.snapshot).damageTaken > 0)!.snapshot;
     const damage = target(hit).damageTaken - target(before).damageTaken;
+    expect(range(own(hit), own(before).position), 'The explorer remains stationary while the guard approaches and the sword swings').toBeLessThan(.16);
     expect([60, 81], 'Actual body/head damage includes Frenzy1.25 and excludes the ordinary48/65').toContain(damage);
     expect(own(hit).ravagerSkillState!.activeUntil, 'The boosted contact occurred inside the authoritative active window').toBeGreaterThan(hit.elapsed);
     expect(own(hit)).toMatchObject({weapon: 'greatsword', ravagerTraining: {skill: 'frenzy', perk: null}, status: 'alive'});
@@ -490,14 +551,14 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
       await session.send('Page.stopScreencast').catch(() => {});
       await session.detach().catch(() => {});
     }
-    const stages = ['safe-spawn', 'ordinary-approach', 'frenzy-approach', 'frenzy-strike', 'contact'];
+    const stages = ['safe-spawn', 'ordinary-approach', 'stationary-pull', 'frenzy-approach', 'frenzy-strike', 'contact'];
     for (const name of stages) {
       const frame = frames.filter(value => value.stage === name).at(-1);
       if (frame) await info.attach(`ravager-strike-${name}`, {body: Buffer.from(frame.jpeg, 'base64'), contentType: 'image/jpeg'});
     }
     await info.attach('ravager-strike-ordinary-input-evidence', {body: JSON.stringify({
       commit: process.env.EXPECTED_COMMIT, platform: isMobile ? 'Android Chromium emulation' : 'desktop Chromium',
-      evidence, actions, received, visualFrames: frames.map(({jpeg: _jpeg, ...frame}) => frame), errors,
+      evidence, actions, received, inputObservations, visualFrames: frames.map(({jpeg: _jpeg, ...frame}) => frame), errors,
       diagnostics: 'Raw trace is disabled to avoid retaining private invitation URLs and hello credentials. These snapshots, actions and post-lobby screencast frames are passive observations.',
     }, null, 2), contentType: 'application/json'});
   }

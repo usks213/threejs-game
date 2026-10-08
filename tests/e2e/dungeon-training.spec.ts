@@ -66,12 +66,21 @@ async function touchLayout(page: Page) {
     const visible = (node: Element) => {const rect = node.getBoundingClientRect(); return rect.width > 0 && rect.height > 0;};
     const notice = document.querySelector('.dungeon-notice');
     return {
+      inputProfile: {coarse: matchMedia('(pointer: coarse)').matches, noHover: matchMedia('(hover: none)').matches, maxTouchPoints: navigator.maxTouchPoints},
       controls: [...document.querySelectorAll('.dungeon-action-button, [data-dungeon-pad]')].filter(visible).map(bounds),
       nearby: [...document.querySelectorAll('.dungeon-nearby-target')].filter(visible).map(bounds),
       hud: document.querySelector('[data-testid="dungeon-skill-state"]')?.textContent,
       notice: notice ? {...bounds(notice), visible: visible(notice), text: notice.textContent} : null,
     };
   });
+}
+
+function requireMobileControls(layout: Awaited<ReturnType<typeof touchLayout>>, stage: string) {
+  expect(layout.inputProfile.coarse, `${stage}: actual coarse pointer emulation remains enabled`).toBe(true);
+  expect(layout.inputProfile.noHover, `${stage}: actual no-hover emulation remains enabled`).toBe(true);
+  expect(layout.inputProfile.maxTouchPoints, `${stage}: actual touch capability remains enabled`).toBeGreaterThan(0);
+  expect(layout.controls.map(control => control.id), `${stage}: both pads and the skill control are really visible`).toEqual(
+    expect.arrayContaining(['dungeon-move-pad', 'dungeon-look-pad', 'dungeon-action-skill']));
 }
 
 test('dungeon optional bastion training persists, locks and gives a real reusable movement skill', async ({page, isMobile}, info) => {
@@ -210,6 +219,9 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
     await expect(skillHud).toContainText('疾駆');
     if (isMobile) {
       touch = await page.context().newCDPSession(page);
+      const initialLayout = await touchLayout(page);
+      requireMobileControls(initialLayout, 'rush raid start');
+      interfaceEvidence.push({stage: 'rush-raid-start-input-profile', details: initialLayout});
       const bounds = await skillButton.boundingBox();
       expect(bounds).toBeTruthy();
       expect(bounds!.width).toBeGreaterThanOrEqual(48);
@@ -226,6 +238,7 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
       await expect(skillButton).toBeVisible();
       // Read rectangles and hit-testing only. No DOM/state/control mutations.
       const portrait = await touchLayout(page);
+      requireMobileControls(portrait, 'rush portrait');
       interfaceEvidence.push({stage: 'selected-rush-portrait-layout', details: portrait});
       expect(portrait.controls.some(control => control.id === 'dungeon-action-skill')).toBe(true);
       expect(portrait.nearby.length, 'The real nearby west exit is included in the layout check').toBeGreaterThan(0);
@@ -246,6 +259,9 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
       await screenshot('selected-rush-portrait-controls-and-nearby-exit');
       await page.setViewportSize(landscape);
       await expect(skillButton).toBeVisible();
+      const landscapeLayout = await touchLayout(page);
+      requireMobileControls(landscapeLayout, 'rush landscape after rotation');
+      interfaceEvidence.push({stage: 'rush-landscape-input-profile-after-rotation', details: landscapeLayout});
       await screenshot('selected-rush-landscape-after-rotation');
     }
     const movePoint = isMobile ? await center(page.locator('[data-dungeon-pad=move]')) : null;
@@ -270,10 +286,16 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
     // Real simultaneous movement and ability contacts exercise multitouch rather
     // than dispatching DOM events or injecting an action/position into the game.
     if (touch && movePoint && skillPoint) {
-      const contacts = new TouchContacts(event => touch!.send('Input.dispatchTouchEvent', event));
-      await contacts.set(1, {x: movePoint.x, y: movePoint.y + 42});
-      await contacts.set(2, skillPoint);
-      await contacts.release(2);
+      // Start both real contacts in the same input delivery. Serially awaiting
+      // movement before adding the skill let a 2.86-second CDP delay consume the
+      // entire short western raid lane before Rush began. Its north wall is z=5.5;
+      // this lane does not extend through the whole dungeon.
+      await touch.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [
+        {id: 1, x: movePoint.x, y: movePoint.y + 42}, {id: 2, ...skillPoint},
+      ]});
+      // The pinned Chromium touchEnd names the released contact. Finger 1 stays
+      // physically down until the touchCancel below; no game input is injected.
+      await touch.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: [{id: 2, ...skillPoint}]});
     } else {
       await page.keyboard.down('KeyS');
       await page.keyboard.press('KeyV');
@@ -308,7 +330,8 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
     await screenshot('rush-expired-real-cooldown');
 
     stage = 'raid-reload';
-    if (touch) {await touch.detach(); touch = null;}
+    // Keep the live CDP session through reload. Detaching it mid-test can reset
+    // this Chromium page's mobile media emulation even though isMobile is true.
     await page.reload();
     await activate(page.getByTestId('dungeon-join'), isMobile);
     const resumed = await until(page, snapshot => snapshot.you === fresh.you && snapshot.raid === 1 && own(snapshot).connected,
@@ -316,12 +339,17 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
     expect(own(resumed).skillState).toMatchObject({activeUntil: firstUse.activeUntil, readyAt: firstUse.readyAt});
     expect(selection(resumed)).toEqual({skill: 'rush', perk: 'stride'});
     record('reload-retains-authoritative-cooldown', resumed);
+    if (isMobile) {
+      const reloadedLayout = await touchLayout(page);
+      requireMobileControls(reloadedLayout, 'rush after in-raid reload');
+      interfaceEvidence.push({stage: 'rush-reload-retains-mobile-input-profile', details: reloadedLayout});
+    }
     await until(page, snapshot => snapshot.elapsed >= firstUse.readyAt, 'The real 14-second reuse time arrives', 25000);
     await expect(skillButton).toBeEnabled();
     stage = 'second-rush';
     if (isMobile) {
-      touch = await page.context().newCDPSession(page);
-      await touchTap(touch, await center(skillButton));
+      expect(touch, 'The existing mobile CDP session survives the ordinary reload').toBeTruthy();
+      await touchTap(touch!, await center(skillButton));
     } else await page.keyboard.press('KeyV');
     const second = await until(page, snapshot => (own(snapshot).skillState?.readyAt ?? 0) > firstUse.readyAt,
       'A second normal input activates the skill after its real cooldown');
@@ -428,6 +456,7 @@ test('dungeon optional brace and vigor work through normal shield and skill cont
       // Waiting for its 6.5-second dismissal cannot make this regression pass.
       await expect(page.locator('.dungeon-notice')).toContainText('硬守を発動しました', {timeout: 2000});
       const layout = await touchLayout(page);
+      requireMobileControls(layout, 'brace portrait with a fresh notice');
       interfaceEvidence.push({stage: 'fresh-brace-notice-portrait-hit-targets', details: layout});
       expect(layout.notice?.visible, 'The fresh brace notification must still be visible during hit-testing').toBe(true);
       expect(layout.notice?.text).toContain('硬守を発動しました');
@@ -461,6 +490,9 @@ test('dungeon optional brace and vigor work through normal shield and skill cont
     if (isMobile) {
       await page.setViewportSize(landscape);
       await expect(skillButton).toBeVisible();
+      const rotatedLayout = await touchLayout(page);
+      requireMobileControls(rotatedLayout, 'brace landscape after rotation');
+      interfaceEvidence.push({stage: 'brace-landscape-input-profile-after-rotation', details: rotatedLayout});
     }
     const expired = await until(page, snapshot => snapshot.elapsed >= skillState.activeUntil, 'The real four-second brace duration expires');
     expect(own(expired).skillState).toEqual(skillState);
