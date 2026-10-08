@@ -160,3 +160,13 @@ it('gates optional bastion training independently on PC and Android while retain
  expect(jobSteps('dungeon-return-browser').job).toContain('tests/e2e/dungeon-pending-return.spec.ts');
  expect(jobSteps('dungeon-raid-browser').job).toContain('tests/e2e/dungeon-raid.spec.ts');
 });
+
+it('uses the actual page viewport and standards mode in the isolated dungeon layout fixture',()=>{
+ const fixture=readFileSync('tests/e2e/dungeon-notice-layout.spec.ts','utf8');
+ expect(fixture).toContain("readFileSync('index.html', 'utf8')");
+ expect(fixture).toContain('<!doctype html>');
+ expect(fixture).toContain('${viewportMeta}');
+ expect(fixture).toContain("mode: 'CSS1Compat'");
+ expect(fixture).toContain('width: innerWidth, height: innerHeight');
+ expect(fixture).toContain('expect(notice.height).toBeLessThanOrEqual(72)');
+});

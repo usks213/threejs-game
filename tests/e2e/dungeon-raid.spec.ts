@@ -13,6 +13,7 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
   test.skip(isMobile, 'Full G2 route targets Desktop Chrome; the separate smoke covers real touch input');
   test.setTimeout(480000);
   const errors: string[] = [];
+  let raidFailed = false;
   const phases: Array<Record<string, unknown>> = [];
   const actionsA = observeActions(page);
   let actionsB: ReturnType<typeof observeActions> = [];
@@ -33,7 +34,10 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     phases.push({label, wallTime: new Date().toISOString(), A: compact(snapshots[0]), B: compact(snapshots[1]), recentActions: {A: actionsA.slice(-12), B: actionsB.slice(-12)}});
     if (phases.length > 40) phases.shift();
     console.log(`[dungeon G2] ${label}: elapsed=${snapshots[0]?.elapsed.toFixed(2)}, A=${snapshots[0] && own(snapshots[0]).hp}, B=${snapshots[1] && own(snapshots[1]).hp}`);
-    if (screenshot) await view.screenshot({path: testInfo.outputPath(`${String(phases.length).padStart(2, '0')}-${label}.png`)});
+    // PNG capture can block software-rendered CI for 5–10 seconds. Preserve
+    // continuous video and phase snapshots during play; capture stills only
+    // after the authoritative raid has finished, outside its strict 240-second budget.
+    if (screenshot && snapshots[0]?.phase !== 'raid') await view.screenshot({path: testInfo.outputPath(`${String(phases.length).padStart(2, '0')}-${label}.png`)});
   };
 
   try {
@@ -51,7 +55,8 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     const invite = new URL(await page.getByTestId('dungeon-invite').inputValue());
     expect(invite.href).not.toContain('identity');
     invite.searchParams.set('test', '1');
-    rivalContext = await browser.newContext({viewport: {width: 960, height: 540}, deviceScaleFactor: 1});
+    rivalContext = await browser.newContext({viewport: {width: 960, height: 540}, deviceScaleFactor: 1,
+      recordVideo: {dir: testInfo.outputPath('rival-video'), size: {width: 800, height: 450}}});
     rival = await rivalContext.newPage();
     rival.on('pageerror', error => errors.push(`B: ${error}`));
     rival.on('console', message => {if(message.type() === 'error' && /WebGL|shader/i.test(message.text())) errors.push(`B: ${message.text()}`);});
@@ -238,7 +243,6 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     const corpseId = `corpse-${victimSnapshot.you}-${victimSnapshot.raid}`;
     expect(afterDuel[survivorIndex].containers.find(container => container.id === corpseId)?.kind).toBe('corpse');
     await phase('pvp-death-bag-lost', true, survivor.page);
-    await victim.page.screenshot({path: testInfo.outputPath('victim-death-result.png')});
 
     await survivor.open(corpseId);
     const dropped = (await survivor.state()).containers.find(container => container.id === corpseId)!.items;
@@ -275,6 +279,7 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     expect(extracted.exits.find(exit => exit.id === 'exit-west')!.remaining).toBe(1);
     await expect(survivor.page.getByTestId('dungeon-result')).toContainText('帰還成功');
     await phase('extracted-exactly-once', true, survivor.page);
+    await victim.page.screenshot({path: testInfo.outputPath('victim-death-result.png')});
 
     const beforeReconnectActions = [actionsA.map(packet => ({...packet})), actionsB.map(packet => ({...packet}))];
     const lastActions = [(await a.state()).lastAction, (await b.state()).lastAction];
@@ -313,13 +318,23 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     expect([actionsA, actionsB], 'Reload/join/reconnect must not replay gameplay action packets').toEqual(beforeReconnectActions);
     await phase('both-reconnected-persistent-results', true, survivor.page);
     expect(errors).toEqual([]);
+  } catch (error) {
+    raidFailed = true;
+    throw error;
   } finally {
     await Promise.all([a?.stop().catch(() => {}), b?.stop().catch(() => {}), page.mouse.up().catch(() => {}), rival?.mouse.up().catch(() => {})]);
-    if (testInfo.status !== testInfo.expectedStatus) {
+    if (raidFailed || testInfo.status !== testInfo.expectedStatus) {
       await phase('failure').catch(() => {});
       await Promise.all([page.screenshot({path: testInfo.outputPath('failure-A.png')}).catch(() => {}), rival?.screenshot({path: testInfo.outputPath('failure-B.png')}).catch(() => {})]);
     }
     await testInfo.attach('dungeon-raid-phase-log', {body: JSON.stringify({phases, errors, actions: {A: actionsA, B: actionsB}}, null, 2), contentType: 'application/json'});
-    await rivalContext?.close();
+    try {
+      await rivalContext?.close();
+      const rivalVideo = rival?.video();
+      if (rivalVideo) await testInfo.attach('rival-ordinary-raid-video', {path: await rivalVideo.path(), contentType: 'video/webm'});
+    } catch (error) {
+      if (!raidFailed) throw error;
+      console.warn('Could not finalize rival video after the original raid failure:', error);
+    }
   }
 });
