@@ -202,7 +202,6 @@ test('dungeon optional ravager training preserves class choices and really short
     // first spawn with the same weapon; no teleport, fixture or storage writes.
     // Preserve the original Android touch-emulation session across ordinary
     // leave/create and reload; only detach after all touch assertions finish.
-    if (touch) await touch.send('Input.dispatchTouchEvent', {type: 'touchCancel', touchPoints: []});
     stage = 'trained-lobby';
     await activate(page.getByRole('button', {name: '部屋を離れる', exact: true}), isMobile);
     await page.getByTestId('dungeon-name').fill('荒戦士の任意訓練を試す探索者');
@@ -334,7 +333,6 @@ test('dungeon optional ravager training preserves class choices and really short
     const repeated = await until(page, snapshot => snapshot.elapsed > firstUse.activeUntil + .25, 'Unavailable repeated input is observed');
     expect(own(repeated).ravagerSkillState).toEqual(firstUse);
     record('expired-frenzy-cannot-be-restarted-early', repeated);
-    if (touch) await touch.send('Input.dispatchTouchEvent', {type: 'touchCancel', touchPoints: []});
     stage = 'cooldown-reload';
     await page.reload(); await activate(page.getByTestId('dungeon-join'), isMobile);
     const resumed = await until(page, snapshot => snapshot.you === fresh.you && snapshot.phase === 'raid' && own(snapshot).connected,
@@ -385,7 +383,7 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
   const received: Array<{stage: string; snapshot: Snapshot}> = [];
   const actions = observeActions(page), errors: string[] = [];
   const inputObservations: Array<Record<string, unknown>> = [];
-  const frames: Array<{stage: string; timestamp: number; tick: number | null; jpeg: string}> = [];
+  const frames: Array<{captureTimestampSeconds: number; callbackStage: string; callbackWallTimeMs: number; callbackTick: number | null; jpeg: string}> = [];
   let stage = 'joining', session: CDPSession | null = null;
   let evidence: {before: Snapshot; hit: Snapshot; damage: number; zone: 'body' | 'head'} | null = null;
   page.on('pageerror', error => errors.push(clean(String(error))));
@@ -436,14 +434,17 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     session = await page.context().newCDPSession(page);
     session.on('Page.screencastFrame', frame => {
       void session?.send('Page.screencastFrameAck', {sessionId: frame.sessionId}).catch(() => {});
-      const timestamp = frame.metadata.timestamp ?? 0;
-      const sameStage = frames.filter(candidate => candidate.stage === stage);
-      if (sameStage.length >= 3 || sameStage.length && timestamp - sameStage.at(-1)!.timestamp < .12) return;
-      frames.push({stage, timestamp, tick: received.at(-1)?.snapshot.tick ?? null, jpeg: frame.data});
+      // A queued compositor frame may predate the current callback-stage/tick.
+      // Keep its capture clock separate; callback context is not capture proof.
+      const captureTimestampSeconds = frame.metadata.timestamp ?? 0;
+      const sameStage = frames.filter(candidate => candidate.callbackStage === stage);
+      if (sameStage.length >= 3 || sameStage.length && captureTimestampSeconds - sameStage.at(-1)!.captureTimestampSeconds < .12) return;
+      frames.push({captureTimestampSeconds, callbackStage: stage, callbackWallTimeMs: Date.now(),
+        callbackTick: received.at(-1)?.snapshot.tick ?? null, jpeg: frame.data});
     });
     stage = 'safe-spawn';
     await session.send('Page.startScreencast', {format: 'jpeg', quality: 65, maxWidth: 960, maxHeight: 540, everyNthFrame: 2});
-    await expect.poll(() => frames.some(frame => frame.stage === 'safe-spawn'), {timeout: 5000}).toBe(true);
+    await expect.poll(() => frames.some(frame => frame.callbackStage === 'safe-spawn'), {timeout: 5000}).toBe(true);
     // Resolve ordinary control bounds while safely outside enemy perception.
     const skillPoint = await center(page.getByTestId('dungeon-action-skill'));
     const attackPoint = await center(page.getByTestId('dungeon-action-attack'));
@@ -540,9 +541,14 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     expect(actions.filter(entry => entry.action.kind === 'attack')).toHaveLength(1);
     expect(actions.filter(entry => entry.action.kind === 'skill')).toHaveLength(1);
     evidence = {before, hit, damage, zone: damage === 60 ? 'body' : 'head'};
-    // Bounded frame wait follows the successful contact, never the active approach.
-    await expect.poll(() => frames.some(frame => frame.stage === 'contact'), {timeout: 4000, intervals: [50, 100]}).toBe(true);
+    // This confirms frame delivery after contact, not the queued frame's contents.
+    await expect.poll(() => frames.some(frame => frame.callbackStage === 'contact'), {timeout: 4000, intervals: [50, 100]}).toBe(true);
     expect(errors).toEqual([]);
+    // A new screenshot request is made only after the actual hit assertions.
+    // It documents the later rendered result without delaying the five-second hit.
+    const resultPath = info.outputPath('ravager-strike-after-confirmed-hit.png');
+    await page.screenshot({path: resultPath, mask: [page.getByTestId('dungeon-invite'), page.getByTestId('dungeon-room')]});
+    await info.attach('ravager-strike-after-confirmed-hit', {path: resultPath, contentType: 'image/png'});
   } finally {
     await page.keyboard.up('KeyW').catch(() => {});
     await page.keyboard.up('ShiftLeft').catch(() => {});
@@ -553,13 +559,13 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     }
     const stages = ['safe-spawn', 'ordinary-approach', 'stationary-pull', 'frenzy-approach', 'frenzy-strike', 'contact'];
     for (const name of stages) {
-      const frame = frames.filter(value => value.stage === name).at(-1);
-      if (frame) await info.attach(`ravager-strike-${name}`, {body: Buffer.from(frame.jpeg, 'base64'), contentType: 'image/jpeg'});
+      const frame = frames.filter(value => value.callbackStage === name).at(-1);
+      if (frame) await info.attach(`ravager-frame-received-during-${name}`, {body: Buffer.from(frame.jpeg, 'base64'), contentType: 'image/jpeg'});
     }
     await info.attach('ravager-strike-ordinary-input-evidence', {body: JSON.stringify({
       commit: process.env.EXPECTED_COMMIT, platform: isMobile ? 'Android Chromium emulation' : 'desktop Chromium',
       evidence, actions, received, inputObservations, visualFrames: frames.map(({jpeg: _jpeg, ...frame}) => frame), errors,
-      diagnostics: 'Raw trace is disabled to avoid retaining private invitation URLs and hello credentials. These snapshots, actions and post-lobby screencast frames are passive observations.',
+      diagnostics: 'Raw trace is disabled to avoid retaining private invitation URLs and hello credentials. Screencast captureTimestampSeconds is the compositor clock; callbackStage, callbackWallTimeMs and callbackTick describe receipt, not image capture. Actual hit proof is the authoritative snapshot/input evidence. The masked PNG is requested only after those hit assertions pass.',
     }, null, 2), contentType: 'application/json'});
   }
 });
