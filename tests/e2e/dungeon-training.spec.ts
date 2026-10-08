@@ -50,6 +50,30 @@ async function touchTap(session: CDPSession, point: {x: number; y: number}) {
   await session.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
 }
 
+/** Observe actual rendering and hit targets, including any live server notice. */
+async function touchLayout(page: Page) {
+  return page.evaluate(() => {
+    const bounds = (node: Element) => {
+      const rect = node.getBoundingClientRect(), x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      return {id: node.getAttribute('data-testid') ?? node.getAttribute('data-target') ?? node.className,
+        x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+        hit: !!hit && (node === hit || node.contains(hit)),
+        hitElement: hit ? {tag: hit.tagName, id: hit.id, className: hit.getAttribute('class'),
+          testId: hit.getAttribute('data-testid'), closestTestId: hit.closest('[data-testid]')?.getAttribute('data-testid'),
+          text: hit.textContent?.slice(0, 160)} : null};
+    };
+    const visible = (node: Element) => {const rect = node.getBoundingClientRect(); return rect.width > 0 && rect.height > 0;};
+    const notice = document.querySelector('.dungeon-notice');
+    return {
+      controls: [...document.querySelectorAll('.dungeon-action-button, [data-dungeon-pad]')].filter(visible).map(bounds),
+      nearby: [...document.querySelectorAll('.dungeon-nearby-target')].filter(visible).map(bounds),
+      hud: document.querySelector('[data-testid="dungeon-skill-state"]')?.textContent,
+      notice: notice ? {...bounds(notice), visible: visible(notice), text: notice.textContent} : null,
+    };
+  });
+}
+
 test('dungeon optional bastion training persists, locks and gives a real reusable movement skill', async ({page, isMobile}, info) => {
   test.skip(process.env.E2E_DUNGEON !== '1', 'Requires the deployed authoritative dungeon');
   test.setTimeout(180000);
@@ -201,20 +225,7 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
       await page.setViewportSize({width: 390, height: 844});
       await expect(skillButton).toBeVisible();
       // Read rectangles and hit-testing only. No DOM/state/control mutations.
-      const portrait = await page.evaluate(() => {
-        const bounds = (node: Element) => {
-          const rect = node.getBoundingClientRect(), x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
-          const hit = document.elementFromPoint(x, y);
-          return {id: node.getAttribute('data-testid') ?? node.getAttribute('data-target') ?? node.className,
-            x: rect.x, y: rect.y, width: rect.width, height: rect.height, hit: !!hit && (node === hit || node.contains(hit))};
-        };
-        const visible = (node: Element) => {const rect = node.getBoundingClientRect(); return rect.width > 0 && rect.height > 0;};
-        return {
-          controls: [...document.querySelectorAll('.dungeon-action-button, [data-dungeon-pad]')].filter(visible).map(bounds),
-          nearby: [...document.querySelectorAll('.dungeon-nearby-target')].filter(visible).map(bounds),
-          hud: document.querySelector('[data-testid="dungeon-skill-state"]')?.textContent,
-        };
-      });
+      const portrait = await touchLayout(page);
       interfaceEvidence.push({stage: 'selected-rush-portrait-layout', details: portrait});
       expect(portrait.controls.some(control => control.id === 'dungeon-action-skill')).toBe(true);
       expect(portrait.nearby.length, 'The real nearby west exit is included in the layout check').toBeGreaterThan(0);
@@ -225,7 +236,7 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
         expect(control.y).toBeGreaterThanOrEqual(0);
         expect(control.x + control.width).toBeLessThanOrEqual(390);
         expect(control.y + control.height).toBeLessThanOrEqual(844);
-        expect(control.hit, `${control.id} receives an ordinary center touch`).toBe(true);
+        expect(control.hit, `${control.id} receives an ordinary center touch; actual hit ${JSON.stringify(control.hitElement)}`).toBe(true);
         for (const other of [...portrait.controls.filter(candidate => candidate.id !== control.id), ...portrait.nearby]) {
           const width = Math.min(control.x + control.width, other.x + other.width) - Math.max(control.x, other.x);
           const height = Math.min(control.y + control.height, other.y + other.height) - Math.max(control.y, other.y);
@@ -351,6 +362,8 @@ test('dungeon optional brace and vigor work through normal shield and skill cont
   test.setTimeout(120000);
   const errors: string[] = [];
   const evidence: Array<{stage: string; snapshot: Snapshot}> = [];
+  const interfaceEvidence: Array<{stage: string; details: unknown}> = [];
+  const landscape = page.viewportSize()!;
   const actions = observeActions(page);
   const received: Snapshot[] = [];
   let touch: CDPSession | null = null;
@@ -403,12 +416,30 @@ test('dungeon optional brace and vigor work through normal shield and skill cont
     await expect(skillHud).toContainText('硬守');
     const blockButton = page.getByTestId('dungeon-action-block');
     if (isMobile) {
+      await page.setViewportSize({width: 390, height: 844});
+      await expect(skillButton).toBeVisible();
       touch = await page.context().newCDPSession(page);
       const contacts = new TouchContacts(event => touch!.send('Input.dispatchTouchEvent', event));
       await contacts.set(1, await center(blockButton));
       await until(page, snapshot => own(snapshot).guard > .8, 'A real held shield contact raises the shield');
       await contacts.set(2, await center(skillButton));
       await contacts.release(2);
+      // Require the fresh real server notice in the very same geometry sample.
+      // Waiting for its 6.5-second dismissal cannot make this regression pass.
+      await expect(page.locator('.dungeon-notice')).toContainText('硬守を発動しました', {timeout: 2000});
+      const layout = await touchLayout(page);
+      interfaceEvidence.push({stage: 'fresh-brace-notice-portrait-hit-targets', details: layout});
+      expect(layout.notice?.visible, 'The fresh brace notification must still be visible during hit-testing').toBe(true);
+      expect(layout.notice?.text).toContain('硬守を発動しました');
+      expect(layout.controls.some(control => control.id === 'dungeon-action-skill')).toBe(true);
+      expect(layout.controls.some(control => control.id === 'dungeon-look-pad')).toBe(true);
+      for (const control of layout.controls) {
+        expect(control.hit, `${control.id} must receive a center touch while the notice is visible; actual hit ${JSON.stringify(control.hitElement)}`).toBe(true);
+        const notice = layout.notice!;
+        const width = Math.min(control.x + control.width, notice.x + notice.width) - Math.max(control.x, notice.x);
+        const height = Math.min(control.y + control.height, notice.y + notice.height) - Math.max(control.y, notice.y);
+        expect(width <= 0 || height <= 0, `The fresh notice must not cover ${control.id}`).toBe(true);
+      }
     } else {
       await page.keyboard.down('KeyZ');
       await until(page, snapshot => own(snapshot).guard > .8, 'The ordinary guard key raises the shield');
@@ -427,6 +458,10 @@ test('dungeon optional brace and vigor work through normal shield and skill cont
     if (touch) await touch.send('Input.dispatchTouchEvent', {type: 'touchCancel', touchPoints: []});
     else await page.keyboard.up('KeyZ');
     await until(page, snapshot => own(snapshot).guard < .01, 'Canceled guard input lowers the shield');
+    if (isMobile) {
+      await page.setViewportSize(landscape);
+      await expect(skillButton).toBeVisible();
+    }
     const expired = await until(page, snapshot => snapshot.elapsed >= skillState.activeUntil, 'The real four-second brace duration expires');
     expect(own(expired).skillState).toEqual(skillState);
     await expect(skillButton).toBeDisabled();
@@ -450,7 +485,7 @@ test('dungeon optional brace and vigor work through normal shield and skill cont
       await touch.detach().catch(() => {});
     }
     await info.attach('brace-ordinary-input-evidence', {body: JSON.stringify({commit: process.env.EXPECTED_COMMIT,
-      platform: isMobile ? 'Android Chromium emulation' : 'desktop Chromium', evidence, actions, received, errors}, null, 2),
+      platform: isMobile ? 'Android Chromium emulation' : 'desktop Chromium', evidence, interfaceEvidence, actions, received, errors}, null, 2),
     contentType: 'application/json'});
     await info.attach('brace-browser-errors', {body: JSON.stringify(errors), contentType: 'application/json'});
   }

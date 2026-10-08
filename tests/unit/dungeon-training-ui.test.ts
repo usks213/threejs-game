@@ -42,6 +42,9 @@ class Node extends EventTarget {
   }
   closest(selector: string): Node | null { return this.matches(selector) ? this : this.parentElement?.closest(selector) ?? null; }
   querySelectorAll(selector: string): Node[] { return this.children.flatMap(child => [...(child.matches(selector) ? [child] : []), ...child.querySelectorAll(selector)]); }
+  rect = { x: 0, y: 0, width: 0, height: 0 };
+  getClientRects() { return [this.rect]; }
+  getBoundingClientRect() { return this.rect; }
   focus() { documentStub.activeElement = this; }
 }
 const documentStub = { activeElement: null as Node | null, createElement: (tag: string) => new Node(tag) };
@@ -137,12 +140,32 @@ describe('optional bastion training selection', () => {
     h.value.lastAction = 8; h.value.actors[0].training = { skill: 'rush', perk: null }; h.panel.update(h.value);
     expect(option.getAttribute('aria-disabled')).toBe('false'); expect(documentStub.activeElement).toBe(option); expect(h.root.scrollTop).toBe(120);
   });
+  it('positions fresh and resized notices without any renderFeedback/RAF, and restores placement across menu and snapshot changes', () => {
+    dom(); const browser = Object.assign(new EventTarget(), { location: { href: 'https://example.test/' }, innerWidth: 390, innerHeight: 844 }); vi.stubGlobal('window', browser);
+    const root = new Node('root');
+    const ui = createDungeonUI(root as unknown as HTMLElement, { action: vi.fn(), create: vi.fn(), join: vi.fn(), reconnect: vi.fn(), inventory: vi.fn(), leave: vi.fn(), copyInvite: vi.fn() });
+    const value = snapshot(); value.phase = 'raid'; value.actors[0].status = 'alive'; value.actors[0].training = { skill: 'rush', perk: null };
+    const notice = get(root, 'dungeon-notice'); notice.rect = { x: 0, y: 0, width: 230, height: 72 };
+    ui.update(value); ui.notice('遠征を開始しました');
+    expect(notice.hidden).toBe(false); expect(notice.style.left).toBe('14px'); expect(notice.style.top).toBe('617px');
+    browser.innerHeight = 667; browser.dispatchEvent(new Event('resize')); expect(notice.style.top).toBe('440px');
+    browser.innerHeight = 844; browser.dispatchEvent(new Event('orientationchange')); expect(notice.style.top).toBe('617px');
+    ui.setInventory(true); expect(notice.classList.contains('dungeon-notice-gameplay')).toBe(false); expect(notice.style.top).toBe('');
+    ui.setInventory(false); expect(notice.style.top).toBe('617px');
+    value.phase = 'finished'; value.actors[0].status = 'dead'; ui.update(value); expect(notice.style.top).toBe('');
+    value.phase = 'raid'; value.actors[0].status = 'alive'; ui.update(value); expect(notice.style.top).toBe('617px');
+    ui.dispose(); browser.innerHeight = 667; browser.dispatchEvent(new Event('resize')); expect(notice.style.top).toBe('617px');
+  });
   it('integrates pending readiness lock without rebuilding quest or inventory controls', () => {
     dom(); const root = new Node('root'), action = vi.fn();
     const ui = createDungeonUI(root as unknown as HTMLElement, { action, actionSequence: () => 3, create: vi.fn(), join: vi.fn(), reconnect: vi.fn(), inventory: vi.fn(), leave: vi.fn(), copyInvite: vi.fn() });
     const value = snapshot(); ui.setConnection('接続済み'); ui.update(value);
     const quest = get(root, 'dungeon-quest-open'), ready = get(root, 'dungeon-ready');
     expect(get(root, 'dungeon-class-bastion').textContent).toContain('基本HP 125');
+    const vitals = find(root, node => node.classList.contains('dungeon-vitals'))!;
+    const events = get(root, 'dungeon-events'), skillState = get(root, 'dungeon-skill-state');
+    expect(events.parentElement).toBe(vitals);
+    expect(vitals.children.indexOf(events)).toBeGreaterThan(vitals.children.indexOf(skillState));
     click(get(root, 'dungeon-training-skill-rush'));
     expect(ready.disabled).toBe(true); expect(get(root, 'dungeon-class-hunter').disabled).toBe(true);
     value.lastAction = 2; ui.update(value); expect(ready.disabled).toBe(true);

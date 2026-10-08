@@ -376,3 +376,12 @@
   .dungeon-app .dungeon-training-choices { grid-template-columns: 1fr; }
 }
 .dungeon-app .dungeon-training-option[aria-disabled="true"] { opacity: .55; cursor: default; }
+
+/* Live notices use a measured free HUD slot, never the lower touch-control strip. */
+.dungeon-app .dungeon-notice-gameplay { bottom: auto; translate: none; max-width: calc(100vw - 16px); max-height: 72px; padding: 8px; gap: 8px; pointer-events: none; }
+.dungeon-app .dungeon-notice-gameplay .dungeon-notice-text { min-width: 0; max-height: 54px; overflow: auto; overscroll-behavior: contain; pointer-events: auto; }
+.dungeon-app .dungeon-notice-gameplay .dungeon-notice-dismiss { padding: 8px; pointer-events: auto; }
+.dungeon-app .dungeon-notice-gameplay.dungeon-notice-queued { width: 1px !important; height: 1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); pointer-events: none; }
+.dungeon-app .dungeon-notice-gameplay.dungeon-notice-queued * { pointer-events: none; }
+/* Event text follows the variable-height vitals/skill content instead of crossing it. */
+.dungeon-app .dungeon-vitals .dungeon-events { position: static; max-width: none; margin-top: 6px; font-size: 10px; }

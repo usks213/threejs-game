@@ -9,6 +9,7 @@ import type { SupplyKind } from './types';
 import { createPendingReturnPanel, pendingReturnIssue } from './pending-return-panel';
 import { createQuestPanel } from './quest-panel';
 import { createTrainingPanel, opponentTrainingLabel } from './training-panel';
+import { gameplayNoticePosition, type NoticeRect } from './notice-placement';
 
 type Callbacks = {
   create(name: string): void;
@@ -291,6 +292,8 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const nearbyPanel = element('div', 'dungeon-nearby');
   const eventLog = element('ol', 'dungeon-events');
   eventLog.setAttribute('aria-label', '遠征の出来事');
+  eventLog.dataset.testid = 'dungeon-events';
+  healthPanel.append(eventLog);
   const controlsHint = element('p', 'dungeon-controls-hint', '画面クリックで視点 · 左 攻撃 / 右 防御 · WASD 移動 · E 調べる · I 鞄');
   const damageOverlay = element('div', 'dungeon-damage-overlay');
   damageOverlay.setAttribute('aria-hidden', 'true');
@@ -309,7 +312,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   combatProgress.max = 1;
   combatProgress.setAttribute('aria-label', '攻撃動作の進行');
   combatState.append(combatLabel, combatProgress);
-  hud.append(damageOverlay, healthPanel, objective, crosshair, opponent, combatState, interactionProgress, nearbyPanel, eventLog, controlsHint);
+  hud.append(damageOverlay, healthPanel, objective, crosshair, opponent, combatState, interactionProgress, nearbyPanel, controlsHint);
 
   const gameplayControls = element('div', 'dungeon-gameplay-controls');
   gameplayControls.hidden = true;
@@ -465,11 +468,40 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
 
   const notification = element('div', 'dungeon-notice');
   notification.hidden = true;
+  notification.dataset.testid = 'dungeon-notice';
   notification.setAttribute('role', 'status');
   notification.setAttribute('aria-live', 'polite');
-  const notificationText = element('span');
+  const notificationText = element('span', 'dungeon-notice-text');
+  notificationText.tabIndex = 0;
   const dismissNotice = button('閉じる', 'dungeon-notice-dismiss', () => { notification.hidden = true; });
+  dismissNotice.dataset.testid = 'dungeon-notice-dismiss';
   notification.append(notificationText, dismissNotice);
+  let noticeNeedsLayout = true, noticeViewport = '';
+  function positionNotice() {
+    const gameplay = alive() && !inventoryOpen;
+    notification.classList.toggle('dungeon-notice-gameplay', gameplay);
+    notification.classList.remove('dungeon-notice-queued');
+    notificationText.tabIndex = 0; dismissNotice.disabled = false;
+    if (!gameplay) { notification.style.left = notification.style.top = notification.style.width = ''; return; }
+    if (notification.hidden || typeof notification.getBoundingClientRect !== 'function' || typeof notification.getClientRects !== 'function' || !Number.isFinite(window.innerWidth) || !Number.isFinite(window.innerHeight)) return;
+    const protectedNodes = [header, healthPanel, objective, opponent, combatState, interactionProgress, movePad, lookPad, actionBar, nearbyPanel];
+    const obstacles: NoticeRect[] = protectedNodes.filter(node => !node.hidden && !node.closest('[hidden]') && node.getClientRects().length).map(node => { const rect = node.getBoundingClientRect(); return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }; }).filter(rect => rect.width > 0 && rect.height > 0);
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    for (const width of [...(viewport.height > viewport.width ? [Math.min(230, viewport.width - 160)] : []), Math.min(340, viewport.width - 16), 280, 220, 160, 140]) {
+      if (width > viewport.width - 16) continue;
+      notification.style.width = `${width}px`;
+      const position = gameplayNoticePosition(viewport, { width, height: notification.getBoundingClientRect().height }, obstacles);
+      if (position) { notification.style.left = `${position.x}px`; notification.style.top = `${position.y}px`; return; }
+    }
+    // No free rectangle: retain the live-region announcement without covering any control.
+    // Opening the bag restores the ordinary full notice while its timer is still running.
+    notification.classList.add('dungeon-notice-queued');
+    notificationText.tabIndex = -1; dismissNotice.disabled = true;
+  }
+  // Input and notices remain usable even when WebGL rendering is stalled.
+  if (typeof window.addEventListener === 'function') {
+    for (const event of ['resize', 'orientationchange']) listen(window, event, () => { if (!disposed && !notification.hidden) positionNotice(); });
+  }
   const graphicsError = element('section', 'dungeon-graphics-error');
   graphicsError.hidden = true;
   graphicsError.setAttribute('role', 'alert');
@@ -485,7 +517,9 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   function notice(message: string) {
     if (disposed) return;
     text(notificationText, message);
+    noticeNeedsLayout = true;
     notification.hidden = !message;
+    positionNotice();
     if (noticeTimer !== null) clearTimeout(noticeTimer);
     noticeTimer = message ? setTimeout(() => { notification.hidden = true; noticeTimer = null; }, 6500) : null;
   }
@@ -498,6 +532,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     bagButton.setAttribute('aria-expanded', String(open));
     text(bagButton, open ? '鞄を閉じる · I' : '鞄を開く · I');
     gameplayControls.hidden = !alive() || open;
+    noticeNeedsLayout = true;
     nearbyPanel.hidden = open;
     crosshair.hidden = open;
     if (open) {
@@ -507,6 +542,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     } else if (focusBeforeInventory?.isConnected && !focusBeforeInventory.closest('[hidden]')) {
       focusBeforeInventory.focus();
     }
+    positionNotice();
   }
   function makeGrid(source: InventorySource, height: number) {
     const grid = element('div', 'dungeon-inventory-grid');
@@ -754,6 +790,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     if (disposed) return;
     damageFlash = receivedDamage(snapshot, next) > 0 ? .65 : next?.raid === snapshot?.raid ? damageFlash : 0;
     snapshot = next;
+    noticeNeedsLayout = true;
     const pendingHadFocus = document.activeElement instanceof HTMLElement && pendingPanel.root.contains(document.activeElement);
     pendingPanel.update(next);
     questPanel.update(next);
@@ -774,6 +811,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     reconnectButton.hidden = !room;
     if (!actor || !snapshot) {
       if (inventoryOpen) changeInventory(false, true);
+      positionNotice();
       return;
     }
     for (const [id, option] of classButtons) {
@@ -817,6 +855,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
       resultCard.classList.toggle('dungeon-result-success', extracted);
     }
     if (inventoryOpen) renderInventory();
+    positionNotice();
   }
 
   return {
@@ -844,6 +883,8 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
         combatProgress.hidden = actor.phase === 'idle';
         combatState.dataset.phase = readout.phase;
       }
+      const viewport = `${window.innerWidth}:${window.innerHeight}:${opponent.hidden}:${combatState.hidden}`;
+      if (noticeNeedsLayout || viewport !== noticeViewport) { positionNotice(); noticeNeedsLayout = false; noticeViewport = viewport; }
     },
     setConnection(state: string) {
       if (disposed) return;
