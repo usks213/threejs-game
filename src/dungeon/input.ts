@@ -1,8 +1,8 @@
 import type {Input} from './types';
-export type DungeonControl='attack'|'heavy'|'interact'|'heal'|'cast'|'shoot'|'inventory';
+export type DungeonControl='attack'|'heavy'|'interact'|'heal'|'cast'|'shoot'|'inventory'|'skill';
 export interface InputElements {canvas:HTMLCanvasElement;movePad:HTMLElement;lookPad:HTMLElement;actionButtons:Map<string,HTMLElement>}
 export interface InputCallbacks {action(action:DungeonControl):void;changed?():void}
-const keys:Record<string,DungeonControl>={KeyT:'attack',KeyR:'heavy',KeyE:'interact',KeyQ:'heal',KeyG:'cast',KeyF:'shoot',KeyI:'inventory'};
+const keys:Record<string,DungeonControl>={KeyT:'attack',KeyR:'heavy',KeyE:'interact',KeyQ:'heal',KeyG:'cast',KeyF:'shoot',KeyV:'skill',KeyI:'inventory'};
 const movementKeys=new Set(['KeyW','KeyA','KeyS','KeyD','KeyZ','KeyC','ControlLeft','ControlRight','ShiftLeft','ShiftRight','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown',...Object.keys(keys)]);
 export function movementAxes(keys:ReadonlySet<string>,touchX=0,touchZ=0){const x=touchX+(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0),z=touchZ+(keys.has('KeyW')?1:0)-(keys.has('KeyS')?1:0),length=Math.max(1,Math.hypot(x,z));return {x:x/length,z:z/length};}
 export const normalizeYaw=(yaw:number)=>Number.isFinite(yaw)?Math.abs(yaw)<=Math.PI?yaw:((yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI:0;
@@ -32,7 +32,7 @@ export function createDungeonInput(elements:InputElements,callbacks:InputCallbac
   // Inventory must remain reopenable while it has disabled gameplay input.
   if(event.code==='KeyI'){if(!event.repeat)callbacks.action('inventory');event.preventDefault();return;}
   if(!active||!movementKeys.has(event.code))return;
-  event.preventDefault();const changed=!held.has(event.code);held.add(event.code);if(changed)callbacks.changed?.();if(!event.repeat&&keys[event.code])callbacks.action(keys[event.code]);
+  event.preventDefault();const changed=!held.has(event.code);held.add(event.code);if(changed)callbacks.changed?.();if(!event.repeat&&keys[event.code]&&!(elements.actionButtons.get(keys[event.code]) as HTMLButtonElement|undefined)?.disabled)callbacks.action(keys[event.code]);
  });
  on(window,'keyup',event=>{if(held.delete(event.code))callbacks.changed?.();});
  on(window,'blur',reset);on(window,'resize',reset);on(window,'orientationchange',reset);
@@ -89,10 +89,10 @@ export function createDungeonInput(elements:InputElements,callbacks:InputCallbac
  for(const type of ['pointercancel','lostpointercapture'] as const)on(elements.lookPad,type,event=>releasePointer(event));
  for(const [action,button] of elements.actionButtons){
   const pointers=new Set<number>();buttonPointers.set(button,pointers);
-  on(button,'pointerdown',event=>{if(!active)return;event.preventDefault();event.stopPropagation();try{button.setPointerCapture(event.pointerId);}catch{}pointers.add(event.pointerId);button.classList.add('pressed');if(action==='block')blocks.add(event.pointerId);else if(action==='crouch')crouches.add(event.pointerId);else if(['attack','heavy','interact','heal','cast','shoot'].includes(action))callbacks.action(action as DungeonControl);});
+  on(button,'pointerdown',event=>{if(!active||(button as HTMLButtonElement).disabled)return;event.preventDefault();event.stopPropagation();try{button.setPointerCapture(event.pointerId);}catch{}pointers.add(event.pointerId);button.classList.add('pressed');if(action==='block')blocks.add(event.pointerId);else if(action==='crouch')crouches.add(event.pointerId);else if(['attack','heavy','interact','heal','cast','shoot','skill'].includes(action))callbacks.action(action as DungeonControl);});
   for(const type of ['pointerup','pointercancel','lostpointercapture'] as const)on(button,type,event=>releasePointer(event));
   // Keyboard/screen-reader activation has no pointerdown. Ignore physical click duplication.
-  on(button,'click',event=>{if(!active||event.detail!==0)return;if(action==='block'){if(held.has('KeyZ'))held.delete('KeyZ');else held.add('KeyZ');}else if(action==='crouch'){if(held.has('KeyC'))held.delete('KeyC');else held.add('KeyC');}else if(['attack','heavy','interact','heal','cast','shoot'].includes(action))callbacks.action(action as DungeonControl);});
+  on(button,'click',event=>{if(!active||event.detail!==0||(button as HTMLButtonElement).disabled)return;if(action==='block'){if(held.has('KeyZ'))held.delete('KeyZ');else held.add('KeyZ');}else if(action==='crouch'){if(held.has('KeyC'))held.delete('KeyC');else held.add('KeyC');}else if(['attack','heavy','interact','heal','cast','shoot','skill'].includes(action))callbacks.action(action as DungeonControl);});
  }
  return {
   sample(dt=0):Input{if(active){const rate=(held.has('ShiftLeft')||held.has('ShiftRight')) ? .65 : 1.65;yaw+=((held.has('ArrowLeft')||held.has('Home')?1:0)-(held.has('ArrowRight')||held.has('End')?1:0))*dt*rate;pitch=clampPitch(pitch+((held.has('ArrowUp')||held.has('PageUp')?1:0)-(held.has('ArrowDown')||held.has('PageDown')?1:0))*dt*rate);}yaw=normalizeYaw(yaw);const axes=active?movementAxes(held,touchX,touchZ):{x:0,z:0};return {...axes,yaw,pitch,block:active&&(held.has('KeyZ')||blocks.size>0),crouch:active&&(held.has('KeyC')||held.has('ControlLeft')||held.has('ControlRight')||crouches.size>0)};},

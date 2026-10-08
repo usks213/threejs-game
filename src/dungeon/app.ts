@@ -31,7 +31,7 @@ export function startDungeon(){
  const ui=createDungeonUI(root,{
   create:name=>{try{join(randomToken(crypto),name);}catch{ui.notice('部屋を作れません。HTTPS で開き直してください。');}},
   join:(text,name)=>{const id=roomFromText(text);if(!id){ui.notice('招待 URL または 64 桁の部屋番号を入力してください。');return;}join(id,name);},
-  action:action=>sendAction(action),reconnect:()=>{input?.reset();client?.reconnect();},
+  action:action=>sendAction(action),actionSequence:()=>client?.lastSentActionSequence,reconnect:()=>{input?.reset();client?.reconnect();},
   inventory:open=>{inventory=open;syncActive();},leave:()=>{client?.dispose();client=null;snapshot=null;initializedLook=false;room='';invite='';ui.setRoom('');ui.setInvite('');ui.setConnection('未接続');ui.update(null);ui.setInventory(false);inventory=false;syncActive();},
   copyInvite:()=>{if(!invite)return;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(invite).then(()=>ui.notice('招待 URL をコピーしました。別の人はこの URL から参加できます。')).catch(()=>ui.notice('コピーできません。表示された招待 URL を選択してコピーしてください。'));else ui.notice('表示された招待 URL を選択してコピーしてください。');},
  });
@@ -44,7 +44,7 @@ export function startDungeon(){
  }
  function control(kind:DungeonControl){
   if(kind==='inventory'){if(!snapshot)return;inventory=!inventory;ui.setInventory(inventory);syncActive();return;}
-  if(!snapshot)return;if(kind==='interact'){const target=dungeonTarget(snapshot,input?.sample()??{yaw:0,pitch:0});if(target)sendAction({kind:'interact',target});else ui.notice('対象に近づき、そちらを向いてください。');}
+  if(!snapshot)return;if(kind==='skill'){ui.activateSkill();return;}if(kind==='interact'){const target=dungeonTarget(snapshot,input?.sample()??{yaw:0,pitch:0});if(target)sendAction({kind:'interact',target});else ui.notice('対象に近づき、そちらを向いてください。');}
   else if(kind==='heavy')sendAction({kind:'attack',heavy:true});else sendAction({kind});
  }
  function sendInput(sample:Input){const now=performance.now();if(now-lastInputSent<1000/25)return;if(client?.input(sample))lastInputSent=now;}

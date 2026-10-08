@@ -1,6 +1,7 @@
 import {validSupplyStock} from './economy';
 import {validInventory} from './inventory';
 import {validQuestJournal} from './quests';
+import {BASTION_SKILLS,validBastionTraining,validBastionSkillState} from './training';
 import {DUNGEON_PROTOCOL, type Action, type ClientPacket, type Input, type Snapshot} from './types';
 
 export const ROOM_PATTERN=/^[a-f0-9]{64}$/;
@@ -40,6 +41,7 @@ export interface ClientOptions {base:string;room:string;identity:DungeonIdentity
 export class DungeonClient {
  private socket:DungeonSocket|null=null;private timer:ReturnType<typeof setTimeout>|null=null;
  private stopped=false;private ready=false;private generation=0;private retries=0;private actionSequence=0;private inputSequence=0;
+ private sentActionSequence=0;
  private readonly options:ClientOptions;
  constructor(options:ClientOptions){this.options=options;}
  connect(){
@@ -67,19 +69,29 @@ export class DungeonClient {
  }
  private send(packet:ClientPacket){if(!this.socket||this.socket.readyState!==1)return false;try {this.socket.send(JSON.stringify(packet));return true;}catch{return false;}}
  input(input:Input){if(!this.ready||this.stopped)return false;return this.send({type:'input',sequence:++this.inputSequence,input});}
- action(action:Action){if(!this.ready||this.stopped)return false;return this.send({type:'action',sequence:++this.actionSequence,action});}
+ action(action:Action){if(!this.ready||this.stopped)return false;const sequence=++this.actionSequence,sent=this.send({type:'action',sequence,action});if(sent)this.sentActionSequence=sequence;return sent;}
  reconnect(){if(this.stopped)return;this.retries=0;this.connect();}
  private retry(){if(this.stopped)return;this.retries++;const delay=Math.min(15000,750*2**Math.min(this.retries-1,5));this.options.callbacks.state('切断中・再接続します');this.clearTimer();this.timer=setTimeout(()=>this.connect(),delay);}
  private clearTimer(){if(this.timer!==null){clearTimeout(this.timer);this.timer=null;}}
  private detachSocket(){if(!this.socket)return;const old=this.socket;this.socket=null;old.onopen=old.onmessage=old.onclose=old.onerror=null;try{old.close();}catch{/* Already closed. */}}
  dispose(){if(this.stopped)return;this.stopped=true;this.ready=false;this.generation++;this.clearTimer();this.detachSocket();}
+ get lastSentActionSequence(){return this.sentActionSequence;}
  get connected(){return this.ready&&!this.stopped;}
 }
 // A return batch is one bounded bag, never an arbitrary item queue.
 function validPendingReturn(value:unknown):boolean {
  try {return validInventory(value)&&value.every(item=>item.found);}catch {return false;}
 }
+function validActorTraining(value:unknown,elapsed:number):boolean {
+ if(!value||typeof value!=='object')return false;
+ const actor=value as Record<string,unknown>;
+ if(Object.hasOwn(actor,'training')&&!validBastionTraining(actor.training))return false;
+ if(Object.hasOwn(actor,'skillState')){
+  if(!validBastionSkillState(actor.skillState)||actor.classId!=='bastion'||!validBastionTraining(actor.training)||actor.training.skill!==actor.skillState.skill||actor.skillState.readyAt-BASTION_SKILLS[actor.skillState.skill].cooldown>elapsed+1e-7)return false;
+ }
+ return true;
+}
 export function isSnapshot(value:unknown):value is Snapshot {
  if(!value||typeof value!=='object')return false;
- const v=value as Partial<Snapshot>;return (!Object.hasOwn(v,'quests')||validQuestJournal(v.quests))&&(!Object.hasOwn(v,'pendingReturn')||validPendingReturn(v.pendingReturn))&&v.protocol===DUNGEON_PROTOCOL&&typeof v.you==='string'&&typeof v.seed==='number'&&Number.isFinite(v.seed)&&typeof v.raid==='number'&&typeof v.tick==='number'&&typeof v.elapsed==='number'&&Number.isFinite(v.elapsed)&&['lobby','raid','finished'].includes(v.phase??'')&&Number.isSafeInteger(v.lastAction)&&v.lastAction!>=0&&Number.isSafeInteger(v.lastInput)&&v.lastInput!>=0&&Array.isArray(v.actors)&&Array.isArray(v.enemies)&&Array.isArray(v.containers)&&Array.isArray(v.doors)&&Array.isArray(v.exits)&&Array.isArray(v.shots)&&Array.isArray(v.stash)&&Array.isArray(v.events)&&typeof v.result==='string'&&Number.isSafeInteger(v.gold)&&v.gold!>=0&&v.gold!<=1e9&&validSupplyStock(v.shop)&&Array.isArray(v.trades)&&v.trades.length<=6&&v.trades.every(entry=>typeof entry==='string'&&entry.length<=96);
+ const v=value as Partial<Snapshot>;return (!Object.hasOwn(v,'quests')||validQuestJournal(v.quests))&&(!Object.hasOwn(v,'pendingReturn')||validPendingReturn(v.pendingReturn))&&v.protocol===DUNGEON_PROTOCOL&&typeof v.you==='string'&&typeof v.seed==='number'&&Number.isFinite(v.seed)&&typeof v.raid==='number'&&typeof v.tick==='number'&&typeof v.elapsed==='number'&&Number.isFinite(v.elapsed)&&['lobby','raid','finished'].includes(v.phase??'')&&Number.isSafeInteger(v.lastAction)&&v.lastAction!>=0&&Number.isSafeInteger(v.lastInput)&&v.lastInput!>=0&&Array.isArray(v.actors)&&v.actors.every(actor=>validActorTraining(actor,v.elapsed!))&&Array.isArray(v.enemies)&&v.enemies.every(actor=>validActorTraining(actor,v.elapsed!))&&Array.isArray(v.containers)&&Array.isArray(v.doors)&&Array.isArray(v.exits)&&Array.isArray(v.shots)&&Array.isArray(v.stash)&&Array.isArray(v.events)&&typeof v.result==='string'&&Number.isSafeInteger(v.gold)&&v.gold!>=0&&v.gold!<=1e9&&validSupplyStock(v.shop)&&Array.isArray(v.trades)&&v.trades.length<=6&&v.trades.every(entry=>typeof entry==='string'&&entry.length<=96);
 }

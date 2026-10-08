@@ -356,3 +356,23 @@
   .dungeon-app .dungeon-quest-raid { max-width: 210px; margin-top: 4px; padding: 4px 7px; font-size: 9px; }
 }
 .dungeon-app .dungeon-quest-summary { margin: 8px 0 12px; color: #dcc89d; font-size: 11px; line-height: 1.6; }
+
+/* Optional training reuses stable lobby controls and the existing touch action grid. */
+.dungeon-app .dungeon-training-panel { margin: 18px 0; padding: 14px; border: 1px solid var(--dungeon-line); border-radius: 5px; background: #111a12a8; }
+.dungeon-app .dungeon-training-panel h3 { margin: 0 0 7px; }
+.dungeon-app .dungeon-training-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.dungeon-app .dungeon-training-group { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.dungeon-app .dungeon-training-group legend { padding: 0 0 7px; font-size: 11px; color: #d4c9a7; }
+.dungeon-app .dungeon-training-option { min-width: 48px; min-height: 48px; padding: 9px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; }
+.dungeon-app .dungeon-training-option strong { font-size: 12px; }
+.dungeon-app .dungeon-training-option span { font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
+.dungeon-app .dungeon-training-option[aria-pressed="true"] { border-color: #d7bc7d; background: #55482cc9; }
+.dungeon-app .dungeon-training-selection, .dungeon-app .dungeon-training-stats { margin: 8px 0; font-size: 12px; line-height: 1.6; color: #e5d6ae; }
+.dungeon-app .dungeon-skill-state { margin-top: 5px; font-size: 11px; line-height: 1.5; color: #d7cfb2; }
+.dungeon-app .dungeon-skill-state[data-state="active"] { color: #b5f2cd; font-weight: 600; }
+.dungeon-app .dungeon-action-skill { min-width: 48px; min-height: 48px; }
+@media (max-width: 480px) {
+  .dungeon-app .dungeon-training-panel { padding: 10px; }
+  .dungeon-app .dungeon-training-choices { grid-template-columns: 1fr; }
+}
+.dungeon-app .dungeon-training-option[aria-disabled="true"] { opacity: .55; cursor: default; }

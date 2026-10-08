@@ -475,9 +475,10 @@
       ],
       "acceptance": "禁止装備を持込不可。raid内で任意クラスに書換不可",
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
-      "status": "missing",
+      "status": "partial",
       "evidence": [
-        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-08: optional bastion training candidate in docs/dungeon-bastion-training.md. One selectable active skill (2.5-second movement burst or 4-second frontal-shield reinforcement) and passive (+10 maximum HP or +0.15 movement speed), lobby/ready locks, cooldown, and backward-compatible persisted selection. Default remains unselected. Implemented and independently reviewed; all 1,683 local unit tests, application/Worker type checks and build passed. Four PC/Android browser definitions collected only; public acceptance pending. Ten archetypes, the full skill catalogue, equipment restrictions, and unlock progression are not claimed complete."
       ]
     },
     {
@@ -491,9 +492,10 @@
       ],
       "acceptance": "守りを固めた正面と側背面で優劣が生じ、CD中の突進不可",
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
-      "status": "missing",
+      "status": "partial",
       "evidence": [
-        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-08: optional bastion training candidate in docs/dungeon-bastion-training.md. One selectable active skill (2.5-second movement burst or 4-second frontal-shield reinforcement) and passive (+10 maximum HP or +0.15 movement speed), lobby/ready locks, cooldown, and backward-compatible persisted selection. Default remains unselected. Implemented and independently reviewed; all 1,683 local unit tests, application/Worker type checks and build passed. Four PC/Android browser definitions collected only; public acceptance pending. Ten archetypes, the full skill catalogue, equipment restrictions, and unlock progression are not claimed complete."
       ]
     },
     {
@@ -1292,7 +1294,8 @@
       "evidence": [
         "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
         "2026-10-08: docs/dungeon-supplier-quests.md; two finite supplier tutorial contracts (accepted alive extraction, then explicit delivery of two recovered stash ore) with separate reward claims, private optional journal and save-before-ack implemented for focused acceptance. Public browser verification pending. No kill/craft chains, six-merchant reputation, account-wide progression or full quest content claimed.",
-        "2026-10-08: exact aeeebc98, CI 37721009987: both ordinary-input PC/Android quest routes passed actual acceptance, chest haul and extraction, explicit 20-gold claim, selected two-unit recovered ore delivery, explicit 30-gold claim, and reload retaining both claimed journals, 50 gold and all five remaining items. Actual quest/HUD screens and empty browser-error logs inspected. The separate strict full PvPvE gate failed; overall CI not complete. Two tutorial contracts only."
+        "2026-10-08: exact aeeebc98, CI 37721009987: both ordinary-input PC/Android quest routes passed actual acceptance, chest haul and extraction, explicit 20-gold claim, selected two-unit recovered ore delivery, explicit 30-gold claim, and reload retaining both claimed journals, 50 gold and all five remaining items. Actual quest/HUD screens and empty browser-error logs inspected. The separate strict full PvPvE gate failed; overall CI not complete. Two tutorial contracts only.",
+        "2026-10-08: eca92a3e, CI37729491927 overall success. Both real PC/Android quest routes retain explicit 20+30 gold, two claimed journals, and five remaining items after reload. Full PvPvE at 217.15 seconds / 29 HP / five items and both capacity tests preserving all 42 items also passed. Two finite tutorial quests only; ECON-02 remains partial."
       ]
     },
     {

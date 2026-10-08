@@ -8,11 +8,13 @@ import { SUPPLIES, loadoutWeapon, preparationIssue, saleValue } from './economy'
 import type { SupplyKind } from './types';
 import { createPendingReturnPanel, pendingReturnIssue } from './pending-return-panel';
 import { createQuestPanel } from './quest-panel';
+import { createTrainingPanel, opponentTrainingLabel } from './training-panel';
 
 type Callbacks = {
   create(name: string): void;
   join(room: string, name: string): void;
   action(action: Action): boolean | void;
+  actionSequence?(): number | undefined;
   reconnect(): void;
   inventory(open: boolean): void;
   leave(): void;
@@ -140,7 +142,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const instructions = element('details', 'dungeon-instructions');
   const instructionsSummary = element('summary', '', '操作と遠征のルール');
   instructions.append(instructionsSummary);
-  instructions.append(element('p', '', 'PC：画面をクリックして視点操作 / WASD 移動 / 左クリック・T 攻撃 / 右ボタン・Z 防御 / R 重攻撃 / E 調べる / Q 回復 / G 術 / F 弓 / I 鞄 / Esc マウス解除'));
+  instructions.append(element('p', '', 'PC：画面をクリックして視点操作 / WASD 移動 / 左クリック・T 攻撃 / 右ボタン・Z 防御 / R 重攻撃 / E 調べる / Q 回復 / G 術 / F 弓 / V 技 / I 鞄 / Esc マウス解除'));
   instructions.append(element('p', '', 'マウス固定が使えない場合：左ドラッグで視点、短い左クリックで攻撃、右ボタンを押して防御。矢印キーでも視点を動かせます（Shiftで微調整）。'));
   instructions.append(element('p', '', 'タッチ：左パッドで移動、右パッドで視点。攻撃ボタンと防御・しゃがみは同時に操作できます。'));
   instructions.append(element('p', '', '抽出の光は開始45秒・90秒・180秒後に順番に開きます。光のそばで「抽出」を選び、4秒静止してください。移動・被撃で中断します。'));
@@ -206,7 +208,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     const option = button('', 'dungeon-class-option', () => callbacks.action({ kind: 'class', classId: id }));
     option.setAttribute('aria-pressed', 'false');
     option.dataset.testid = `dungeon-class-${id}`;
-    option.append(element('strong', '', data.name), element('span', '', CLASS_NOTES[id]), element('small', '', `HP ${data.hp} · ${ITEMS[data.weapon].name}`));
+    option.append(element('strong', '', data.name), element('span', '', CLASS_NOTES[id]), element('small', '', `基本HP ${data.hp} · ${ITEMS[data.weapon].name}`));
     classButtons.set(id, option);
     classList.append(option);
   }
@@ -236,6 +238,9 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   readyButton.setAttribute('aria-describedby', startHint.id);
   startButton.setAttribute('aria-describedby', startHint.id);
   preparationActions.append(inventoryButton, readyButton, startButton);
+  const trainingPanel = createTrainingPanel(callbacks.action, listeners.signal, callbacks.actionSequence, () => {
+    if (snapshot) update(snapshot);
+  });
   const questPanel = createQuestPanel(callbacks.action, listeners.signal);
   const questOpen = button('補給所の依頼を見る · 2件', '', () => {
     questPanel.root.scrollIntoView({ block: 'start', behavior: 'instant' });
@@ -247,7 +252,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   questPanel.root.tabIndex = -1;
   preparation.insertBefore(questOpen, invitationLabel);
   preparation.insertBefore(questPanel.summary, invitationLabel);
-  preparation.append(classLabel, classList, playersTitle, participants, preparationLoadout, pendingSummary, preparationActions, startHint, questPanel.root);
+  preparation.append(classLabel, classList, trainingPanel.root, playersTitle, participants, preparationLoadout, pendingSummary, preparationActions, startHint, questPanel.root);
   lobbyPanel.append(entry, preparation);
   lobby.append(introduction, lobbyPanel);
 
@@ -269,7 +274,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const guardBar = element('div', 'dungeon-guard-bar');
   guardTrack.append(guardBar);
   const guardLabel = element('span', 'dungeon-guard-label', '防御の構え');
-  healthPanel.append(playerName, hpText, healthTrack, resourceText, guardLabel, guardTrack);
+  healthPanel.append(playerName, hpText, healthTrack, resourceText, guardLabel, guardTrack, trainingPanel.hud);
   const objective = element('div', 'dungeon-objective');
   const timer = element('strong', 'dungeon-timer', '8:00');
   const aliveCount = element('span', 'dungeon-alive-count');
@@ -333,6 +338,8 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     actionButtons.set(action, control);
     actionBar.append(control);
   }
+  actionButtons.set('skill', trainingPanel.skillButton);
+  actionBar.append(trainingPanel.skillButton);
   gameplayControls.append(movePad, lookPad, actionBar);
 
   const outcome = element('section', 'dungeon-outcome');
@@ -750,6 +757,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     const pendingHadFocus = document.activeElement instanceof HTMLElement && pendingPanel.root.contains(document.activeElement);
     pendingPanel.update(next);
     questPanel.update(next);
+    trainingPanel.update(next);
     if (pendingHadFocus && pendingPanel.root.hidden && inventoryOpen) closeInventory.focus({ preventScroll: true });
     const actor = player();
     const inRaid = alive();
@@ -769,7 +777,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
       return;
     }
     for (const [id, option] of classButtons) {
-      option.disabled = actor.ready || snapshot.phase === 'raid';
+      option.disabled = actor.ready || snapshot.phase === 'raid' || trainingPanel.pendingSelection;
       option.setAttribute('aria-pressed', String(actor.classId === id));
     }
     text(readyButton, actor.ready ? '準備を解除' : '準備完了にする');
@@ -779,11 +787,11 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     text(pendingSummaryText, pending ?? '');
     text(pendingOpen, `未受領品を受け取る · ${snapshot.pendingReturn?.length ?? 0}品`);
     const issue = preparationIssue(actor.bag);
-    readyButton.disabled = snapshot.phase === 'raid' || actor.status !== 'lobby' || (!actor.ready && (!!issue || !!pending));
+    readyButton.disabled = trainingPanel.pendingSelection || snapshot.phase === 'raid' || actor.status !== 'lobby' || (!actor.ready && (!!issue || !!pending));
     text(preparationLoadout, loadoutLabel(actor));
     preparationLoadout.classList.toggle('dungeon-loadout-issue', !!issue);
     const connected = snapshot.actors.filter(value => value.connected);
-    startButton.disabled = !!pending || snapshot.phase === 'raid' || !connected.length || connected.some(value => !value.ready || value.status !== 'lobby' || !!preparationIssue(value.bag));
+    startButton.disabled = trainingPanel.pendingSelection || !!pending || snapshot.phase === 'raid' || !connected.length || connected.some(value => !value.ready || value.status !== 'lobby' || !!preparationIssue(value.bag));
     text(startHint, pending ?? issue ?? (connected.some(value => !!preparationIssue(value.bag)) ? '武器のない携行品があります。該当する探索者は準備を解除して装備を確認してください。' : '接続中の全員が準備完了になると開始できます。1人でも出発できます。'));
     const playersSignature = JSON.stringify(snapshot.actors.map(value => [value.id, value.name, value.classId, value.ready, value.connected]));
     if (playersSignature !== participantsSignature) {
@@ -812,7 +820,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   }
 
   return {
-    canvas, movePad, lookPad, actionButtons, update,
+    canvas, movePad, lookPad, actionButtons, update, activateSkill: trainingPanel.activateSkill,
     renderFeedback(dt: number, look: Input) {
       if (disposed) return;
       damageFlash = Math.max(0, damageFlash - Math.max(0, dt) * 1.8);
@@ -825,7 +833,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
         text(opponentName, target.name);
         opponentHealth.max = target.maxHp;
         opponentHealth.value = target.hp;
-        text(opponentPhase, readout.phase === 'recover' ? '隙あり' : readout.label);
+        text(opponentPhase, [readout.phase === 'recover' ? '隙あり' : readout.label, opponentTrainingLabel(target, snapshot!.elapsed)].filter(Boolean).join(' · '));
         opponent.dataset.phase = readout.phase;
       }
       combatState.hidden = !actor || !alive() || inventoryOpen || !!actor.interaction;
@@ -841,6 +849,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
       if (disposed) return;
       const label: Record<string, string> = { connecting: '接続中…', connected: '接続済み', disconnected: '切断中', offline: 'オフライン', reconnecting: '再接続中…', error: '接続エラー' };
       questPanel.setConnected(state === 'connected' || state === '接続済み');
+      trainingPanel.setConnected(state === 'connected' || state === '接続済み');
       text(connection, label[state] ?? state);
       connection.dataset.state = state === '接続済み' ? 'connected' : state.includes('切断') || state.includes('拒否') ? 'disconnected' : state;
     },

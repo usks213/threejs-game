@@ -145,3 +145,21 @@ private journal, documented in [supplier quests](dungeon-supplier-quests.md).
 This gives the existing extraction/resupply loop a visible goal and finite completion
 reward. New quests require their own ordinary-input PC/Android acceptance; the green
 baseline is not evidence that the new UI and reward flow have already passed.
+
+## Quest baseline and next training slice — 2026-10-08
+
+Commit `eca92a3e4b43a507a8460997d37a4a2fb6e7a65d` and
+[CI37729491927](https://github.com/usks213/threejs-game/actions/runs/37729491927)
+passed all 1,621 unit tests, types/build, exact preview, PC/Android six-case routes,
+WebKit, both supplier-quest routes, both capacity boundaries, and strict full PvPvE.
+The last route split the four original guards evenly between two real explorers,
+contested both loot sources, killed one player, and extracted the survivor at
+217.15 seconds with 29 HP and five items. Both outcomes persisted after reload.
+Actual combat/death video frames, result screens, quest/claim screens and item
+records were inspected. The quest and capacity browser error arrays were empty.
+
+The next limited player-facing addition is optional [bastion training](dungeon-bastion-training.md):
+one active and one passive choice, real movement/guard effects, explicit cooldown,
+and visible counterplay. Existing unselected characters retain baseline behavior.
+The new independent PC/Android gate must establish actual input and readable UI;
+unit checks do not establish physical-device performance or long-term balance.

@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {delimiter,join} from 'node:path';
 const groups=JSON.parse(readFileSync('scripts/browser-acceptance-groups.json','utf8')) as Record<string,{files:string[];grep?:string}>;
 const matrix=[...readFileSync('.github/workflows/ci.yml','utf8').matchAll(/^ {12}group: (.+)$/gm)].map(m=>m[1]);
-it('routes each non-prototype browser file exactly once per platform, including independently gated paths',()=>{const files=readdirSync('tests/e2e').filter(f=>f.endsWith('.spec.ts'));for(const platform of ['desktop','android']){const selected=matrix.filter(g=>g.startsWith(platform+'-')).map(g=>groups[g.slice(platform.length+1)]);expect(selected.every(Boolean)).toBe(true);for(const file of files){if(file==='prototype.spec.ts')continue;const count=selected.filter(g=>g.files.includes(file)).length;expect(count,file+' / '+platform).toBe(['campaign-progression.spec.ts','campaign-regional-playthrough.spec.ts','campaign-touch-controls.spec.ts','campaign-combat-builds.spec.ts','streamed-campaign.spec.ts','cooperation.spec.ts','native-pointer.spec.ts','dungeon.spec.ts','dungeon-input.spec.ts','dungeon-resupply.spec.ts','dungeon-raid.spec.ts','dungeon-pending-return.spec.ts','dungeon-quests.spec.ts'].includes(file)?0:1);}}});
+it('routes each non-prototype browser file exactly once per platform, including independently gated paths',()=>{const files=readdirSync('tests/e2e').filter(f=>f.endsWith('.spec.ts'));for(const platform of ['desktop','android']){const selected=matrix.filter(g=>g.startsWith(platform+'-')).map(g=>groups[g.slice(platform.length+1)]);expect(selected.every(Boolean)).toBe(true);for(const file of files){if(file==='prototype.spec.ts')continue;const count=selected.filter(g=>g.files.includes(file)).length;expect(count,file+' / '+platform).toBe(['campaign-progression.spec.ts','campaign-regional-playthrough.spec.ts','campaign-touch-controls.spec.ts','campaign-combat-builds.spec.ts','streamed-campaign.spec.ts','cooperation.spec.ts','native-pointer.spec.ts','dungeon.spec.ts','dungeon-input.spec.ts','dungeon-resupply.spec.ts','dungeon-raid.spec.ts','dungeon-pending-return.spec.ts','dungeon-quests.spec.ts','dungeon-training.spec.ts'].includes(file)?0:1);}}});
 it('covers every prototype title once without matching campaign titles containing desktop or landscape',()=>{const titles=[...readFileSync('tests/e2e/prototype.spec.ts','utf8').matchAll(/^test\('([^']+)'/gm)].map(m=>m[1]);for(const platform of ['desktop','android'])for(const title of titles){const count=matrix.filter(g=>g.startsWith(platform+'-')).map(g=>groups[g.slice(platform.length+1)]).filter(g=>g.files.includes('prototype.spec.ts')&&(!g.grep||new RegExp(g.grep).test(title))).length;expect(count,platform+' / '+title).toBe(1);}expect(groups.chromium.files).toEqual(['prototype.spec.ts']);});
 
 it('runs each long ranged build in an independent job without sharing one job deadline',()=>{const workflow=readFileSync('.github/workflows/ci.yml','utf8');expect(workflow).toContain('build: [bow, staff]');expect(workflow).toContain('tests/e2e/campaign-combat-builds.spec.ts --project=');expect(workflow).toContain('--grep="Q03 ${{ matrix.build }}:"');});
@@ -143,6 +143,20 @@ it('gates real supplier quests independently on PC and Android without masking e
  expect(job).toContain("E2E_DUNGEON: '1'");
  expect(job).not.toContain('continue-on-error');
  expect(job).not.toMatch(/--retries|--grep-invert/);
+ expect(jobSteps('dungeon-return-browser').job).toContain('tests/e2e/dungeon-pending-return.spec.ts');
+ expect(jobSteps('dungeon-raid-browser').job).toContain('tests/e2e/dungeon-raid.spec.ts');
+});
+
+it('gates optional bastion training independently on PC and Android while retaining all accepted loops',()=>{
+ const {job}=jobSteps('dungeon-training-browser');
+ expect(job).toContain('needs: [verify, deploy-preview]');
+ expect(job).toContain('project: [desktop-chromium, android-chromium]');
+ expect(job).toContain('tests/e2e/dungeon-training.spec.ts --project=');
+ expect(job).toContain('EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}');
+ expect(job).toContain("E2E_DUNGEON: '1'");
+ expect(job).not.toContain('continue-on-error');
+ expect(job).not.toMatch(/--retries|--grep-invert/);
+ expect(jobSteps('dungeon-quest-browser').job).toContain('tests/e2e/dungeon-quests.spec.ts');
  expect(jobSteps('dungeon-return-browser').job).toContain('tests/e2e/dungeon-pending-return.spec.ts');
  expect(jobSteps('dungeon-raid-browser').job).toContain('tests/e2e/dungeon-raid.spec.ts');
 });
