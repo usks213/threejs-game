@@ -1,6 +1,7 @@
 import {expect, type Locator, type Page} from '@playwright/test';
 import type {Snapshot} from '../../../src/dungeon/types';
 import {own, read} from './dungeon-raid-controls';
+import {dungeonApproachDeflection, dungeonApproachWait} from './dungeon-touch-approach';
 
 /** The same ordinary, fixed-yaw western route exercised by dungeon-resupply. */
 export class DungeonReturnRoute {
@@ -55,15 +56,18 @@ export class DungeonReturnRoute {
           const bounds = await this.page.locator('[data-dungeon-pad=move]').boundingBox();
           if (!bounds) throw new Error('The ordinary movement pad is missing');
           const cx = bounds.x + bounds.width / 2, cy = bounds.y + bounds.height / 2;
+          const deflection = dungeonApproachDeflection(horizontal ? dx : dz);
           await session.send('Input.dispatchTouchEvent', {
             type: 'touchStart', touchPoints: [{id: 1, x: cx, y: cy, radiusX: 4, radiusY: 4, force: 1}],
           });
+          const started = Date.now();
           await session.send('Input.dispatchTouchEvent', {
             type: 'touchMove', touchPoints: [{id: 1,
-              x: cx + (horizontal ? (positive ? 42 : -42) : 0),
-              y: cy + (!horizontal ? (positive ? -42 : 42) : 0), radiusX: 4, radiusY: 4, force: 1}],
+              x: cx + (horizontal ? (positive ? deflection : -deflection) : 0),
+              y: cy + (!horizontal ? (positive ? -deflection : deflection) : 0), radiusX: 4, radiusY: 4, force: 1}],
           });
-          await this.page.waitForTimeout(ms);
+          const remaining = dungeonApproachWait(Date.now() - started);
+          if (remaining) await this.page.waitForTimeout(remaining);
           await session.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
         } else {
           const key = horizontal ? (positive ? 'KeyD' : 'KeyA') : (positive ? 'KeyW' : 'KeyS');

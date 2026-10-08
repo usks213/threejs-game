@@ -1,6 +1,7 @@
 import {test,expect,type Locator,type Page} from '@playwright/test';
 import {own,read} from './helpers/dungeon-raid-controls';
 import type {Snapshot} from '../../src/dungeon/types';
+import {dungeonApproachDeflection, dungeonApproachWait} from './helpers/dungeon-touch-approach';
 
 async function activate(locator:Locator,mobile:boolean){await locator.scrollIntoViewIfNeeded();if(mobile)await locator.tap();else await locator.click();}
 async function state(page:Page){const value=await read(page);if(!value)throw Error('No authoritative dungeon snapshot');return value;}
@@ -14,9 +15,12 @@ async function walk(page:Page,mobile:boolean,x:number,z:number,arrived?:(snapsho
   const horizontal=Math.abs(dx)>Math.abs(dz),positive=horizontal?dx>0:dz<0;
   const ms=Math.max(70,Math.min(200,(horizontal?Math.abs(dx):Math.abs(dz))/3*650));
   if(session){const bounds=await page.locator('[data-dungeon-pad=move]').boundingBox();if(!bounds)throw Error('Move pad missing');const cx=bounds.x+bounds.width/2,cy=bounds.y+bounds.height/2;
+   const deflection=dungeonApproachDeflection(horizontal?dx:dz);
    await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:cx,y:cy,radiusX:4,radiusY:4,force:1}]});
-   await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:cx+(horizontal?(positive?42:-42):0),y:cy+(!horizontal?(positive?-42:42):0),radiusX:4,radiusY:4,force:1}]});
-   await page.waitForTimeout(ms);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+   const started=Date.now();
+   await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:cx+(horizontal?(positive?deflection:-deflection):0),y:cy+(!horizontal?(positive?-deflection:deflection):0),radiusX:4,radiusY:4,force:1}]});
+   const remaining=dungeonApproachWait(Date.now()-started);
+   if(remaining)await page.waitForTimeout(remaining);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   }else{const key=horizontal?(positive?'KeyD':'KeyA'):(positive?'KeyW':'KeyS');await page.keyboard.press(key,{delay:ms});}
   await page.waitForTimeout(160);
  }throw Error(`Resupply route did not reach ${x},${z}: ${JSON.stringify(own(await state(page)).position)}`);

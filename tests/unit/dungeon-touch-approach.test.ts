@@ -15,6 +15,15 @@ it('counts acknowledgement latency inside the existing 250 ms requested hold', (
   expect(dungeonApproachWait(1499)).toBe(0);
 });
 
+it('keeps the recorded 65 cm east correction out of the guard perception lane despite a long acknowledgement', () => {
+  // Recorded full stick moved from -12.65 to -7.25 and drew the south guard.
+  // Preserve the actual safe route rather than weakening survival assertions.
+  for (const hold of [1.8, 2.2214, 4.8123]) {
+    const x = -12.65 + dungeonApproachDeflection(.65) / 42 * 3 * hold;
+    expect(x).toBeLessThan(-10);
+  }
+});
+
 it.each([.2, .25, .35, .8, 1.4, 2, 2.3])('converges at a %s second observed hold without widening the 35 cm target or 45-pulse budget', hold => {
   // The real starting class moves at 3 m/s. Include sub-tick delivery loss and
   // recorded delayed touchMove/touchEnd bounds; this is a driver regression,
