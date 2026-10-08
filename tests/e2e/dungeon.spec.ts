@@ -1,9 +1,38 @@
 import {test,expect,type Page,type BrowserContext} from '@playwright/test';
 import type {Snapshot} from '../../src/dungeon/types';
+import {dungeonApproachDeflection, dungeonApproachWait} from './helpers/dungeon-touch-approach';
 const read=(page:Page)=>page.evaluate(()=>window.__dungeonProbe?.()??null) as Promise<Snapshot|null>;
 const own=(s:Snapshot)=>s.actors.find(a=>a.id===s.you)!;
 async function tap(page:Page,selector:string,mobile:boolean){const target=page.locator(selector);if(mobile)await target.tap();else await target.click();}
-async function walk(page:Page,mobile:boolean,x:number,z:number){const session=mobile?await page.context().newCDPSession(page):null;try{for(let step=0;step<45;step++){const s=await read(page);if(!s)throw new Error('No authoritative snapshot');const a=own(s);expect(a.status).toBe('alive');const dx=x-a.position.x,dz=z-a.position.z;if(Math.hypot(dx,dz)<.35)return;const horizontal=Math.abs(dx)>Math.abs(dz),positive=horizontal?dx>0:dz<0,ms=Math.max(70,Math.min(250,(horizontal?Math.abs(dx):Math.abs(dz))/3*850));if(session){const bounds=await page.locator('[data-dungeon-pad=move]').boundingBox();if(!bounds)throw new Error('Move pad missing');const cx=bounds.x+bounds.width/2,cy=bounds.y+bounds.height/2;await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:cx,y:cy,radiusX:4,radiusY:4,force:1}]});await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:cx+(horizontal?(positive?42:-42):0),y:cy+(!horizontal?(positive?-42:42):0),radiusX:4,radiusY:4,force:1}]});await page.waitForTimeout(ms);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}else{const key=horizontal?(positive?'KeyD':'KeyA'):(positive?'KeyW':'KeyS');await page.keyboard.down(key);await page.waitForTimeout(ms);await page.keyboard.up(key);}await page.waitForTimeout(130);}throw new Error('Ordinary input did not reach the requested point');}finally{await session?.detach();}}
+async function walk(page:Page,mobile:boolean,x:number,z:number){
+ const session=mobile?await page.context().newCDPSession(page):null;
+ try{for(let step=0;step<45;step++){
+  const s=await read(page);if(!s)throw new Error('No authoritative snapshot');
+  const a=own(s);expect(a.status).toBe('alive');
+  const dx=x-a.position.x,dz=z-a.position.z;if(Math.hypot(dx,dz)<.35)return;
+  const horizontal=Math.abs(dx)>Math.abs(dz),positive=horizontal?dx>0:dz<0;
+  const axisDistance=horizontal?Math.abs(dx):Math.abs(dz);
+  if(session){
+   const bounds=await page.locator('[data-dungeon-pad=move]').boundingBox();if(!bounds)throw new Error('Move pad missing');
+   const cx=bounds.x+bounds.width/2,cy=bounds.y+bounds.height/2;
+   const deflection=dungeonApproachDeflection(axisDistance);
+   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:cx,y:cy,radiusX:4,radiusY:4,force:1}]});
+   const started=Date.now();
+   await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:cx+(horizontal?(positive?deflection:-deflection):0),y:cy+(!horizontal?(positive?-deflection:deflection):0),radiusX:4,radiusY:4,force:1}]});
+   // A slow acknowledgement has already held the real stick. Do not add the
+   // requested duration again; near the target use its real analog range.
+   const remaining=dungeonApproachWait(Date.now()-started);
+   if(remaining)await page.waitForTimeout(remaining);
+   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  }else{
+   const ms=Math.max(70,Math.min(250,axisDistance/3*850));
+   const key=horizontal?(positive?'KeyD':'KeyA'):(positive?'KeyW':'KeyS');
+   await page.keyboard.down(key);await page.waitForTimeout(ms);await page.keyboard.up(key);
+  }
+  await page.waitForTimeout(130);
+ }throw new Error('Ordinary input did not reach the requested point');
+ }finally{if(session){await session.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]}).catch(()=>{});await session.detach();}}
+}
 
 test('dungeon legacy launch and save isolation smoke',async({page,isMobile})=>{test.setTimeout(180000);await page.goto('/?trial=1&test=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await page.evaluate(()=>localStorage.setItem('ash-campaign-v1','preserved-campaign-sentinel'));await page.goto('/?mode=dungeon&test=1');await expect(page.getByTestId('dungeon-create')).toBeVisible();await expect(page.locator('.dungeon-canvas')).toHaveAttribute('data-ready','true');expect(await page.evaluate(()=>localStorage.getItem('ash-campaign-v1'))).toBe('preserved-campaign-sentinel');await page.screenshot({path:test.info().outputPath('dungeon-lobby.png')});});
 
