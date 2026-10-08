@@ -2,7 +2,7 @@ import {expect, type Page} from '@playwright/test';
 import {distance, wallRay} from '../../../src/dungeon/world';
 import {closeApproachKey} from './dungeon-approach';
 import {dungeonActionObserved} from './dungeon-action-observed';
-import {raidCombatMovement, raidHasHealingSpace, raidMeleeKey, raidRecoveryKey, raidNeedsCombatRecovery, raidNeedsFineTurn} from './dungeon-combat-choice';
+import {raidCanCommitFinisher, raidCombatMovement, raidHasHealingSpace, raidMeleeKey, raidRecoveryKey, raidNeedsCombatRecovery, raidNeedsFineTurn} from './dungeon-combat-choice';
 import {chooseRaidRetreatLane, retreatLaneClearance} from './dungeon-retreat-lane';
 import type {Action, Snapshot} from '../../../src/dungeon/types';
 
@@ -206,11 +206,13 @@ export class RaidControls {
 
   async fight(enemyId: string) {
     const deadline = Date.now() + 30000;
+    let committedFinisher: string | null = null;
     try {
       while (Date.now() < deadline) {
         const snapshot = await this.state();
         const actor = own(snapshot);
         const enemy = snapshot.enemies.find(value => value.id === enemyId);
+        if (actor.phase !== 'windup' && actor.phase !== 'strike') committedFinisher = null;
         expect(actor.status, `${this.name}: fighting ${enemyId}, HP ${actor.hp}`).toBe('alive');
         if (!enemy) throw new Error(`Missing initial enemy ${enemyId}`);
         if (enemy.status === 'dead') {
@@ -222,9 +224,11 @@ export class RaidControls {
           continue;
         }
         const nextMedicine = actor.bag.find(item => item.kind === 'potion' || item.kind === 'bandage');
-        // Finish an already committed, aligned swing before changing to a
-        // sideways healing lane. Otherwise that retreat makes our own blade miss.
-        if (raidNeedsCombatRecovery(actor.hp, raidRecoveryKey(nextMedicine?.kind, actor.hp, actor.recoverable, actor.classId, actor.spells) !== null, actor.phase)) {
+        const nearbyThreats = snapshot.enemies.filter(value => value.status === 'alive' && range(actor, value.position) < 6).length;
+        // Finish only a previously committed lethal swing against one threat.
+        // Against the duo, an ordinary body hit may not kill: escape immediately.
+        if (raidNeedsCombatRecovery(actor.hp, raidRecoveryKey(nextMedicine?.kind, actor.hp, actor.recoverable, actor.classId, actor.spells) !== null,
+          actor.phase, committedFinisher === enemyId && nearbyThreats === 1)) {
           await this.retreatAndHeal(deadline);
           continue;
         }
@@ -237,7 +241,9 @@ export class RaidControls {
         // Keeping Z held is ordinary input. The server must lower the shield
         // during windup/strike/recovery; this test never edits guard or HP.
         if (actor.phase === 'idle' && d < 1.65 && Math.abs(steering.error) <= .12 && (enemy.phase === 'idle' || enemy.phase === 'recover')) {
-          await this.press(raidMeleeKey(enemy.hp));
+          const key = raidMeleeKey(enemy.hp);
+          committedFinisher = raidCanCommitFinisher(enemy.hp, key, nearbyThreats) ? enemyId : null;
+          await this.press(key);
         }
         await this.next(snapshot);
       }

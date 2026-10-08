@@ -1,6 +1,6 @@
 import {expect, it} from 'vitest';
 import {meleeDefinition} from '../../src/prototype/core/motion';
-import {raidCombatMovement, raidHasHealingSpace, raidMeleeKey, raidMedicineCanHeal, raidNeedsCombatRecovery, raidNeedsFineTurn, raidRecoveryKey} from '../e2e/helpers/dungeon-combat-choice';
+import {raidCanCommitFinisher, raidCombatMovement, raidHasHealingSpace, raidMeleeKey, raidMedicineCanHeal, raidNeedsCombatRecovery, raidNeedsFineTurn, raidRecoveryKey} from '../e2e/helpers/dungeon-combat-choice';
 
 it('finishes a wounded guard with the ordinary faster sword attack', () => {
   expect(Math.min(meleeDefinition('slash').damage, meleeDefinition('return').damage)).toBe(30);
@@ -63,13 +63,28 @@ it('never treats another class’s offense or an exhausted keeper as free healin
   expect(raidRecoveryKey('bandage', 45, 45, 'keeper', 0)).toBeNull();
 });
 
-it('finishes the recorded aligned swing before entering a sideways recovery lane', () => {
+it('finishes only a committed lethal swing before entering a sideways recovery lane', () => {
   for (const hp of [78, 38, 6]) {
-    expect(raidNeedsCombatRecovery(hp, true, 'windup')).toBe(false);
-    expect(raidNeedsCombatRecovery(hp, true, 'strike')).toBe(false);
-    expect(raidNeedsCombatRecovery(hp, true, 'recover')).toBe(true);
+    expect(raidNeedsCombatRecovery(hp, true, 'windup', true)).toBe(false);
+    expect(raidNeedsCombatRecovery(hp, true, 'strike', true)).toBe(false);
+    expect(raidNeedsCombatRecovery(hp, true, 'windup')).toBe(true);
+    expect(raidNeedsCombatRecovery(hp, true, 'strike')).toBe(true);
+    expect(raidNeedsCombatRecovery(hp, true, 'recover', true)).toBe(true);
     expect(raidNeedsCombatRecovery(hp, true, 'idle')).toBe(true);
   }
   expect(raidNeedsCombatRecovery(78, true)).toBe(true);
   expect(raidNeedsCombatRecovery(78, false, 'recover')).toBe(false);
+});
+
+it('does not rely on a headshot or a later already-hit HP value to declare a lethal commitment', () => {
+  expect(meleeDefinition('overhead').damage).toBe(55);
+  expect(raidCanCommitFinisher(70, 'KeyR', 2)).toBe(false);
+  expect(raidCanCommitFinisher(70, 'KeyR', 1)).toBe(false);
+  expect(raidCanCommitFinisher(15, 'KeyR', 2)).toBe(false);
+  expect(raidCanCommitFinisher(38, 'KeyR', 1)).toBe(true);
+  expect(raidCanCommitFinisher(55, 'KeyR', 1)).toBe(true);
+  expect(raidCanCommitFinisher(56, 'KeyR', 1)).toBe(false);
+  expect(raidCanCommitFinisher(30, 'KeyT', 1)).toBe(true);
+  expect(raidCanCommitFinisher(31, 'KeyT', 1)).toBe(false);
+  expect(raidCanCommitFinisher(0, 'KeyR', 1)).toBe(false);
 });
