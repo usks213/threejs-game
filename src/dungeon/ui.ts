@@ -7,11 +7,12 @@ import {combatReadout,focusedOpponent,receivedDamage} from './readability';
 import { SUPPLIES, loadoutWeapon, preparationIssue, saleValue } from './economy';
 import type { SupplyKind } from './types';
 import { createPendingReturnPanel, pendingReturnIssue } from './pending-return-panel';
+import { createQuestPanel } from './quest-panel';
 
 type Callbacks = {
   create(name: string): void;
   join(room: string, name: string): void;
-  action(action: Action): void;
+  action(action: Action): boolean | void;
   reconnect(): void;
   inventory(open: boolean): void;
   leave(): void;
@@ -235,7 +236,18 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   readyButton.setAttribute('aria-describedby', startHint.id);
   startButton.setAttribute('aria-describedby', startHint.id);
   preparationActions.append(inventoryButton, readyButton, startButton);
-  preparation.append(classLabel, classList, playersTitle, participants, preparationLoadout, pendingSummary, preparationActions, startHint);
+  const questPanel = createQuestPanel(callbacks.action, listeners.signal);
+  const questOpen = button('補給所の依頼を見る · 2件', '', () => {
+    questPanel.root.scrollIntoView({ block: 'start', behavior: 'instant' });
+    questPanel.root.focus({ preventScroll: true });
+  });
+  questOpen.dataset.testid = 'dungeon-quest-open';
+  questOpen.setAttribute('aria-controls', 'dungeon-quest-panel');
+  questPanel.root.id = 'dungeon-quest-panel';
+  questPanel.root.tabIndex = -1;
+  preparation.insertBefore(questOpen, invitationLabel);
+  preparation.insertBefore(questPanel.summary, invitationLabel);
+  preparation.append(classLabel, classList, playersTitle, participants, preparationLoadout, pendingSummary, preparationActions, startHint, questPanel.root);
   lobbyPanel.append(entry, preparation);
   lobby.append(introduction, lobbyPanel);
 
@@ -261,7 +273,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const objective = element('div', 'dungeon-objective');
   const timer = element('strong', 'dungeon-timer', '8:00');
   const aliveCount = element('span', 'dungeon-alive-count');
-  objective.append(element('span', 'dungeon-eyebrow', 'TIME TO RETURN'), timer, aliveCount);
+  objective.append(element('span', 'dungeon-eyebrow', 'TIME TO RETURN'), timer, aliveCount, questPanel.raid);
   const crosshair = element('div', 'dungeon-crosshair', '+');
   crosshair.setAttribute('aria-hidden', 'true');
   const interactionProgress = element('div', 'dungeon-interaction-progress');
@@ -737,6 +749,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     snapshot = next;
     const pendingHadFocus = document.activeElement instanceof HTMLElement && pendingPanel.root.contains(document.activeElement);
     pendingPanel.update(next);
+    questPanel.update(next);
     if (pendingHadFocus && pendingPanel.root.hidden && inventoryOpen) closeInventory.focus({ preventScroll: true });
     const actor = player();
     const inRaid = alive();
@@ -827,6 +840,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     setConnection(state: string) {
       if (disposed) return;
       const label: Record<string, string> = { connecting: '接続中…', connected: '接続済み', disconnected: '切断中', offline: 'オフライン', reconnecting: '再接続中…', error: '接続エラー' };
+      questPanel.setConnected(state === 'connected' || state === '接続済み');
       text(connection, label[state] ?? state);
       connection.dataset.state = state === '接続済み' ? 'connected' : state.includes('切断') || state.includes('拒否') ? 'disconnected' : state;
     },

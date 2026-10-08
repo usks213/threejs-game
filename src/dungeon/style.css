@@ -331,3 +331,28 @@
   .dungeon-app .dungeon-pending-return, .dungeon-app .dungeon-pending-summary { padding: 12px; }
   .dungeon-app .dungeon-pending-list, .dungeon-app .dungeon-pending-destinations { grid-template-columns: 1fr; }
 }
+
+/* Finite supplier contracts; real stash choices stay attached across server snapshots. */
+.dungeon-app .dungeon-quest-panel { margin: 18px 0; min-width: 0; padding: 16px; border: 1px solid #bca57575; border-radius: 6px; background: linear-gradient(135deg, #342f204d, #19271e88); }
+.dungeon-app .dungeon-quest-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.dungeon-app .dungeon-quest-heading h3 { margin: 0; }
+.dungeon-app .dungeon-quest-heading strong { font-size: 13px; }
+.dungeon-app .dungeon-quest-card { padding-top: 15px; margin-top: 15px; border-top: 1px solid var(--dungeon-line); min-width: 0; }
+.dungeon-app .dungeon-quest-status { font-size: 10px; color: #e6cd97; border: 1px solid #bca57555; border-radius: 20px; padding: 4px 8px; }
+.dungeon-app .dungeon-quest-progress { color: #e5e7d5; font-size: 12px; line-height: 1.6; }
+.dungeon-app .dungeon-quest-reward { color: var(--dungeon-gold); font-size: 11px; margin: 5px 0; }
+.dungeon-app .dungeon-quest-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 6px; }
+.dungeon-app .dungeon-quest-panel .dungeon-button { min-height: 48px; min-width: 48px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+.dungeon-app .dungeon-quest-items { display: grid; gap: 6px; max-height: 180px; overflow-y: auto; overscroll-behavior: contain; padding: 4px; margin-top: 8px; }
+.dungeon-app .dungeon-quest-item { text-align: left; }
+.dungeon-app .dungeon-quest-selection { margin: 6px 0 8px; font-size: 11px; color: #daceab; line-height: 1.5; overflow-wrap: anywhere; }
+.dungeon-app .dungeon-quest-raid { max-width: 230px; padding: 7px 9px; margin-top: 8px; white-space: pre-line; font-size: 10px; line-height: 1.6; background: #172218b8; border-right: 2px solid #c4a76a; color: #e8d4a7; }
+@media (max-width: 760px) {
+  .dungeon-app .dungeon-quest-panel { padding: 12px; }
+  .dungeon-app .dungeon-quest-controls { grid-template-columns: 1fr; }
+  .dungeon-app .dungeon-quest-raid { max-width: 155px; font-size: 9px; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .dungeon-app .dungeon-quest-raid { max-width: 210px; margin-top: 4px; padding: 4px 7px; font-size: 9px; }
+}
+.dungeon-app .dungeon-quest-summary { margin: 8px 0 12px; color: #dcc89d; font-size: 11px; line-height: 1.6; }

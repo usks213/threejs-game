@@ -8,11 +8,13 @@ Dark and Darker型の体験を独自名称・地形・資産で作る、新し�
 
 初期版は最大6人、6職、1ダンジョン、サーバー権威の戦闘/戦利品/抽出、部屋・探索者別の倉庫。アカウント共通倉庫や全体市場ではない。七つの灯の保存にはアクセスしない。[既存キャンペーンへ戻る](https://pr-4-threejs-game.usks213.workers.dev/?mode=campaign)。
 
-0a374ddaの[公開CI](https://github.com/usks213/threejs-game/actions/runs/37431664632)で1362単体、型/build、配信SHA/health、PC/Androidの独立2クライアントによる移動・loot・帰還・再読込、WebKitメニューtap、旧協力を確認。全PvE/PvP戦闘のブラウザ経路は次の受入。スマホ実機や実機FPSは未検証。
+0a374ddaの[公開CI](https://github.com/usks213/threejs-game/actions/runs/37431664632)で1362単体、型/build、配信SHA/health、PC/Androidの独立2クライアントによる移動・loot・帰還・再読込、WebKitメニューtap、旧協力を確認。その後の43b2fbaeは全1,525単体、全PvPvEと両端末の容量境界まで成功。スマホ実機や実機FPSは未検証。
 
 帰還した遺宝・鉱石を売り、薬/包帯を買って次の遠征へ持ち込む[補給ループ](docs/dungeon-resupply-loop.md)。部屋内のゲーム内金貨だけを使用し、無料装備は買い取りません。1396db4bは全1,425単体、PC/Android補給受入と全PvPvEに成功しました。
 
-次は[倉庫満杯時の受取待ち](docs/dungeon-pending-return.md)を追加検証中。入り切らない帰還品は一回分だけ保持し、補給所で倉庫か鞄へ受け取ります。受取待ちの間は次の出発と補給購入を止め、無制限の追加倉庫にはしません。新しい変更の公開受入は対象SHAのCI結果を参照してください。
+[倉庫満杯時の受取待ち](docs/dungeon-pending-return.md)は43b2fbaeでPC/Androidの通常遠征・再読込・受取まで成功。入り切らない帰還品は一回分だけ保持し、補給所で倉庫か鞄へ受け取ります。受取待ちの間は次の出発と補給購入を止め、無制限の追加倉庫にはしません。新しい変更の公開受入は対象SHAのCI結果を参照してください。
+
+次は[補給所からの二つの依頼](docs/dungeon-supplier-quests.md)を追加検証中。生存帰還と帰還済み鉱石の納品を目的にし、報酬は達成後に明示的に受け取ります。全クエストやアカウント共通成長の完成ではありません。
 
 ## 七つの灯（保存を保持する既存キャンペーン）
 

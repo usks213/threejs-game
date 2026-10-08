@@ -37,8 +37,10 @@ export function startDungeon(){
  });
  function syncActive(){const own=snapshot?.actors.find(a=>a.id===snapshot!.you);input?.setActive(!!view&&!view.lost&&!!client?.connected&&!inventory&&snapshot?.phase==='raid'&&own?.status==='alive');}
  function sendAction(action:Action){
-  if(action.kind==='start'&&!view){ui.notice('このブラウザでは 3D 描画を開始できないため、遠征を開始できません。WebGL 対応のブラウザで開いてください。');return;}
-  if(!client?.action(action))ui.notice('接続が完了してから操作してください。');
+  if(action.kind==='start'&&!view){ui.notice('このブラウザでは 3D 描画を開始できないため、遠征を開始できません。WebGL 対応のブラウザで開いてください。');return false;}
+  const sent=client?.action(action)??false;
+  if(!sent)ui.notice('接続が完了してから操作してください。');
+  return sent;
  }
  function control(kind:DungeonControl){
   if(kind==='inventory'){if(!snapshot)return;inventory=!inventory;ui.setInventory(inventory);syncActive();return;}

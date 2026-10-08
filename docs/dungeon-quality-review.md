@@ -121,3 +121,27 @@ follow-up. Its pure direction/convergence tests pass.
 WebKit's screenshot and DOM confirm the menu opened with the new control wording;
 its old exact-text selector was stale. The selector now checks visible instructions
 and the still-required WASD movement text. This browser check still needs rerunning.
+
+## Verified loop baseline before supplier quests — 2026-10-08
+
+Commit `43b2fbae0bbc1ae6b5d18081afd3b7232d9a8d3b` and
+[CI37714853419](https://github.com/usks213/threejs-game/actions/runs/37714853419)
+passed all 1,525 unit tests, types/build, exact-SHA existing preview deployment,
+PC/Android six-case routes, WebKit menu smoke, full PvPvE and both capacity gates.
+The full raid defeated four AI, contested two loot sources, completed PvP death and
+corpse recovery, extracted at 168.30 seconds with 48 HP and five banked items, and
+reconnected both participants. Both capacity routes completed seven natural raids;
+40 stash items plus two pending returns survived reload and explicit claims, with
+all 42 IDs/counts preserved. The actual recording and result/claim screens were reviewed.
+
+The final driver corrections use finite existing keeper healing, traversable escape
+lanes, and proportionally smaller real touch-stick displacement near waypoints.
+They do not add player HP/resources, reduce enemy damage, or relax survival/time/precision
+assertions. Mobile tests remain emulation. Spatial/enemy breadth, physical-device
+performance, sound and long-term enjoyment remain separate unfinished work.
+
+The next player-facing pass adds two explicit supplier objectives and a persistent
+private journal, documented in [supplier quests](dungeon-supplier-quests.md).
+This gives the existing extraction/resupply loop a visible goal and finite completion
+reward. New quests require their own ordinary-input PC/Android acceptance; the green
+baseline is not evidence that the new UI and reward flow have already passed.
