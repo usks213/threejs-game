@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "specVersion": "PR4-DUNGEON-1.0",
-  "asOf": "2026-10-07",
+  "asOf": "2026-10-08",
   "referenceVersion": "DAD-EAS10-HF127",
   "statusDisclaimer": "All entries unassessed; specification does not certify implementation or complete original-game parity.",
   "items": [
@@ -47,7 +47,8 @@
       "evidence": [
         "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
         "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
-        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed."
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed.",
+        "2026-10-08: Commit 959268af, CI 37703968581: all 1,507 unit tests and the real public desktop/Android capacity cases passed. Seven normal raids yielded 40 stash items and 2 pending returns; reload and explicit claims preserved all 42 item IDs/counts and unlocked preparation (39 stash items and 3 carried items). Screens inspected. The separate full PvPvE test failed with unused keeper healing charges; overall CI did not pass. Shared/account stash and extra pages remain incomplete."
       ]
     },
     {
@@ -80,7 +81,8 @@
       "evidence": [
         "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
         "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
-        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed."
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed.",
+        "2026-10-08: Commit 959268af, CI 37703968581: all 1,507 unit tests and the real public desktop/Android capacity cases passed. Seven normal raids yielded 40 stash items and 2 pending returns; reload and explicit claims preserved all 42 item IDs/counts and unlocked preparation (39 stash items and 3 carried items). Screens inspected. The separate full PvPvE test failed with unused keeper healing charges; overall CI did not pass. Shared/account stash and extra pages remain incomplete."
       ]
     },
     {
@@ -159,7 +161,8 @@
       "status": "partial",
       "evidence": [
         "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
-        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed."
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed.",
+        "2026-10-08: Commit 959268af, CI 37703968581: all 1,507 unit tests and the real public desktop/Android capacity cases passed. Seven normal raids yielded 40 stash items and 2 pending returns; reload and explicit claims preserved all 42 item IDs/counts and unlocked preparation (39 stash items and 3 carried items). Screens inspected. The separate full PvPvE test failed with unused keeper healing charges; overall CI did not pass. Shared/account stash and extra pages remain incomplete."
       ]
     },
     {
@@ -690,7 +693,8 @@
       "evidence": [
         "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
         "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
-        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed."
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed.",
+        "2026-10-08: Commit 959268af, CI 37703968581: all 1,507 unit tests and the real public desktop/Android capacity cases passed. Seven normal raids yielded 40 stash items and 2 pending returns; reload and explicit claims preserved all 42 item IDs/counts and unlocked preparation (39 stash items and 3 carried items). Screens inspected. The separate full PvPvE test failed with unused keeper healing charges; overall CI did not pass. Shared/account stash and extra pages remain incomplete."
       ]
     },
     {

@@ -2,7 +2,8 @@ import {expect, type Page} from '@playwright/test';
 import {distance, wallRay} from '../../../src/dungeon/world';
 import {closeApproachKey} from './dungeon-approach';
 import {dungeonActionObserved} from './dungeon-action-observed';
-import {raidCombatMovement, raidHasHealingSpace, raidMeleeKey, raidMedicineCanHeal, raidNeedsCombatRecovery, raidNeedsFineTurn} from './dungeon-combat-choice';
+import {raidCombatMovement, raidHasHealingSpace, raidMeleeKey, raidRecoveryKey, raidNeedsCombatRecovery, raidNeedsFineTurn} from './dungeon-combat-choice';
+import {chooseRaidRetreatLane, retreatLaneClearance} from './dungeon-retreat-lane';
 import type {Action, Snapshot} from '../../../src/dungeon/types';
 
 export type Point = {x: number; z: number};
@@ -161,31 +162,41 @@ export class RaidControls {
 
   private async retreatAndHeal(deadline: number) {
     const initial = await this.state();
-    const initialThreat = this.nearestThreat(initial, Infinity);
-    const retreatTarget = initialThreat ? {...initialThreat.position} : null;
+    let retreatKey = chooseRaidRetreatLane(initial);
     let healing = false;
     while (Date.now() < deadline) {
       const snapshot = await this.state();
       const actor = own(snapshot);
-      expect(actor.status, `${this.name}: retreating for carried medicine`).toBe('alive');
-      if (healing && actor.phase === 'idle') return;
+      expect(actor.status, `${this.name}: retreating for finite healing`).toBe('alive');
+      const medicine = actor.bag.find(item => item.kind === 'potion' || item.kind === 'bandage');
+      const recoveryKey = raidRecoveryKey(medicine?.kind, actor.hp, actor.recoverable, actor.classId, actor.spells);
+      if (healing && actor.phase === 'idle') {
+        if (!raidNeedsCombatRecovery(actor.hp, recoveryKey !== null)) return;
+        healing = false;
+      }
       const threat = this.nearestThreat(snapshot, Infinity);
-      // Keep the original escape bearing. Alternating between the two nearest
-      // guards can stop backward movement on every turn and expose the flank.
-      const steering = retreatTarget ? this.steering(actor, retreatTarget, false) : {error: 0, keys: [] as string[]};
-      if (raidNeedsFineTurn(steering.error)) steering.keys.push('ShiftLeft');
-      // Unshielded ordinary backward movement outruns a pursuer. Keep this
-      // retreat latched through the real medicine animation instead of
-      // immediately walking back into the next swing when attack recovery ends.
-      if (Math.abs(steering.error) < .3) steering.keys.push('KeyS');
-      await this.keys(steering.keys);
+      // Keep one ordinary escape lane rather than switching with nearest foes.
+      // Change it only when a wall/body makes that lane imminently unavailable.
+      if (retreatLaneClearance(snapshot, retreatKey) < 2) retreatKey = chooseRaidRetreatLane(snapshot);
+      await this.keys(retreatKey.split('+')); // Ordinary cardinal/diagonal movement; releases guard and turning.
       if (!healing && actor.phase === 'idle' && raidHasHealingSpace(threat ? range(actor, threat.position) : Infinity)) {
-        const medicine = actor.bag.find(item => item.kind === 'potion' || item.kind === 'bandage');
-        expect(medicine, `${this.name}: retreat uses actual carried medicine`).toBeTruthy();
-        const beforeCount = medicine!.count;
-        const healed = await this.press('KeyQ');
-        expect(own(healed).hp, `${this.name}: paid or carried medicine actually heals`).toBeGreaterThan(actor.hp);
-        expect(own(healed).bag.find(item => item.id === medicine!.id)?.count ?? 0).toBe(beforeCount - 1);
+        expect(recoveryKey, `${this.name}: retreat uses a finite carried or class resource`).not.toBeNull();
+        if (recoveryKey === 'KeyQ') {
+          const beforeCount = medicine!.count;
+          const healed = await this.press('KeyQ');
+          expect(own(healed).hp, `${this.name}: carried medicine actually heals`).toBeGreaterThan(actor.hp);
+          expect(own(healed).bag.find(item => item.id === medicine!.id)?.count ?? 0).toBe(beforeCount - 1);
+        } else {
+          await this.press('KeyG');
+          const healed = await this.until(value => own(value).status !== 'alive' || own(value).spells < actor.spells || own(value).phase === 'idle',
+            'the ordinary keeper cast completes or is interrupted');
+          expect(own(healed).status).toBe('alive');
+          // A real incoming hit can interrupt a cast without spending it.
+          // Keep retreating and regain space; never count that as a heal.
+          if (own(healed).spells === actor.spells) continue;
+          expect(own(healed).spells).toBe(actor.spells - 1);
+          expect(own(healed).hp, `${this.name}: completed keeper cast actually heals`).toBeGreaterThan(actor.hp);
+        }
         healing = true;
       }
       await this.next(snapshot);
@@ -211,7 +222,7 @@ export class RaidControls {
           continue;
         }
         const nextMedicine = actor.bag.find(item => item.kind === 'potion' || item.kind === 'bandage');
-        if (raidNeedsCombatRecovery(actor.hp, raidMedicineCanHeal(nextMedicine?.kind, actor.hp, actor.recoverable))) {
+        if (raidNeedsCombatRecovery(actor.hp, raidRecoveryKey(nextMedicine?.kind, actor.hp, actor.recoverable, actor.classId, actor.spells) !== null)) {
           await this.retreatAndHeal(deadline);
           continue;
         }
