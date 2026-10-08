@@ -1,5 +1,6 @@
 import {test, expect, type BrowserContext, type Page} from '@playwright/test';
 import type {Snapshot} from '../../src/dungeon/types';
+import {raidCorpseApproaches, raidSafeRoute} from './helpers/dungeon-safe-route';
 import {RaidControls, angle, heading, observeActions, own, range, read} from './helpers/dungeon-raid-controls';
 
 // Preserve the complete live combat sequence for visual review, including failure paths.
@@ -153,10 +154,17 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     await contest('chest4', centralRelic.id);
     await phase('locked-chest-contested', true);
 
+    // Combat can pull the guard through the doorway into a side aisle. Route
+    // around the real walls/pillars rather than steering straight through them.
+    const navigate = async (controls: RaidControls, target: {x: number; z: number}) => {
+      for (const waypoint of raidSafeRoute(await controls.state(), target)) await controls.walk(waypoint, .12);
+    };
     const guardCorpse = (await a.state()).containers.find(container => container.id === 'corpse-e0-1')!;
     expect(guardCorpse).toBeTruthy();
-    await a.walk({x: guardCorpse.position.x + 1, z: guardCorpse.position.z});
-    await b.walk({x: guardCorpse.position.x - 1, z: guardCorpse.position.z});
+    const approaches = raidCorpseApproaches(await a.state(), guardCorpse.position);
+    await navigate(a, approaches.loot[0]);
+    await navigate(b, approaches.loot[1]);
+    await expect(page.locator(`[data-target="${guardCorpse.id}"]`)).toBeVisible();
     await a.open(guardCorpse.id);
     const guardRelic = (await a.state()).containers.find(container => container.id === guardCorpse.id)!.items.find(item => item.kind === 'relic')!;
     await contest(guardCorpse.id, guardRelic.id);
@@ -175,8 +183,8 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
       expect(own(await a.state()).hp).toBeGreaterThan(actor.hp);
     }
     expect(own(await a.state()).hp).toBeGreaterThanOrEqual(100);
-    await a.walk({x: guardCorpse.position.x + .65, z: guardCorpse.position.z}, .15);
-    await b.walk({x: guardCorpse.position.x - .65, z: guardCorpse.position.z}, .15);
+    await navigate(a, approaches.duel[0]);
+    await navigate(b, approaches.duel[1]);
     await Promise.all([a.face(own(await b.state()).position), b.face(own(await a.state()).position)]);
     await Promise.all([a.stop(), b.stop()]);
     const duelStart = await Promise.all([a.state(), b.state()]);
@@ -228,9 +236,7 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     for (const id of contestedIds) expect(own(await survivor.state()).bag.filter(item => item.id === id)).toHaveLength(1);
     await phase('victim-loot-recovered');
 
-    await survivor.walk({x: 0, z: 7.5});
-    await survivor.walk({x: 0, z: 12});
-    await survivor.walk({x: -12, z: 12});
+    await navigate(survivor, {x: -12, z: 12});
     await survivor.until(snapshot => snapshot.elapsed >= 45, 'west exit opens on server time', 60000);
     const beforeExtract = await survivor.state();
     const carried = own(beforeExtract).bag.map(item => ({id: item.id, kind: item.kind, count: item.count, quality: item.quality}));
