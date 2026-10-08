@@ -478,7 +478,9 @@
       "status": "partial",
       "evidence": [
         "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
-        "2026-10-08: optional bastion training candidate in docs/dungeon-bastion-training.md. One selectable active skill (2.5-second movement burst or 4-second frontal-shield reinforcement) and passive (+10 maximum HP or +0.15 movement speed), lobby/ready locks, cooldown, and backward-compatible persisted selection. Default remains unselected. Implemented and independently reviewed; all 1,683 local unit tests, application/Worker type checks and build passed. Four PC/Android browser definitions collected only; public acceptance pending. Ten archetypes, the full skill catalogue, equipment restrictions, and unlock progression are not claimed complete."
+        "2026-10-08: optional bastion training candidate in docs/dungeon-bastion-training.md. One selectable active skill (2.5-second movement burst or 4-second frontal-shield reinforcement) and passive (+10 maximum HP or +0.15 movement speed), lobby/ready locks, cooldown, and backward-compatible persisted selection. Default remains unselected. Implemented and independently reviewed; all 1,683 local unit tests, application/Worker type checks and build passed. Four PC/Android browser definitions collected only; public acceptance pending. Ten archetypes, the full skill catalogue, equipment restrictions, and unlock progression are not claimed complete.",
+        "2026-10-08: docs/dungeon-ravager-training.md; scoped optional ravager Frenzy skill and laststand/followthrough perks implemented for focused acceptance. Preserve independent bastion selections and missing-field legacy saves. Exact public PC/touch proof pending. Roar, destruction, complete class catalogue and full balance remain incomplete.",
+        "2026-10-08: exact f499b041, CI37739930251 succeeded: 1,691 unit tests; PC/Android actual training movement 3.15 to 4.41 m/s, held shield/brace, persistence/cooldown and visible-notice hit targets; existing quests/capacity/PvPvE passed. Twelve jobs succeeded, ten unrelated historical jobs skipped. Videos/screens inspected. Scoped bastion training accepted; full classes/content still incomplete."
       ]
     },
     {
@@ -495,7 +497,8 @@
       "status": "partial",
       "evidence": [
         "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
-        "2026-10-08: optional bastion training candidate in docs/dungeon-bastion-training.md. One selectable active skill (2.5-second movement burst or 4-second frontal-shield reinforcement) and passive (+10 maximum HP or +0.15 movement speed), lobby/ready locks, cooldown, and backward-compatible persisted selection. Default remains unselected. Implemented and independently reviewed; all 1,683 local unit tests, application/Worker type checks and build passed. Four PC/Android browser definitions collected only; public acceptance pending. Ten archetypes, the full skill catalogue, equipment restrictions, and unlock progression are not claimed complete."
+        "2026-10-08: optional bastion training candidate in docs/dungeon-bastion-training.md. One selectable active skill (2.5-second movement burst or 4-second frontal-shield reinforcement) and passive (+10 maximum HP or +0.15 movement speed), lobby/ready locks, cooldown, and backward-compatible persisted selection. Default remains unselected. Implemented and independently reviewed; all 1,683 local unit tests, application/Worker type checks and build passed. Four PC/Android browser definitions collected only; public acceptance pending. Ten archetypes, the full skill catalogue, equipment restrictions, and unlock progression are not claimed complete.",
+        "2026-10-08: exact f499b041, CI37739930251 succeeded: 1,691 unit tests; PC/Android actual training movement 3.15 to 4.41 m/s, held shield/brace, persistence/cooldown and visible-notice hit targets; existing quests/capacity/PvPvE passed. Twelve jobs succeeded, ten unrelated historical jobs skipped. Videos/screens inspected. Scoped bastion training accepted; full classes/content still incomplete."
       ]
     },
     {
@@ -509,9 +512,10 @@
       ],
       "acceptance": "重撃の予兆を見て回避可能。咆哮が味方/敵へ仕様通り作用",
       "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
-      "status": "missing",
+      "status": "partial",
       "evidence": [
-        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-08: docs/dungeon-ravager-training.md; scoped optional ravager Frenzy skill and laststand/followthrough perks implemented for focused acceptance. Preserve independent bastion selections and missing-field legacy saves. Exact public PC/touch proof pending. Roar, destruction, complete class catalogue and full balance remain incomplete."
       ]
     },
     {

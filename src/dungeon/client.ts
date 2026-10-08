@@ -2,6 +2,7 @@ import {validSupplyStock} from './economy';
 import {validInventory} from './inventory';
 import {validQuestJournal} from './quests';
 import {BASTION_SKILLS,validBastionTraining,validBastionSkillState} from './training';
+import {RAVAGER_SKILLS,validRavagerTraining,validRavagerSkillState} from './ravager-training';
 import {DUNGEON_PROTOCOL, type Action, type ClientPacket, type Input, type Snapshot} from './types';
 
 export const ROOM_PATTERN=/^[a-f0-9]{64}$/;
@@ -83,15 +84,19 @@ function validPendingReturn(value:unknown):boolean {
  try {return validInventory(value)&&value.every(item=>item.found);}catch {return false;}
 }
 function validActorTraining(value:unknown,elapsed:number):boolean {
- if(!value||typeof value!=='object')return false;
+ if(!value||typeof value!=='object'||Array.isArray(value))return false;
  const actor=value as Record<string,unknown>;
  if(Object.hasOwn(actor,'training')&&!validBastionTraining(actor.training))return false;
+ if(Object.hasOwn(actor,'ravagerTraining')&&!validRavagerTraining(actor.ravagerTraining))return false;
  if(Object.hasOwn(actor,'skillState')){
   if(!validBastionSkillState(actor.skillState)||actor.classId!=='bastion'||!validBastionTraining(actor.training)||actor.training.skill!==actor.skillState.skill||actor.skillState.readyAt-BASTION_SKILLS[actor.skillState.skill].cooldown>elapsed+1e-7)return false;
+ }
+ if(Object.hasOwn(actor,'ravagerSkillState')){
+  if(!validRavagerSkillState(actor.ravagerSkillState)||actor.classId!=='ravager'||!validRavagerTraining(actor.ravagerTraining)||actor.ravagerTraining.skill!==actor.ravagerSkillState.skill||actor.ravagerSkillState.readyAt-RAVAGER_SKILLS[actor.ravagerSkillState.skill].cooldown>elapsed+1e-7)return false;
  }
  return true;
 }
 export function isSnapshot(value:unknown):value is Snapshot {
  if(!value||typeof value!=='object')return false;
- const v=value as Partial<Snapshot>;return (!Object.hasOwn(v,'quests')||validQuestJournal(v.quests))&&(!Object.hasOwn(v,'pendingReturn')||validPendingReturn(v.pendingReturn))&&v.protocol===DUNGEON_PROTOCOL&&typeof v.you==='string'&&typeof v.seed==='number'&&Number.isFinite(v.seed)&&typeof v.raid==='number'&&typeof v.tick==='number'&&typeof v.elapsed==='number'&&Number.isFinite(v.elapsed)&&['lobby','raid','finished'].includes(v.phase??'')&&Number.isSafeInteger(v.lastAction)&&v.lastAction!>=0&&Number.isSafeInteger(v.lastInput)&&v.lastInput!>=0&&Array.isArray(v.actors)&&v.actors.every(actor=>validActorTraining(actor,v.elapsed!))&&Array.isArray(v.enemies)&&v.enemies.every(actor=>validActorTraining(actor,v.elapsed!))&&Array.isArray(v.containers)&&Array.isArray(v.doors)&&Array.isArray(v.exits)&&Array.isArray(v.shots)&&Array.isArray(v.stash)&&Array.isArray(v.events)&&typeof v.result==='string'&&Number.isSafeInteger(v.gold)&&v.gold!>=0&&v.gold!<=1e9&&validSupplyStock(v.shop)&&Array.isArray(v.trades)&&v.trades.length<=6&&v.trades.every(entry=>typeof entry==='string'&&entry.length<=96);
+ const v=value as Partial<Snapshot>;return (!Object.hasOwn(v,'quests')||validQuestJournal(v.quests))&&(!Object.hasOwn(v,'pendingReturn')||validPendingReturn(v.pendingReturn))&&v.protocol===DUNGEON_PROTOCOL&&typeof v.you==='string'&&typeof v.seed==='number'&&Number.isFinite(v.seed)&&Number.isSafeInteger(v.raid)&&v.raid!>=0&&Number.isSafeInteger(v.tick)&&v.tick!>=0&&typeof v.elapsed==='number'&&Number.isFinite(v.elapsed)&&v.elapsed>=0&&v.elapsed<=1e6&&['lobby','raid','finished'].includes(v.phase??'')&&Number.isSafeInteger(v.lastAction)&&v.lastAction!>=0&&Number.isSafeInteger(v.lastInput)&&v.lastInput!>=0&&Array.isArray(v.actors)&&v.actors.every(actor=>validActorTraining(actor,v.elapsed!))&&Array.isArray(v.enemies)&&v.enemies.every(actor=>validActorTraining(actor,v.elapsed!))&&Array.isArray(v.containers)&&Array.isArray(v.doors)&&Array.isArray(v.exits)&&Array.isArray(v.shots)&&Array.isArray(v.stash)&&Array.isArray(v.events)&&typeof v.result==='string'&&Number.isSafeInteger(v.gold)&&v.gold!>=0&&v.gold!<=1e9&&validSupplyStock(v.shop)&&Array.isArray(v.trades)&&v.trades.length<=6&&v.trades.every(entry=>typeof entry==='string'&&entry.length<=96);
 }

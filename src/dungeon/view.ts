@@ -4,6 +4,7 @@ import type {Vec3} from '../prototype/core/voxel';
 import {WorldMeshes} from '../prototype/rendering/meshes';
 import {dungeonField} from './world';
 import {configureDungeonMasonry} from './materials';
+import {ravagerRecoveryRate} from './ravager-training';
 import type {Input,Snapshot,ClassId} from './types';
 
 type VisibleActor=Snapshot['actors'][number];
@@ -12,7 +13,7 @@ const classColors:Record<ClassId,string>={bastion:'#849cac',ravager:'#a8745d',sh
 export function dungeonBlade(actor:VisibleActor,yaw=actor.yaw,pitch=actor.pitch,age=0){
  const archetype=actor.weapon==='greatsword'?'greatsword':actor.weapon==='dagger'?'dagger':'sword';
  const timing=meleeDefinition(actor.kind,archetype),duration=actor.phase==='windup'?timing.windup:actor.phase==='strike'?timing.strike:actor.phase==='recover'?timing.recover:0;
- const pose=attackPose(actor.kind,actor.phase,Math.min(duration,actor.time+Math.max(0,Math.min(.1,age))),1,archetype);
+ const pose=attackPose(actor.kind,actor.phase,Math.min(duration,actor.time+Math.max(0,Math.min(.1,age))*ravagerRecoveryRate(actor)),1,archetype);
  return bladeWorld(pose,actor.position,yaw,pitch);
 }
 function segment(mesh:THREE.Mesh,from:Vec3,to:Vec3,radius=1){a.set(from.x,from.y,from.z);b.set(to.x,to.y,to.z);direction.subVectors(b,a);mesh.position.copy(a).add(b).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(up,direction.clone().normalize());mesh.scale.set(radius,direction.length(),radius);}

@@ -612,6 +612,38 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+  dungeon-ravager-browser:
+    needs: [verify, deploy-preview]
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 4
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, android-chromium]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e -- tests/e2e/dungeon-ravager-training.spec.ts --project=${{ matrix.project }}
+        env:
+          E2E_BASE_URL: https://pr-4-threejs-game.usks213.workers.dev
+          E2E_DUNGEON: '1'
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dungeon-ravager-training-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
   dungeon-webkit-browser:
     needs: verify
     runs-on: ubuntu-latest
