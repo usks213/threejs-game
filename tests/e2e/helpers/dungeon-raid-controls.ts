@@ -222,7 +222,9 @@ export class RaidControls {
           continue;
         }
         const nextMedicine = actor.bag.find(item => item.kind === 'potion' || item.kind === 'bandage');
-        if (raidNeedsCombatRecovery(actor.hp, raidRecoveryKey(nextMedicine?.kind, actor.hp, actor.recoverable, actor.classId, actor.spells) !== null)) {
+        // Finish an already committed, aligned swing before changing to a
+        // sideways healing lane. Otherwise that retreat makes our own blade miss.
+        if (raidNeedsCombatRecovery(actor.hp, raidRecoveryKey(nextMedicine?.kind, actor.hp, actor.recoverable, actor.classId, actor.spells) !== null, actor.phase)) {
           await this.retreatAndHeal(deadline);
           continue;
         }

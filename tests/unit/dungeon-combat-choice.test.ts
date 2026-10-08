@@ -62,3 +62,14 @@ it('never treats another class’s offense or an exhausted keeper as free healin
   expect(raidRecoveryKey(undefined, 45, 85, 'keeper', 0)).toBeNull();
   expect(raidRecoveryKey('bandage', 45, 45, 'keeper', 0)).toBeNull();
 });
+
+it('finishes the recorded aligned swing before entering a sideways recovery lane', () => {
+  for (const hp of [78, 38, 6]) {
+    expect(raidNeedsCombatRecovery(hp, true, 'windup')).toBe(false);
+    expect(raidNeedsCombatRecovery(hp, true, 'strike')).toBe(false);
+    expect(raidNeedsCombatRecovery(hp, true, 'recover')).toBe(true);
+    expect(raidNeedsCombatRecovery(hp, true, 'idle')).toBe(true);
+  }
+  expect(raidNeedsCombatRecovery(78, true)).toBe(true);
+  expect(raidNeedsCombatRecovery(78, false, 'recover')).toBe(false);
+});

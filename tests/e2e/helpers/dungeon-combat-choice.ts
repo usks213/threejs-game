@@ -3,7 +3,8 @@ import type {AttackPhase} from '../../../src/prototype/core/motion';
 /** Keeper's real sword does at least 30 body damage with a normal attack. */
 export const raidMeleeKey = (targetHp: number): 'KeyT' | 'KeyR' => targetHp <= 30 ? 'KeyT' : 'KeyR';
 
-export const raidNeedsCombatRecovery = (hp: number, hasHealingResource: boolean) => hp <= 80 && hasHealingResource;
+export const raidNeedsCombatRecovery = (hp: number, hasHealingResource: boolean, phase: AttackPhase = 'idle') =>
+  hp <= 80 && hasHealingResource && phase !== 'windup' && phase !== 'strike';
 export const raidMedicineCanHeal = (kind: string | undefined, hp: number, recoverable: number) => kind === 'potion' || kind === 'bandage' && recoverable > hp;
 export function raidRecoveryKey(kind: string | undefined, hp: number, recoverable: number, classId: string, spells: number): 'KeyQ' | 'KeyG' | null {
   if (raidMedicineCanHeal(kind, hp, recoverable)) return 'KeyQ';

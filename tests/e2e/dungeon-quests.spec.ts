@@ -65,8 +65,9 @@ test('dungeon supplier quests require real extraction, selected ore delivery and
     expect(current.pendingReturn ?? []).toEqual([]);
     expect(own(current).bag).toEqual([]);
     expect(journal(current)).toEqual([]);
-    const questEntry = page.getByRole('button', {name: '補給所の依頼を見る', exact: true});
+    const questEntry = page.getByTestId('dungeon-quest-open');
     await expect(questEntry).toBeVisible();
+    await expect(questEntry).toHaveText('補給所の依頼を見る · 2件');
     await screenshot('initial-lobby-quest-entry', questEntry, false);
     await route.activate(questEntry);
     await expect(page.getByTestId('dungeon-quest-panel')).toBeVisible();
