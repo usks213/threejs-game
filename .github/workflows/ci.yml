@@ -22,6 +22,7 @@ jobs:
       host: ${{ steps.scope.outputs.host }}
       browser: ${{ steps.scope.outputs.browser }}
       browser_grep: ${{ steps.scope.outputs.browser_grep }}
+      browser_scope: ${{ steps.scope.outputs.browser_scope }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -194,6 +195,7 @@ jobs:
       - run: npm run e2e -- --project=android-chromium --retries=0 --grep "$BROWSER_GREP"
         env:
           BROWSER_GREP: ${{ needs.verify.outputs.browser_grep }}
+          BROWSER_SCOPE: ${{ needs.verify.outputs.browser_scope }}
           DEPLOYMENT_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
       - uses: actions/upload-artifact@v4
