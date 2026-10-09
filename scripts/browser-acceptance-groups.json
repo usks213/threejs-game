@@ -1,0 +1,22 @@
+{
+ "input":{"files":["prototype.spec.ts"],"grep":"landscape|portrait"},
+ "motion":{"files":["prototype.spec.ts"],"grep":"motion review"},
+ "duel":{"files":["prototype.spec.ts"],"grep":"desktop duel"},
+ "sdf":{"files":["prototype.spec.ts"],"grep":"desktop SDF"},
+ "chromium":{"files":["prototype.spec.ts"]},
+ "elements":{"files":["elements.spec.ts"]},
+ "campaign":{"files":["campaign.spec.ts","campaign-playthrough.spec.ts"]},
+ "campaign-ui":{"files":["campaign-camera.spec.ts","campaign-hud.spec.ts","campaign-map.spec.ts","campaign-bulk-crafting.spec.ts","campaign-hazards.spec.ts","campaign-building-snap.spec.ts","campaign-combat-resources.spec.ts"]},
+ "mist":{"files":["campaign-mist.spec.ts"]},
+ "echo-vault":{"files":["echo-vault.spec.ts"]},
+ "soil-life":{"files":["campaign-soil-fill.spec.ts","western-npc-life.spec.ts"]},
+ "player-rest":{"files":["campaign-player-rest.spec.ts"]},
+ "watermill":{"files":["watermill.spec.ts"]},
+ "equipment-tools":{"files":["campaign-equipment-tools.spec.ts"]},
+ "collectible-display":{"files":["campaign-collectible-display.spec.ts"]},
+ "inventory-stacks":{"files":["campaign-inventory-stacks.spec.ts"]},
+ "skill-gems":{"files":["campaign-skill-gems.spec.ts"]},
+ "discovery-controls":{"files":["campaign-codex.spec.ts","campaign-gamepad.spec.ts"]},
+ "campaign-save":{"files":["campaign-save-history.spec.ts","campaign-save-history-cleanup.spec.ts","campaign-file-transfer.spec.ts"]},
+ "campaign-migration":{"files":["campaign-expansion.spec.ts","campaign-invitation-privacy.spec.ts"]}
+}

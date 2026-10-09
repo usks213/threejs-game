@@ -1,0 +1,14 @@
+import {it,expect} from 'vitest';
+import {NormalPlayer} from './helpers/normal-campaign-player';
+import {captureCampaign,hydrateCampaign,defaultSettings} from '../../src/prototype/campaign-session';
+it('zero-grant gather → paid loom → real valve → stop/resume → claim/save',()=>{
+ const d=new NormalPlayer(),s=d.sim;expect(Object.values(s.survival.inventory).every(n=>n===0)).toBe(true);
+ d.walk(-.55,6.15);d.act('chisel');d.harvest(4,16,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95},{x:-2.2,y:.58,z:6.25}],'sample-wood');
+ d.walk(-.55,5.25);d.walk(-3.45,5.25);d.walk(-3.45,6.35);d.harvest(3,10,[{x:-4.2,y:.55,z:6.8},{x:-4.5,y:.55,z:6.8},{x:-4.5,y:.65,z:6.5}],'sample-stone');
+ d.walk(-3.45,6.65);d.harvest(7,6,[{x:-3.45,y:.5,z:7.9},{x:-3.1,y:.5,z:7.9}],'sample-grass');d.walk(-3.45,5.3);d.walk(2.5,5.3);d.walk(2.5,5.75);d.harvest(6,2,[{x:2.5,y:.8,z:7.1},{x:2.8,y:.8,z:7.1}],'sample-metal');
+ d.walk(2.5,5.3);d.walk(-3.5,5.3);d.interact('hearth',{x:-3,y:.9,z:4});d.act('sword');d.walk(0,5.3);d.walk(0,3.2);d.interact('door',{x:0,y:1.4,z:1});d.fight(0);d.heal();d.walk(0,0);d.walk(0,-3);d.fight(1);d.heal();d.walk(0,0);d.walk(2.5,0);d.walk(2.5,-1.3);
+ const before={...s.survival.inventory};d.menu('homestead','watermill-build');expect(s.survival.inventory[4]).toBe(before[4]-8);expect(s.survival.inventory[3]).toBe(before[3]-4);expect(s.survival.inventory[6]).toBe(before[6]-2);d.menu('homestead','watermill-start');expect(s.survival.inventory[7]).toBe(before[7]-6);d.advance(1);expect(s.watermill.state.job!.remaining).toBe(8);
+ const valve=()=>d.interact('valve',{x:3.25,y:.8,z:-2.75});valve();expect(s.waterOn).toBe(true);d.advance(1.2);expect(s.watermill.state.job!.remaining).toBeLessThan(8);valve();expect(s.waterOn).toBe(false);d.advance(2);const stopped=s.watermill.state.job!.remaining,angle=s.watermill.state.angle;expect(stopped).toBeGreaterThan(0);d.advance(1);expect(s.watermill.state.job!.remaining).toBe(stopped);expect(s.watermill.state.angle).toBe(angle);
+ const mid=hydrateCampaign(captureCampaign(s,defaultSettings()));expect(mid).not.toBeNull();expect(mid!.sim.watermill.snapshot()).toEqual(s.watermill.snapshot());expect(mid!.sim.watermill.flow).toBe(0);
+ valve();d.until(()=>s.watermill.state.job!.remaining===0,40,{},'actual hydraulic loom completes');valve();const id=s.watermill.state.job!.id;d.menu('homestead','watermill-claim:'+id);expect(s.survival.inventory[10]).toBe(before[10]+2);expect(s.campaign.state.deaths).toBe(0);const saved=captureCampaign(s,defaultSettings()),resumed=hydrateCampaign(JSON.parse(JSON.stringify(saved)));expect(resumed).not.toBeNull();expect(resumed!.sim.watermill.snapshot()).toEqual(s.watermill.snapshot());expect(resumed!.sim.watermill.claim(id,resumed!.sim.watermillContext).ok).toBe(false);expect(resumed!.sim.survival.inventory[10]).toBe(before[10]+2);
+},45000);

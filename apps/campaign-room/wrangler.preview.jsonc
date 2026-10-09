@@ -1,0 +1,24 @@
+{
+  // PR4 only: use only `wrangler preview --name pr-4 --config ...`.
+  // Do not use `wrangler deploy`; that would target the production Worker.
+  "name": "threejs-game",
+  "main": "./src/preview-worker.ts",
+  "compatibility_date": "2026-10-02",
+  "assets": {
+    "directory": "../../dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/campaign-room/*", "/dungeon-room/*"]
+  },
+  "durable_objects": {
+    "bindings": [{"name": "CAMPAIGN_ROOMS", "class_name": "CampaignRoom"}]
+  },
+  "migrations": [
+    {"tag": "pr4-campaign-room-v1", "new_sqlite_classes": ["CampaignRoom"]}
+  ],
+  "previews": {
+    "vars": {"CAMPAIGN_RELAY_ENABLED": "true"},
+    "durable_objects": {
+      "bindings": [{"name": "CAMPAIGN_ROOMS", "class_name": "CampaignRoom"}]
+    }
+  }
+}

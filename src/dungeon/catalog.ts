@@ -1,0 +1,5 @@
+import type {ClassId,ItemKind} from './types';
+export const CLASSES:Record<ClassId,{name:string;hp:number;speed:number;weapon:ItemKind;spells:number}>={
+ bastion:{name:'城塞兵',hp:125,speed:3,weapon:'sword',spells:0},ravager:{name:'荒戦士',hp:145,speed:2.85,weapon:'greatsword',spells:0},shade:{name:'影盗',hp:85,speed:3.7,weapon:'dagger',spells:0},hunter:{name:'狩人',hp:100,speed:3.3,weapon:'bow',spells:0},arcanist:{name:'秘術師',hp:80,speed:3.15,weapon:'staff',spells:8},keeper:{name:'灯守',hp:110,speed:3,weapon:'sword',spells:5}
+};
+export const ITEMS:Record<ItemKind,{name:string;w:number;h:number;stack:number;value:number}>={sword:{name:'灰鉄の片剣',w:1,h:3,stack:1,value:20},greatsword:{name:'裂石の大剣',w:2,h:4,stack:1,value:30},dagger:{name:'薄刃の短剣',w:1,h:2,stack:1,value:15},bow:{name:'葦木の弓',w:2,h:3,stack:1,value:22},staff:{name:'燐の杖',w:1,h:4,stack:1,value:24},shield:{name:'丸い鉄盾',w:2,h:2,stack:1,value:18},potion:{name:'赤灯の薬',w:1,h:1,stack:3,value:8},bandage:{name:'清潔な包帯',w:1,h:1,stack:5,value:4},arrow:{name:'鉄矢',w:1,h:2,stack:20,value:1},relic:{name:'刻印された遺宝',w:2,h:2,stack:1,value:45},ore:{name:'灰銀鉱',w:1,h:1,stack:10,value:7},key:{name:'細工鍵',w:1,h:1,stack:3,value:12}};

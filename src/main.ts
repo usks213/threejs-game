@@ -1,5 +1,2 @@
-import './ui/style.css';
-import { startGame } from './platform/game';
-const dispose = startGame();
-window.addEventListener('pagehide', event => { if (!event.persisted) dispose(); });
-if (import.meta.hot) import.meta.hot.dispose(dispose);
+async function boot(){try {if(new URLSearchParams(location.search).get('mode')==='dungeon'){const {startDungeon}=await import('./dungeon/app');startDungeon();}else{const {startPrototype}=await import('./prototype/app');startPrototype();}} catch(error) {const alert=document.querySelector<HTMLElement>('#error');if(alert){alert.hidden=false;alert.textContent='ゲームを起動できません。WebGL対応ブラウザで開いてください。';}console.error(error);}}
+void boot();
