@@ -76,6 +76,16 @@ function fixture() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('first-raid loot inventory', () => {
+  it('shows initial drawing separately from errors and follows authoritative time during loading', () => {
+    const h = fixture();h.ui.setWorldLoading(true);
+    const loading = get(h.root, 'dungeon-world-loading');
+    expect(loading.hidden).toBe(false);expect(loading.textContent).toContain('敵の行動は進んでいます');
+    expect(get(h.root, 'dungeon-loading-clock').textContent).toContain('8:00');
+    h.value.elapsed = 17;h.ui.update(h.value);
+    expect(get(h.root, 'dungeon-loading-clock').textContent).toContain('7:43');expect(h.value.elapsed).toBe(17);
+    h.ui.setWorldLoading(true, true);expect(loading.textContent).toContain('再接続');expect(loading.textContent).toContain('停止していません');
+    h.ui.setWorldLoading(false);expect(loading.hidden).toBe(true);h.ui.dispose();
+  });
   it('puts loot first, hides unavailable raid facilities, and restores them for results and lobby', () => {
     const h = fixture(); h.ui.setInventory(true);
     const panel = withClass(h.root, 'dungeon-inventory-panel');

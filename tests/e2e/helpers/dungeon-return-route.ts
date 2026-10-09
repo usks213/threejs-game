@@ -1,3 +1,4 @@
+import {waitForDungeonWorld} from './dungeon-world-ready';
 import {expect, type Locator, type Page} from '@playwright/test';
 import type {Snapshot} from '../../../src/dungeon/types';
 import {own, read} from './dungeon-raid-controls';
@@ -40,6 +41,7 @@ export class DungeonReturnRoute {
   }
 
   async walk(x: number, z: number) {
+    await waitForDungeonWorld(this.page);
     const session = this.mobile ? await this.page.context().newCDPSession(this.page) : null;
     try {
       for (let step = 0; step < 70; step++) {

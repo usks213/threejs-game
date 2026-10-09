@@ -1,3 +1,4 @@
+import {waitForDungeonWorld} from './helpers/dungeon-world-ready';
 import {test,expect,type Locator,type Page} from '@playwright/test';
 import {own,read} from './helpers/dungeon-raid-controls';
 import type {Snapshot} from '../../src/dungeon/types';
@@ -38,7 +39,7 @@ test('dungeon recovered treasure funds real resupply and a second finite-resourc
  await page.goto('/?mode=dungeon&test=1');await page.getByTestId('dungeon-name').fill('帰還して補給する探索者');await activate(page.getByTestId('dungeon-create'),isMobile);
  await expect.poll(async()=>(await read(page))?.actors.length).toBe(1);await expect(page.getByTestId('dungeon-loadout-preview')).toContainText('無料補給');
  await inventory(page,isMobile,true);await expect(page.getByTestId('dungeon-gold')).toHaveText('0 金貨');await expect(page.getByTestId('dungeon-buy-potion')).toBeDisabled();await inventory(page,isMobile,false);
- await activate(page.getByTestId('dungeon-ready'),isMobile);await activate(page.getByTestId('dungeon-start'),isMobile);await until(page,s=>s.phase==='raid','first raid begins');
+ await activate(page.getByTestId('dungeon-ready'),isMobile);await activate(page.getByTestId('dungeon-start'),isMobile);await until(page,s=>s.phase==='raid','first raid begins');await waitForDungeonWorld(page);
  await walk(page,isMobile,-12,8);await activate(page.locator('[data-target=chest0]'),isMobile);await until(page,s=>!!s.containers.find(c=>c.id==='chest0')?.opened,'ordinary chest opens');
  const treasure=(await state(page)).containers.find(c=>c.id==='chest0')!.items.find(i=>i.kind==='relic')!;expect(treasure).toBeTruthy();
  await activate(page.locator('[data-target=chest0]'),isMobile);await activate(page.locator(`[data-loot-target=chest0][data-loot-item="${treasure.id}"]`),isMobile);await until(page,s=>own(s).bag.some(i=>i.id===treasure.id),'treasure picked up');await inventory(page,isMobile,false);
@@ -55,7 +56,7 @@ test('dungeon recovered treasure funds real resupply and a second finite-resourc
  await carry(purchased.id);await expect(page.getByTestId('dungeon-inventory-loadout')).toContainText('武器がありません');await inventory(page,isMobile,false);await expect(page.getByTestId('dungeon-ready')).toBeDisabled();
  await inventory(page,isMobile,true);await carry(weapon.id);await carry(shield.id);await inventory(page,isMobile,false);await expect(page.getByTestId('dungeon-loadout-preview')).toContainText('携行武器');await activate(page.getByTestId('dungeon-ready'),isMobile);
  await inventory(page,isMobile,true);await expect(page.getByTestId('dungeon-buy-potion')).toBeDisabled();await inventory(page,isMobile,false);
- const carried=own(await state(page)).bag.map(i=>i.id).sort();await activate(page.getByTestId('dungeon-start'),isMobile);await until(page,s=>s.raid===2&&s.phase==='raid','second raid begins');
+ const carried=own(await state(page)).bag.map(i=>i.id).sort();await activate(page.getByTestId('dungeon-start'),isMobile);await until(page,s=>s.raid===2&&s.phase==='raid','second raid begins');await waitForDungeonWorld(page);
  expect(own(await state(page)).bag.map(i=>i.id).sort()).toEqual(carried);expect((await state(page)).shop).toEqual({potion:6,bandage:10});expect((await state(page)).gold).toBe(60);
  const bankBeforeFight=(await state(page)).stash.map(i=>i.id).sort();
  // Resolve the visible touch target while safe. During combat use a normal

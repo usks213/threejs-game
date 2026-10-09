@@ -1,9 +1,7 @@
 import * as THREE from 'three';
 import {attackPose,bladeWorld,meleeDefinition} from '../prototype/core/motion';
 import type {Vec3} from '../prototype/core/voxel';
-import {WorldMeshes} from '../prototype/rendering/meshes';
-import {dungeonField} from './world';
-import {configureDungeonMasonry} from './materials';
+import {DungeonWorldLoader} from './world-loader';
 import {ravagerRecoveryRate} from './ravager-training';
 import type {Input,Snapshot,ClassId} from './types';
 
@@ -68,12 +66,12 @@ function actorRig(enemy:boolean,local:boolean){
  };
 }
 
-export function createDungeonView(canvas:HTMLCanvasElement){
+export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged?():void}={}){
  const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
  const scene=new THREE.Scene();scene.background=new THREE.Color('#0b1011');scene.fog=new THREE.FogExp2('#0b1011',.044);
  const camera=new THREE.PerspectiveCamera(76,1,.035,55);camera.rotation.order='YXZ';scene.add(camera);
  scene.add(new THREE.HemisphereLight('#a6b8c4','#403224',.58));
- const lantern=new THREE.PointLight('#f9d6a0',11,9,2);lantern.position.set(-.25,-.15,-.15);camera.add(lantern);
+ const lantern=new THREE.PointLight('#f9d6a0',14,10,2);lantern.position.set(0,.15,.65);camera.add(lantern);
  const resources:THREE.BufferGeometry[]=[],materials:THREE.Material[]=[];
  const material=(options:THREE.MeshStandardMaterialParameters)=>{const m=new THREE.MeshStandardMaterial(options);materials.push(m);return m;};
  const stone=material({color:'#5b6260',roughness:.98}),wood=material({color:'#46301e',roughness:.9}),iron=material({color:'#5e6966',metalness:.72,roughness:.45}),gold=material({color:'#b69649',metalness:.45,roughness:.42}),cloth=material({color:'#5b3e36',roughness:1});
@@ -95,12 +93,13 @@ export function createDungeonView(canvas:HTMLCanvasElement){
  }
  const rigs=new Map<string,ReturnType<typeof actorRig>>(),containers=new Map<string,{root:THREE.Group;lid:THREE.Group;lock:THREE.Mesh}>(),portals=new Map<string,{root:THREE.Group;ring:THREE.Mesh;light:THREE.PointLight}>(),shots=new Map<string,THREE.Mesh>();
  const ownRig=actorRig(false,true);scene.add(ownRig.group);
- let world:WorldMeshes|null=null,seed:number|null=null,doors=new Map<string,boolean>(),snapshot:Snapshot|null=null,receivedAt=0,disposed=false,contextLost=false;
+ let snapshot:Snapshot|null=null,receivedAt=0,disposed=false,graphicsFailed=false;
+ const world=new DungeonWorldLoader(scene,{changed:()=>{canvas.dataset.worldReady=String(world.ready);options.worldChanged?.();}});canvas.dataset.worldReady='false';
  const doorDecor=new Map<string,THREE.Group>();
  const authoritativePosition=new THREE.Vector3(),localPosition=new THREE.Vector3(),readyPosition={value:false};let currentRaid=-1,seconds=0;
  function syncWorld(next:Snapshot){
-  if(seed!==next.seed){world?.dispose();world=new WorldMeshes(dungeonField(next.seed,next.doors),scene);configureDungeonMasonry(world.material);seed=next.seed;doors=new Map(next.doors.map(d=>[d.id,d.open]));}
-  else if(world){for(const door of next.doors){if(doors.get(door.id)===door.open)continue;world.field.removeObject(door.id);if(!door.open)world.field.box({x:door.position.x-3,y:0,z:door.position.z-.15},{x:door.position.x+3,y:2.8,z:door.position.z+.15},4,door.id,.04);doors.set(door.id,door.open);}}
+  // No disposable lobby-0 terrain: start/join supplies the actual authoritative raid.
+  if(next.raid>0)world.request(next);
   const doorIds=new Set(next.doors.map(d=>d.id));for(const [id,frame] of doorDecor)if(!doorIds.has(id)){frame.removeFromParent();doorDecor.delete(id);}
   for(const door of next.doors){let frame=doorDecor.get(door.id);if(!frame){frame=new THREE.Group();scene.add(frame);for(const side of [-1,1]){const post=mesh(box,iron,frame);post.position.set(side*2.9,1.45,0);post.scale.set(.1,2.9,.37);}const lintel=mesh(box,iron,frame);lintel.position.y=2.8;lintel.scale.set(5.9,.1,.36);doorDecor.set(door.id,frame);}frame.position.set(door.position.x,door.position.y,door.position.z);}
  }
@@ -110,21 +109,28 @@ export function createDungeonView(canvas:HTMLCanvasElement){
   const exitIds=new Set(next.exits.map(e=>e.id));for(const[id,p]of portals)if(!exitIds.has(id)){p.root.removeFromParent();portals.delete(id);}
   for(const exit of next.exits){let p=portals.get(exit.id);if(!p){const root=new THREE.Group();scene.add(root);const base=mesh(disk,stone,root),loop=mesh(ring,closedPortal,root);base.position.y=.03;loop.position.y=1.12;const light=new THREE.PointLight('#60ffd8',0,5,2);light.position.y=1.2;root.add(light);p={root,ring:loop,light};portals.set(exit.id,p);}p.root.position.set(exit.position.x,exit.position.y,exit.position.z);const open=next.elapsed>=exit.opensAt&&exit.remaining>0;p.ring.material=open?activePortal:closedPortal;p.light.intensity=open?10:0;p.root.visible=exit.remaining>0;}
  }
- const contextHandler=(event:Event)=>{event.preventDefault();contextLost=true;};canvas.addEventListener('webglcontextlost',contextHandler);
+ // A thrown draw is just as terminal as context loss; never publish a partial first frame.
+ const failGraphics=()=>{if(graphicsFailed)return;graphicsFailed=true;world.clear();};
+ const contextHandler=(event:Event)=>{event.preventDefault();failGraphics();};canvas.addEventListener('webglcontextlost',contextHandler);
  return {
-  setSnapshot(next:Snapshot){if(disposed)return;snapshot=next;receivedAt=performance.now();syncWorld(next);syncProps(next);if(next.raid!==currentRaid){currentRaid=next.raid;readyPosition.value=false;}},
-  resize(){if(disposed)return;const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();},
-  render(dt:number,look:Input){if(disposed||contextLost)return;seconds+=dt;if(!snapshot){camera.position.set(-11,1.52,11);camera.rotation.set(-.03,0,0);renderer.render(scene,camera);return;}
+  setSnapshot(next:Snapshot){if(disposed||graphicsFailed)return;snapshot=next;receivedAt=performance.now();syncWorld(next);syncProps(next);if(next.raid!==currentRaid){currentRaid=next.raid;readyPosition.value=false;}},
+  resize(){if(disposed||graphicsFailed)return;const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();},
+  render(dt:number,look:Input){if(disposed||graphicsFailed)return;try{seconds+=dt;if(!snapshot){camera.position.set(-11,1.52,11);camera.rotation.set(-.03,0,0);renderer.render(scene,camera);return;}
+   if(snapshot.raid>0&&!world.presentable){renderer.clear();return;}world.show();
    const own=snapshot.actors.find(actor=>actor.id===snapshot!.you),age=Math.min(.1,(performance.now()-receivedAt)/1000);
-   if(own){const p=own.position;authoritativePosition.set(p.x,p.y,p.z);if(!readyPosition.value||localPosition.distanceTo(authoritativePosition)>3){localPosition.set(p.x,p.y,p.z);readyPosition.value=true;}else localPosition.lerp(authoritativePosition,1-Math.exp(-dt*24));camera.position.copy(localPosition);camera.position.y+=own.status==='dead'?.6:1.52;camera.rotation.set(look.pitch,look.yaw,0);ownRig.update({...own,position:{x:localPosition.x,y:localPosition.y,z:localPosition.z}},look,age,seconds);ownRig.group.visible=own.status==='alive';world?.sync(p,2);}
-   else world?.sync(undefined,2);
+   if(own){const p=own.position;authoritativePosition.set(p.x,p.y,p.z);if(!readyPosition.value||localPosition.distanceTo(authoritativePosition)>3){localPosition.set(p.x,p.y,p.z);readyPosition.value=true;}else localPosition.lerp(authoritativePosition,1-Math.exp(-dt*24));camera.position.copy(localPosition);camera.position.y+=own.status==='dead'?.6:1.52;camera.rotation.set(look.pitch,look.yaw,0);ownRig.update({...own,position:{x:localPosition.x,y:localPosition.y,z:localPosition.z}},look,age,seconds);ownRig.group.visible=own.status==='alive';}
    const ids=new Set<string>();for(const actor of [...snapshot.actors,...snapshot.enemies]){if(actor.id===snapshot.you)continue;ids.add(actor.id);let rig=rigs.get(actor.id);if(!rig){rig=actorRig(actor.team===-1,false);rigs.set(actor.id,rig);scene.add(rig.group);}rig.update(actor,undefined,age,seconds);}
    for(const [id,rig]of rigs)if(!ids.has(id)){rig.dispose();rigs.delete(id);}
    const shotIds=new Set(snapshot.shots.map(s=>s.id));for(const[id,object]of shots)if(!shotIds.has(id)){object.removeFromParent();shots.delete(id);}for(const shot of snapshot.shots){let object=shots.get(shot.id);if(!object){object=mesh(shot.magic?sphere:cylinder,shot.magic?activePortal:iron);shots.set(shot.id,object);}object.position.set(shot.position.x+shot.velocity.x*age,shot.position.y+shot.velocity.y*age,shot.position.z+shot.velocity.z*age);if(shot.magic)object.scale.setScalar(.095);else{object.scale.set(.013,.6,.013);direction.set(shot.velocity.x,shot.velocity.y,shot.velocity.z).normalize();object.quaternion.setFromUnitVectors(up,direction);}}
    for(let i=0;i<lights.length;i++)lights[i].intensity=23+Math.sin(seconds*8+i)*1.3;for(const p of portals.values())p.ring.rotation.y=seconds*.35;
    renderer.render(scene,camera);
+   if(!graphicsFailed)world.rendered();
+   }catch{failGraphics();}
   },
-  get lost(){return contextLost;},
-  dispose(){if(disposed)return;disposed=true;canvas.removeEventListener('webglcontextlost',contextHandler);world?.dispose();ownRig.dispose();rigs.forEach(r=>r.dispose());resources.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.clear();renderer.renderLists.dispose();renderer.dispose();},
+  get worldReady(){return world.ready;},get worldStage(){return world.state;},
+  get worldCoverage(){return world.coverage;},
+  resetWorld(){snapshot=null;currentRaid=-1;readyPosition.value=false;world.clear();},
+  get lost(){return graphicsFailed;},
+  dispose(){if(disposed)return;disposed=true;canvas.removeEventListener('webglcontextlost',contextHandler);world.dispose();ownRig.dispose();rigs.forEach(r=>r.dispose());resources.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.clear();renderer.renderLists.dispose();renderer.dispose();},
  };
 }

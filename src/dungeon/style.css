@@ -28,6 +28,9 @@
 .dungeon-app h3 { font-size: 14px; letter-spacing: .08em; margin: 22px 0 10px; }
 .dungeon-app .dungeon-shell { position: absolute; inset: 0; isolation: isolate; }
 .dungeon-app .dungeon-canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
+.dungeon-app .dungeon-world-loading { position: absolute; z-index: 11; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: max(90px, env(safe-area-inset-top)) 24px 24px; background: #101714; text-align: center; }
+.dungeon-app .dungeon-world-loading h2 { font-size: clamp(18px, 4vw, 25px); }
+.dungeon-app .dungeon-world-loading p { max-width: 520px; font-size: 13px; }
 .dungeon-app .dungeon-header {
   position: absolute; z-index: 12; inset: 0 0 auto; min-height: 70px;
   padding: max(10px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) 10px max(22px, env(safe-area-inset-left));

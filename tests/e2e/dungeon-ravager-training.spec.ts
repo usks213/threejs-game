@@ -1,3 +1,5 @@
+import {captureDungeonLighting} from './helpers/dungeon-lighting-evidence';
+import {waitForDungeonWorld} from './helpers/dungeon-world-ready';
 import {test, expect, type CDPSession, type Locator, type Page} from '@playwright/test';
 import type {RavagerTraining, Snapshot} from '../../src/dungeon/types';
 import {angle, observeActions, own, range, read} from './helpers/dungeon-raid-controls';
@@ -128,7 +130,7 @@ test('dungeon optional ravager training preserves class choices and really short
     // Element screenshots taller than the viewport resize Chromium's emulated
     // viewport and can silently discard its touch profile. Keep this diagnostic
     // capture viewport-sized; never change the page's input model to get a picture.
-    await page.screenshot({path, mask: [page.getByTestId('dungeon-invite'), page.getByTestId('dungeon-room')]});
+    await captureDungeonLighting(page,name,()=>page.screenshot({path, mask: [page.getByTestId('dungeon-invite'), page.getByTestId('dungeon-room')]}));
     await assertTouchProfile(page, isMobile);
     await info.attach(name, {path, contentType: 'image/png'});
   };
@@ -166,6 +168,7 @@ test('dungeon optional ravager training preserves class choices and really short
     await until(page, snapshot => own(snapshot).ready, 'The explorer is prepared');
     await activate(page.getByTestId('dungeon-start'), isMobile);
     const snapshot = await until(page, value => value.phase === 'raid', 'The ordinary raid begins');
+    await waitForDungeonWorld(page);
     expect(own(snapshot)).toMatchObject({classId: 'ravager', weapon: 'greatsword', hp: 145, maxHp: 145,
       status: 'alive', position: {x: -11, y: 0, z: 11}});
     expect(own(snapshot).bag.some(item => item.kind === 'greatsword')).toBe(true);
@@ -352,6 +355,7 @@ test('dungeon optional ravager training preserves class choices and really short
     await assertTouchProfile(page, isMobile); await page.reload(); await assertTouchProfile(page, isMobile); await activate(page.getByTestId('dungeon-join'), isMobile);
     const resumed = await until(page, snapshot => snapshot.you === fresh.you && snapshot.phase === 'raid' && own(snapshot).connected,
       'Reload reconnects the same trained explorer during cooldown');
+    await waitForDungeonWorld(page);
     expect(own(resumed).ravagerSkillState).toEqual(firstUse);
     expect(selection(resumed)).toEqual({skill: 'frenzy', perk: 'followthrough'});
     expect(own(resumed).training).toEqual({skill: 'rush', perk: 'stride'});
@@ -440,6 +444,7 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     await until(page, snapshot => own(snapshot).ready, 'The explorer is prepared');
     await activate(page.getByTestId('dungeon-start'), isMobile);
     const started = await until(page, snapshot => snapshot.phase === 'raid', 'The real strike raid starts');
+    await waitForDungeonWorld(page);
     expect(selection(started)).toEqual({skill: 'frenzy', perk: null});
     expect(own(started)).toMatchObject({weapon: 'greatsword', hp: 145, maxHp: 145});
     expect(target(started)).toMatchObject({hp: 70, damageTaken: 0, position: {x: 0, y: 0, z: 11}});

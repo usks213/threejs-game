@@ -1,3 +1,4 @@
+import {waitForDungeonWorld} from './helpers/dungeon-world-ready';
 import {test, expect, type Locator} from '@playwright/test';
 import type {Item, QuestId, QuestProgress, Snapshot} from '../../src/dungeon/types';
 import {observeActions, own} from './helpers/dungeon-raid-controls';
@@ -97,6 +98,7 @@ test('dungeon supplier quests require real extraction, selected ore delivery and
     await expect(accept('ore-delivery')).toBeDisabled();
     await route.activate(page.getByTestId('dungeon-start'));
     const started = await route.until(snapshot => snapshot.raid === 1 && snapshot.phase === 'raid', 'The one real raid begins');
+    await waitForDungeonWorld(page);
     expect(own(started).status).toBe('alive');
     expect(own(started).bag.map(item => [item.kind, item.count]).sort()).toEqual([
       ['potion', 2], ['shield', 1], ['sword', 1],

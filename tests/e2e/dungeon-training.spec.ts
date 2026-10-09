@@ -1,3 +1,5 @@
+import {captureDungeonLighting} from './helpers/dungeon-lighting-evidence';
+import {waitForDungeonWorld} from './helpers/dungeon-world-ready';
 import {test, expect, type CDPSession, type Locator, type Page} from '@playwright/test';
 import type {BastionTraining, Snapshot} from '../../src/dungeon/types';
 import {observeActions, own, read} from './helpers/dungeon-raid-controls';
@@ -114,7 +116,7 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
   const screenshot = async (name: string, target?: Locator) => {
     if (target) await target.scrollIntoViewIfNeeded();
     const path = info.outputPath(`${name}.png`);
-    await page.screenshot({path});
+    await captureDungeonLighting(page,name,()=>page.screenshot({path}));
     await info.attach(name, {path, contentType: 'image/png'});
   };
   const record = (name: string, snapshot: Snapshot) => checkpoints.push({stage: name, snapshot});
@@ -209,6 +211,7 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
     await until(page, snapshot => own(snapshot).ready, 'The explorer is ready again');
     await activate(page.getByTestId('dungeon-start'), isMobile);
     const started = await until(page, snapshot => snapshot.phase === 'raid', 'The ordinary raid starts');
+    await waitForDungeonWorld(page);
     expect(selection(started)).toEqual({skill: 'rush', perk: 'stride'});
     expect(own(started)).toMatchObject({position: {x: -11, y: 0, z: 11}, maxHp: 125, hp: 125, status: 'alive'});
     expect(own(started).skillState).toBeUndefined();
@@ -336,6 +339,7 @@ test('dungeon optional bastion training persists, locks and gives a real reusabl
     await activate(page.getByTestId('dungeon-join'), isMobile);
     const resumed = await until(page, snapshot => snapshot.you === fresh.you && snapshot.raid === 1 && own(snapshot).connected,
       'Ordinary in-raid reload reconnects the same explorer');
+    await waitForDungeonWorld(page);
     expect(own(resumed).skillState).toMatchObject({activeUntil: firstUse.activeUntil, readyAt: firstUse.readyAt});
     expect(selection(resumed)).toEqual({skill: 'rush', perk: 'stride'});
     record('reload-retains-authoritative-cooldown', resumed);
@@ -406,7 +410,7 @@ test('dungeon optional brace and vigor work through normal shield and skill cont
   const screenshot = async (name: string, target?: Locator) => {
     if (target) await target.scrollIntoViewIfNeeded();
     const path = info.outputPath(`${name}.png`);
-    await page.screenshot({path});
+    await captureDungeonLighting(page,name,()=>page.screenshot({path}));
     await info.attach(name, {path, contentType: 'image/png'});
   };
   try {
@@ -436,6 +440,7 @@ test('dungeon optional brace and vigor work through normal shield and skill cont
     await until(page, snapshot => own(snapshot).ready, 'The brace explorer prepares');
     await activate(page.getByTestId('dungeon-start'), isMobile);
     const started = await until(page, snapshot => snapshot.phase === 'raid', 'The brace raid starts normally');
+    await waitForDungeonWorld(page);
     expect(own(started)).toMatchObject({hp: 135, maxHp: 135, guard: 0, status: 'alive'});
     expect(own(started).bag.some(item => item.kind === 'shield')).toBe(true);
     const skillButton = page.getByTestId('dungeon-action-skill');

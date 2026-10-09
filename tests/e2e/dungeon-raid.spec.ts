@@ -1,3 +1,4 @@
+import {waitForDungeonWorld} from './helpers/dungeon-world-ready';
 import {test, expect, type BrowserContext, type Page} from '@playwright/test';
 import type {Snapshot} from '../../src/dungeon/types';
 import {CENTRAL_APPROACH,centralRecoveryPoints,centralRecoveryKeys,centralGuardsSplit} from './helpers/dungeon-central-approach';
@@ -78,6 +79,7 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     }
     await page.getByTestId('dungeon-start').click();
     await Promise.all([a.until(snapshot => snapshot.phase === 'raid', 'raid started'), b.until(snapshot => snapshot.phase === 'raid', 'raid started')]);
+    await Promise.all([waitForDungeonWorld(page),waitForDungeonWorld(rival)]);
     const initialA = await a.state(), initialB = await b.state();
     const idA = initialA.you, idB = initialB.you;
     expect(own(initialA)).toMatchObject({classId: 'keeper', hp: 110, status: 'alive', position: {x: -11, y: 0, z: 11}});
@@ -117,7 +119,21 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     await expect(page.locator('.dungeon-inventory-overlay')).toBeHidden();
     await phase('central-two-sided-approach-ready', true);
     // No screenshot or sequential route between opening and fighting.
-    await Promise.all([a.open('door-south'), b.open('door-north')]);
+    // Keep actual guard keys held across the live geometry revision. Initial
+    // readiness must not be reused as a blanket gate for ordinary door changes.
+    await Promise.all([a.keys(['KeyZ']),b.keys(['KeyZ'])]);
+    await Promise.all([a.until(s=>own(s).guard>.9,'shield raised before door refresh'),b.until(s=>own(s).guard>.9,'shield raised before door refresh')]);
+    await Promise.all([page.locator('[data-target="door-south"]').click(),rival.locator('[data-target="door-north"]').click()]);
+    await Promise.all([a.until(s=>s.doors.every(door=>door.open),'both ordinary door interactions acknowledged'),b.until(s=>s.doors.every(door=>door.open),'both ordinary door interactions acknowledged')]);
+    await Promise.all([page,rival].map(async view=>{
+      await expect.poll(()=>view.evaluate(()=>window.__dungeonRenderProbe?.()?.doorRefreshPending)).toBe(false);
+      await expect(view.locator('.dungeon-canvas')).toHaveAttribute('data-world-ready','true');
+      await expect(view.getByTestId('dungeon-world-loading')).toBeHidden();
+    }));
+    const guardedDoors=await Promise.all([a.state(),b.state()]);
+    for(const snapshot of guardedDoors){expect(own(snapshot).guard).toBeGreaterThan(.9);expect(own(snapshot).status).toBe('alive');}
+    const guardEvidence=guardedDoors.map(s=>({tick:s.tick,elapsed:s.elapsed,guard:own(s).guard,phase:own(s).phase,doors:s.doors.map(({id,open})=>({id,open}))}));
+    await testInfo.attach('ordinary-door-refresh-held-guard',{body:JSON.stringify(guardEvidence),contentType:'application/json'});
     const splitPlan=centralRecoveryPoints(await a.state()),splitDeadline=Date.now()+10000;
     let split=false;
     try{

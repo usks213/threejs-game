@@ -160,3 +160,54 @@ change does not provide movement prediction or remove rendering stalls. Fresh
 aim is offered before an action, but an occupied input slot can still let the
 synchronous action precede that latest aim; guaranteed ordering needs a separate
 action-sequencing design and acceptance, not a claim hidden in this patch.
+
+## Input follow-on exact-preview acceptance
+
+Remote `ab08aec53228220245f3595364cdbda036a390c4` passed
+[run 37912605949](https://github.com/usks213/threejs-game/actions/runs/37912605949).
+The existing preview was verified against that exact commit. All selected jobs
+passed, including nine main cases on each Chromium platform, immediate blur
+release, rapid multi-touch cancellation, newcomer extraction, the full raid,
+training, quests, overflow return and the narrower WebKit menu smoke. Actual
+PC/Android screenshots were inspected and retained as the lighting baseline.
+
+## Follow-on: complete initial geometry and nearby-light readability
+
+The rendering candidate moves dungeon SDF authoring and owner-bucket creation
+out of the snapshot callback into cooperative work, preserving the existing
+sample order, values, ownership and surface extraction. It prepares all owner
+chunks of this bounded dungeon and retains them during the raid. Initial input
+and direct raid action paths wait for complete current geometry and a successful
+draw, rather than treating WebGL creation or the first two chunks as readiness.
+The loading panel displays server-confirmed remaining time and explicitly says
+that raid time and enemies continue; it grants no pause, protection or return.
+
+Generation changes, join/leave, cancellation and disposal abandon old work.
+Already-ready geometry survives an ordinary transport reconnect, while controls
+wait for a fresh confirming snapshot. Door updates keep held guard/look active
+and swap a completed revision; they do not impose a new initial-load gate.
+A thrown draw or lost graphics context cancels work, stays unready, and shows a
+reload-required error without stopping the app's animation loop. Transport
+reconnection is not presented as a repair for failed graphics.
+
+The one camera lantern changes from intensity 11 / cutoff 9 / position
+(-0.25, -0.15, -0.15) to 14 / 10 / (0, 0.15, 0.65). Decay 2, exposure 1.3,
+other lights, materials, fog and shared blade trajectories remain unchanged.
+The old lamp was only about 0.16m from a shield vertex; the candidate moves it
+behind the eye to reduce the near-light peak while keeping similar illumination
+farther down the corridor. Numeric distance checks are not pixel acceptance.
+
+Frozen runtime source passed 1,882 tests across 201 files, root and Worker type
+checks, production build and diff checks. Exact sample/geometry tests cover both
+layout parities and all door combinations. Browser waits now require complete
+first-draw coverage and attach preparation time, authoritative elapsed time and
+pose metadata. G2 retains its existing combat/extraction assertions and adds a
+held-guard check through door-geometry updates. Exact-head deployment and browser
+execution for this rendering candidate remain pending publication.
+
+Measured Node preparation was 1.52–1.80 seconds for all 81 chunks; repeated
+same-generation requests reused geometry in 0.04–0.12ms. Individual mesh work,
+GPU upload and rendering can still stall. No mobile-FPS or complete prediction
+claim follows from those measurements. Initial joins still spend real raid time
+loading. Existing point lights do not introduce new shadow/occlusion machinery;
+actual nearby walls, equipment and dark-room opponents require visual review.

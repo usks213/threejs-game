@@ -1,3 +1,4 @@
+import {waitForDungeonWorld} from './helpers/dungeon-world-ready';
 import {test, expect} from '@playwright/test';
 import {ITEMS} from '../../src/dungeon/catalog';
 import type {Item, Snapshot} from '../../src/dungeon/types';
@@ -87,6 +88,7 @@ test('dungeon real repeated extractions preserve a full-stash return batch throu
       await route.until(snapshot => own(snapshot).ready, `Raid ${raid} is prepared normally`);
       await route.activate(page.getByTestId('dungeon-start'));
       const started = await route.until(snapshot => snapshot.raid === raid && snapshot.phase === 'raid', `Raid ${raid} begins normally`);
+    await waitForDungeonWorld(page);
       expect(own(started).status).toBe('alive');
       expect(own(started).bag.map(item => [item.kind, item.count]).sort()).toEqual([
         ['potion', 2], ['shield', 1], ['sword', 1],

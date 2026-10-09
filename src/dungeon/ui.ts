@@ -527,7 +527,13 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const graphicsIndicator = button('描画停止 · 詳細', 'dungeon-graphics-indicator', () => { graphicsError.hidden = false; });
   graphicsIndicator.hidden = true;
   graphicsIndicator.dataset.testid = 'dungeon-graphics-indicator';
-  shell.append(canvas, header, lobby, hud, gameplayControls, outcome, inventoryOverlay, notification, graphicsIndicator, graphicsError);
+  const worldLoading = element('section', 'dungeon-world-loading');worldLoading.hidden = true;
+  worldLoading.dataset.testid = 'dungeon-world-loading';worldLoading.setAttribute('role', 'status');worldLoading.setAttribute('aria-live', 'polite');
+  const worldLoadingTitle = element('h2', '', '回廊を描画しています');
+  const worldLoadingDetail = element('p', '', '壁と床の準備ができるまで操作を待っています。');
+  const worldLoadingClock = element('p');worldLoadingClock.dataset.testid = 'dungeon-loading-clock';
+  worldLoading.append(worldLoadingTitle, worldLoadingDetail, worldLoadingClock, element('p', '', '遠征の時間・敵の行動は進んでいます。準備中も安全な帰還にはなりません。'));
+  shell.append(canvas, header, lobby, hud, gameplayControls, worldLoading, outcome, inventoryOverlay, notification, graphicsIndicator, graphicsError);
   root.replaceChildren(shell);
 
   function notice(message: string) {
@@ -860,6 +866,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     if (snapshot?.you !== next?.you || snapshot?.raid !== next?.raid) lootTarget = null;
     damageFlash = receivedDamage(snapshot, next) > 0 ? .65 : next?.raid === snapshot?.raid ? damageFlash : 0;
     snapshot = next;
+    text(worldLoadingClock, next?.phase === 'raid' ? `遠征の残り ${timeLabel(RAID_SECONDS - next.elapsed)}（サーバー確認）` : '');
     noticeNeedsLayout = true;
     const pendingHadFocus = document.activeElement instanceof HTMLElement && pendingPanel.root.contains(document.activeElement);
     pendingPanel.update(next);
@@ -966,6 +973,12 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
       connection.dataset.state = state === '接続済み' ? 'connected' : state.includes('切断') || state.includes('拒否') ? 'disconnected' : state;
     },
     notice,
+    setWorldLoading(loading: boolean, failed = false) {
+      if (disposed) return;
+      worldLoading.hidden = !loading;
+      text(worldLoadingTitle, failed ? '回廊を描画できませんでした' : '回廊を描画しています');
+      text(worldLoadingDetail, failed ? '上の「再接続」で描画をやり直せます。遠征は停止していません。' : '壁と床の準備ができるまで操作を待っています。');
+    },
     setGraphicsError(message: string) {
       if (disposed) return;
       text(graphicsErrorText, message);
