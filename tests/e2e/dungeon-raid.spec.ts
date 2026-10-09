@@ -1,6 +1,6 @@
 import {test, expect, type BrowserContext, type Page} from '@playwright/test';
 import type {Snapshot} from '../../src/dungeon/types';
-import {CENTRAL_APPROACH} from './helpers/dungeon-central-approach';
+import {CENTRAL_APPROACH,centralRecoveryPoints,centralRecoveryKeys,centralGuardsSplit} from './helpers/dungeon-central-approach';
 import {raidCorpseApproaches, raidSafeRoute} from './helpers/dungeon-safe-route';
 import {RaidControls, angle, heading, observeActions, own, range, read} from './helpers/dungeon-raid-controls';
 
@@ -99,9 +99,8 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     await b.walk({x: 0, z: -11});
     await b.walk({x: 0, z: -7});
     await phase('north-guard-cleared');
-    // Both players prepare behind closed doors, then each engages the nearer
-    // central guard. This ordinary two-sided approach avoids leaving B idle
-    // while A repeatedly turns/retreats against two simultaneous attackers.
+    // Both players prepare behind closed doors. Opening one first attracts both
+    // guards, so recover a two-sided split through movement before fighting.
     await Promise.all([a.recover(10), b.recover(10)]);
     for (const controls of [a, b]) expect(own(await controls.state()).hp).toBeGreaterThanOrEqual(100);
     await Promise.all([a, b].map((controls, index) => controls.walk(CENTRAL_APPROACH[index].point, .12)));
@@ -119,6 +118,26 @@ test('dungeon G2 two-browser ordinary-input PvPvE raid, contested loot, death an
     await phase('central-two-sided-approach-ready', true);
     // No screenshot or sequential route between opening and fighting.
     await Promise.all([a.open('door-south'), b.open('door-north')]);
+    const splitPlan=centralRecoveryPoints(await a.state()),splitDeadline=Date.now()+10000;
+    let split=false;
+    try{
+      while(Date.now()<splitDeadline){
+        const snapshot=await a.state();
+        for(const id of [idA,idB])expect(snapshot.actors.find(actor=>actor.id===id)!.status).toBe('alive');
+        if(centralGuardsSplit(snapshot,[idA,idB])){
+          await Promise.all([a.stop(),b.stop()]);
+          if(centralGuardsSplit(await a.next(snapshot),[idA,idB])){split=true;break;}
+          continue;
+        }
+        await Promise.all([a,b].map((controls,index)=>{
+          const actor=snapshot.actors.find(value=>value.id===[idA,idB][index])!;
+          return controls.keys(centralRecoveryKeys(actor,splitPlan[index]));
+        }));
+        await a.next(snapshot);
+      }
+      expect(split,'Ordinary movement must separate the two visible central guards before independent combat').toBe(true);
+    }finally{await Promise.all([a.stop(),b.stop()]);}
+    await phase('central-guards-split');
     await Promise.all([a.fight('e0'), b.fight('e1')]);
     const cleared = await a.state();
     expect(cleared.enemies.every(enemy => enemy.status === 'dead')).toBe(true);

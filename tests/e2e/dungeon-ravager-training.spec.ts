@@ -5,6 +5,17 @@ import {TouchContacts} from './helpers/touch-contacts';
 
 // Raw traces include private invitation URLs and WebSocket hello credentials.
 // This test deliberately emits only masked pictures, actions and public snapshots.
+async function assertTouchProfile(page: Page, isMobile: boolean) {
+  if (!isMobile) return;
+  const profile = await page.evaluate(() => ({
+    maxTouchPoints: navigator.maxTouchPoints,
+    coarse: matchMedia('(pointer: coarse)').matches,
+    noHover: matchMedia('(hover: none)').matches,
+  }));
+  expect(profile).toMatchObject({coarse: true, noHover: true});
+  expect(profile.maxTouchPoints).toBeGreaterThan(0);
+}
+
 test.use({trace: 'off', screenshot: 'off'});
 
 type Sample = {stage: string; tick: number; elapsed: number; lastAction: number; actor: Snapshot['actors'][number]};
@@ -113,8 +124,12 @@ test('dungeon optional ravager training preserves class choices and really short
   const screenshot = async (name: string, target?: Locator) => {
     if (target) await target.scrollIntoViewIfNeeded();
     const path = info.outputPath(`${name}.png`);
-    if (target) await target.screenshot({path});
-    else await page.screenshot({path, mask: [page.getByTestId('dungeon-invite'), page.getByTestId('dungeon-room')]});
+    await assertTouchProfile(page, isMobile);
+    // Element screenshots taller than the viewport resize Chromium's emulated
+    // viewport and can silently discard its touch profile. Keep this diagnostic
+    // capture viewport-sized; never change the page's input model to get a picture.
+    await page.screenshot({path, mask: [page.getByTestId('dungeon-invite'), page.getByTestId('dungeon-room')]});
+    await assertTouchProfile(page, isMobile);
     await info.attach(name, {path, contentType: 'image/png'});
   };
   const command = async (kind: 'heavy' | 'attack' | 'skill') => {
@@ -231,7 +246,7 @@ test('dungeon optional ravager training preserves class choices and really short
     await selectClass('shade');
     await expect(page.getByTestId('dungeon-ravager-training-choices')).toBeHidden();
     await selectClass('ravager');
-    await page.reload();
+    await assertTouchProfile(page, isMobile); await page.reload(); await assertTouchProfile(page, isMobile);
     await activate(page.getByTestId('dungeon-join'), isMobile);
     const restored = await until(page, snapshot => own(snapshot).classId === 'ravager' && selection(snapshot).perk === 'followthrough',
       'Ordinary reload and join restore Ravager training');
@@ -334,7 +349,7 @@ test('dungeon optional ravager training preserves class choices and really short
     expect(own(repeated).ravagerSkillState).toEqual(firstUse);
     record('expired-frenzy-cannot-be-restarted-early', repeated);
     stage = 'cooldown-reload';
-    await page.reload(); await activate(page.getByTestId('dungeon-join'), isMobile);
+    await assertTouchProfile(page, isMobile); await page.reload(); await assertTouchProfile(page, isMobile); await activate(page.getByTestId('dungeon-join'), isMobile);
     const resumed = await until(page, snapshot => snapshot.you === fresh.you && snapshot.phase === 'raid' && own(snapshot).connected,
       'Reload reconnects the same trained explorer during cooldown');
     expect(own(resumed).ravagerSkillState).toEqual(firstUse);

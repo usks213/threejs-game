@@ -385,3 +385,24 @@
 .dungeon-app .dungeon-notice-gameplay.dungeon-notice-queued * { pointer-events: none; }
 /* Event text follows the variable-height vitals/skill content instead of crossing it. */
 .dungeon-app .dungeon-vitals .dungeon-events { position: static; max-width: none; margin-top: 6px; font-size: 10px; }
+
+/* Raid looting exposes only actions that can actually be used during danger. */
+.dungeon-app .dungeon-inventory-columns-raid { grid-template-columns: 1fr; }
+.dungeon-app .dungeon-raid-guide { max-width: 220px; margin-top: 8px; padding: 8px 10px; border-right: 2px solid #d4bd81; background: #111b18db; font-size: 11px; line-height: 1.55; }
+.dungeon-app .dungeon-raid-guide strong { display: block; color: #efe1b7; font-size: 12px; }
+.dungeon-app .dungeon-raid-guide span { display: block; color: #c9d7cc; }
+.dungeon-app .dungeon-raid-guide[data-goal=return] { border-color: #78d7bf; }
+@media (orientation: landscape) and (max-height: 600px) {
+ .dungeon-app .dungeon-raid-guide { max-width: 190px; margin-top: 5px; padding: 5px 7px; font-size: 9px; }
+ .dungeon-app .dungeon-raid-guide strong { font-size: 10px; }
+}
+@media (orientation: portrait) and (max-width: 600px) {
+ .dungeon-app .dungeon-raid-guide { max-width: 145px; font-size: 9px; }
+ .dungeon-app .dungeon-raid-guide strong { font-size: 10px; }
+}
+/* Keep the optional sound switch and every existing header action reachable on phones. */
+@media (max-width: 480px) {
+ .dungeon-app .dungeon-connection { max-width: 42px; }
+ .dungeon-app .dungeon-header-actions .dungeon-button-small,
+ .dungeon-app .dungeon-header-actions .dungeon-campaign-link { flex: 0 0 48px; width: 48px; min-width: 48px; padding: 4px; font-size: 9px; overflow-wrap: anywhere; }
+}

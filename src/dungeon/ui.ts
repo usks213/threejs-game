@@ -4,6 +4,7 @@ import { RAID_SECONDS, type Action, type ClassId, type Item, type Snapshot, type
 import { distance, wallRay } from './world';
 import './style.css';
 import {combatReadout,focusedOpponent,receivedDamage} from './readability';
+import {raidGuidance,guidanceBearing,type RaidGuidance} from './guidance';
 import { SUPPLIES, loadoutWeapon, preparationIssue, saleValue } from './economy';
 import type { SupplyKind } from './types';
 import { createPendingReturnPanel, pendingReturnIssue } from './pending-return-panel';
@@ -88,8 +89,10 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   let targetSignature = '';
   let participantsSignature = '';
   let lootSignature = '';
+  let lootTarget: string | null = null;
   let disposed = false;
   let damageFlash = 0;
+  let guidance: RaidGuidance | null = null, guidanceTick = -Infinity, guidanceRaid = -1;
   let noticeTimer: ReturnType<typeof setTimeout> | null = null;
   const player = () => snapshot?.actors.find(actor => actor.id === snapshot?.you);
   const alive = () => snapshot?.phase === 'raid' && player()?.status === 'alive';
@@ -279,7 +282,11 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const objective = element('div', 'dungeon-objective');
   const timer = element('strong', 'dungeon-timer', '8:00');
   const aliveCount = element('span', 'dungeon-alive-count');
-  objective.append(element('span', 'dungeon-eyebrow', 'TIME TO RETURN'), timer, aliveCount, questPanel.raid);
+  const guide = element('div', 'dungeon-raid-guide');
+  guide.dataset.testid = 'dungeon-raid-guide';
+  const guideTitle = element('strong'), guideDetail = element('span'), guideBearing = element('span');
+  guide.append(guideTitle, guideDetail, guideBearing);
+  objective.append(element('span', 'dungeon-eyebrow', 'TIME TO RETURN'), timer, aliveCount, guide, questPanel.raid);
   const crosshair = element('div', 'dungeon-crosshair', '+');
   crosshair.setAttribute('aria-hidden', 'true');
   const interactionProgress = element('div', 'dungeon-interaction-progress');
@@ -403,8 +410,15 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const lootSection = element('section', 'dungeon-loot-section');
   const lootTitle = element('h3', '', '手の届く戦利品');
   const lootContent = element('div', 'dungeon-loot-content');
+  const lootEmpty = element('p', 'dungeon-fine-print', '開いた箱や遺品に近づくと、ここで戦利品を拾えます。');
+  const lootViews = new Map<string, { root: HTMLElement; heading: HTMLElement; empty: HTMLElement; items: Map<string, HTMLButtonElement> }>();
+  lootContent.append(lootEmpty);
+  lootSection.dataset.testid = 'dungeon-loot-section';
+  bagSection.dataset.testid = 'dungeon-bag-section';
+  stashSection.dataset.testid = 'dungeon-stash-section';
   lootSection.append(lootTitle, lootContent);
   const supplySection = element('section', 'dungeon-supply-section');
+  supplySection.dataset.testid = 'dungeon-supply-section';
   supplySection.setAttribute('aria-labelledby', 'dungeon-supply-title');
   const supplyHeading = element('div', 'dungeon-supply-heading');
   const supplyTitle = element('h3', '', '部屋の補給商');
@@ -452,7 +466,9 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   const noTrades = element('p', 'dungeon-fine-print', 'まだ取引はありません。');
   supplySection.append(supplyHeading, supplyHint, supplyStatus, supplyOffers, sellSelected, saleHint, tradeTitle, noTrades, trades);
   const pendingPanel = createPendingReturnPanel(callbacks.action, listeners.signal);
-  inventoryPanel.append(inventoryHeading, inventoryWarning, inventoryLoadout, pendingPanel.root, selection, supplySection, inventoryColumns, lootSection);
+  // During a live raid, taking the visible chest contents is the first task.
+  // The same nodes retain focus and scroll through ordinary server updates.
+  inventoryPanel.append(inventoryHeading, inventoryWarning, lootSection, inventoryLoadout, pendingPanel.root, selection, supplySection, inventoryColumns);
   inventoryOverlay.append(inventoryPanel);
   listen(inventoryOverlay, 'keydown', event => {
     const key = event as KeyboardEvent;
@@ -527,6 +543,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     if (disposed || inventoryOpen === open) return;
     // Notify before DOM work so opening the bag immediately releases gameplay input.
     inventoryOpen = open;
+    if (!open) lootTarget = null;
     if (notify) callbacks.inventory(open);
     inventoryOverlay.hidden = !open;
     bagButton.setAttribute('aria-expanded', String(open));
@@ -543,6 +560,19 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
       focusBeforeInventory.focus();
     }
     positionNotice();
+  }
+  function openLoot(targetId: string) {
+    const actor = player();
+    const container = snapshot?.containers.find(value => value.id === targetId);
+    if (!actor || !alive() || !container?.opened || !reachable(actor, container.position, 2.5)) return false;
+    lootTarget = targetId;
+    changeInventory(true, true);
+    renderInventory();
+    inventoryPanel.scrollTop = 0;
+    const view = lootViews.get(targetId);
+    const first = view && [...view.items.values()].find(control => !control.disabled);
+    (first ?? view?.root ?? closeInventory).focus({ preventScroll: true });
+    return true;
   }
   function makeGrid(source: InventorySource, height: number) {
     const grid = element('div', 'dungeon-inventory-grid');
@@ -631,7 +661,11 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     if (!snapshot) return;
     const actor = player();
     if (!actor) return;
-    if (selected && !selectedItem()) selected = null;
+    const liveRaid = alive();
+    if (selected && (!selectedItem() || liveRaid && selected.source === 'stash')) selected = null;
+    supplySection.hidden = stashSection.hidden = transferButton.hidden = liveRaid;
+    inventoryColumns.classList.toggle('dungeon-inventory-columns-raid', liveRaid);
+    text(inventoryTitle, liveRaid ? '戦利品と鞄' : '鞄と倉庫');
     const nextSignature = JSON.stringify([actor.bag, snapshot.stash, selected, snapshot.phase, actor.ready, actor.status, actor.classId, snapshot.gold, snapshot.shop, snapshot.trades, snapshot.pendingReturn]);
     if (nextSignature !== inventorySignature) {
       inventorySignature = nextSignature;
@@ -672,34 +706,56 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     }
     renderLoot(actor);
   }
-  function reachable(actor: Player, position: Player['position'], doorId?: string) {
-    return !!snapshot && distance(actor.position, position) <= 2.2 && !wallRay(
+  function reachable(actor: Player, position: Player['position'], range = 2.6, doorId?: string) {
+    return !!snapshot && distance(actor.position, position) <= range && !wallRay(
       { ...actor.position, y: 1.3 }, { ...position, y: 1.3 }, snapshot.seed,
       doorId ? snapshot.doors.filter(door => door.id !== doorId) : snapshot.doors,
     );
   }
   function renderLoot(actor: Player) {
     if (!snapshot) return;
-    const containers = alive() ? snapshot.containers.filter(container => container.opened && reachable(actor, container.position)) : [];
+    const containers = alive() ? snapshot.containers.filter(container => container.opened && reachable(actor, container.position, 2.5)) : [];
+    containers.sort((a, b) => Number(b.id === lootTarget) - Number(a.id === lootTarget));
     const signature = JSON.stringify(containers.map(container => [container.id, container.name, container.items]));
     lootSection.hidden = snapshot.phase !== 'raid' || actor.status !== 'alive';
     if (signature === lootSignature) return;
     lootSignature = signature;
-    lootContent.replaceChildren();
-    if (!containers.length) { lootContent.append(element('p', 'dungeon-fine-print', '開いた箱や遺品の近くで戦利品を確認できます。')); return; }
-    for (const container of containers) {
-      const box = element('div', 'dungeon-loot-box');
-      box.append(element('strong', '', container.name));
-      if (!container.items.length) box.append(element('span', 'dungeon-fine-print', '空です'));
-      for (const item of container.items) {
-        const pick = element('button', 'dungeon-button dungeon-loot-item');
-        pick.type = 'button';
-        pick.dataset.lootTarget = container.id;
-        pick.dataset.lootItem = item.id;
-        pick.textContent = `${ITEMS[item.kind].name} ×${item.count} を拾う`;
-        box.append(pick);
+    const focused = document.activeElement instanceof HTMLElement && lootContent.contains(document.activeElement) ? document.activeElement : null;
+    const ids = new Set(containers.map(container => container.id));
+    for (const [id, view] of lootViews) if (!ids.has(id)) { view.root.remove(); lootViews.delete(id); }
+    lootEmpty.hidden = containers.length > 0;
+    for (let index = 0; index < containers.length; index++) {
+      const container = containers[index];
+      let view = lootViews.get(container.id);
+      if (!view) {
+        const box = element('div', 'dungeon-loot-box');
+        box.tabIndex = -1; box.dataset.lootContainer = container.id;
+        const heading = element('strong');
+        const empty = element('span', 'dungeon-fine-print', '空です');
+        box.append(heading, empty);
+        view = { root: box, heading, empty, items: new Map() };
+        lootViews.set(container.id, view);
       }
-      lootContent.append(box);
+      text(view.heading, container.name);
+      view.empty.hidden = container.items.length > 0;
+      const itemIds = new Set(container.items.map(item => item.id));
+      for (const [id, pick] of view.items) if (!itemIds.has(id)) { pick.remove(); view.items.delete(id); }
+      for (let itemIndex = 0; itemIndex < container.items.length; itemIndex++) {
+        const item = container.items[itemIndex];
+        let pick = view.items.get(item.id);
+        if (!pick) {
+          pick = element('button', 'dungeon-button dungeon-loot-item');
+          pick.type = 'button'; pick.dataset.lootTarget = container.id; pick.dataset.lootItem = item.id;
+          view.items.set(item.id, pick);
+        }
+        text(pick, `${ITEMS[item.kind].name} ×${item.count} を拾う`);
+        if (view.root.children[itemIndex + 2] !== pick) view.root.insertBefore(pick, view.root.children[itemIndex + 2] ?? null);
+      }
+      if (lootContent.children[index + 1] !== view.root) lootContent.insertBefore(view.root, lootContent.children[index + 1] ?? null);
+    }
+    if (focused && !lootContent.contains(focused)) {
+      const view = lootViews.get(focused.dataset.lootTarget ?? '') ?? lootViews.values().next().value;
+      ([...(view?.items.values() ?? [])][0] ?? view?.root ?? closeInventory).focus({ preventScroll: true });
     }
   }
   listen(lootContent, 'click', event => {
@@ -707,16 +763,16 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     const actor = player();
     if (!target || !actor || !snapshot || !alive()) return;
     const container = snapshot.containers.find(box => box.id === target.dataset.lootTarget);
-    if (!container?.opened || !reachable(actor, container.position) || !container.items.some(item => item.id === target.dataset.lootItem)) return;
+    if (!container?.opened || !reachable(actor, container.position, 2.5) || !container.items.some(item => item.id === target.dataset.lootItem)) return;
     callbacks.action({ kind: 'loot', target: container.id, item: target.dataset.lootItem! });
   });
   function nearbyTargets(actor: Player): NearbyTarget[] {
     if (!snapshot || !alive()) return [];
     const targets: Array<NearbyTarget & { range: number }> = [];
-    for (const door of snapshot.doors) if (reachable(actor, door.position, door.id)) {
+    for (const door of snapshot.doors) if (reachable(actor, door.position, 2.6, door.id)) {
       targets.push({ id: door.id, title: '石廊の扉', description: door.open ? '扉を閉める' : '扉を開く', disabled: false, opened: false, range: distance(actor.position, door.position) });
     }
-    for (const box of snapshot.containers) if (reachable(actor, box.position)) {
+    for (const box of snapshot.containers) if (reachable(actor, box.position, 2.5)) {
       targets.push({ id: box.id, title: box.name, description: box.opened ? '戦利品を見る' : box.locked ? '鍵で調べる' : '調べる · 1.5秒', disabled: false, opened: box.opened, range: distance(actor.position, box.position) });
     }
     for (const exit of snapshot.exits) if (reachable(actor, exit.position)) {
@@ -731,7 +787,7 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     if (!target || !actor) return;
     const current = nearbyTargets(actor).find(value => value.id === target.dataset.target);
     if (!current || current.disabled) return;
-    if (current.opened) changeInventory(true, true);
+    if (current.opened) openLoot(current.id);
     else callbacks.action({ kind: 'interact', target: current.id });
   });
   function renderHUD(actor: Player) {
@@ -747,6 +803,12 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     guardLabel.hidden = guardTrack.hidden = !hasShield;
     actionButtons.get('block')!.hidden = !hasShield;
     text(resourceText, `${ITEMS[actor.weapon].name} · 薬 ${actor.bag.filter(item => item.kind === 'potion' || item.kind === 'bandage').reduce((sum, item) => sum + item.count, 0)}${actor.weapon === 'bow' ? ` · 矢 ${actor.arrows}` : ''}${CLASSES[actor.classId].spells ? ` · 術 ${actor.spells}` : ''}`);
+    // Route planning is presentation-only and capped at 2 Hz, independent of FPS.
+    if (snapshot.raid !== guidanceRaid || snapshot.tick < guidanceTick || snapshot.tick - guidanceTick >= 10) {
+      guidance = raidGuidance(snapshot); guidanceTick = snapshot.tick; guidanceRaid = snapshot.raid;
+    }
+    guide.hidden = !guidance;
+    if (guidance) { text(guideTitle, guidance.title); text(guideDetail, guidance.detail); guide.dataset.goal = guidance.goal; }
     text(timer, timeLabel(RAID_SECONDS - snapshot.elapsed));
     timer.classList.toggle('dungeon-timer-urgent', RAID_SECONDS - snapshot.elapsed <= 60);
     text(aliveCount, `生存 ${snapshot.actors.filter(value => value.status === 'alive').length} / ${snapshot.actors.length}人`);
@@ -782,12 +844,20 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
     const cast = actionButtons.get('cast') as HTMLButtonElement;
     const shoot = actionButtons.get('shoot') as HTMLButtonElement;
     cast.hidden = CLASSES[actor.classId].spells === 0;
-    shoot.hidden = actor.weapon !== 'bow';
+    // Primary attack matches the visible weapon. F remains a keyboard shortcut,
+    // but touch hunters no longer get two competing attack buttons.
+    const attack = actionButtons.get('attack') as HTMLButtonElement;
+    const attackLabel = attack.children[0] as HTMLElement | undefined;
+    if (attackLabel) text(attackLabel, actor.weapon === 'bow' ? '射撃' : '攻撃');
+    attack.setAttribute('aria-label', actor.weapon === 'bow' ? '射撃 (T / F)' : '攻撃 (T)');
+    actionButtons.get('heavy')!.hidden = actor.weapon === 'bow';
+    shoot.hidden = true;
     cast.disabled = actor.spells <= 0;
     shoot.disabled = actor.weapon !== 'bow' || actor.arrows <= 0;
   }
   function update(next: Snapshot | null) {
     if (disposed) return;
+    if (snapshot?.you !== next?.you || snapshot?.raid !== next?.raid) lootTarget = null;
     damageFlash = receivedDamage(snapshot, next) > 0 ? .65 : next?.raid === snapshot?.raid ? damageFlash : 0;
     snapshot = next;
     noticeNeedsLayout = true;
@@ -859,12 +929,13 @@ export function createDungeonUI(root: HTMLElement, callbacks: Callbacks) {
   }
 
   return {
-    canvas, movePad, lookPad, actionButtons, update, activateSkill: trainingPanel.activateSkill,
+    canvas, movePad, lookPad, actionButtons, update, openLoot, activateSkill: trainingPanel.activateSkill,
     renderFeedback(dt: number, look: Input) {
       if (disposed) return;
       damageFlash = Math.max(0, damageFlash - Math.max(0, dt) * 1.8);
       damageOverlay.style.opacity = String(damageFlash);
       const actor = player();
+      if (actor && guidance) text(guideBearing, `${guidanceBearing(actor.position, guidance.waypoint, look)} 道なり 約${Math.max(0, Math.round(guidance.distance))}m`);
       const target = snapshot && alive() && !inventoryOpen ? focusedOpponent(snapshot, look) : null;
       opponent.hidden = !target;
       if (target) {

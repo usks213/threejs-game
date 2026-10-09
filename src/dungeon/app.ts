@@ -3,27 +3,19 @@ import {createDungeonInput,type DungeonControl} from './input';
 import {startDungeonInputPump} from './input-pump';
 import {createDungeonUI} from './ui';
 import {createDungeonView} from './view';
-import {distance,wallRay} from './world';
+import {createDungeonAudio} from './audio';
+import {dungeonTarget} from './interaction';
+export {dungeonTarget} from './interaction';
 import type {Action,Input,Snapshot} from './types';
 import './style.css';
 
 declare global {interface Window {__dungeonProbe?:()=>Snapshot|null}}
 
-/** Highest-priority reachable focus, derived only from public snapshot targets. */
-export function dungeonTarget(snapshot:Snapshot,input:Pick<Input,'yaw'|'pitch'>):string|null {
- const own=snapshot.actors.find(a=>a.id===snapshot.you);if(!own||own.status!=='alive')return null;
- const eye={...own.position,y:own.position.y+1.3};
- const targets=[...snapshot.doors,...snapshot.containers,...snapshot.exits].filter(target=>{
-  if(distance(own.position,target.position)>2.6)return false;
-  const doors=snapshot.doors.filter(d=>d.id!==target.id);return !wallRay(eye,{...target.position,y:target.position.y+1.3},snapshot.seed,doors);
- });
- let best:string|null=null,score=-Infinity;for(const target of targets){const dx=target.position.x-own.position.x,dz=target.position.z-own.position.z,d=Math.max(.001,Math.hypot(dx,dz)),dot=(-Math.sin(input.yaw)*dx-Math.cos(input.yaw)*dz)/d,rank=dot*3-d*.25;if(dot<-.15)continue;if(rank>score){best=target.id;score=rank;}}return best;
-}
-
 /** Explicit separate mode: no campaign state, save keys or prototype lifecycle are touched. */
 export function startDungeon(){
  const root=document.querySelector<HTMLElement>('#app');if(!root)throw new Error('ゲーム領域が見つかりません');
  const probeEnabled=new URLSearchParams(location.search).get('test')==='1';
+ const audio=createDungeonAudio();
  const previousTitle=document.title;document.title='灰の回廊 · ASHEN VAULT';const lifecycle=new AbortController();
  let client:DungeonClient|null=null,snapshot:Snapshot|null=null,view:ReturnType<typeof createDungeonView>|null=null,input:ReturnType<typeof createDungeonInput>|null=null;
  if(probeEnabled)window.__dungeonProbe=()=>snapshot?structuredClone(snapshot):null;
@@ -35,6 +27,14 @@ export function startDungeon(){
   inventory:open=>{inventory=open;syncActive();},leave:()=>{client?.dispose();client=null;snapshot=null;initializedLook=false;room='';invite='';ui.setRoom('');ui.setInvite('');ui.setConnection('未接続');ui.update(null);ui.setInventory(false);inventory=false;syncActive();},
   copyInvite:()=>{if(!invite)return;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(invite).then(()=>ui.notice('招待 URL をコピーしました。別の人はこの URL から参加できます。')).catch(()=>ui.notice('コピーできません。表示された招待 URL を選択してコピーしてください。'));else ui.notice('表示された招待 URL を選択してコピーしてください。');},
  });
+ // Sound is optional, gesture-unlocked, and never determines combat authority.
+ const soundButton=document.createElement('button');soundButton.type='button';soundButton.className='dungeon-button dungeon-button-small';soundButton.dataset.testid='dungeon-audio-toggle';
+ let muted=false;
+ const soundLabel=()=>{soundButton.textContent=muted?'音 OFF':'音 ON';soundButton.setAttribute('aria-label',muted?'効果音をオン':'効果音をオフ');soundButton.setAttribute('aria-pressed',String(!muted));};soundLabel();
+ root.querySelector('.dungeon-header-actions')?.prepend(soundButton);
+ soundButton.addEventListener('click',()=>{muted=!muted;audio.setMuted(muted);if(!muted)audio.unlock();soundLabel();},{signal:lifecycle.signal});
+ const unlockAudio=()=>audio.unlock();
+ window.addEventListener('pointerdown',unlockAudio,{signal:lifecycle.signal});window.addEventListener('keydown',unlockAudio,{signal:lifecycle.signal});
  function syncActive(){const own=snapshot?.actors.find(a=>a.id===snapshot!.you);input?.setActive(!!view&&!view.lost&&!!client?.connected&&!inventory&&snapshot?.phase==='raid'&&own?.status==='alive');}
  function sendAction(action:Action){
   if(action.kind==='start'&&!view){ui.notice('このブラウザでは 3D 描画を開始できないため、遠征を開始できません。WebGL 対応のブラウザで開いてください。');return false;}
@@ -44,7 +44,7 @@ export function startDungeon(){
  }
  function control(kind:DungeonControl){
   if(kind==='inventory'){if(!snapshot)return;inventory=!inventory;ui.setInventory(inventory);syncActive();return;}
-  if(!snapshot)return;if(kind==='skill'){ui.activateSkill();return;}if(kind==='interact'){const target=dungeonTarget(snapshot,input?.sample()??{yaw:0,pitch:0});if(target)sendAction({kind:'interact',target});else ui.notice('対象に近づき、そちらを向いてください。');}
+  if(!snapshot)return;if(kind==='skill'){ui.activateSkill();return;}if(kind==='interact'){const target=dungeonTarget(snapshot,input?.sample()??{yaw:0,pitch:0});if(target){const box=snapshot.containers.find(value=>value.id===target);if(box?.opened)ui.openLoot(target);else sendAction({kind:'interact',target});}else ui.notice('対象に近づき、そちらを向いてください。');}
   else if(kind==='heavy')sendAction({kind:'attack',heavy:true});else sendAction({kind});
  }
  function sendInput(sample:Input){const now=performance.now();if(now-lastInputSent<1000/25)return;if(client?.input(sample))lastInputSent=now;}
@@ -58,7 +58,7 @@ export function startDungeon(){
   if(!identity.persistent)ui.notice('ブラウザ保存が使えません。このページを閉じると探索者と倉庫へ戻れなくなります。');
   client=new DungeonClient({base:location.href,room,identity,callbacks:{
    state:state=>{ui.setConnection(state);syncActive();},notice:message=>ui.notice(message),
-   snapshot:next=>{if(disposed)return;snapshot=next;const own=next.actors.find(a=>a.id===next.you);if(own&&(!initializedLook||raid!==next.raid)){input?.setLook(own.yaw,own.pitch);initializedLook=true;raid=next.raid;}
+   snapshot:next=>{if(disposed)return;audio.update(snapshot,next);snapshot=next;const own=next.actors.find(a=>a.id===next.you);if(own&&(!initializedLook||raid!==next.raid)){input?.setLook(own.yaw,own.pitch);initializedLook=true;raid=next.raid;}
     if(actorStatus==='alive'&&own?.status!=='alive'&&inventory){inventory=false;ui.setInventory(false);}actorStatus=own?.status??'';ui.update(next);view?.setSnapshot(next);syncActive();},
   }});client.connect();syncActive();
  }
@@ -70,7 +70,7 @@ export function startDungeon(){
  }
  raf=requestAnimationFrame(frame);
  const stopInputPump=startDungeonInputPump({sample:dt=>input!.sample(dt),send:sendInput,enabled:()=>!disposed&&!document.hidden&&!!client?.connected&&snapshot?.phase==='raid'});
- const dispose=()=>{if(disposed)return;disposed=true;stopInputPump();cancelAnimationFrame(raf);lifecycle.abort();input?.dispose();client?.dispose();view?.dispose();ui.dispose();if(probeEnabled)delete window.__dungeonProbe;document.title=previousTitle;};
+ const dispose=()=>{if(disposed)return;disposed=true;stopInputPump();audio.dispose();cancelAnimationFrame(raf);lifecycle.abort();input?.dispose();client?.dispose();view?.dispose();ui.dispose();if(probeEnabled)delete window.__dungeonProbe;document.title=previousTitle;};
  window.addEventListener('pagehide',dispose,{signal:lifecycle.signal,once:true});
  return dispose;
 }

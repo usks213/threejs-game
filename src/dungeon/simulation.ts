@@ -44,9 +44,11 @@ export class DungeonSimulation {
   if(action.kind==='skill'){const skill=getBastionTraining(a).skill;if(a.classId!=='bastion'||!skill)return '城塞兵の技を補給所で選んでください';if(a.phase!=='idle'||a.cast!==0||a.interaction!==null||a.extract>0)return '動作・探索・帰還の終了を待ってください';if(bastionSkillReadyIn(a,this.state.elapsed)>0)return '技は再使用待ちです';if(skill==='brace'&&!a.bag.some(item=>item.kind==='shield'))return '硬守には携行中の盾が必要です';const definition=BASTION_SKILLS[skill];a.skillState={skill,activeUntil:this.state.elapsed+definition.duration,readyAt:this.state.elapsed+definition.cooldown};this.event(`${a.name}が${definition.name}を発動`);return `${definition.name}を発動しました`;}
   if(action.kind==='loot'){const box=this.state.containers.find(c=>c.id===action.target);if(!box||!box.opened||!this.reachable(a,box.position,2.5))return '開いた箱のそばで操作してください';if(transfer(box.items,a.bag,action.item)){this.event(`${a.name}が戦利品を拾った`);return '戦利品を拾いました';}return '品物がないか、鞄に空きがありません';}
   if(action.kind==='interact'){const door=this.state.doors.find(d=>d.id===action.target),box=this.state.containers.find(c=>c.id===action.target),exit=this.state.exits.find(e=>e.id===action.target);const target=door??box??exit;if(!target||distance(a.position,target.position)>2.6)return '対象に近づいてください';if(door){const from={...a.position,y:1.4},to={...door.position,y:1.4};if(wallRay(from,to,this.state.seed,this.state.doors.filter(d=>d!==door)))return '壁に遮られています';if(door.open&&[...this.state.profiles.map(p=>p.actor),...this.state.enemies].some(other=>other.status==='alive'&&Math.abs(other.position.x-door.position.x)<3.35&&Math.abs(other.position.z-door.position.z)<.5))return '身体が重なるため扉を閉められません';door.open=!door.open;this.event('重い扉が軋んだ');return door.open?'扉を開きました':'扉を閉じました';}if(!this.reachable(a,target.position,2.6))return '壁に遮られています';if(box){if(box.opened)return '開いた箱から品物を選んでください';if(box.locked){const key=a.bag.find(i=>i.kind==='key');if(!key)return '細工鍵が必要です';this.consume(a,key);box.locked=false;}a.interaction=box.id;a.extract=0;return '探索中。移動や被撃で中断します';}if(exit){if(this.state.elapsed<exit.opensAt)return '脱出口はまだ開いていません';if(!exit.remaining)return '脱出口は使用済みです';a.interaction=exit.id;a.extract=0;return '帰還の光を維持してください';}}
-  if(a.phase!=='idle'||a.cast>0)return '動作の終了を待ってください';a.interaction=null;a.extract=0;
+  if(a.phase!=='idle'||a.cast>0)return '動作の終了を待ってください';
+  if(action.kind==='attack'&&a.weapon==='bow'&&action.heavy)return '弓では強攻撃できません。通常攻撃で射撃してください';
+  a.interaction=null;a.extract=0;
+  if(action.kind==='shoot'||action.kind==='attack'&&a.weapon==='bow'){if(a.weapon!=='bow'||a.arrows<1)return '弓と矢が必要です';a.phase='heal';a.time=0;a.cast=-.55;return '弓を引いています';}
   if(action.kind==='attack'){a.phase='windup';a.kind=action.heavy?'overhead':a.kind==='slash'?'return':'slash';a.time=0;a.hit=[];return '攻撃';}
-  if(action.kind==='shoot'){if(a.weapon!=='bow'||a.arrows<1)return '弓と矢が必要です';a.phase='heal';a.time=0;a.cast=-.55;return '弓を引いています';}
   if(action.kind==='cast'){if(a.spells<=0)return '術の回数が残っていません';a.phase='heal';a.time=0;a.cast=.8;return '詠唱中';}
   if(action.kind==='heal'){const item=a.bag.find(i=>i.kind==='potion'||i.kind==='bandage');if(!item)return '薬か包帯が必要です';this.consume(a,item);a.hp=Math.min(a.maxHp,a.hp+(item.kind==='potion'?35:Math.max(0,Math.min(20,a.recoverable-a.hp))));a.phase='heal';a.time=0;return '回復しました';}
   return '操作できません';
@@ -62,10 +64,26 @@ export class DungeonSimulation {
  /** Exact fixed 50ms authoritative step. Server adapter bounds catch-up work. */
  step(){const s=this.state;if(s.phase!=='raid')return;s.elapsed+=.05;s.tick++;
   for(const p of s.profiles){const a=p.actor;if(a.status!=='alive')continue;if(s.elapsed-a.inputAt>.35)a.input=neutral();this.move(a,a.input.x,a.input.z,(a.classId==='bastion'?bastionTrainingStats(getBastionTraining(a)).speed:CLASSES[a.classId].speed)*(activeBastionSkill(a,s.elapsed)==='rush'?1.4:1)*(a.input.crouch?.55:1));this.actorTick(a);}
-  for(const e of s.enemies){if(e.status!=='alive')continue;const target=s.profiles.map(p=>p.actor).filter(a=>a.status==='alive').sort((a,b)=>distance(a.position,e.position)-distance(b.position,e.position))[0];if(target&&this.reachable(e,target.position,8)){e.alert=4;e.yaw=Math.atan2(-(target.position.x-e.position.x),-(target.position.z-e.position.z));const d=distance(target.position,e.position);if(d>1.55)this.move(e,0,1,1.65);else if(e.phase==='idle'){e.phase='windup';e.time=0;e.hit=[];e.kind='slash';}}else{e.alert=Math.max(0,e.alert-.05);if(distance(e.position,e.home)>1){e.yaw=Math.atan2(-(e.home.x-e.position.x),-(e.home.z-e.position.z));this.move(e,0,1,1.2);}}this.actorTick(e);}
+  for(const e of s.enemies){if(e.status==='alive')this.enemyTick(e);}
   for(const shot of [...s.shots]){const end={x:shot.position.x+shot.velocity.x*.05,y:shot.position.y+shot.velocity.y*.05,z:shot.position.z+shot.velocity.z*.05};if(!shot.magic)shot.velocity.y-=.05*3;const wall=wallRay(shot.position,end,s.seed,s.doors);let hit=false;for(const target of [...s.profiles.map(p=>p.actor),...s.enemies]){if(target.id===shot.owner||target.status!=='alive')continue;if(bodyCapsules(target.position,target.yaw,pose(target)).some(c=>segmentDistance(shot.position,wall??end,c.a,c.b)<c.r+.06)){this.damage(target,shot.damage,shot.owner,shot.position);hit=true;break;}}shot.life-=.05;if(hit||wall||shot.life<=0||end.y<0)s.shots.splice(s.shots.indexOf(shot),1);else shot.position=end;}
   if(s.elapsed>=RAID_SECONDS-.001){for(const p of s.profiles)if(p.actor.status==='alive')this.kill(p.actor,'時間切れ');}
   if(s.profiles.every(p=>p.actor.status!=='alive')){s.phase='finished';this.event('遠征終了。持ち帰った品だけが残ります');}
+ }
+ private enemyTick(e:Enemy){
+  const target=this.state.profiles.map(p=>p.actor).filter(a=>a.status==='alive'&&this.reachable(e,a.position,8)).sort((a,b)=>distance(a.position,e.position)-distance(b.position,e.position))[0];
+  e.alert=target?4:Math.max(0,e.alert-.05);
+  // Commit the visible windup's facing and feet through the full recovery.
+  // Navigation resumes on the next idle tick, even if the target was lost.
+  if(e.phase==='idle'){
+   if(target){
+    e.yaw=Math.atan2(-(target.position.x-e.position.x),-(target.position.z-e.position.z));
+    if(distance(target.position,e.position)>1.55)this.move(e,0,1,1.65);
+    else{e.phase='windup';e.time=0;e.hit=[];e.kind='slash';}
+   }else if(distance(e.position,e.home)>1){
+    e.yaw=Math.atan2(-(e.home.x-e.position.x),-(e.home.z-e.position.z));this.move(e,0,1,1.2);
+   }
+  }
+  this.actorTick(e);
  }
  private move(a:Actor,x:number,z:number,speed:number){if(!x&&!z)return;const n=Math.max(1,Math.hypot(x,z)),slow=a.phase==='idle'&&!a.input.block?1:.48,dx=(Math.cos(a.yaw)*x-Math.sin(a.yaw)*z)/n*speed*.05*slow,dz=(-Math.sin(a.yaw)*x-Math.cos(a.yaw)*z)/n*speed*.05*slow;const pass=(p:Vec3)=>!blocked(p,this.state.seed,this.state.doors)&&[...this.state.profiles.map(p=>p.actor),...this.state.enemies].every(other=>other.id===a.id||other.status!=='alive'||distance(p,other.position)>=.62);const p={...a.position,x:a.position.x+dx};if(pass(p))a.position.x=p.x;p.x=a.position.x;p.z+=dz;if(pass(p))a.position.z=p.z;if(a.interaction){a.interaction=null;a.extract=0;}}
  private actorTick(a:Actor){const before=pose(a);a.guard=Math.max(0,Math.min(1,a.guard+(a.input.block&&a.phase==='idle'?1:-1)*.05*6));a.time+=.05*ravagerRecoveryRate(a);if(a.cast){const was=a.cast;a.cast=was>0?Math.max(0,was-.05):Math.min(0,was+.05);if(!a.cast){if(was<0){a.arrows--;this.fire(a,false);}else{a.spells--;if(a.classId==='keeper')a.hp=Math.min(a.maxHp,a.hp+40);else this.fire(a,true);}this.changed();}}
