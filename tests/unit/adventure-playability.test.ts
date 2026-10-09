@@ -10,15 +10,12 @@ import { objectOcclusion } from '../../src/game/voxel/occlusion';
 import { createCameraBoom,orbitPose } from '../../src/rendering/camera/follow';
 import { DEFAULT_CAMERA_PITCH } from '../../src/input/touch/look';
 
-it('shows an executable first step before assembly and respects existing story progress',()=>{
+it('guides the actual beacon loop without making optional practice a prerequisite',()=>{
  const sim=new GameSimulation(),s=sim.adventure.snapshot();
- expect(journeyGoal(s,sim.player)).toMatchObject({title:'まずは6m歩こう',tab:'guide'});
- s.progressionView!.tutorial.step=1;expect(journeyGoal(s,sim.player)).toMatchObject({title:'地面を1回掘ろう',tab:'build'});
- s.progressionView!.tutorial.step=2;expect(journeyGoal(s,sim.player).target).toMatchObject({kind:'wood'});
- s.progressionView!.tutorial.step=3;expect(journeyGoal(s,sim.player)).toMatchObject({title:'木の部品を2つ作ろう',tab:'powers'});
- s.progressionView!.tutorial.step=4;expect(journeyGoal(s,sim.player).target).toMatchObject({id:857001});
+ for(let step=0;step<=5;step++){s.progressionView!.tutorial.step=step;expect(journeyGoal(s,sim.player)).toMatchObject({title:'木材で最初の灯をつなごう',tab:'bag'});}
+ s.inventory.wood=4;expect(journeyGoal(s,sim.player)).toMatchObject({title:'木の梁を二つ作ろう',tab:'powers'});
  s.resources.find(n=>n.id===810001)!.ready=1e10;
- s.progressionView!.tutorial.step=0;expect(journeyGoal(s,sim.player).title).toBe('空の航路灯');
+ expect(journeyGoal(s,sim.player)).toMatchObject({title:'空へ続く斜路へ',target:{x:10,z:14}});
 });
 
 it('renders the practice dummy and guides without the camera-sized market stalls, preserving actual merchants',()=>{

@@ -14,7 +14,8 @@ export function seedAdventureWorld(sim:GameSimulation,state:AdventureSave):void{
  state.inventory={ragTunic:1,club:1,glider:1,berry:6};state.equipment='club';state.health=25;state.stamina=50;
  const node=(kind:string,x:number,y:number,z:number,amount=1,drop=false)=>state.resources.push({id:sim.allocateEntityId(),kind,x,y,z,amount,ready:0,...(drop?{drop:true}:{})});
  // One shared supply cache makes ownership visible instead of spawning personal duplicates.
- node('wood',.8,sim.groundAt(.8,8)+.1,8,12,true);node('stone',-1,sim.groundAt(-1,8)+.1,8,8,true);node('resin',0,sim.groundAt(0,10)+.1,10,4,true);
+ // Put the cache ahead of the starting view, rather than underneath/behind the avatar.
+ node('wood',1.1,sim.groundAt(1.1,5.6)+.1,5.6,12,true);node('stone',-1.2,sim.groundAt(-1.2,5.6)+.1,5.6,8,true);node('resin',2,sim.groundAt(2,6.5)+.1,6.5,4,true);
  for(let i=0;i<110;i++){const angle=i*2.39996,r=15+Math.sqrt(i)*5,x=Math.sin(angle)*r,z=Math.cos(angle)*r;const kind=i%13===0?'honey':i%11===0?'mushroom':i%7===0?'berry':i%5===0?'stone':i%3===0?'branch':'beech';const y=sim.groundAt(x,z);if(y>.1)node(kind,x,y,z,kind==='stone'||kind==='branch'?3:1);}
  for(const b of BEACONS)state.resources.push({id:b.id,kind:'runestone',x:b.x,y:b.id===810001?sim.groundAt(b.x,b.z):b.y,z:b.z,amount:1,ready:0});
  for(const[x,y,z]of[[15,25,-18],[22,25,-15],[28,-10.5,14],[33,-10.5,5]]){node('crystal',x,y,z,3);}

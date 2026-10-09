@@ -3,12 +3,13 @@ import type { Vec3 } from '../../world/types';
 import { BUILDINGS } from '../../content/catalog';
 import { TREE_KINDS } from '../../content/meadows/data';
 import { buildingPose, buildingVoxels, localPoint, rayVoxel, treeVoxels, voxelBounds } from '../voxel/model';
+import { previousGrave } from './graves';
 
 /** Recheck the selected object and the player's reach on the authority, not just the UI ray. */
 export function assertInteractionReach(state:AdventureSave,player:Vec3,id:string,target:Vec3,density:(p:Vec3)=>number):void {
  const resource=id.startsWith('r:')?state.resources.find(n=>n.id===Number(id.slice(2))&&n.ready<=state.seconds):undefined;
  const building=id.startsWith('b:')?state.buildings.find(b=>b.id===Number(id.slice(2))):undefined;
- const entity=resource??building??(id==='grave'?state.death:null);
+ const entity=resource??building??(id==='grave'?state.death:previousGrave(state,id));
  const eye={x:player.x,y:player.y+.8,z:player.z};
  const length=Math.hypot(target.x-eye.x,target.y-eye.y,target.z-eye.z);
  if(!entity||![target.x,target.y,target.z,length].every(Number.isFinite)||length>3.7||Math.hypot(entity.x-player.x,entity.z-player.z)>4.5)throw new Error('照準の対象へ近づいてください');
@@ -16,7 +17,7 @@ export function assertInteractionReach(state:AdventureSave,player:Vec3,id:string
   const pose=buildingPose(building),point=localPoint(target,pose,pose.rotation),bounds=voxelBounds(buildingVoxels(building.definition));
   if((['x','y','z'] as const).some(axis=>point[axis]<bounds.min[axis]-.2||point[axis]>bounds.max[axis]+.2))throw new Error('対象に照準を合わせてください');
  }else{
-  const large=resource&&['altar','sacrifice','runestone','merchant'].includes(resource.kind),radius=large?1.2:.7,height=large?2.2:id==='grave'?1.6:.9;
+  const large=resource&&['altar','sacrifice','runestone','merchant'].includes(resource.kind),radius=large?1.2:.7,height=large?2.2:id==='grave'||id.startsWith('grave:')?1.6:.9;
   if(Math.abs(target.x-entity.x)>radius||Math.abs(target.z-entity.z)>radius||target.y<entity.y-.35||target.y>entity.y+height)throw new Error('対象に照準を合わせてください');
  }
  if(length<.1)return;

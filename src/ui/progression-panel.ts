@@ -4,7 +4,7 @@ import {SITES} from '../content/adventure-sites';
 import {ITEM_NAMES} from '../content/catalog';
 export function progressionPanel(s:AdventureSnapshot):string{
  const view=s.progressionView;if(!view)return '';const button=(label:string,action:string,id='')=>`<button data-game-action="${action}" data-id="${id}">${label}</button>`;
- let html=`<h3>出発の実地練習 ${Math.min(5,view.tutorial.step+1)}/5</h3><p>${view.tutorial.title} · ${view.tutorial.hint}</p><ol>${TUTORIAL_STEPS.map((step,i)=>`<li>${i<view.tutorial.step?'◆':'◇'} ${step.title}</li>`).join('')}</ol>`;
+ let html=`<h3>操作を練習する（任意） ${Math.min(5,view.tutorial.step+1)}/5</h3><p>灯の旅は練習を終えなくても進められます。</p><p>${view.tutorial.title} · ${view.tutorial.hint}</p><ol>${TUTORIAL_STEPS.map((step,i)=>`<li>${i<view.tutorial.step?'◆':'◇'} ${step.title}</li>`).join('')}</ol>`;
  if(view.tutorial.step===4)html+=button(view.tutorial.practiceSeconds?'練習をやめる':'練習人形を3秒助ける','tutorial-rescue',view.tutorial.practiceSeconds?'cancel':'start');
  html+=`<h3>三層の記録集 ${view.records.length}/9</h3><p>調べた記録と装飾の解放は自分の記録です。依頼の銀貨と世界の復旧は仲間と一度だけ共有します。</p>`;
  for(const region of view.regions){const site=SITES.find(site=>site.id===region.site)!;html+=`<article class="recipe-card"><strong>${site.name} · ${region.count}/3</strong><p>${region.hint}</p>${button('案内人に別棟の依頼を聞く','chronicle-accept',String(site.id))}`;

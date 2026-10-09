@@ -59,6 +59,7 @@ export class Traversal {
   if(this.debug.active&&state.health>0){this.debug.step(input,dt);return {handled:true,speed:0};}
   if(this.swimming&&state.stamina<=16)this.warning??='泳ぐ力が残りわずかです。動きを止めて浮くか、岸へ上がってください';
   if(state.health>0&&this.swimming&&input.jump&&Math.hypot(input.x,input.z)>.1){p.heading=Math.atan2(input.x,input.z);if(this.mantle()){this.stop();this.swimming=false;return{handled:true,speed:0};}}
+  if(this.gliding&&state.health>0&&state.stamina<=15){this.warning='翼を支える力が残りわずかです。近くの足場へ着地してください';if(state.stamina<=0){this.warning=this.notice='スタミナ切れで翼が閉じました';this.noticeTime=2;}}
   if(state.health<=0||state.stamina<=0||water>.35){this.stop();return {handled:false,speed:1};}
   if(this.climbing){
    if(!this.wall()){const mantled=this.mantle();this.climbing=false;return {handled:mantled,speed:mantled?0:1};}

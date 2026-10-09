@@ -9,6 +9,7 @@ import {ADVENTURE_ENEMY_IDS,ADVENTURE_LOOT} from '../content/adventure-encounter
 import {siteClear,siteWalkingContext} from './site-walking';
 import {adventureWaypoint,clearAdventureRoute,hasAdventureRoute,invalidateAdventureRoute,navigationGroundStep,stepAdventureNavigation} from './adventure-navigation';
 import {dropItem} from './interaction/drops';
+import {inOrdinaryMeleeArc} from './combat/ordinary-melee';
 export const ENCOUNTER_LIMITS={active:64,range:48,projectiles:64,moveSubsteps:8} as const;
 const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 export const isOrdinaryAdventureEnemy=(e:EnemyState)=>!e.boss&&ADVENTURE_ENEMY_IDS.includes(e.definition);
@@ -83,7 +84,7 @@ export function stepAdventureEnemy(game:Adventure,e:EnemyState,dt:number):boolea
  if(e.definition==='cinderunner'&&(ready.dashUntil??0)>game.state.seconds){const aim=e.attackYaw??0,moved=move(game,e,{x:e.x+Math.sin(aim)*2,y:e.y,z:e.z+Math.cos(aim)*2},8,dt,false,false);if(!moved)ready.dashUntil=0;if(!ready.dashHit)for(const actor of threats)if(distance(actor.player,e)<1.4&&adventureSees(game,e,actor.player)){actor.adventure.hurtPlayer(inBeginnerArea(game.sim,actor.player)?BEGINNER_ENCOUNTER.damage:def.damage,inBeginnerArea(game.sim,actor.player)?'physical':'fire',actor.player,e);ready.dashHit=1;break;}e.attackKind='dash';return true;}
  if(e.windup>0){e.windup=Math.max(0,e.windup-dt);if(e.windup>0)return true;
   if(e.definition==='cinderunner'&&e.attackKind==='charge'){ready.dashUntil=game.state.seconds+.6;ready.dashHit=0;e.attackKind='dash';e.cooldown=3;return true;}
-  if(visible){if(e.definition==='reedspitter'||e.definition==='veilray')shoot(game,e,p,damage,element);else if(d<(e.definition==='cinderunner'?1.65:def.reach)+.6)target.adventure.hurtPlayer(damage,e.definition==='cinderunner'&&water>.35?'physical':element,p,e);}
+  if(visible){if(e.definition==='reedspitter'||e.definition==='veilray')shoot(game,e,p,damage,element);else if(inOrdinaryMeleeArc(e,p))target.adventure.hurtPlayer(damage,e.definition==='cinderunner'&&water>.35?'physical':element,p,e);}
   e.cooldown=beginner?BEGINNER_ENCOUNTER.cooldown:e.definition==='slime'?2.8:2.2;ready.recoverUntil=game.state.seconds+.65;e.attackKind='recover';return true;
  }
  if((ready.recoverUntil??0)>game.state.seconds)return true;

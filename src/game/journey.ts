@@ -1,4 +1,4 @@
-import { PRACTICE_DUMMY_ID } from '../content/adventure-people';
+import { openingBeaconGoal, skyBeaconGoal, graveRecoveryGoal } from './adventure-goal';
 import { BEACONS } from '../content/adventure-world';
 import { roofed } from './meadows/state';
 import { BIOMES, BOSSES, RECIPES } from '../content/catalog';
@@ -8,19 +8,11 @@ export interface JourneyGoal { title: string; detail: string; tab: string; targe
 /** Derive objectives from existing saves; no tutorial flags can become stale. */
 export function journeyGoal(s: AdventureSnapshot, p: Vec3): JourneyGoal {
  if(s.generator===4){
+  const recovery=graveRecoveryGoal(s,p);if(recovery)return recovery;
   if(s.defeated.includes('stormcore'))return {title:'三つの高さをつないだ',detail:'仲間と設計帳を持ち、新しい航路へ',tab:'world',progress:1};
   const next=BEACONS.find(b=>(s.resources.find(n=>n.id===b.id)?.ready??0)<1e9);
-  const tutorial=s.progressionView?.tutorial;
-  // Teach one action at a time using the existing saved progression. Experienced
-  // worlds that already lit the first beacon retain their main journey goal.
-  if(next?.id===810001&&tutorial&&tutorial.step<5){
-   const progress=tutorial.step/5;
-   if(tutorial.step===0)return {title:'まずは6m歩こう',detail:'左で移動・右で視点。目標を押すと詳しい手順',tab:'guide',progress:tutorial.walked/30};
-   if(tutorial.step===1)return {title:'地面を1回掘ろう',detail:'持物 → 建築 → Voxel：掘る。出発点から少し離れる',tab:'build',progress};
-   if(tutorial.step===2){const pile=s.resources.filter(n=>n.drop&&n.ready<=s.seconds).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];return {title:'荷に照準を合わせて拾おう',detail:'木材や石に近づき、表示された「拾う」を押す',tab:'guide',target:pile,progress};}
-   if(tutorial.step===3){const parts=(s.skybound?.parts??[]).filter(part=>!part.trial&&Math.hypot(part.position.x-p.x,part.position.y-p.y,part.position.z-p.z)<12);return {title:parts.length<2?'木の部品を2つ作ろう':'部品を持って接着しよう',detail:parts.length<2?'能力 → 材質「木」→ 照準の先に作る → 確定':'能力 → 部品を掴む → 近い部品と接着',tab:'powers',progress};}
-   return {title:'練習人形を助けよう',detail:'照準の「練習人形を助ける」を押し、3秒そばに立つ',tab:'guide',target:s.resources.find(n=>n.id===PRACTICE_DUMMY_ID),progress};
-  }
+  if(next?.id===810001)return openingBeaconGoal(s,p);
+  if(next?.id===810002)return skyBeaconGoal(p);
 
   const active=s.enemies.find(e=>e.definition==='stormcore'&&e.health>0);
   if(active)return {title:'嵐心の機殻を鎮める',detail:'予兆を避け、隙に合成した装備で攻撃',tab:'world',target:active,progress:.85};

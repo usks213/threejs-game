@@ -203,7 +203,13 @@ export class Adventure {
   const previousHealth = this.state.health;
   this.state.health = Math.max(0, this.state.health - amount * armor * (element === 'frost' && this.state.rested > 0 ? 0.8 : 1)); this.hurt = 0.65; if(this.state.health < previousHealth)this.damageRevision++;
   if (this.state.health <= 0) {
-   if (this.sim.world.generator === 4) { this.state.downed = DOWNED_SECONDS; this.sim.companions.release(this.owner,player);this.clearCombat(); this.sim.skybound.release(this.owner); }
+   if (this.sim.world.generator === 4) {
+    this.sim.companions.release(this.owner,player);this.clearCombat();this.sim.skybound.release(this.owner);
+    // A connected companion can still rescue a downed player. Solo players
+    // have nobody to wait for, so begin the existing recoverable grave/respawn.
+    if (this.sim.targets.some(actor => actor.adventure !== this)) this.state.downed = DOWNED_SECONDS;
+    else this.finalizeDeath(player);
+   }
    else this.finalizeDeath(player);
   }
  }
@@ -215,10 +221,10 @@ export class Adventure {
   this.gear.ensure();
   delete this.state.downed;
   this.clearCombat();
-  if(this.state.meadows){const m=this.state.meadows;if(!(m.noSkillDrain??0))for(const key of Object.keys(m.skills))m.skills[key]=Math.floor(m.skills[key]*.95);m.noSkillDrain=600;m.foods=[];this.state.food=0;} const p = player;if(this.state.meadows&&this.state.death&&Object.values(this.state.grave??{}).some(n=>n>0)){this.state.meadows.graves??=[];this.state.meadows.graves.push({...this.state.death,items:{...this.state.grave}});}
+  if(this.state.meadows){const m=this.state.meadows;if(!(m.noSkillDrain??0))for(const key of Object.keys(m.skills))m.skills[key]=Math.floor(m.skills[key]*.95);m.noSkillDrain=600;m.foods=[];this.state.food=0;} const p = player;if(this.state.meadows&&this.state.death&&Object.values(this.state.grave??{}).some(n=>n>0)){this.state.meadows.graves??=[];this.state.meadows.graves.push({...this.state.death,items:{...this.state.grave},gearItems:structuredClone(this.state.graveGear)});}
    this.swing=null;this.buffered=null;this.combo=0;this.comboUntil=0;this.attack=0;this.dodge=0;this.cast=0;this.guarding=false;this.guardAim=null;this.parryTime=0;this.staminaRecovery=0;
    if(this.state.meadows){this.state.equipment='hands';this.guarding=false;this.state.meadows.fishing=undefined;this.state.meadows.riding=undefined;}
-   this.state.death = { x: p.x, y: p.y, z: p.z }; this.state.stamina = 0; this.respawn = 3; this.state.grave = {}; for (const id of this.state.meadows?Object.keys(this.state.inventory):['wood', 'stone', 'copper', 'iron', 'crystal', 'aether', 'resin', 'fang', 'berry']) { const lost = Math.floor((this.state.inventory[id] ?? 0) * (this.state.meadows?1:0.2)); if (lost) { this.state.grave[id] = lost; this.state.inventory[id] -= lost; } }
+   this.state.death = { x: p.x, y: p.y, z: p.z }; this.state.stamina = 0; this.respawn = 3; this.state.grave = {}; for (const id of this.state.meadows?Object.keys(this.state.inventory):['wood', 'stone', 'copper', 'iron', 'crystal', 'aether', 'resin', 'fang', 'berry']) { if(this.sim.world.generator===4&&id==='glider')continue;const lost = Math.floor((this.state.inventory[id] ?? 0) * (this.state.meadows?1:0.2)); if (lost) { this.state.grave[id] = lost; this.state.inventory[id] -= lost; } }
   if(this.state.meadows)this.gear.finishDeath();
  }
  revive(): void {
@@ -263,11 +269,11 @@ export class Adventure {
   }
   const changesEquipment=action==='equip'||action==='craft'||action==='landscape'||action==='fish'||(action==='drop'&&id.split(':')[0]===s.equipment);
   if(changesEquipment&&(this.attack>0||this.dodge>0))throw new Error('動作の回復を待ってください');
-  if(action==='interact'&&(id.startsWith('r:')||id.startsWith('b:')||id==='grave')){
+  if(action==='interact'&&(id.startsWith('r:')||id.startsWith('b:')||id==='grave'||id.startsWith('grave:'))){
    assertInteractionReach(s,p,id,target??{x:NaN,y:NaN,z:NaN},point=>this.sim.world.density(point));
    const resource=id.startsWith('r:')?s.resources.find(n=>n.id===Number(id.slice(2))):undefined;
    const building=id.startsWith('b:')?s.buildings.find(b=>b.id===Number(id.slice(2))):undefined;
-   if(resource){action='gather';id=String(resource.id);}else if(id==='grave')action='gather';else id=String(building!.id);
+   if(resource){action='gather';id=String(resource.id);}else if(id==='grave'||id.startsWith('grave:'))action='gather';else id=String(building!.id);
   }
   if((action==='repairBuilding'||action==='remove')&&id&&target)assertInteractionReach(s,p,'b:'+id,target,point=>this.sim.world.density(point));
   if(this.sim.world.generator===4&&action==='travel')return {dirty:[],message:beaconTravel(this,id)};
@@ -521,7 +527,7 @@ export class Adventure {
    if(ordinaryHostile&&crossesEntryClearing(this.sim,previousShot,shot))shot.life=0;
    const contact = shot.life>0&&!hostile ? sweptEnemyContact(s.enemies,previousShot,shot,shot.radius) : undefined;
    if(this.sim.world.generator===4&&!clearMeleeContact(s,previousShot,contact?.point??shot,point=>this.sim.world.density(point))){Object.assign(shot,previousShot);shot.life=0;}
-   if(hostile&&shot.life>0) for(const actor of this.sim.targets.length?this.sim.targets:[{player:this.sim.player,adventure:this}])if(Math.hypot(actor.player.x-shot.x,actor.player.y+0.7-shot.y,actor.player.z-shot.z)<shot.radius+0.6){if(ordinaryHostile&&inEntryClearing(this.sim,actor.player)){shot.life=0;break;}const beginner=ordinaryHostile&&inBeginnerArea(this.sim,actor.player);actor.adventure.hurtPlayer(beginner?Math.min(shot.damage,BEGINNER_ENCOUNTER.damage):shot.damage,beginner?'physical':shot.element,actor.player);shot.life=0;}
+   if(hostile&&shot.life>0) for(const actor of this.sim.targets.length?this.sim.targets:[{player:this.sim.player,adventure:this}])if(Math.hypot(actor.player.x-shot.x,actor.player.y+0.7-shot.y,actor.player.z-shot.z)<shot.radius+0.6){if(ordinaryHostile&&inEntryClearing(this.sim,actor.player)){shot.life=0;break;}const beginner=ordinaryHostile&&inBeginnerArea(this.sim,actor.player);actor.adventure.hurtPlayer(beginner?Math.min(shot.damage,BEGINNER_ENCOUNTER.damage):shot.damage,beginner?'physical':shot.element,actor.player,previousShot);shot.life=0;}
    if (contact&&shot.life>0) { const enemy=contact.enemy,owner = this.sim.targets.find(t => t.adventure.owner === shot.owner)?.adventure ?? this; owner.hit(enemy, shot.damage, shot.element,true,previousShot,contact.point);Object.assign(shot,contact.point);if(shot.burn)enemy.burn=shot.burn;enemy.alerted=10; shot.life = 0; }
    if (shot.element === 'frost' && (this.sim.fluid.immersion(shot, 0.3) > 0 || this.sim.world.density(shot) <= 0)) { this.sim.fluid.freeze(shot, 3); shot.life = 0; }
    if(shot.gearFlight!==undefined)updateGearFlight(this,shot);

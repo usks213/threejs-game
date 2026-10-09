@@ -1,4 +1,7 @@
 import { storyPerson } from '../../content/adventure-people';
+import { ADVENTURE_ENEMY_IDS } from '../../content/adventure-encounters';
+import { hasOrdinaryMeleeTell } from '../../game/combat/ordinary-melee';
+import { ordinaryTells } from './ordinary-tells';
 import { addPersonModel } from './person';
 import {createBossParts} from './boss-parts';
 import { voxelizePrimitive } from '../voxel/primitive';
@@ -15,7 +18,7 @@ import * as THREE from 'three';
 import { BIOMES, BOSSES, BUILDINGS, ENEMIES } from '../../content/catalog';
 import type { AdventureSnapshot } from '../../game/types';
 export function createEntities(scene: THREE.Scene, direct = false) {
- const armor=createBossParts(scene),details=campDetails(scene),tells=bossTells(scene), resources = createResources(scene, direct), buildings = buildingKit(), creatures=creatureKit();
+ const meleeTells=ordinaryTells(scene),armor=createBossParts(scene),details=campDetails(scene),tells=bossTells(scene), resources = createResources(scene, direct), buildings = buildingKit(), creatures=creatureKit();
  const objects = new Map<string, THREE.Group>(), geometry = new Map<string, THREE.BufferGeometry>(), materials = new Map<string, THREE.MeshStandardMaterial>();
  const geo = (id: string, make: () => THREE.BufferGeometry) => { let g = geometry.get(id); if (!g) { g = make(); geometry.set(id, g); } return g; };
  const mat = (color: string) => { let m = materials.get(color); if (!m) { m = pbrMaterial(color, color==='#8b8c84'?'stone':['#e2baff','#b6eafa','#ffc077'].includes(color)?'crystal':'skin'); materials.set(color, m); } return m; };
@@ -25,7 +28,7 @@ export function createEntities(scene: THREE.Scene, direct = false) {
  let latest: AdventureSnapshot | null = null;
  return {
   update(state: AdventureSnapshot,player?:{x:number;y:number;z:number}) {
-   details.update(state,player);tells.update(state);armor.update(state);latest = state; for (const group of objects.values()) group.visible = false;
+   details.update(state,player);tells.update(state);meleeTells.update(state);armor.update(state);latest = state; for (const group of objects.values()) group.visible = false;
    resources.update(state);
    for (const e of state.enemies) {
     if (e.health <= 0) continue;
@@ -49,7 +52,8 @@ export function createEntities(scene: THREE.Scene, direct = false) {
     group.getObjectByName('health')!.visible=e.boss||e.health<def.health*(1+(e.stars??0))*(1+(e.tier-1)*.4);
     if(['loadwarden','echowarden','sailwarden','stormcore'].includes(e.definition))group.rotation.y=(e.heading??e.attackYaw??0)+Math.PI;
     if(e.definition==='stormstag'||['shellguard','reedspitter','cinderunner','veilray'].includes(e.definition))group.rotation.y=(e.heading??0)+Math.PI;
-    group.getObjectByName('warning')!.visible = e.windup > 0&&!['stormstag','stormcore','loadwarden','echowarden','sailwarden'].includes(e.definition);
+    if(state.generator===4&&!e.boss&&ADVENTURE_ENEMY_IDS.includes(e.definition))group.rotation.y=(e.windup>0||e.attackKind==='dash'?e.attackYaw??e.heading??0:e.heading??0)+Math.PI;
+    group.getObjectByName('warning')!.visible = e.windup > 0&&!['stormstag','stormcore','loadwarden','echowarden','sailwarden'].includes(e.definition)&&!(state.generator===4&&hasOrdinaryMeleeTell(e));
     group.getObjectByName('health')!.scale.x = Math.max(0.01, e.health / (def.health * (e.boss ? 1 : (1+(e.stars??0))*(1 + (e.tier - 1) * 0.4))));
    }
    for(const n of state.resources)if(n.kind==='merchant'){
@@ -75,7 +79,7 @@ export function createEntities(scene: THREE.Scene, direct = false) {
    for (const [key, group] of objects) if (!group.visible) { scene.remove(group);if(key.startsWith('building'))disposeVoxelGroup(group); group.traverse(o => { if (o instanceof THREE.Mesh) { if (o.name === 'health') o.geometry.dispose(); if (o.name === 'health') (o.material as THREE.Material).dispose(); } }); objects.delete(key); }
   },
   faceCamera(camera:THREE.Camera){armor.faceCamera(camera);for(const [key,g] of objects)if(key.startsWith('enemy'))g.getObjectByName('health')?.lookAt(camera.position);},
-  dispose(){for(const [key,g] of objects)if(key.startsWith('building'))disposeVoxelGroup(g);armor.dispose();details.dispose();tells.dispose();resources.dispose();buildings.dispose();creatures.dispose();for(const g of geometry.values())g.dispose();for(const m of materials.values())m.dispose();},
+  dispose(){for(const [key,g] of objects)if(key.startsWith('building'))disposeVoxelGroup(g);armor.dispose();details.dispose();tells.dispose();meleeTells.dispose();resources.dispose();buildings.dispose();creatures.dispose();for(const g of geometry.values())g.dispose();for(const m of materials.values())m.dispose();},
   raycast(ray: THREE.Raycaster) { return ray.intersectObjects([...objects.entries()].filter(([key]) => key.startsWith('building')).map(([, group]) => group), true)[0]; },
   collision(player: THREE.Vector3) {
    if (!latest) return;

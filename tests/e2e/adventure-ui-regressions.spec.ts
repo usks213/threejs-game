@@ -16,7 +16,7 @@ test('voxel adventure persists captions and keeps food timing, catalog sorting, 
  await sort.selectOption('name');const names=await cards.locator('strong').allTextContents();expect(names).toEqual([...names].sort((a,b)=>a.localeCompare(b,'ja')));await search.fill('斧');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('石斧');
  await page.locator('[data-tab=guide]').click();await expect(search).toHaveValue('');await page.locator('[data-tab=craft]').click();await expect(search).toHaveValue('斧');await expect(sort).toHaveValue('name');await search.fill('検索対象のない文字列');await expect(cards).toHaveCount(0);await page.locator('[data-catalog-clear]').click();await expect(search).toHaveValue('');await expect(sort).toHaveValue('name');await expect(cards).toHaveCount(total);
  await sort.selectOption('available');const availability=await cards.evaluateAll(elements=>elements.map(el=>Number(!!el.querySelector('button:not([disabled])'))));expect(availability).toEqual([...availability].sort((a,b)=>b-a));await page.locator('#adventure-close').click();await page.locator('#adventure-menu').click();await expect(sort).toHaveValue('available');await page.locator('#adventure-close').click();
- await page.locator('#powers-menu').click();const plans=page.locator('#power-blueprint');await expect(plans.locator('option')).toHaveCount(3);await plans.selectOption('1');await page.locator('#power-plan-sort').selectOption('name');await expect(plans).toHaveValue('1');await expect(plans.locator('option').nth(1)).toContainText('Alpha pair');await page.locator('#power-plan-search').fill('Alpha');await expect(plans).toHaveValue('');await expect(page.locator('[data-power=rebuild]')).toBeDisabled();await page.locator('#power-plan-search').fill('');await expect(plans).toHaveValue('1');await page.locator('#power-plan-sort').selectOption('parts');await expect(plans.locator('option').nth(1)).toContainText('Zulu small');await expect(plans).toHaveValue('1');await page.locator('#powers-close').click();expect(errors).toEqual([]);
+ await page.locator('#powers-menu').click();await page.locator('[data-power-page=plans]').click();const plans=page.locator('#power-blueprint');await expect(plans.locator('option')).toHaveCount(3);await plans.selectOption('1');await page.locator('#power-plan-sort').selectOption('name');await expect(plans).toHaveValue('1');await expect(plans.locator('option').nth(1)).toContainText('Alpha pair');await page.locator('#power-plan-search').fill('Alpha');await expect(plans).toHaveValue('');await expect(page.locator('[data-power=rebuild]')).toBeDisabled();await page.locator('#power-plan-search').fill('');await expect(plans).toHaveValue('1');await page.locator('#power-plan-sort').selectOption('parts');await expect(plans.locator('option').nth(1)).toContainText('Zulu small');await expect(plans).toHaveValue('1');await page.locator('#powers-close').click();expect(errors).toEqual([]);
 });
 test('voxel adventure charges once on hold/release and cancels safely through pointer cancellation or an opened menu',async({page},info)=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
@@ -33,4 +33,22 @@ test('voxel adventure charges once on hold/release and cancels safely through po
  await hold();await expect(page.locator('#traversal-warning')).toContainText('溜め');if(touch)await release(true);else {await page.locator('#system-menu').click();await release();await page.locator('#system-close').click();}await expect(page.locator('#traversal-warning')).toBeHidden();await ticks(page,10);expect(await starts()).toBe(1);expect(await active()).toBe(false);
  // A fresh gesture after cancellation must still work and cannot inherit the cancelled charge.
  await page.locator('#adventure-menu').focus();await hold();await expect(page.locator('#traversal-warning')).toContainText('溜め');await release();await expect.poll(starts).toBe(2);await expect.poll(active).toBe(false);expect(errors).toEqual([]);
+});
+
+test('voxel adventure ability pages separate tasks and cancel uncommitted work when switching',async({page},info)=>{
+ test.setTimeout(120000);await ready(page);await fixture(page,sparse());await page.locator('#powers-menu').click();
+ await expect(page.locator('#power-pages button')).toHaveCount(5);await expect(page.locator('#power-kind')).toBeVisible();
+ await expect(page.locator('#power-plan-search')).toBeHidden();await expect(page.locator('#power-fusion-equipment')).toBeHidden();
+ await page.locator('#powers-panel [data-power=create]').click();await expect(page.locator('#power-preview')).toBeVisible();
+ const partsBefore=await page.locator('#app').getAttribute('data-skybound');
+ await page.locator('[data-power-page=travel]').click();await expect(page.locator('#power-preview')).toBeHidden();
+ await expect(page.locator('[data-power=ascend-preview]')).toBeVisible();await expect(page.locator('#power-kind')).toBeHidden();
+ await page.locator('[data-power-page=equipment]').click();await expect(page.locator('#power-fusion-equipment')).toBeVisible();
+ await page.locator('[data-power-page=plans]').click();await expect(page.locator('#power-plan-search')).toBeVisible();
+ await page.locator('[data-power-page=devices]').click();await expect(page.locator('#power-page-devices')).toBeVisible();
+ await page.locator('[data-power-page=build]').click();await expect(page.locator('#power-kind')).toBeVisible();
+ const partsAfter=await page.locator('#app').getAttribute('data-skybound');
+ expect(JSON.parse(partsAfter??'{}').parts.length).toBe(JSON.parse(partsBefore??'{}').parts.length);
+ await page.screenshot({path:info.outputPath('focused-ability-build.png'),scale:'css'});
+ await page.locator('#powers-close').click();await page.locator('#powers-menu').click();await expect(page.locator('#power-kind')).toBeVisible();
 });

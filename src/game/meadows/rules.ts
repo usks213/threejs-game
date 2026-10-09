@@ -1,6 +1,7 @@
 import {isEquipment} from '../equipment/items';
 import {chartNearby} from '../charted-map';
 import {assertInteractionReach} from '../interaction/reach';
+import {previousGrave,previousGraveTarget} from '../interaction/graves';
 import {assertBuildingAccess} from '../building-permissions';
 import {foodEffect} from '../../content/adventure-food';
 import {adventureEnvironment} from '../../environment/adventure';
@@ -49,7 +50,13 @@ export class MeadowRules{
  }
  if(action==='repairBuilding'){if(!s.inventory.hammer)throw new Error('ハンマーが必要です');const b=id?s.buildings.find(b=>b.id===Number(id)&&distance(p,b)<4):s.buildings.filter(b=>distance(p,b)<4).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!b)throw new Error('建物に近づいてください');assertBuildingAccess(this.game,b,'cooperate');b.health=100;b.removed=[];return ok('建物を修理しました');}
  if(action==='gather'){
-  const grave=!id?m.graves?.find(g=>distance(g,p)<2.5):undefined;if(grave){this.game.gear.recover(grave);if(!Object.values(grave.items).some(n=>n>0))m.graves=m.graves!.filter(g=>g!==grave);m.corpseRun=50;return ok('前の墓標から持ち物を回収しました');}
+  const grave=id.startsWith('grave:')?previousGrave(s,id):!id?m.graves?.find(g=>distance(g,p)<2.5&&Object.values(g.items).some(n=>n>0)):undefined;
+  if(id.startsWith('grave:')&&!grave)throw Error('墓標が更新されました。もう一度照準を合わせてください');
+  if(grave){
+   if(distance(grave,p)>=2.5)throw Error('墓標へ近づいてください');
+   if(this.sim.world.generator===4||id.startsWith('grave:'))assertInteractionReach(s,p,id||previousGraveTarget(grave,m.graves!.indexOf(grave)),{x:grave.x,y:grave.y+.7,z:grave.z},point=>this.sim.world.density(point));
+   this.game.gear.recover(grave);if(!Object.values(grave.items).some(n=>n>0))m.graves=m.graves!.filter(g=>g!==grave);m.corpseRun=50;return ok('前の墓標から持ち物を回収しました');
+  }
 
   if((!id||id==='grave')&&s.death&&distance(p,s.death)<2.5){const holder={items:s.grave??{},gearItems:s.graveGear};this.game.gear.recover(holder);s.grave=holder.items;s.graveGear=holder.gearItems;if(!Object.values(s.grave).some(n=>n>0))s.death=null;m.corpseRun=50;s.stamina=foodStats(s).stamina;return ok('墓標から持ち物を回収しました');}
   const n=id?s.resources.find(n=>n.id===Number(id)&&n.ready<=s.seconds&&distance(p,n)<3.5):s.resources.filter(n=>n.ready<=s.seconds&&distance(p,n)<3).sort((a,b)=>distance(p,a)-distance(p,b))[0];if(!n)throw new Error('拾えるものへ近づいてください');

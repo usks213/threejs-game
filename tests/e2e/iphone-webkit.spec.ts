@@ -92,7 +92,7 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
   await logicalLandscape(page, portrait);
   await expectJourneyTextFits(page);
   await expect(page).toHaveTitle(/空と灯の大地/);
-  await expect(page.locator('#journey')).toContainText('まずは6m歩こう');
+  await expect(page.locator('#journey')).toContainText('木材で最初の灯をつなごう');
   await expect(page.locator('#adventure-hud')).toContainText('HP');
   await expect(page.locator('#hotbar button')).toHaveCount(8);
   await page.screenshot({ path: info.outputPath('iphone-webkit-portrait.png'), scale: 'css' });

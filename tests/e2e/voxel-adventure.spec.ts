@@ -5,7 +5,7 @@ const sky=async(page:Page)=>JSON.parse(await page.locator('#app').getAttribute('
 test('voxel adventure exposes original journey, usable room entry, abilities and persistent accessibility settings',async({page},info)=>{
  test.setTimeout(120000);page.setDefaultTimeout(20000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/',{waitUntil:'domcontentloaded'});await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
- await expect(page).toHaveTitle(/空と灯の大地/);await expect(page.locator('#journey')).toContainText('まずは6m歩こう');await expect(page.locator('#session-menu')).toBeVisible();await expect(page.locator('#powers-menu')).toBeVisible();
+ await expect(page).toHaveTitle(/空と灯の大地/);await expect(page.locator('#journey')).toContainText('木材で最初の灯をつなごう');await expect(page.locator('#session-menu')).toBeVisible();await expect(page.locator('#powers-menu')).toBeVisible();
  await page.locator('#powers-menu').click();await expect(page.getByRole('dialog',{name:'創作能力',exact:true})).toBeVisible();await expect(page.locator('#power-kind option')).toHaveCount(13);await expect(page.locator('#power-kind option[value=storage]')).toHaveCount(1);await expect(page.locator('#power-kind option[value=bed]')).toHaveCount(1);await page.locator('#powers-close').click();
  await page.locator('#system-menu').click();await page.locator('#reduced-motion').check();await page.locator('#invert-camera').check();await page.locator('#system-close').click();
  await expect(page.locator('#app')).toHaveAttribute('data-motion','reduced');await page.screenshot({path:info.outputPath('original-adventure.png'),scale:'css'});
@@ -57,8 +57,8 @@ test('voxel adventure creates, holds, moves, records and releases a visible auth
  await page.locator('#powers-menu').click();
 
  await page.getByRole('button',{name:'持ち上げる',exact:true}).click();await expect(page.locator('#power-preview')).toBeVisible();await page.locator('#power-preview [data-power=preview-confirm]').click();await expect.poll(async()=>(await sky(page))!.parts[0].position.y).toBeGreaterThan(y+.3);
- await page.getByRole('button',{name:'設計帳に記録',exact:true}).click();await expect.poll(async()=>(await sky(page))?.blueprints.length).toBe(1);
- await page.getByRole('button',{name:'手を放す',exact:true}).click();await expect.poll(async()=>!!(await sky(page))?.parts[0].lease).toBe(false);await page.locator('#powers-close').click();
+ await page.locator('[data-power-page=plans]').click();await page.getByRole('button',{name:'設計帳に記録',exact:true}).click();await expect.poll(async()=>(await sky(page))?.blueprints.length).toBe(1);
+ await page.locator('[data-power-page=build]').click();await page.getByRole('button',{name:'手を放す',exact:true}).click();await expect.poll(async()=>!!(await sky(page))?.parts[0].lease).toBe(false);await page.locator('#powers-close').click();
  await page.screenshot({path:info.outputPath('constructed-voxel-part.png'),scale:'css'});expect(errors).toEqual([]);
 });
 test('voxel adventure protects a corrupted local save until an explicit recovery choice',async({page})=>{
@@ -68,4 +68,53 @@ test('voxel adventure protects a corrupted local save until an explicit recovery
  await page.evaluate(async()=>{await new Promise<void>((resolve,reject)=>{const request=indexedDB.open('voxel-coop-adventure-v1',3);request.onerror=()=>reject(request.error);request.onsuccess=()=>{const db=request.result,tx=db.transaction('worlds','readwrite');tx.objectStore('worlds').put({storageVersion:999},'single-player');tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>reject(tx.error);};});});
  await page.reload({waitUntil:'domcontentloaded'});await expect(page.getByRole('dialog',{name:'保存データの復旧'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.locator('#recovery-panel')).toBeVisible();
  await page.getByRole('button',{name:'元データを保護して新しく始める'}).click();await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});await expect(page.locator('#recovery-panel')).toBeHidden();
+});
+
+test('voxel adventure fresh arrival aims at the cache, assembles two beams and lights the first beacon',async({page},info)=>{
+ test.setTimeout(180000);page.setDefaultTimeout(20000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ // Passive snapshot observation supplies an aim target, never inventory/position edits.
+ await page.addInitScript(()=>{window.Worker=new Proxy(window.Worker,{construct(Target,args,newTarget){const worker=Reflect.construct(Target,args,newTarget) as Worker;worker.addEventListener('message',(event:MessageEvent)=>{if(event.data.type==='snapshot')(window as typeof window&{openingState?:unknown}).openingState=event.data.state;});return worker;}});});
+ await page.goto('/',{waitUntil:'domcontentloaded'});await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
+ await expect(page.locator('#journey')).toContainText('木材で最初の灯をつなごう');
+ await page.screenshot({path:info.outputPath('fresh-arrival-cache.png'),scale:'css'});
+ const aimAt=async(id?:number,height=.35)=>{
+ const aim=await page.evaluate(({id,height})=>{
+  type V={x:number;y:number;z:number};type S={player:V;adventure:{resources:(V&{kind:string;drop?:boolean;id:number})[]}};
+  const state=(window as typeof window&{openingState:S}).openingState,p=state.player,wood=state.adventure.resources.find(n=>id===undefined?n.kind==='wood'&&n.drop:n.id===id)!;
+  let yaw=0;for(let i=0;i<12;i++)yaw=Math.atan2(p.x+.6*Math.cos(yaw)-wood.x,p.z-.6*Math.sin(yaw)-wood.z);
+  const pitch=Math.atan2(p.y+1.35-wood.y-height,Math.hypot(p.x+.6*Math.cos(yaw)-wood.x,p.z-.6*Math.sin(yaw)-wood.z));
+  const app=document.querySelector<HTMLElement>('#app')!;return {id:wood.id,dx:-(yaw-Number(app.dataset.cameraYaw))/.006,dy:(pitch-Number(app.dataset.cameraPitch))/.006};
+ },{id,height});
+ if(info.project.name==='android-chromium'){
+  const touch=await page.context().newCDPSession(page);await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:430,y:150,id:63}]});
+  for(let i=1;i<=8;i++){await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:430+aim.dx*i/8,y:150+aim.dy*i/8,id:63}]});await page.waitForTimeout(20);}
+  await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ }else{await page.mouse.move(430,150);await page.mouse.down({button:'middle'});await page.mouse.move(430+aim.dx,150+aim.dy,{steps:8});await page.mouse.up({button:'middle'});}
+ return aim;
+ };
+ const aim=await aimAt();
+ await expect(page.locator('#app')).toHaveAttribute('data-interaction','r:'+aim.id);await expect(page.locator('#interact')).toContainText('拾う');
+ await page.screenshot({path:info.outputPath('aimed-opening-cache.png'),scale:'css'});await page.locator('#interact').click();
+ await expect(page.locator('#journey')).toContainText('木の梁を二つ作ろう');
+ await page.locator('#journey').click();await expect(page.locator('#power-kind')).toBeVisible();
+ await page.locator('#powers-panel [data-power=create]').click();await expect(page.locator('#power-preview')).toBeVisible();
+ await page.locator('#powers-panel [data-power=preview-confirm]').click();await expect.poll(async()=>(await sky(page))?.parts.filter(p=>p.id>0).length).toBeGreaterThan(0);
+ await page.locator('#powers-close').click();await expect(page.locator('#journey')).toContainText('もう一つ、木の梁を作ろう');
+ await page.screenshot({path:info.outputPath('first-real-construction.png'),scale:'css'});
+ await page.locator('#journey').click();await page.locator('#powers-panel [data-power=create-adjacent]').click();
+ await expect(page.locator('#power-preview')).toBeVisible();await page.locator('#powers-panel [data-power=preview-confirm]').click();
+ await expect.poll(async()=>(await sky(page))?.parts.length).toBe(2);
+ await page.locator('#powers-panel [data-power=grab]').click();await expect.poll(async()=>!!(await sky(page))?.parts[0].lease).toBe(true);
+ await page.locator('#powers-panel [data-power=glue]').click();await page.locator('#powers-panel [data-power=preview-confirm]').click();
+ await expect.poll(()=>page.evaluate(()=>(window as typeof window&{openingState:{adventure:{skybound:{parts:{links:number[]}[]}}}}).openingState.adventure.skybound.parts.every(p=>p.links.length>0))).toBe(true);
+ await page.locator('#powers-panel [data-power=release]').click();await page.locator('#powers-close').click();
+ await expect(page.locator('#journey')).toContainText('最初の灯をともそう');
+ const distanceToBeacon=()=>page.evaluate(()=>{const s=(window as typeof window&{openingState:{player:{x:number;z:number}}}).openingState;return Math.hypot(s.player.x,s.player.z-3);});
+ if(info.project.name==='android-chromium'){
+  const touch=await page.context().newCDPSession(page),stick=await page.locator('#stick').boundingBox();if(!stick)throw Error('Movement stick missing');const x=stick.x+stick.width/2,y=stick.y+stick.height/2;
+  await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:64}]});await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-40,id:64}]});
+  try{await expect.poll(distanceToBeacon).toBeLessThan(2.3);}finally{await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+ }else{await page.keyboard.down('KeyW');try{await expect.poll(distanceToBeacon).toBeLessThan(2.3);}finally{await page.keyboard.up('KeyW');}}
+ await aimAt(810001,.8);await expect(page.locator('#app')).toHaveAttribute('data-interaction','r:810001');await expect(page.locator('#interact')).toContainText('灯をともす');await page.locator('#interact').click();
+ await expect(page.locator('#journey')).toContainText('斜路');await page.screenshot({path:info.outputPath('first-beacon-lit-through-play.png'),scale:'css'});expect(errors).toEqual([]);
 });

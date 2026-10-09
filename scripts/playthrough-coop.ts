@@ -50,7 +50,7 @@ export class ContinuousCoopJourney {
    this.require(this.actor(id).adventure.state.progression?.tutorial===2,'Mining tutorial evidence missing');
   }
   const a=this.players[0],b=this.players[1];this.pair(0,9);
-  for(const [id,kind]of [[a,'wood'],[b,'stone'],[a,'resin']]as const){const drop=this.sim.adventure.state.resources.find(n=>n.drop&&n.kind===kind&&n.amount>0);this.require(drop,`Missing ${kind} starting supply`);this.act('gather',String(drop.id),undefined,id);}
+  for(const [id,kind]of [[a,'wood'],[b,'stone'],[a,'resin']]as const){const drop=this.sim.adventure.state.resources.find(n=>n.drop&&n.kind===kind&&n.amount>0);this.require(drop,`Missing ${kind} starting supply`);this.walk(drop.x,drop.z+1.5,id);this.act('gather',String(drop.id),undefined,id);}
   // Both contributors build and glue their own pair using real shared supplies.
   for(const [i,id]of this.players.entries()){
    this.walk(i?4:3,6,id);const material=i?'stone':'wood',y=this.actor(id).player.y+1.25;

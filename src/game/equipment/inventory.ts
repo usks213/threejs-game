@@ -100,7 +100,14 @@ export class EquipmentInventory {
   }
   if(!picked)throw Error('持ち物の空きを作ってください');ids.commit();holder.items=items;holder.gearItems=remaining;this.commit(personal,inventory);if(this.s.meadows)for(const kind of received)if(!this.s.meadows.discovered.includes(kind))this.s.meadows.discovered.push(kind);return picked;
  }
- finishDeath():void{const c=this.s.gearItems!;this.s.graveGear=structuredClone(c);this.commit({...emptyGear(),revision:Math.min(Number.MAX_SAFE_INTEGER,c.revision+1)});}
+ finishDeath():void{
+  const source=this.s.gearItems!,kept=new Set(source.lots.filter(lot=>this.game.sim.world.generator===4&&lot.kind==='glider').map(lot=>lot.id));
+  // Keep the exact owned wing, including compact legacy batches and selection.
+  // Never mint a replacement or copy its identity into the recoverable grave.
+  const partition=(retain:boolean):GearContainer=>({version:1,revision:retain?Math.min(Number.MAX_SAFE_INTEGER,source.revision+1):source.revision,lots:source.lots.filter(lot=>kept.has(lot.id)===retain).map(lot=>structuredClone(lot)),activeByKind:Object.fromEntries(Object.entries(source.activeByKind).filter(([,id])=>kept.has(id)===retain))});
+  this.s.graveGear=validateGear(partition(false),this.s.grave??{});
+  this.commit(validateGear(partition(true),this.s.inventory));
+ }
  /** First prepares the new holder; its caller commits source and world together. */
  extract(kind:string,count:number,allocate:GearAllocator,lotId?:number):{personal:GearContainer;cargo:GearContainer}{const moved=transferGear(this.ensure(),emptyGear(),kind,count,allocate,lotId);return{personal:moved.source,cargo:moved.destination};}
  receive(node:ResourceNode,count:number):void{

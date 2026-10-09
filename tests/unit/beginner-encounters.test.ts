@@ -41,7 +41,7 @@ it('gives old dense packs one readable attack at a time, including ranged enemie
  expect(tookTurn.size).toBe(5);
 });
 it('caps a starter hit at three physical damage without poison, but retains normal later/sky/cave attacks',()=>{
- for(const kind of ['slime','walker']){const {sim,e}=fixture(kind);e.windup=.01;e.attackKind='melee';brain(sim);expect(sim.adventure.state.health).toBe(22);expect(sim.adventure.state.poison??0).toBe(0);expect(e.cooldown).toBe(BEGINNER_ENCOUNTER.cooldown);}
+ for(const kind of ['slime','walker']){const {sim,e}=fixture(kind);e.windup=.01;e.attackKind='melee';e.attackYaw=Math.atan2(sim.player.x-e.x,sim.player.z-e.z);brain(sim);expect(sim.adventure.state.health).toBe(22);expect(sim.adventure.state.poison??0).toBe(0);expect(e.cooldown).toBe(BEGINNER_ENCOUNTER.cooldown);}
  for(const [x,y] of [[100,0],[20,25],[20,-10.5]]){const {sim,e}=fixture('slime',x,y);expect(inBeginnerArea(sim,sim.player)).toBe(false);brain(sim);expect(e.windup).toBe(.9);e.windup=.01;brain(sim);expect(sim.adventure.state.health).toBe(19);expect(sim.adventure.state.poison).toBe(8);expect(e.cooldown).toBe(2.8);}
  const {sim,e}=fixture('walker',100);e.x=125;e.homeX=125;brain(sim);expect(e.attackKind).toBe('pursue');expect(e.alerted).toBe(6);
  const legacy=legacySimulation();expect(inBeginnerArea(legacy,{x:20,y:0,z:8})).toBe(false);
@@ -49,7 +49,7 @@ it('caps a starter hit at three physical damage without poison, but retains norm
 it('cancels windup and charges on retreat while an outside teammate can still take ordinary encounter damage',()=>{
  const {room,sim,e}=fixture('cinderunner');e.windup=.5;e.attackKind='charge';e.alerted=6;e.attackReady={dashUntil:10};sim.player.x=0;brain(sim);
  expect(e.windup).toBe(0);expect(e.alerted).toBe(0);expect(e.attackReady.dashUntil).toBe(0);expect(sim.adventure.state.health).toBe(25);
- const guest=room.join('outside');Object.assign(guest.player,{x:20,y:0,z:8});guest.adventure.state.meadows!.gear={};e.x=21;e.windup=.01;e.attackKind='melee';brain(sim);
+ const guest=room.join('outside');Object.assign(guest.player,{x:20,y:0,z:8});guest.adventure.state.meadows!.gear={};e.x=21;e.windup=.01;e.attackKind='melee';e.attackYaw=Math.atan2(guest.player.x-e.x,guest.player.z-e.z);brain(sim);
  expect(guest.adventure.state.health).toBe(22);expect(sim.adventure.state.health).toBe(25);
  Object.assign(guest.player,{x:0,y:0,z:8});brain(sim);expect(e.attackKind).toBe('idle');
  // The clearing is not player invulnerability: unrelated physical damage applies.

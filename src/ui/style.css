@@ -172,3 +172,6 @@ header{display:flex!important;left:calc(12px + var(--safe-left));top:calc(8px + 
 #powers-quick[data-preview=true] #power-quick-actions,#powers-quick[data-preview=true] #power-quick-release{display:none}
 #power-quick-description{max-width:none;line-height:14px;max-height:28px;overflow:hidden}
 @container game (max-height:350px){#power-quick-description{max-height:14px;white-space:nowrap;text-overflow:ellipsis}}
+
+/* Task-sized ability pages preserve every command without a wall of controls. */
+#power-pages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-bottom:10px}#power-pages button{min-width:0;min-height:48px;padding:4px;font-size:12px}#power-pages button[aria-pressed=true]{background:#dcc18b;color:#142d31;border-color:#fff0c1}#powers-panel [data-power-section]>.power-controls>label,#powers-panel [data-power-section]>.power-controls>section,#power-plan-confirm,#power-plan-filter-status,#power-exit{grid-column:1/-1}#powers-panel [data-power-section]>p{margin:10px 0}#power-page-build .power-controls>label:has(#power-kind),#power-page-build .power-controls>label:has(#power-material){grid-column:auto}
