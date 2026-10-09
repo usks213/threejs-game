@@ -211,3 +211,39 @@ GPU upload and rendering can still stall. No mobile-FPS or complete prediction
 claim follows from those measurements. Initial joins still spend real raid time
 loading. Existing point lights do not introduce new shadow/occlusion machinery;
 actual nearby walls, equipment and dark-room opponents require visual review.
+
+## Rendering browser results and recorder correction
+
+Remote `c21276c4ace8689312a3989a85cc863c3ff257c4` was deployed and verified
+in [run 37916255523](https://github.com/usks213/threejs-game/actions/runs/37916255523).
+Every selected job except desktop Ravager passed. Full PvPvE retained held guard
+through ordinary door updates and completed extraction at 155.05 server seconds.
+Actual first-draw attachments report 81/81 required chunks and current doors:
+about 2.16–2.74 seconds in inspected single-browser cases, and 5.82 seconds with
+the two-browser raid. These are shared CI measurements, not physical-phone FPS.
+
+Actual PC/Android spawn, loot, return and portrait shield screenshots and full
+raid video frames were inspected. Nearby mortar and dark-room opponents remain
+visible. A same-pose portrait shield interior region changed from 100% of pixels
+at RGB channels >=245 to 0%, reducing the previous near-white glare. Equipment
+still occupies substantial portrait screen space; this is not a claim that every
+visual or motion issue is solved.
+
+The sole failing case stopped before combat: its separate CDP recording session
+received no screencast frame within the existing five-second startup gate. It had
+already drawn all 81 chunks, while 54 subsequent snapshots and input acknowledgments
+continued and the explorer remained alive at spawn. Those observations do not
+prove uninterrupted rendering during the missing-capture interval.
+
+The follow-up changes only the test recorder setup and bounded diagnostics.
+It sends Page.enable on the dedicated session before starting capture, following
+[Chromium140's Page/screencast flags](https://github.com/chromium/chromium/blob/140.0.7339.186/third_party/blink/renderer/core/inspector/inspector_page_agent.cc#L1130-L1132)
+and [Playwright's Page initialization](https://github.com/microsoft/playwright/blob/v1.55.1/packages/playwright-core/src/server/chromium/crPage.ts#L441-L443).
+The five-second gate, everyNthFrame2, all 130 expectation expressions and actual
+hit/control assertions are unchanged. Failure-time graphics/visibility and CDP
+ACK diagnostics are capped, read-only and preserve the original failure.
+The exact cause of the earlier zero-frame interval remains unproven.
+
+The test-only follow-up again passed the full 1,882-test /201-file suite, both
+type checks, build and diff checks. Its exact-head browser retry remains pending.
+No production runtime code changes are included in this recorder follow-up.

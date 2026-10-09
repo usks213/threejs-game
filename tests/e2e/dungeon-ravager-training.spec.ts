@@ -404,6 +404,13 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
   const inputObservations: Array<Record<string, unknown>> = [];
   const frames: Array<{captureTimestampSeconds: number; callbackStage: string; callbackWallTimeMs: number; callbackTick: number | null; jpeg: string}> = [];
   let stage = 'joining', session: CDPSession | null = null;
+  const recorder = {
+    pageEnableAckAtMs: null as number | null, startRequestedAtMs: null as number | null, startAckAtMs: null as number | null,
+    firstFrameAtMs: null as number | null, framesReceived: 0,
+    visibility: [] as Array<{visible: boolean; wallTimeMs: number}>,
+    ackErrors: [] as Array<{message: string; wallTimeMs: number}>,
+    failure: null as {stage: string; wallTimeMs: number; page: unknown} | null,
+  };
   let evidence: {before: Snapshot; hit: Snapshot; damage: number; zone: 'body' | 'head'} | null = null;
   page.on('pageerror', error => errors.push(clean(String(error))));
   page.on('console', message => {if (message.type() === 'error') errors.push(clean(message.text()));});
@@ -452,8 +459,14 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     // Start visual recording only after the private lobby/invitation has gone.
     // ACK frames immediately; no PNG, encoder, or network wait delays combat.
     session = await page.context().newCDPSession(page);
+    session.on('Page.screencastVisibilityChanged', event => {
+      if (recorder.visibility.length < 12) recorder.visibility.push({visible: event.visible, wallTimeMs: Date.now()});
+    });
     session.on('Page.screencastFrame', frame => {
-      void session?.send('Page.screencastFrameAck', {sessionId: frame.sessionId}).catch(() => {});
+      recorder.framesReceived++; recorder.firstFrameAtMs ??= Date.now();
+      void session?.send('Page.screencastFrameAck', {sessionId: frame.sessionId}).catch(error => {
+        if (recorder.ackErrors.length < 3) recorder.ackErrors.push({message: clean(String(error)).slice(0, 400), wallTimeMs: Date.now()});
+      });
       // A queued compositor frame may predate the current callback-stage/tick.
       // Keep its capture clock separate; callback context is not capture proof.
       const captureTimestampSeconds = frame.metadata.timestamp ?? 0;
@@ -462,8 +475,15 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
       frames.push({captureTimestampSeconds, callbackStage: stage, callbackWallTimeMs: Date.now(),
         callbackTick: received.at(-1)?.snapshot.tick ?? null, jpeg: frame.data});
     });
-    stage = 'safe-spawn';
+    // This dedicated session does not inherit Playwright's Page.enable. Chromium140
+    // requires both Page and screencast flags for InspectorPageAgent::ScreencastEnabled.
+    // This fixes setup; it does not prove the cause of an earlier zero-frame timeout.
+    // chromium/140.0.7339.186: inspector_page_agent.cc:524-530,1130-1132,1549-1556;
+    // microsoft/playwright/v1.55.1: src/server/chromium/crPage.ts:441-442,850-860.
+    await session.send('Page.enable'); recorder.pageEnableAckAtMs = Date.now();
+    stage = 'safe-spawn'; recorder.startRequestedAtMs = Date.now();
     await session.send('Page.startScreencast', {format: 'jpeg', quality: 65, maxWidth: 960, maxHeight: 540, everyNthFrame: 2});
+    recorder.startAckAtMs = Date.now();
     await expect.poll(() => frames.some(frame => frame.callbackStage === 'safe-spawn'), {timeout: 5000}).toBe(true);
     // Resolve ordinary control bounds while safely outside enemy perception.
     const skillPoint = await center(page.getByTestId('dungeon-action-skill'));
@@ -569,6 +589,28 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     const resultPath = info.outputPath('ravager-strike-after-confirmed-hit.png');
     await page.screenshot({path: resultPath, mask: [page.getByTestId('dungeon-invite'), page.getByTestId('dungeon-room')]});
     await info.attach('ravager-strike-after-confirmed-hit', {path: resultPath, contentType: 'image/png'});
+  } catch (error) {
+    recorder.failure = {stage, wallTimeMs: Date.now(), page: null};
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      // Failure-only, read-only and bounded. No screenshots, URLs, names, credentials,
+      // renderer calls or game-state changes; preserve the original failed assertion.
+      recorder.failure.page = await Promise.race([page.evaluate(() => {
+        const canvas = document.querySelector<HTMLCanvasElement>('.dungeon-canvas');
+        const panel = (id: string) => {
+          const element = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+          return element ? {hidden: element.hidden, display: getComputedStyle(element).display, text: element.textContent?.slice(0, 350)} : null;
+        };
+        const snapshot = window.__dungeonProbe?.();
+        return {hidden: document.hidden, visibilityState: document.visibilityState, hasFocus: document.hasFocus(),
+          canvas: canvas ? {ready: canvas.dataset.ready, worldReady: canvas.dataset.worldReady, width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight} : null,
+          loading: panel('dungeon-world-loading'), graphicsError: panel('dungeon-graphics-error'), graphicsIndicator: panel('dungeon-graphics-indicator'),
+          coverage: window.__dungeonRenderProbe?.() ?? null, authoritativeElapsed: snapshot?.elapsed, tick: snapshot?.tick};
+      }), new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('Failure diagnostics timed out after1500ms')), 1500); })]);
+    } catch (diagnosticError) {
+      recorder.failure.page = {unavailable: clean(String(diagnosticError)).slice(0, 400)};
+    } finally { if (timer) clearTimeout(timer); }
+    throw error;
   } finally {
     await page.keyboard.up('KeyW').catch(() => {});
     await page.keyboard.up('ShiftLeft').catch(() => {});
@@ -584,7 +626,7 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     }
     await info.attach('ravager-strike-ordinary-input-evidence', {body: JSON.stringify({
       commit: process.env.EXPECTED_COMMIT, platform: isMobile ? 'Android Chromium emulation' : 'desktop Chromium',
-      evidence, actions, received, inputObservations, visualFrames: frames.map(({jpeg: _jpeg, ...frame}) => frame), errors,
+      evidence, actions, received, inputObservations, recorder, visualFrames: frames.map(({jpeg: _jpeg, ...frame}) => frame), errors,
       diagnostics: 'Raw trace is disabled to avoid retaining private invitation URLs and hello credentials. Screencast captureTimestampSeconds is the compositor clock; callbackStage, callbackWallTimeMs and callbackTick describe receipt, not image capture. Actual hit proof is the authoritative snapshot/input evidence. The masked PNG is requested only after those hit assertions pass.',
     }, null, 2), contentType: 'application/json'});
   }
