@@ -40,7 +40,13 @@ export class MeadowRules{
  if(action==='unpin'){m.pins=m.pins?.filter(pin=>pin.id!==Number(id));return ok('目印を削除しました');}
  if(action==='label'){const b=nearestFacility(this.game,['sign']);if(!b)throw new Error('看板へ近づいてください');assertBuildingAccess(this.game,b,'withdraw');b.label=id.slice(0,40);return ok('看板を書き換えました');}
  if(action==='store'||action==='take'){const [box,selection]=id.includes('|')?id.split('|'):['',id];id=selection;const b=box?s.buildings.find(b=>b.id===Number(box)&&b.definition==='chest'&&distance(b,p)<3.5):nearestFacility(this.game,['chest']);if(!b)throw new Error('箱へ近づいてください');assertBuildingAccess(this.game,b,action==='take'?'withdraw':'cooperate');if(id.startsWith('gear:')||isEquipment(id.split(':')[0])){this.game.gear.transferBuilding(b,id,action);return ok('装備を個体のまま移しました');}const [key,raw]=id.split(':'),source=action==='store'?s.inventory:b.contents,n=Math.min(source[key]??0,Math.max(1,Math.floor(Number(raw)||1)));if(!n)throw new Error('移動する品物がありません');if(action==='store'&&occupiedSlots({...b.contents,[key]:(b.contents[key]??0)+n})>10)throw new Error('箱の10枠がいっぱいです');if(action==='take'&&!canCarry(s.inventory,key,n,m))throw new Error('持ち物に空きがありません');source[key]-=n;if(action==='store')b.contents[key]=(b.contents[key]??0)+n;else this.grant(key,n);return ok('品物を移しました');}
- if(action==='sprint'){m.sprinting=id==='on'?true:id==='off'?false:!m.sprinting;m.sneaking=false;return ok(m.sprinting?'走る':'歩く');}
+ if(action==='sprint'){
+  const sprinting=id==='on'?true:id==='off'?false:!m.sprinting;
+  // Input cleanup still reaches the authority, but repeating an explicit mode
+  // must not cover the player's view. Leaving sneak is a real mode change.
+  const unchanged=(id==='on'||id==='off')&&!!m.sprinting===sprinting&&!m.sneaking;
+  m.sprinting=sprinting;m.sneaking=false;return ok(unchanged?'':m.sprinting?'走る':'歩く');
+ }
  if(action==='sneak'){m.sneaking=!m.sneaking;m.sprinting=false;return ok(m.sneaking?'忍び足':'歩く');}
  if(action==='fish')return ok(fishingAction(this.game));
  if(action==='sell'){this.merchantAccess();const price:Record<string,number>={amber:5,amberPearl:10,ruby:20,silverNecklace:30};let coins=0;for(const [key,value]of Object.entries(price)){coins+=(s.inventory[key]??0)*value;s.inventory[key]=0;}if(!coins)throw new Error('売れる琥珀や宝石がありません');this.grant('coins',coins);return ok(`遺物を売却 · ${coins}硬貨`);}

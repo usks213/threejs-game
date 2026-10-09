@@ -52,7 +52,9 @@ async function firstObservedDraw(page:Page):Promise<Evidence>{
 
 async function capture(page:Page,info:TestInfo,name:string,firstObservation:Evidence){
  const before=await readEvidence(page),path=info.outputPath(name+'.png');
- await page.screenshot({path,scale:'css'});
+ // Full-resolution software-GPU captures can take longer than UI actions.
+ // This is an artifact timeout only, not a relaxed game/readiness/FPS check.
+ await page.screenshot({path,scale:'css',timeout:60000});
  const after=await readEvidence(page);
  await info.attach(name,{path,contentType:'image/png'});
  await info.attach(name+'-evidence',{body:JSON.stringify({

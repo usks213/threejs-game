@@ -4,7 +4,8 @@ import {GameSimulation} from '../../src/simulation/game-simulation';
 import {meadowPanel} from '../../src/ui/meadows';
 import {itemIcon} from '../../src/ui/icons/item';
 import {BEACONS} from '../../src/content/adventure-world';
-import {expectJourneyTextFits} from '../helpers/journey-layout';
+import {journeyGoal} from '../../src/game/journey';
+import {expectJourneyTextFits,expectOpeningJourneyFits} from '../helpers/journey-layout';
 
 // Geometry-only acceptance loads production HTML/CSS and real panel renderers without
 // WebGL, so every responsive mode can be inspected quickly and deterministically.
@@ -125,11 +126,18 @@ test('core landscape mobile movement controls keep their place across pressed st
   expect(await problems(page),`${size.width}×${size.height} restored`).toEqual([]);
  }
 });
-test('survival adventure mobile journey keeps complete text lines inside its card across rotation and long objectives',async({page},info)=>{
+test('survival adventure mobile journey keeps its fresh objective complete and long text inside its card across rotation',async({page},info)=>{
  test.skip(info.project.name!=='android-chromium','Touch journey layout');
+ const fresh=new GameSimulation(),goal=journeyGoal(fresh.adventure.snapshot(),fresh.player);
  // Include the actual iPhone portrait screenshot dimensions as well as compact phones.
- for(const size of [...widths,{width:664,height:390},{width:390,height:664}]){
+ for(const size of [...widths,{width:342,height:750},{width:664,height:390},{width:390,height:664}]){
   await setup(page,size,'game');
+  await page.locator('#journey').evaluate((card,goal)=>{
+   card.querySelector('strong')!.textContent=goal.title;
+   card.querySelector('small')!.textContent=goal.detail;
+  },goal);
+  await expectOpeningJourneyFits(page);
+  expect(await problems(page),`${size.width}×${size.height} full fresh objective`).toEqual([]);
   for(const long of [false,true]){
    const title=long?BEACONS.map(beacon=>beacon.name).join('・'):BEACONS[0].name;
    const detail=long?BEACONS.map(beacon=>beacon.hint).join('。'):BEACONS[0].hint;

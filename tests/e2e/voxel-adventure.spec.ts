@@ -1,5 +1,6 @@
 import {test,expect,type Page} from '@playwright/test';
 import {GameSimulation} from '../../src/simulation/game-simulation';
+import {expectOpeningJourneyFits} from '../helpers/journey-layout';
 test.use({deviceScaleFactor:.5,viewport:{width:844,height:390}});
 test.afterEach(async({page},info)=>{
  if(!info.title.includes('fresh arrival'))return;
@@ -81,6 +82,7 @@ test('voxel adventure fresh arrival aims at the cache, assembles two beams and l
  await page.addInitScript(()=>{window.Worker=new Proxy(window.Worker,{construct(Target,args,newTarget){const worker=Reflect.construct(Target,args,newTarget) as Worker;worker.addEventListener('message',(event:MessageEvent)=>{if(event.data.type==='snapshot')(window as typeof window&{openingState?:unknown}).openingState=event.data.state;});return worker;}});});
  await page.goto('/',{waitUntil:'domcontentloaded'});await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
  await expect(page.locator('#journey')).toContainText('木材で最初の灯をつなごう');
+ await expectOpeningJourneyFits(page);
  await page.screenshot({path:info.outputPath('fresh-arrival-cache.png'),scale:'css'});
  const aimAt=async(id?:number,height=.35)=>{
  const aim=await page.evaluate(({id,height})=>{

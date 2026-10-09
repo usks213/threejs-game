@@ -1,5 +1,5 @@
 import { devices, expect, test, type Page } from '@playwright/test';
-import { expectJourneyTextFits } from '../helpers/journey-layout';
+import { expectOpeningJourneyFits } from '../helpers/journey-layout';
 
 const portrait = devices['iPhone 13'].viewport;
 const landscape = devices['iPhone 13 landscape'].viewport;
@@ -90,7 +90,7 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
    await expect(page.locator('#build-version')).toHaveAttribute('data-commit', process.env.EXPECTED_COMMIT);
   }
   await logicalLandscape(page, portrait);
-  await expectJourneyTextFits(page);
+  await expectOpeningJourneyFits(page);
   await expect(page).toHaveTitle(/空と灯の大地/);
   await expect(page.locator('#journey')).toContainText('木材で最初の灯をつなごう');
   await expect(page.locator('#adventure-hud')).toContainText('HP');
@@ -99,7 +99,7 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
 
   await page.setViewportSize(landscape);
   await logicalLandscape(page, landscape);
-  await expectJourneyTextFits(page);
+  await expectOpeningJourneyFits(page);
   // Locator taps use WebKit's touch API, without Chromium-only CDP gestures.
   await observedTap(page, 'powers-menu');
   await expect(page.getByRole('dialog', { name: '創作能力', exact: true })).toBeVisible();
@@ -112,7 +112,7 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
 
   await page.setViewportSize(portrait);
   await logicalLandscape(page, portrait);
-  await expectJourneyTextFits(page);
+  await expectOpeningJourneyFits(page);
   await observedTap(page, 'system-menu');
   await expect(page.locator('#invert-camera')).not.toBeChecked();
   await expect(page.locator('#sound-caption-toggle')).not.toBeChecked();
@@ -126,7 +126,7 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
   await page.reload({ waitUntil: 'domcontentloaded' });
   graphics.push(await running(page));
   await logicalLandscape(page, portrait);
-  await expectJourneyTextFits(page);
+  await expectOpeningJourneyFits(page);
   await observedTap(page, 'system-menu');
   await expect(page.locator('#invert-camera')).toBeChecked();
   await expect(page.locator('#sound-caption-toggle')).toBeChecked();
@@ -134,7 +134,7 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
   await expect(page.locator('#system-panel')).toBeHidden();
   await page.setViewportSize(landscape);
   await logicalLandscape(page, landscape);
-  await expectJourneyTextFits(page);
+  await expectOpeningJourneyFits(page);
   await expect(page.locator('#error')).toBeHidden();
   await page.screenshot({ path: info.outputPath('iphone-webkit-landscape.png'), scale: 'css' });
   const slotRows=await page.locator('#hotbar button').evaluateAll(nodes=>new Set(nodes.map(n=>n.getBoundingClientRect().top)).size);
@@ -149,6 +149,8 @@ test('iPhone WebKit smoke boots real WebGL, rotates and preserves original adven
   await expect.poll(async()=>JSON.parse(await page.locator('#app').getAttribute('data-graphics')??'{}').renderScale).toBe(.75);
   const beforeFixedDraw=Number(JSON.parse(await page.locator('#app').getAttribute('data-streaming')??'{}').draws);
   await expect.poll(async()=>Number(JSON.parse(await page.locator('#app').getAttribute('data-streaming')??'{}').draws)).toBeGreaterThan(beforeFixedDraw);
+  await expectOpeningJourneyFits(page);
+  await expect(page.locator('#notice.visible').filter({hasText:/^(歩く|走る)$/})).toHaveCount(0);
   await page.screenshot({path:info.outputPath('iphone-webkit-fixed-medium.png'),scale:'css'});
 
   expect(errors).toEqual([]);
