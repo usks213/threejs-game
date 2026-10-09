@@ -1,7 +1,8 @@
 import type {Input} from './types';
 
 /** Keep the authoritative input lease alive even when WebGL delays animation frames.
- * The server's stale-input expiry remains unchanged. Hidden pages send no heartbeat. */
+ * The server's stale-input expiry remains unchanged. Hidden pages send no heartbeat.
+ * Clocked controllers should ignore dt and sample their own shared input clock. */
 export function startDungeonInputPump(options:{sample(dt:number):Input;send(input:Input):void;enabled():boolean;now?:()=>number}){
  const now=options.now??(()=>performance.now());
  let previous=now(),disposed=false;

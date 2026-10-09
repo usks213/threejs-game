@@ -117,3 +117,46 @@ no HP is lost. Its browser counterpart still requires exact-commit acceptance.
 The new newcomer browser gate disables raw traces at file scope (required by
 Playwright) so private room credentials are not retained. Test discovery confirms
 all ten cases in the modified smoke/Ravager files. This is discovery, not execution.
+
+## First-batch exact-preview acceptance
+
+Remote `58a16a7044827628595f8c6cd48aea2f80b7ee86` passed
+[run 37909993013](https://github.com/usks213/threejs-game/actions/runs/37909993013).
+The deployment checked that the existing PR4 preview served that exact commit,
+plus dungeon authority and campaign health endpoints. All selected browser jobs
+passed: desktop/Android smoke, visible-guide-only newcomer loot and return,
+resupply, overflow return, supplier quests, Bastion/Ravager training, the full
+two-player PvPvE raid, and the narrower WebKit menu smoke. The full raid completed
+extraction at 146.70 server seconds with its original 240-second bound intact.
+
+Actual desktop/Android loot and return screenshots, Android portrait/landscape
+Ravager screenshots, and sampled frames from the full raid recording were
+inspected. Loot buttons appear without scrolling; guidance, notices and touch
+controls remain usable in those views. These artifacts also show incomplete
+walls during the first active frame and overbright nearby weapons/shields. Those
+remain concrete presentation defects, not successes inferred from passing tests.
+Sound listening and physical-phone performance remain unverified.
+
+## Follow-on: input sampling and release delivery
+
+The isolated input-response candidate uses one monotonic input clock across
+render samples, event edges and the independent heartbeat. Keyboard aiming now
+advances on each render sample without double-counting the heartbeat. Mouse,
+touch, guard, crouch and release edges request delivery immediately. A bounded
+latest-state sender retains trailing changes rather than silently discarding
+changes inside the old send-cap interval.
+
+Ordinary input is capped at 25 packets per rolling second; an extra neutral
+lifecycle release can use a reserved slot, with 26 input packets maximum. Twelve
+actions and one hello still fit below the server's unchanged 40-packet limit.
+Queued neutral release priority survives later neutral heartbeats, but cannot
+be transferred to new held movement. Disconnect/reset/disposal cancel pending
+state. No packet schema, authority, collision, save key or input lease changed.
+
+The frozen source candidate passed 1,855 tests across 198 files, root and Worker
+type checks, build and diff checks. Browser test discovery passed; exact-head
+browser execution for this follow-on is still pending publication. The input
+change does not provide movement prediction or remove rendering stalls. Fresh
+aim is offered before an action, but an occupied input slot can still let the
+synchronous action precede that latest aim; guaranteed ordering needs a separate
+action-sequencing design and acceptance, not a claim hidden in this patch.
