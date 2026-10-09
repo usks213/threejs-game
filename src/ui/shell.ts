@@ -1,4 +1,6 @@
+import {modalNavigation} from './modal-navigation';
 export function gameShell(signal: AbortSignal): void {
+  modalNavigation(signal);
   const version=document.querySelector<HTMLElement>('#build-version');
   void fetch(new URL('deployment.json',location.href),{cache:'no-store',signal}).then(r=>r.ok?r.json():null).then((release:unknown)=>{
     if(signal.aborted||!version)return;

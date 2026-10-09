@@ -1,3 +1,4 @@
+import {ADVENTURE_REGIONS} from '../../environment/adventure';
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { captureProbe } from './probe';
@@ -9,7 +10,10 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
  const sky=new Sky();sky.scale.setScalar(450000);sky.renderOrder=-2;sky.frustumCulled=false;
  const u=sky.material.uniforms;u.sunPosition.value.set(300000,300000,-100000);u.rayleigh.value=3.2;u.mieCoefficient.value=.004;u.mieDirectionalG.value=.8;
  u.nightAmount={value:0};u.cloudCover={value:0};u.skyTime={value:0};
- sky.material.fragmentShader='uniform float nightAmount,cloudCover,skyTime;\n'+sky.material.fragmentShader;
+ // The direct path has no eye adaptation. Calibrate its displayed daylight
+ // sky without dimming subjects, the canonical IBL capture or the HDR path.
+ u.skyDisplayGain={value:scene.userData.direct ? .22 : 1};
+ sky.material.fragmentShader='uniform float nightAmount,cloudCover,skyTime,skyDisplayGain;\n'+sky.material.fragmentShader;
  sky.material.fragmentShader=sky.material.fragmentShader.replace('gl_FragColor = vec4( retColor, 1.0 );',`
   float stars=step(.9987,fract(sin(dot(floor(direction*380.),vec3(12.98,78.23,45.1)))*43758.54))*smoothstep(0.,.15,direction.y);
   float moon=pow(max(dot(direction,-vSunDirection),0.),2400.);
@@ -18,6 +22,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
   vec2 q=direction.xz/max(.15,direction.y)*2.+vec2(skyTime*.005,0.);
   float cloud=smoothstep(.15,.8,sin(q.x+sin(q.y*.8))*sin(q.y*.7)+sin(q.x*2.+q.y)*.25)*smoothstep(.0,.2,direction.y)*cloudCover;
   retColor=mix(retColor,mix(vec3(.75,.8,.86),vec3(.007,.009,.014),nightAmount),cloud);
+  retColor*=mix(skyDisplayGain,1.,nightAmount);
   gl_FragColor=vec4(retColor,1.);`);
  scene.add(sky);
  const sun=new THREE.DirectionalLight('#fff2d9',3.2),probe=new THREE.LightProbe();probe.intensity=.25;
@@ -28,6 +33,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
  const pmrem=new THREE.PMREMGenerator(renderer),cube=new THREE.WebGLCubeRenderTarget(16,{type:THREE.HalfFloatType}),cubeCamera=new THREE.CubeCamera(.1,500000,cube);
  let environment:THREE.WebGLRenderTarget|null=null,disposed=false,pending=false,lastCapture=-Infinity,lastHour=-Infinity,lastWeather='',hour=12,weather='',seconds=0,captureRequested=true,ready=false,lastProbeError:unknown=null;
  const stats={iblUpdates:0,shUpdates:0,shEnergy:0,hour:12,probeError:'',lightingMode:'captured'};
+ let underground=false;
  let directEnvironment:ReturnType<typeof createDirectEnvironment>|null=null,skyAltitude=1,skyNight=0,skyCloudy=false;
  const volume={sun,direction,density:.008,ambient:new THREE.Color('#637d95')};
  const weatherPositions=new Float32Array(180*3),weatherGeometry=new THREE.BufferGeometry();weatherGeometry.setAttribute('position',new THREE.BufferAttribute(weatherPositions,3));
@@ -37,6 +43,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
   update(state:AdventureSnapshot,player:THREE.Vector3){
    ready=true;const env=state.environment;hour=env.hour;weather=env.weather;seconds=env.seconds;stats.hour=hour;
    const boss=state.enemies.some(e=>e.boss&&e.health>0);const angle=(hour-6)/24*Math.PI*2,altitude=boss?.05:Math.sin(angle),night=1-THREE.MathUtils.smoothstep(altitude,-.12,.08),cloudy=['rain','storm','fog'].includes(weather);
+   underground=state.generator===4&&player.y<-3;sky.visible=!underground;
    skyAltitude=altitude;skyNight=night;skyCloudy=cloudy;
    direction.set(Math.cos(angle),altitude,-.3).normalize();u.sunPosition.value.copy(direction).multiplyScalar(450000);u.nightAmount.value=night;u.cloudCover.value=cloudy?.85:.3;u.turbidity.value=cloudy?8:2.5;u.skyTime.value=seconds;
    ground.material.color.set('#343e2b').multiplyScalar(1-night*.99);
@@ -44,8 +51,8 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
    sun.intensity=THREE.MathUtils.lerp(3.2*Math.max(.04,altitude)*(cloudy?.55:1),.055,night);sun.color.set(night>.5?'#b0c4ff':altitude<.25?'#ffd0a0':'#fff5e6');
    volume.direction.copy(sun.position).sub(player).normalize();volume.density=cloudy?.025:.008;volume.ambient.set(night>.5?'#111b35':'#748a9b');
    // Distance fog is handled by the volumetric pass, not applied twice in PBR shaders.
-   scene.fog=null;
-   precipitation.visible=['rain','storm','snow','magic'].includes(weather);weatherMaterial.size=weather==='snow'?.12:.05;
+   const region=state.environment.regionId?ADVENTURE_REGIONS[state.environment.regionId]:undefined;scene.fog=underground?new THREE.Fog(region?.fog??'#102b38',8,36):region&&scene.userData.direct?new THREE.Fog(region.fog,30,78):null;if(underground){sun.intensity=.08;probe.intensity=.12;volume.density=.04;volume.ambient.set('#183e4c');}else probe.intensity=.25;
+   precipitation.visible=!underground&&['rain','storm','snow','magic'].includes(weather);weatherMaterial.size=weather==='snow'?.12:.05;
    if(precipitation.visible){for(let i=0;i<180;i++){weatherPositions[i*3]=player.x+Math.sin(i*174.13)*15;weatherPositions[i*3+1]=player.y+12-((seconds*(weather==='snow'?1.2:6)+i*.413)%14);weatherPositions[i*3+2]=player.z+Math.cos(i*74.92)*15;}weatherGeometry.getAttribute('position').needsUpdate=true;}
    captureRequested=Math.abs(hour-lastHour)>.18||weather!==lastWeather;
   },
@@ -53,6 +60,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
    if(!ready||disposed)return;
    directEnvironment??=createDirectEnvironment(renderer,sky.material);
    directEnvironment.prepare(scene,probe,skyAltitude,skyNight,skyCloudy);
+   if(underground)scene.environmentIntensity*=.16;
    Object.assign(stats,directEnvironment.stats,{lightingMode:'cached-direct'});
   },
   prepare(dt:number){

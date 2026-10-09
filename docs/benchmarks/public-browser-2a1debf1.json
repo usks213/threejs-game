@@ -1,0 +1,60 @@
+{
+  "commit": "2a1debf141cbf2398694a82f4a31be2ee6f41a40",
+  "workflowRun": 37393247103,
+  "job": 112044480212,
+  "artifact": 11383020654,
+  "testsPassed": 6,
+  "retries": 0,
+  "scope": "Two real browser contexts with actual ordinary input and GPU query samples against existing public Worker; not real device FPS or entire story playthrough.",
+  "jump": [
+    {
+      "direction": "east",
+      "groundY": 1.4362890931253725,
+      "authoritativePeakY": 2.6881409449772216,
+      "maximumVisibleRise": 0.6587656738385534,
+      "airborne": true,
+      "attempt": 1
+    },
+    {
+      "direction": "west",
+      "groundY": 1.334473757158883,
+      "authoritativePeakY": 2.545584868269991,
+      "maximumVisibleRise": 0.6314361239561193,
+      "airborne": true,
+      "attempt": 1
+    }
+  ],
+  "terrain": {
+    "edit": {
+      "id": 1,
+      "kind": "dig",
+      "position": {
+        "x": 5.706656369124506,
+        "y": 1.3821936895014613,
+        "z": 5.8280935076004186
+      },
+      "radius": 1.7,
+      "material": "stone",
+      "tick": 3987
+    },
+    "groundedY": -0.1383963172628277,
+    "visibleAim": {
+      "x": 6.9598367536780765,
+      "y": 0.40228072543304627,
+      "z": 5.305352712337533
+    },
+    "reentryGroundedY": -0.13839631737219882,
+    "reentryVisibleAim": {
+      "x": 6.959999999999762,
+      "y": 0.4024408833613604,
+      "z": 5.3053793418834765
+    },
+    "renderEpochBefore": "2",
+    "renderEpochAfter": "4"
+  },
+  "limitations": [
+    "Local-host same-SHA terrain case failed due nearer fragment occlusion; correction pending.",
+    "30Hz Worker target failed initial concurrent4-client measurement; controlled isolated repeat pending.",
+    "Peak Worker memory and actual Android/iPhone hardware unverified."
+  ]
+}

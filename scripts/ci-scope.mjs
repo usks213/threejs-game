@@ -1,6 +1,7 @@
 // Classify the pushed changes, not the entire accumulated feature branch.
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
+import { routeDiagnosticOnly, ROUTE_DIAGNOSTIC_GREP } from './ci-route-scope.mjs';
 
 const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
 const head = process.env.CHECKED_OUT_SHA;
@@ -17,13 +18,17 @@ const manual = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
 const config = changed(/^(package(-lock)?\.json|tsconfig.*\.json|vite\.config\.ts)$/);
 // A regression-test fix can unblock source changes on the previous unshipped head.
 // Build/release the exact tested SHA instead of silently leaving that preview stale.
-const gameTests = changed(/^tests\/(unit|e2e)\//);
+const scopeChanged = changed(/^scripts\/ci-(scope|route-scope)\.mjs$/);
+const gameTests = scopeChanged || changed(/^tests\/(unit|e2e|helpers)\//);
 const game = config || gameTests || changed(/^(src\/|public\/|index\.html$|wrangler\.jsonc$|scripts\/deploy-preview\.mjs$)/);
-const signaling = manual || config || changed(/^apps\/signaling\//);
-const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/(dedicated|signaling)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
+const signaling = false; // This isolated adventure never redeploys PR3's signaling service.
+const network = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/(dedicated|signaling|coop)\/|tests\/unit\/(dedicated|session)\.test\.ts$|tests\/e2e\/network\.spec\.ts$)/);
 const host = manual || config || changed(/^(src\/networking\/|src\/platform\/network\.ts$|src\/simulation\/(session|protocol)\.ts$|apps\/signaling\/|tests\/e2e\/network\.spec\.ts$)/);
 const checks = manual || game || signaling || network || changed(/^tests\/unit\//);
 const patterns = new Set();
+// A test-only swipe correction must select its Android case as well as desktop.
+if (scopeChanged || changed(/^tests\/e2e\/menu-scrolling\.spec\.ts$/)) patterns.add('menu scrolling');
+if (changed(/^tests\/e2e\/combat\.spec\.ts$/)) patterns.add('shoulder aim, weapon contact');
 if (config || changed(/^(index\.html$|src\/main\.ts$|tests\/e2e\/game\.spec\.ts$)/)) patterns.add('core landscape');
 if (changed(/^src\/(input\/|platform\/game\.ts$|physics\/character\.ts$)/)) { patterns.add('starts, moves'); patterns.add('two fingers'); }
 if (changed(/^src\/(world\/|fluid\/|save\/|simulation\/(game-simulation|worker)\.ts$)/)) {patterns.add('water is always available');patterns.add('core landscape');patterns.add('renders equipped');}
@@ -31,6 +36,9 @@ if (changed(/^src\/(game\/|content\/|ui\/)/)) patterns.add('survival adventure')
 if (changed(/^src\/rendering\//)) patterns.add('renders equipped');
 if(changed(/^src\/(world\/field-data|rendering\/voxel\/field-|platform\/live-diagnostics)/))patterns.add('direct field terrain');
 if(changed(/^tests\/unit\/water-meshing\.test\.ts$/))patterns.add('direct field terrain');
-const outputs = { game: manual || game, checks, signaling, network, host, browser: patterns.size > 0, browser_grep: [...patterns].join('|') };
+if(game){patterns.add('voxel adventure');patterns.add('tutorial and collection rewards');}
+const routeOnly = routeDiagnosticOnly(paths, manual);
+if(routeOnly){patterns.clear();patterns.add(ROUTE_DIAGNOSTIC_GREP);}
+const outputs = { game: manual || game, checks, signaling, network, host, browser: patterns.size > 0, browser_grep: [...patterns].join('|'), browser_scope: routeOnly ? 'route-test-only; production unchanged' : 'normal change-based checks' };
 for (const [key, value] of Object.entries(outputs)) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
 console.log(JSON.stringify({ changedFiles: paths.length, ...outputs }));

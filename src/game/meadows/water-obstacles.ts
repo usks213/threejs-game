@@ -1,3 +1,5 @@
+import {PART_HALF} from '../skybound/types';
+import {orientation} from '../skybound/orientation';
 import { buildingPose,buildingVoxels,worldPoint } from '../voxel/model';
 import { voxelSlabs } from '../voxel/obstacles';
 const cache=new Map<string,WaterObstacle[]>();
@@ -9,5 +11,8 @@ export function updateWaterObstacles(sim:GameSimulation):void{
  for(const b of sim.bodies)if(near(b.position.x,b.position.z))solids.push({...b.position,hx:b.radius*.8,hy:b.radius*.8,hz:b.radius*.8});
  for(const p of centers)solids.push({x:p.x,y:p.y+.65,z:p.z,hx:.28,hy:.65,hz:.28});
  for(const n of sim.adventure.state.resources)if(n.log&&n.ready<=sim.adventure.state.seconds&&near(n.x,n.z))for(const b of [n.log.a,n.log.b])solids.push({...b.position,hx:.3,hy:.3,hz:.3});
+ const parts=new Map(sim.skybound.state.parts.map(p=>[p.id,p])),anchored=new Set<number>(),pending=sim.skybound.state.parts.filter(p=>p.anchored).map(p=>p.id);
+ while(pending.length){const id=pending.pop()!;if(anchored.has(id))continue;anchored.add(id);const p=parts.get(id);if(p)pending.push(...p.links);}
+ for(const part of sim.skybound.state.parts)if(near(part.position.x,part.position.z)){const h=PART_HALF[part.kind];(anchored.has(part.id)?fixed:solids).push({...part.position,hx:h.x,hy:h.y,hz:h.z,q:{...orientation(part)}});}
  sim.fluid.setObstacles(solids,fixed);
 }

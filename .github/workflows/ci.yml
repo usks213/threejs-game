@@ -22,6 +22,7 @@ jobs:
       host: ${{ steps.scope.outputs.host }}
       browser: ${{ steps.scope.outputs.browser }}
       browser_grep: ${{ steps.scope.outputs.browser_grep }}
+      browser_scope: ${{ steps.scope.outputs.browser_scope }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,11 +78,55 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - run: npm run e2e -- --project=desktop-chromium --project=android-chromium
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: browser-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  iphone-webkit-smoke:
+    # One selected engine smoke, not a full browser matrix or physical iPhone test.
+    # Reuse the exact verified build and never make preview publication wait for it.
+    if: needs.verify.outputs.game == 'true'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps webkit
+      - name: Serve the verified build and run the bounded WebKit smoke
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort > /tmp/webkit-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true; cat /tmp/webkit-preview.log' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/ > /dev/null
+          npm run e2e -- --project=iphone-webkit --workers=1 --retries=0 --global-timeout=240000
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4173
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-webkit-smoke
           path: |
             playwright-report/
             test-results/
@@ -117,7 +162,7 @@ jobs:
           name: game-dist
           path: dist/
       - name: Publish the verified build directly to Cloudflare Preview
-        run: node scripts/deploy-preview.mjs
+        run: node scripts/deploy-coop-preview.mjs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: c3ca485329f03044432fbd5164083278
@@ -134,7 +179,9 @@ jobs:
     if: github.event_name == 'pull_request' && needs.verify.outputs.browser == 'true'
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Allow fixed-DPR captures and the separate earned-save vertical route case.
+    # Individual gameplay, capture and input deadlines remain unchanged.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -148,10 +195,57 @@ jobs:
       - run: npm run e2e -- --project=android-chromium --retries=0 --grep "$BROWSER_GREP"
         env:
           BROWSER_GREP: ${{ needs.verify.outputs.browser_grep }}
+          BROWSER_SCOPE: ${{ needs.verify.outputs.browser_scope }}
+          DEPLOYMENT_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-review-smoke
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  desktop-adventure-feedback:
+    # Bounded PC input coverage for the mobile-menu/debug-flight feedback.
+    # Reuse the verified build; leave the full browser matrix opt-in.
+    if: github.event_name == 'pull_request' && needs.verify.outputs.game == 'true'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - name: Check menu wheel and debug-flight keyboard controls
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort > /tmp/feedback-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true; cat /tmp/feedback-preview.log' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/ > /dev/null
+          npm run e2e -- --project=desktop-chromium --workers=1 --retries=0 --grep 'menu scrolling|debug flight' --global-timeout=360000
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4173
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-adventure-feedback
           path: |
             playwright-report/
             test-results/
@@ -192,7 +286,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --project=desktop-chromium --grep 'host and three'
+      - name: Start real local authority
+        run: npm run coop:local > /tmp/coop-local.log 2>&1 &
+      - run: npm run e2e -- --project=desktop-chromium --grep 'two real browsers'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -218,7 +314,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --project=desktop-chromium --grep 'desktop mouse'
+      - name: Install native X11 test input from Ubuntu packages
+        run: sudo apt-get install --yes --no-install-recommends xdotool xvfb xauth x11-utils
+      - name: Verify desktop controls with headed Chromium and native relative mouse input
+        # Playwright headed Linux: https://playwright.dev/docs/ci#running-headed
+        # Each job gets one isolated display and one input-owning browser worker.
+        run: |
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' sh -c '
+            xdpyinfo -queryExtensions | grep -w XTEST &&
+            xdotool version &&
+            npm run e2e -- --headed --workers=1 --retries=0 --project=desktop-chromium --grep "desktop mouse"
+          '
+        env:
+          E2E_NATIVE_MOUSE: '1'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -226,4 +334,66 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          retention-days: 7
+
+  public-coop:
+    if: github.event_name == 'pull_request'
+    needs: deploy-preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: preview-release
+      - run: npx playwright install --with-deps chromium
+      - name: Probe public authority without GPU dependencies
+        run: E2E_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync('preview-release.json')).url") node --import tsx scripts/probe-public-coop.mjs
+      - name: Test two independent browsers against the public authority
+        run: E2E_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync('preview-release.json')).url") npm run e2e -- --project=desktop-chromium --grep 'two real browsers' --retries=0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-coop-evidence
+          path: |
+            playwright-report/
+            test-results/
+
+
+  public-coop-load:
+    # Bounded measurement only on the existing free preview; no load generator service.
+    # Browser rooms share this Worker script. Measure after they close so their
+    # unrelated authority work does not confound this four-client baseline.
+    if: always() && !cancelled() && github.event_name == 'pull_request' && needs.deploy-preview.result == 'success'
+    needs: [deploy-preview, public-coop]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: preview-release
+      - name: Measure four actual preview clients for sixty seconds
+        run: E2E_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync('preview-release.json')).url") node --import tsx scripts/probe-public-coop-load.ts
+        env:
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-coop-load-evidence
+          path: test-results/public-coop-load.json
           retention-days: 7

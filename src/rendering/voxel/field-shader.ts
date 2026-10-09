@@ -1,4 +1,5 @@
 import { FIELD_MAX_STEPS, FIELD_REFINEMENT_STEPS } from './field-raycast';
+import { openingSurfaceShader } from './opening-surface';
 
 export const fieldVertexShader = /* glsl */`
 out vec3 fieldWorldPoint;
@@ -15,13 +16,21 @@ out vec4 fieldColor;
 #define gl_FragColor fieldColor
 uniform sampler3D fieldDensity;
 uniform vec3 fieldOrigin;
+uniform vec3 fieldBoundsMin;
+uniform vec3 fieldBoundsMax;
 uniform float fieldStep;
+uniform float fieldAdventure;
 uniform float fieldSize;
 uniform float fieldCameraNear;
 uniform mat4 projectionMatrix;
 uniform vec3 fieldSunDirection;
 uniform vec3 fieldSunColor;
 uniform vec3 fieldAmbient;
+uniform vec4 fieldPointLights[5];
+uniform vec3 fieldPointColors[5];
+uniform vec3 fieldFogColor;
+uniform vec3 fieldFogRange;
+${openingSurfaceShader}
 
 float densityAt(vec3 p) {
   // Sample point 0 lies at the CENTER of texel 0, not its outside face.
@@ -30,13 +39,12 @@ float densityAt(vec3 p) {
 }
 bool brickInterval(vec3 origin, vec3 direction, out float entry, out float exit) {
   entry = 0.0; exit = 1e7;
-  vec3 upper = fieldOrigin + vec3((fieldSize - 1.0) * fieldStep);
   for (int axis = 0; axis < 3; axis++) {
     if (abs(direction[axis]) < 1e-8) {
-      if (origin[axis] < fieldOrigin[axis] || origin[axis] > upper[axis]) return false;
+      if (origin[axis] < fieldBoundsMin[axis] || origin[axis] > fieldBoundsMax[axis]) return false;
     } else {
-      float a = (fieldOrigin[axis] - origin[axis]) / direction[axis];
-      float b = (upper[axis] - origin[axis]) / direction[axis];
+      float a = (fieldBoundsMin[axis] - origin[axis]) / direction[axis];
+      float b = (fieldBoundsMax[axis] - origin[axis]) / direction[axis];
       entry = max(entry, min(a, b)); exit = min(exit, max(a, b));
       if (exit < entry) return false;
     }
@@ -100,9 +108,25 @@ void main() {
   float grass = smoothstep(0.45, 0.88, normal.y);
   float detail = 0.94 + 0.06 * sin(p.x * 2.3 + sin(p.z * 1.7)) * sin(p.z * 2.1 + p.y);
   vec3 albedo = mix(vec3(0.20,0.16,0.11), vec3(0.16,0.25,0.065), grass) * detail;
+  if(fieldAdventure>.5){
+    if(p.y< -3.)albedo=mix(vec3(.12,.19,.24),vec3(.32,.12,.10),step(42.,p.x))*detail;
+    else if(p.y>31.||p.z< -48.)albedo=mix(vec3(.36,.42,.45),vec3(.74,.82,.84),grass)*detail;
+    else if(p.x< -18.&&p.z> -20.&&p.y<2.)albedo=mix(vec3(.25,.27,.20),vec3(.23,.38,.32),grass)*detail;
+    else if(p.x< -18.)albedo=mix(vec3(.13,.16,.10),vec3(.08,.20,.11),grass)*detail;
+    else if(p.x>32.&&p.z<0.)albedo=mix(vec3(.24,.25,.27),vec3(.36,.38,.33),grass)*detail;
+    albedo=openingSurface(albedo,p,normal);
+  }
   float diffuse = max(dot(normal, fieldSunDirection), 0.0);
   vec3 illumination = fieldAmbient * (0.55 + 0.45 * max(normal.y, 0.0)) + fieldSunColor * diffuse / 3.14159265;
-  gl_FragColor = vec4(albedo * illumination, 1.0);
+  for(int light=0;light<5;light++){
+    vec3 delta=fieldPointLights[light].xyz-p;float distanceToLight=length(delta),range=fieldPointLights[light].w;
+    if(range>0.0&&distanceToLight<range){float falloff=pow(1.0-distanceToLight/range,2.0);illumination+=fieldPointColors[light]*max(dot(normal,normalize(delta)),0.05)*falloff;}
+  }
+  vec3 shaded=albedo*illumination;
+  gl_FragColor = vec4(shaded, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
+  // Match Three's PBR fog: blend in output space after tone mapping, rather
+  // than applying tone mapping to the ground's fog but not the objects' fog.
+  if(fieldFogRange.z>0.5)gl_FragColor.rgb=mix(gl_FragColor.rgb,linearToOutputTexel(vec4(fieldFogColor,1.)).rgb,smoothstep(fieldFogRange.x,fieldFogRange.y,-(viewMatrix*vec4(p,1.)).z));
 }`;

@@ -16,6 +16,40 @@ const distance = (cell: Vec3, centers: readonly Vec3[]): number => {
   return nearest;
 };
 
+/** Partition by the same total order as the final sort, without discarding ties.
+ * A bounded selection budget falls back to sorting on adversarial input. */
+function selectNearest(entries:IndexedCell[],limit:number):void {
+  let left=0,right=entries.length-1,budget=2*Math.ceil(Math.log2(entries.length));
+  const target=limit-1;
+  while(left<right){
+    if(--budget<0){entries.sort(compare);return;}
+    const middle=(left+right)>>1;
+    if(compare(entries[left],entries[middle])>0)[entries[left],entries[middle]]=[entries[middle],entries[left]];
+    if(compare(entries[left],entries[right])>0)[entries[left],entries[right]]=[entries[right],entries[left]];
+    if(compare(entries[middle],entries[right])>0)[entries[middle],entries[right]]=[entries[right],entries[middle]];
+    const pivot=entries[middle];let low=left,high=right;
+    while(low<=high){while(compare(entries[low],pivot)<0)low++;while(compare(entries[high],pivot)>0)high--;if(low<=high){const value=entries[low];entries[low++]=entries[high];entries[high--]=value;}}
+    if(target<=high)right=high;else if(target>=low)left=low;else return;
+  }
+}
+
+/** Monotone bins only partition the exact distances; values and ties are never
+ * quantized. Sorting each selected bin gives the same total order as one sort. */
+function bucketNearest(entries:IndexedCell[],limit:number,radiusSquared:number):IndexedCell[] {
+  const count=4096,bins:(IndexedCell[]|undefined)[]=new Array(count);
+  for(const entry of entries){
+    // Divide first to avoid an overflowing reciprocal for very small radii.
+    const bin=Math.min(count-1,Math.floor(entry.distance/radiusSquared*count));
+    (bins[bin]??= []).push(entry);
+  }
+  let written=0;
+  for(const bin of bins){
+    if(!bin)continue;if(bin.length>1)bin.sort(compare);
+    for(const entry of bin){entries[written++]=entry;if(written===limit){entries.length=written;return entries;}}
+  }
+  entries.length=written;return entries;
+}
+
 /** A Map-compatible index: external restore/clear/set/delete calls cannot leave stale buckets. */
 export class IndexedFluidCells extends Map<string, FluidCell> {
   private readonly buckets = new Map<string, Bucket>();
@@ -76,13 +110,15 @@ export class IndexedFluidCells extends Map<string, FluidCell> {
       if (lowerBound < radiusSquared) buckets.push({ bucket, distance: lowerBound });
     }
     // Visible queries already have a finite radius and usually return most of that region.
-    // One native sort is cheaper than maintaining a large heap and sorting it again.
+    // Partition crowded views first, then sort the exact visible subset once.
     if (Number.isFinite(radius)) {
       const visible: IndexedCell[] = [];
       for (const { bucket } of buckets) for (const entry of bucket.entries.values()) {
         entry.distance = distance(entry.cell, centers);
         if (entry.distance < radiusSquared) visible.push(entry);
       }
+      if(Number.isSafeInteger(limit)&&limit>=512&&visible.length>=2048&&Number.isFinite(radiusSquared)&&radiusSquared>0)return bucketNearest(visible,limit,radiusSquared);
+      if(Number.isSafeInteger(limit)&&limit>0&&visible.length>limit+1024){selectNearest(visible,limit);visible.length=limit;visible.sort(compare);return visible;}
       visible.sort(compare); return visible.slice(0, limit);
     }
     buckets.sort((a, b) => a.distance - b.distance);

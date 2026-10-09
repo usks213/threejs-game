@@ -1,0 +1,95 @@
+{
+  "commit": "6aa709354a62470be625abfa3e2e1f3d604bcac5",
+  "workflowRun": 37399174801,
+  "publicJob": 112063326030,
+  "publicArtifact": 11385250050,
+  "publicPassed": 6,
+  "hostJob": 112063154548,
+  "hostArtifact": 11385125440,
+  "hostPassed": 6,
+  "retries": 0,
+  "personalInventoryBefore": {
+    "ragTunic": 1,
+    "club": 1,
+    "glider": 1,
+    "berry": 6
+  },
+  "personalInventoryAfter": {
+    "ragTunic": 1,
+    "club": 1,
+    "glider": 1,
+    "berry": 6
+  },
+  "inventoryEqual": true,
+  "returnedBag": [
+    {
+      "label": "ぼろの上着 1",
+      "count": 1
+    },
+    {
+      "label": "木の棍棒 1",
+      "count": 1
+    },
+    {
+      "label": "帆布の翼 1",
+      "count": 1
+    },
+    {
+      "label": "木の実 6",
+      "count": 6
+    }
+  ],
+  "completeEditHistoryEqualB": true,
+  "completeEditHistoryEqualC": true,
+  "acceptedEditCount": 2,
+  "offlineEditCount": 1,
+  "sharedParts": [
+    {
+      "phase": "returned-shared-parts",
+      "tick": 4197,
+      "count": 1,
+      "aDigest": "a398b44bf0dcd5681447672b9a6567951fc1fa2de1d673a1cac2252bc0d6a90b",
+      "otherDigest": "a398b44bf0dcd5681447672b9a6567951fc1fa2de1d673a1cac2252bc0d6a90b",
+      "fullEquality": true
+    },
+    {
+      "phase": "late-shared-parts",
+      "tick": 4473,
+      "count": 1,
+      "aDigest": "a398b44bf0dcd5681447672b9a6567951fc1fa2de1d673a1cac2252bc0d6a90b",
+      "otherDigest": "a398b44bf0dcd5681447672b9a6567951fc1fa2de1d673a1cac2252bc0d6a90b",
+      "fullEquality": true
+    }
+  ],
+  "returnedPartUI": {
+    "selectedId": "1",
+    "label": "木の箱 #1"
+  },
+  "latePartUI": {
+    "selectedId": "1",
+    "label": "木の箱 #1"
+  },
+  "decoderFailures": {
+    "a": [],
+    "b": [],
+    "c": []
+  },
+  "terrainViews": [
+    {
+      "phase": "terrain-collision-view-search.json",
+      "attempts": 1,
+      "visible": true
+    },
+    {
+      "phase": "terrain-reentry-view-search.json",
+      "attempts": 1,
+      "visible": true
+    }
+  ],
+  "limitations": [
+    "CI browser evidence, not physical Android/iPhone or phone FPS.",
+    "Public four-client load completed but12.696Hz failed30Hz target.",
+    "Worker wake experiment subsequently rejected; next exact-source CI must verify rollback.",
+    "Shared block screenshots in this version show upper panel; next test scrolls selected control into viewport."
+  ]
+}

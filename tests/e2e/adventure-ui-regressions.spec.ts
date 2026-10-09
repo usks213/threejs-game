@@ -1,0 +1,54 @@
+import {test,expect,type Page} from '@playwright/test';
+import {GameSimulation} from '../../src/simulation/game-simulation';
+test.use({deviceScaleFactor:.5,viewport:{width:844,height:390}});
+async function ready(page:Page){page.setDefaultTimeout(20000);await page.goto('/',{waitUntil:'domcontentloaded'});await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});await expect(page.locator('#error')).toBeHidden();}
+async function fixture(page:Page,sim:GameSimulation){const previous=await page.locator('#app').getAttribute('data-world-epoch');await page.locator('#import-file').setInputFiles({name:'ui-regression-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});await expect.poll(()=>page.locator('#app').getAttribute('data-world-epoch')).not.toBe(previous);await expect(page.locator('#app')).toHaveAttribute('data-state','running');}
+function sparse(){const sim=new GameSimulation();sim.adventure.state.enemies=[];sim.fluid.restore([]);sim.adventure.state.inventory.wood=30;sim.adventure.state.inventory.stone=30;sim.adventure.state.inventory.resin=12;return sim;}
+async function ticks(page:Page,count:number){const start=Number(await page.locator('#app').getAttribute('data-tick'));await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(start+count);}
+test('voxel adventure persists captions and keeps food timing, catalog sorting, query clearing and blueprint selection usable',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await ready(page);
+ await page.locator('#system-menu').click();await expect(page.locator('#sound-caption-toggle')).not.toBeChecked();await page.locator('#sound-caption-toggle').check();await page.locator('#system-close').click();await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});await page.locator('#system-menu').click();await expect(page.locator('#sound-caption-toggle')).toBeChecked();await page.locator('#system-close').click();
+ // A bounded saved-state fixture supplies a timed meal and two recorded designs.
+ // Filtering, elapsed food time and pointer/keyboard actions still run through production UI.
+ const sim=sparse();sim.adventure.state.meadows!.foods=[{id:'berry',remaining:120}];sim.skybound.state.blueprints=[{id:1,owner:'host',name:'Zulu small',parts:[{kind:'block',material:'wood',offset:{x:0,y:0,z:0},rotation:0,links:[]}]},{id:2,owner:'host',name:'Alpha pair',parts:[{kind:'block',material:'wood',offset:{x:0,y:0,z:0},rotation:0,links:[1]},{kind:'block',material:'wood',offset:{x:1,y:0,z:0},rotation:0,links:[0]}]}];sim.skybound.state.nextId=3;await fixture(page,sim);
+ const food=page.locator('.food-hud span').first();await expect(food).toBeVisible();await expect.poll(()=>food.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);await expect(food.locator('b')).toHaveText('木の実');await expect(food.locator('small')).toHaveText(/\d+秒/);const remaining=async()=>Number((await food.textContent())?.match(/(\d+)秒/)?.[1]);const first=await remaining();expect(first).toBeGreaterThan(0);expect(first).toBeLessThanOrEqual(120);await expect.poll(remaining).toBeLessThan(first);
+ await page.locator('#adventure-menu').click();await page.locator('[data-tab=craft]').click();const search=page.getByRole('searchbox',{name:'一覧を検索'}),sort=page.getByRole('combobox',{name:'一覧の並び順'}),cards=page.locator('#adventure-content .recipe-grid').first().locator('.recipe-card:not([hidden])');const total=await cards.count();expect(total).toBeGreaterThan(3);
+ await sort.selectOption('name');const names=await cards.locator('strong').allTextContents();expect(names).toEqual([...names].sort((a,b)=>a.localeCompare(b,'ja')));await search.fill('斧');await expect(cards).toHaveCount(1);await expect(cards.first()).toContainText('石斧');
+ await page.locator('[data-tab=guide]').click();await expect(search).toHaveValue('');await page.locator('[data-tab=craft]').click();await expect(search).toHaveValue('斧');await expect(sort).toHaveValue('name');await search.fill('検索対象のない文字列');await expect(cards).toHaveCount(0);await page.locator('[data-catalog-clear]').click();await expect(search).toHaveValue('');await expect(sort).toHaveValue('name');await expect(cards).toHaveCount(total);
+ await sort.selectOption('available');const availability=await cards.evaluateAll(elements=>elements.map(el=>Number(!!el.querySelector('button:not([disabled])'))));expect(availability).toEqual([...availability].sort((a,b)=>b-a));await page.locator('#adventure-close').click();await page.locator('#adventure-menu').click();await expect(sort).toHaveValue('available');await page.locator('#adventure-close').click();
+ await page.locator('#powers-menu').click();await page.locator('[data-power-page=plans]').click();const plans=page.locator('#power-blueprint');await expect(plans.locator('option')).toHaveCount(3);await plans.selectOption('1');await page.locator('#power-plan-sort').selectOption('name');await expect(plans).toHaveValue('1');await expect(plans.locator('option').nth(1)).toContainText('Alpha pair');await page.locator('#power-plan-search').fill('Alpha');await expect(plans).toHaveValue('');await expect(page.locator('[data-power=rebuild]')).toBeDisabled();await page.locator('#power-plan-search').fill('');await expect(plans).toHaveValue('1');await page.locator('#power-plan-sort').selectOption('parts');await expect(plans.locator('option').nth(1)).toContainText('Zulu small');await expect(plans).toHaveValue('1');await page.locator('#powers-close').click();expect(errors).toEqual([]);
+});
+test('voxel adventure charges once on hold/release and cancels safely through pointer cancellation or an opened menu',async({page},info)=>{
+ test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ // Observe real worker snapshots, not the lower-frequency rendered HUD. A slow
+ // software GPU can skip an entire short swing between DOM updates. No message
+ // or simulation state is changed, and every input still comes from touch/keys.
+ await page.addInitScript(()=>{const observed={starts:0,active:false};(window as typeof window&{chargeEvidence?:typeof observed}).chargeEvidence=observed;window.Worker=new Proxy(window.Worker,{construct(Target,args,newTarget){const worker=Reflect.construct(Target,args,newTarget) as Worker;worker.addEventListener('message',(event:MessageEvent)=>{const message=event.data as {type?:string;state?:{adventure?:{attackMotion?:unknown}}};if(message.type!=='snapshot'||!message.state?.adventure)return;const active=!!message.state.adventure.attackMotion;if(active&&!observed.active)observed.starts++;observed.active=active;});return worker;}});});
+ await ready(page);await fixture(page,sparse());await page.locator('#adventure-menu').focus();
+ const starts=()=>page.evaluate(()=>(window as typeof window&{chargeEvidence?:{starts:number}}).chargeEvidence!.starts),active=()=>page.evaluate(()=>(window as typeof window&{chargeEvidence?:{active:boolean}}).chargeEvidence!.active);
+ const touch=info.project.name==='android-chromium'?await page.context().newCDPSession(page):undefined;
+ const hold=async()=>{if(touch){const box=await page.locator('#heavy').boundingBox();if(!box)throw Error('Charge touch target missing');await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height/2,id:41}]});}else await page.keyboard.down('KeyR');};
+ const release=async(cancel=false)=>{if(touch)await touch.send('Input.dispatchTouchEvent',{type:cancel?'touchCancel':'touchEnd',touchPoints:[]});else await page.keyboard.up('KeyR');};
+ await hold();await expect(page.locator('#traversal-warning')).toContainText('溜め');await expect(page.locator('#traversal-warning')).toContainText('100%');await release();await expect.poll(starts).toBe(1);await expect.poll(active).toBe(false);await ticks(page,10);expect(await starts()).toBe(1);
+ await hold();await expect(page.locator('#traversal-warning')).toContainText('溜め');if(touch)await release(true);else {await page.locator('#system-menu').click();await release();await page.locator('#system-close').click();}await expect(page.locator('#traversal-warning')).toBeHidden();await ticks(page,10);expect(await starts()).toBe(1);expect(await active()).toBe(false);
+ // A fresh gesture after cancellation must still work and cannot inherit the cancelled charge.
+ await page.locator('#adventure-menu').focus();await hold();await expect(page.locator('#traversal-warning')).toContainText('溜め');await release();await expect.poll(starts).toBe(2);await expect.poll(active).toBe(false);expect(errors).toEqual([]);
+});
+
+test('voxel adventure ability pages separate tasks and cancel uncommitted work when switching',async({page},info)=>{
+ test.setTimeout(120000);await ready(page);await fixture(page,sparse());await page.locator('#powers-menu').click();
+ await expect(page.locator('#power-pages button')).toHaveCount(5);await expect(page.locator('#power-kind')).toBeVisible();
+ await expect(page.locator('#power-plan-search')).toBeHidden();await expect(page.locator('#power-fusion-equipment')).toBeHidden();
+ await page.locator('#powers-panel [data-power=create]').click();await expect(page.locator('#power-preview')).toBeVisible();
+ const partsBefore=await page.locator('#app').getAttribute('data-skybound');
+ await page.locator('[data-power-page=travel]').click();await expect(page.locator('#power-preview')).toBeHidden();
+ await expect(page.locator('[data-power=ascend-preview]')).toBeVisible();await expect(page.locator('#power-kind')).toBeHidden();
+ await page.locator('[data-power-page=equipment]').click();await expect(page.locator('#power-fusion-equipment')).toBeVisible();
+ await page.locator('[data-power-page=plans]').click();await expect(page.locator('#power-plan-search')).toBeVisible();
+ await page.locator('[data-power-page=devices]').click();await expect(page.locator('#power-page-devices')).toBeVisible();
+ await page.locator('[data-power-page=build]').click();await expect(page.locator('#power-kind')).toBeVisible();
+ const partsAfter=await page.locator('#app').getAttribute('data-skybound');
+ expect(JSON.parse(partsAfter??'{}').parts.length).toBe(JSON.parse(partsBefore??'{}').parts.length);
+ await page.screenshot({path:info.outputPath('focused-ability-build.png'),scale:'css'});
+ await page.locator('#powers-close').click();await page.locator('#powers-menu').click();await expect(page.locator('#power-kind')).toBeVisible();
+});

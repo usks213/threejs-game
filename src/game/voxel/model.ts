@@ -13,6 +13,7 @@ function generate(key:string,size:number,min:Vec3,max:Vec3,fill:(p:Vec3)=>VoxelM
  cache.set(key,model);return model;
 }
 export function buildingVoxels(id:string):VoxelModel{
+ const existing=cache.get('b:'+id);if(existing)return existing;
  const def=BUILDINGS.find(b=>b.id===id)!;const [w,h,d]=def.size,size=.125,roof=roofHeight(id,0,0)!==null;
  return generate('b:'+id,size,{x:-w/2,y:0,z:-d/2},{x:w/2,y:roof?2.25:Math.max(h,.125),z:d/2},p=>{
   if(roof){const top=roofHeight(id,p.x,p.z)!;return p.y>top&&p.y<=top+.25?'wood':null;}
@@ -21,6 +22,10 @@ export function buildingVoxels(id:string):VoxelModel{
   if(id==='beam26'||id==='beam45'){const slope=id==='beam45'?1:.5;return Math.abs(p.y-h/2-p.x*slope)<.125?'wood':null;}
   if(['bench','choppingBlock','tanningRack'].includes(id)){return p.y>h-.2||Math.abs(p.x)>w/2-.25&&Math.abs(p.z)>d/2-.25?'wood':null;}
   if(id==='cook')return Math.abs(p.x)>w/2-.15||p.y>h-.15?'wood':null;
+  if(id==='routeBanner')return Math.abs(p.x)<.13?'wood':p.y>.75?'cloth':null;
+  if(id==='echoMemorial')return p.y<.25||Math.abs(p.x)<.38&&p.y>Math.abs(p.x)*.5?'stone':null;
+  if(id==='windChime')return Math.abs(p.x)<.13||p.y>1.5?'wood':Math.abs(p.x)>.25&&p.y>.65&&Math.abs(p.z)<.13?'metal':null;
+  if(id==='routeMonument')return p.y<.25||Math.abs(p.x)<.25||p.y>1.5&&Math.abs(p.z)<.15?'stone':null;
   if(id==='chest')return p.y<.125||p.y>h-.125||Math.abs(p.x)>w/2-.125||Math.abs(p.z)>d/2-.125?'wood':null;
   if(id==='fire'){const r=Math.hypot(p.x,p.z);return r>.2?'stone':'wood';}
   if(id==='portal')return Math.abs(p.x)>w/2-.3||p.y>h-.3?'wood':null;
@@ -47,7 +52,12 @@ export function buildingPose(b:BuildingState):Vec3 & {rotation:number}{
  pose.z-=half*(Math.sin(pose.rotation)-Math.sin(b.rotation));
  return pose;
 }
-export function occupied(model:VoxelModel,point:Vec3,removed:ReadonlySet<string>):boolean {return model.cells.has(voxelKey(Math.floor(point.x/model.size),Math.floor(point.y/model.size),Math.floor(point.z/model.size)))&&!removed.has(voxelKey(Math.floor(point.x/model.size),Math.floor(point.y/model.size),Math.floor(point.z/model.size)));}
+export function occupied(model:VoxelModel,point:Vec3,removed:ReadonlySet<string>):boolean {
+ const bounds=voxelBounds(model);
+ if(point.x<bounds.min.x||point.x>=bounds.max.x||point.y<bounds.min.y||point.y>=bounds.max.y||point.z<bounds.min.z||point.z>=bounds.max.z)return false;
+ const key=voxelKey(Math.floor(point.x/model.size),Math.floor(point.y/model.size),Math.floor(point.z/model.size));
+ return model.cells.has(key)&&!removed.has(key);
+}
 export function carveVoxels(model:VoxelModel,point:Vec3,radius:number,removed:string[]):ObjectVoxel[]{const gone=new Set(removed),hits:ObjectVoxel[]=[];for(const c of model.cells.values()){if(gone.has(c.key)||Math.hypot((c.x+.5)*model.size-point.x,(c.y+.5)*model.size-point.y,(c.z+.5)*model.size-point.z)>radius)continue;hits.push(c);removed.push(c.key);}return hits;}
 /** Finds a real occupied surface, including holes and rotated pieces. */
 export function rayVoxel(model:VoxelModel,origin:Vec3,direction:Vec3,removed:readonly string[]=[],limit=20):number|null {
@@ -78,13 +88,19 @@ export function rayVoxel(model:VoxelModel,origin:Vec3,direction:Vec3,removed:rea
  }
  return null;
 }
-export function bodyTouchesVoxels(model:VoxelModel,point:Vec3,removed:readonly string[]=[]):boolean{
- const gone=new Set(removed);for(const dx of [-.28,0,.28])for(const dz of [-.28,0,.28])for(let y=.1;y<1.45;y+=.2)if(occupied(model,{x:point.x+dx,y:point.y+y,z:point.z+dz},gone))return true;return false;
+export function bodyTouchesVoxels(model:VoxelModel,point:Vec3,removed:readonly string[]=[],height=1.45):boolean{
+ const gone=new Set(removed);for(const dx of [-.28,0,.28])for(const dz of [-.28,0,.28])for(let y=.1;y<height;y+=.2)if(occupied(model,{x:point.x+dx,y:point.y+y,z:point.z+dz},gone))return true;return false;
 }
 /** Query a cell-top under the feet; collision heights follow the visible voxel staircase. */
 export function footSurface(model:VoxelModel,point:Vec3,previousY:number,removed:readonly string[]=[]):number|null{
+ const bounds=voxelBounds(model);
+ // Most world buildings are nowhere near these feet. Reject their local bounds
+ // before allocating a removed-cell set or walking empty vertical voxel columns.
+ if(point.x+.22<bounds.min.x||point.x-.22>=bounds.max.x||point.z+.22<bounds.min.z||point.z-.22>=bounds.max.z)return null;
+ const high=Math.min(Math.floor((previousY+.45)/model.size),Math.ceil(bounds.max.y/model.size)-1),low=Math.max(Math.floor((point.y-.35)/model.size),Math.floor(bounds.min.y/model.size));
+ if(high<low)return null;
  const gone=new Set(removed);let top:number|null=null;
- for(const dx of [-.22,0,.22])for(const dz of [-.22,0,.22]){const x=Math.floor((point.x+dx)/model.size),z=Math.floor((point.z+dz)/model.size);for(let y=Math.floor((previousY+.45)/model.size);y>=Math.floor((point.y-.35)/model.size);y--){const key=voxelKey(x,y,z);if(!model.cells.has(key)||gone.has(key))continue;const height=(y+1)*model.size;if(height<=previousY+.45)top=Math.max(top??-Infinity,height);break;}}
+ for(const dx of [-.22,0,.22])for(const dz of [-.22,0,.22]){const x=Math.floor((point.x+dx)/model.size),z=Math.floor((point.z+dz)/model.size);for(let y=high;y>=low;y--){const key=voxelKey(x,y,z);if(!model.cells.has(key)||gone.has(key))continue;const height=(y+1)*model.size;if(height<=previousY+.45)top=Math.max(top??-Infinity,height);break;}}
  return top;
 }
 const boundsCache=new WeakMap<VoxelModel,{min:Vec3;max:Vec3}>();

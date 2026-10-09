@@ -1,0 +1,7 @@
+import {expect,it} from 'vitest';
+import {catalogOrder} from '../../src/ui/catalog-filter';
+import {traversalStatus} from '../../src/ui/traversal-warning';
+const rows=[{label:'鉄剣',text:'鉄剣 鉄 攻撃12',available:false,index:0},{label:'木の盾',text:'木の盾 木材 防御',available:true,index:1},{label:'冷茶',text:'冷茶 食材 耐熱',available:true,index:2}];
+it('matches normalized multiword queries without mutating source order or slot identity',()=>{const before=JSON.stringify(rows);expect(catalogOrder(rows,'鉄　１２','name')).toEqual([rows[0]]);expect(catalogOrder(rows,'木材','original')).toEqual([rows[1]]);expect(catalogOrder(rows,'存在しない','original')).toEqual([]);expect(JSON.stringify(rows)).toBe(before);});
+it('sorts catalog availability and allows restoring original stable order',()=>{expect(catalogOrder(rows,'','available').at(-1)).toBe(rows[0]);expect(catalogOrder([...rows].reverse(),'','original')).toEqual(rows);expect(catalogOrder(rows,'','name').map(r=>r.label)).toEqual(rows.map(r=>r.label).sort((a,b)=>a.localeCompare(b,'ja')));});
+it('provides readable breath and hazard warnings without relying on color',()=>{expect(traversalStatus({gliding:false,climbing:false,swimming:true,breath:4.3,maxBreath:12,warning:'水面へ上がってください'})).toBe('息 5/12秒 · 水面へ上がってください');expect(traversalStatus({gliding:false,climbing:true,hanging:true})).toContain('方向キー');expect(traversalStatus({gliding:false,climbing:false})).toBe('');});

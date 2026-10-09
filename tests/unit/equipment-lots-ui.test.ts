@@ -1,0 +1,6 @@
+import {it,expect} from 'vitest';
+import {gearLotLabel,heldGearPanel,storedGearPanel} from '../../src/ui/equipment-lots';
+import type {GearContainer} from '../../src/game/equipment/items';
+const gear:GearContainer={version:1,revision:2,lots:[{id:31,kind:'club',count:1,quality:3,durability:7,fusion:{equipment:'club',material:'resin',damage:4,durability:8,effect:'fire'}},{id:32,kind:'club',count:2,legacy:true}],activeByKind:{club:31}};
+it('shows per-lot metadata and targets the exact lot for selection, drop, storage and withdrawal',()=>{const held=heldGearPanel(gear,'club',7),stored=storedGearPanel(gear,7);expect(held).toContain('品質3');expect(held).toContain('耐久7/');expect(held).toContain('gear:31');expect(held).toContain('7|gear:31');expect(stored).toContain('7|gear:31:1');expect(stored).toContain('7|gear:32:1');expect(held).toContain('記録 #31 · 選択中');expect(heldGearPanel(gear,'sword')).toBe('');});
+it('labels lost legacy provenance explicitly instead of inventing quality or durability',()=>{expect(gearLotLabel(gear.lots[1])).toContain('品質未記録');expect(gearLotLabel(gear.lots[1])).toContain('耐久未記録');expect(gearLotLabel({...gear.lots[1],quality:2,durability:4})).toContain('品質2');expect(gearLotLabel({...gear.lots[1],quality:2,durability:4})).toContain('耐久4/');});

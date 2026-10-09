@@ -1,5 +1,5 @@
 import type { SphereBody } from './sphere';
-import { CHARACTER_HEIGHT, CHARACTER_RADIUS } from './character';
+import { characterHeight, CHARACTER_RADIUS } from './character';
 import type { PlayerState } from '../simulation/protocol';
 
 // Equal-mass contacts use a spatial grid instead of all-pairs comparisons.
@@ -30,7 +30,7 @@ export function collideRocks(bodies: SphereBody[]): void {
 }
 export function collidePlayerRocks(player: PlayerState, bodies: SphereBody[], dx: number, dz: number, dt: number): void {
   for (const body of bodies) {
-    const centerY = Math.max(player.y + CHARACTER_RADIUS, Math.min(player.y + CHARACTER_HEIGHT - CHARACTER_RADIUS, body.position.y));
+    const centerY = Math.max(player.y + CHARACTER_RADIUS, Math.min(player.y + characterHeight(player) - CHARACTER_RADIUS, body.position.y));
     let x = player.x - body.position.x, y = centerY - body.position.y, z = player.z - body.position.z;
     const distance = Math.hypot(x, y, z), radius = body.radius + CHARACTER_RADIUS;
     if (distance >= radius) continue;

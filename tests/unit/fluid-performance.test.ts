@@ -109,9 +109,21 @@ it('preserves obstacle masks at thin, axis-aligned, rotated, overlapping and neg
     { x: -1, y: 1, z: -2, hx: .8, hy: .3, hz: .4, rotation: .372 },
     { x: 0, y: .5, z: 0, hx: .25, hy: .25, hz: .25, rotation: Math.PI },
   ];
-  const hashes = ['6778892f6442ccfb106bf12ba87ecd28d34bd59faa557a7ddc805684ee3ce3b0', '80d715cfe5466ea49ea567c6ccf657b51527551fcfcae34681220eb94101f73e'];
+  // Lower-face entering edges are included after the authored-room obstacle fix.
+  const hashes = ['9bacc87f828b129f8fd090f33fb6d6904d6f4081daa3f25ef03abef7a1705943', '80d715cfe5466ea49ea567c6ccf657b51527551fcfcae34681220eb94101f73e'];
   for (const [i, size] of [.5, 1].entries()) {
     const mask = voxelizeObstacles(obstacles, size);
     expect(createHash('sha256').update(JSON.stringify({ occupied: [...mask.occupied], barriers: [...mask.barriers] })).digest('hex')).toBe(hashes[i]);
   }
+});
+it('selects the exact nearest visible subset before sorting, including dense ties and adversarial insertion orders',()=>{
+ for(const order of ['forward','reverse','alternating'] as const){const cells=new IndexedFluidCells(()=>{}),values:FluidCell[]=[];for(let x=-30;x<=30;x+=.5)for(let z=-20;z<=20;z+=.5)for(const y of [0,.5])values.push({x,y,z,volume:.1,size:.5});
+  if(order==='reverse')values.reverse();if(order==='alternating')values.sort((a,b)=>(a.x+a.z)%3-(b.x+b.z)%3);
+  for(const cell of values)cells.set(id(cell),cell);const removed=values[123];cells.delete(id(removed));cells.set(id(removed),removed);
+  for(const centers of [[{x:0,y:0,z:0}],[{x:8.25,y:1,z:-6.75}],[{x:-10,y:0,z:7},{x:12,y:0,z:-5}]])for(const limit of [1,64,2048,8192]){
+   const expected=[...cells.values()].filter(c=>distance(c,centers)<48**2).sort((a,b)=>distance(a,centers)-distance(b,centers)).slice(0,limit).map(id);
+   expect(cells.nearest(centers,limit,48).map(e=>e.id)).toEqual(expected);
+  }
+  expect(cells.size).toBe(values.length);
+ }
 });

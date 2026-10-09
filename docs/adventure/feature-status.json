@@ -1,0 +1,1266 @@
+[
+  {
+    "id": "NET-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/networking/authority-room.ts",
+      "apps/coop/src/index.ts",
+      "src/networking/coop-client.ts",
+      "src/networking/fluid-wire.ts"
+    ],
+    "tests": [
+      "coop-authority.test.ts",
+      "session-real-clients.test.ts",
+      "network.spec.ts",
+      "fluid-wire.test.ts",
+      "coop-client-liveness.test.ts",
+      "coop-slow-reader.test.ts",
+      "coop-frame-decoder.test.ts"
+    ],
+    "remaining": "実endpointと永続保存の最終版受入。4人上限は4人品質保証とは区別。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/ingress-clock-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "NET-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/networking/authority-room.ts",
+      "apps/coop/src/index.ts",
+      "src/networking/coop-client.ts"
+    ],
+    "tests": [
+      "coop-authority.test.ts",
+      "session-real-clients.test.ts",
+      "network.spec.ts"
+    ],
+    "remaining": "永続連番/再起動後の重複拒否、実時間ingress制限を確認。最新版4実WS長時間試験はsave/restart/gap/replay全成功。公開最新版と実端末品質は未確認。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/ingress-clock-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "NET-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/networking/authority-room.ts",
+      "apps/coop/src/index.ts",
+      "src/networking/coop-client.ts",
+      "src/networking/fluid-wire.ts"
+    ],
+    "tests": [
+      "coop-authority.test.ts",
+      "session-real-clients.test.ts",
+      "network.spec.ts",
+      "coop-revision.test.ts",
+      "coop-impaired-network.test.ts",
+      "terrain-undo.test.ts",
+      "fluid-wire.test.ts",
+      "coop-client-liveness.test.ts"
+    ],
+    "remaining": "19af8321公開実2ブラウザで同時掴み一方拒否、共有移動、lease時間切れと切断回収が合格。d5a2250fで公開回帰も合格。最新c834acbbは公開待ち。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/ingress-clock-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "NET-04",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/networking/authority-room.ts",
+      "apps/coop/src/index.ts",
+      "src/networking/coop-client.ts"
+    ],
+    "tests": [
+      "coop-authority.test.ts",
+      "session-real-clients.test.ts",
+      "network.spec.ts"
+    ],
+    "remaining": "修正版の4実WS長時間試験で停止復帰・保存一致・再同期を確認。公開サーバー運用の停止復帰と端末側復旧画面は別受入。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/ingress-clock-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "NET-05",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/networking/coop-identity.ts",
+      "src/simulation/session.ts",
+      "src/game/building-permissions.ts",
+      "src/networking/room-access.ts",
+      "src/ui/room-management.ts"
+    ],
+    "tests": [
+      "coop-identity.test.ts",
+      "session-integrity.test.ts",
+      "building-permissions.test.ts",
+      "coop-rest.test.ts",
+      "room-access.test.ts",
+      "room-access-clients.test.ts",
+      "room-management-ui.test.ts"
+    ],
+    "remaining": "新規記録/練習人形の保護と銘板位置分離を追加。N2参照。公開荒らし受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/ingress-clock-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "WORLD-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/world/skybound-terrain.ts",
+      "src/world/density.ts",
+      "src/world/field-streaming.ts"
+    ],
+    "tests": [
+      "skybound-terrain.test.ts",
+      "adventure-route.test.ts",
+      "layer-support.test.ts",
+      "adventure-depth-route.test.ts"
+    ],
+    "remaining": "三層の実入力ルートがある。最終版の公開往復受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "WORLD-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/world/skybound-terrain.ts",
+      "src/world/density.ts",
+      "src/world/field-streaming.ts"
+    ],
+    "tests": [
+      "skybound-terrain.test.ts"
+    ],
+    "remaining": "同じ密度/編集を衝突・描画へ使用。境界の実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "WORLD-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/world/skybound-terrain.ts",
+      "src/world/density.ts",
+      "src/world/field-streaming.ts"
+    ],
+    "tests": [
+      "skybound-terrain.test.ts"
+    ],
+    "remaining": "LOD/準備待ちあり。権威の密度は描画streamingに依存せず、未描画だから衝突が消える方式ではない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "WORLD-04",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/environment/adventure.ts",
+      "src/rendering/voxel/field-shader.ts",
+      "src/game/traversal.ts"
+    ],
+    "tests": [
+      "adventure-environment.test.ts",
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "六環境と層別造形。遠景シルエットの実画面QA。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "WORLD-05",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/environment/adventure.ts",
+      "src/rendering/voxel/field-shader.ts",
+      "src/game/traversal.ts"
+    ],
+    "tests": [
+      "adventure-environment.test.ts",
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "共有時刻による風/天候。草の描画揺れと力学上の風は別。下記説明参照。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "WORLD-06",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/world/skybound-terrain.ts",
+      "src/environment/time.ts",
+      "src/fluid/fluid.ts"
+    ],
+    "tests": [
+      "skybound-terrain.test.ts",
+      "fluid-obstacles.test.ts"
+    ],
+    "remaining": "水/浮力/洞窟/灯具/鉱物は存在。本書に現行水モデルを明記。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "WORLD-07",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/world/skybound-terrain.ts",
+      "src/environment/time.ts",
+      "src/fluid/fluid.ts"
+    ],
+    "tests": [
+      "skybound-terrain.test.ts",
+      "fluid-obstacles.test.ts"
+    ],
+    "remaining": "保護/貸出品復旧/安全帰還あり。新規記録の保護はNET-05のN2。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "MOVE-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/traversal.ts",
+      "src/physics/character.ts",
+      "src/rendering/camera"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts",
+      "landing.test.ts",
+      "adventure-route.test.ts"
+    ],
+    "remaining": "2人の有料壁作成・登攀/無入力掴まり/屋根乗越え、実掘削放水池の泳ぎ/岸上がり、濡れた石の警告→滑落を実2WebSocketで確認。12正規frame/24人分の状態を完全一致。公開カメラ/入力/実機/遅延受入は別。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/traversal-input-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "MOVE-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/traversal.ts",
+      "src/physics/character.ts",
+      "src/rendering/camera"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "2人の有料壁作成・登攀/無入力掴まり/屋根乗越え、実掘削放水池の泳ぎ/岸上がり、濡れた石の警告→滑落を実2WebSocketで確認。12正規frame/24人分の状態を完全一致。公開カメラ/入力/実機/遅延受入は別。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/traversal-input-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "MOVE-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/traversal.ts",
+      "src/physics/character.ts",
+      "src/rendering/camera"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "翼、上昇風、専用急降下あり。公開操作感。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "MOVE-04",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/traversal.ts",
+      "src/physics/character.ts",
+      "src/rendering/camera"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "2人の有料壁作成・登攀/無入力掴まり/屋根乗越え、実掘削放水池の泳ぎ/岸上がり、濡れた石の警告→滑落を実2WebSocketで確認。12正規frame/24人分の状態を完全一致。公開カメラ/入力/実機/遅延受入は別。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/traversal-input-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "MOVE-05",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/traversal.ts",
+      "src/physics/character.ts",
+      "src/rendering/camera"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "新規世界から合法8部品車両/2人搭乗/電力切れ/切断操縦引継ぎ/立ち乗り/実掘削放水した盆地の木製船体を実入力・実2WebSocketで確認。傾斜足元を修正。公開画面、外洋長距離、素材荷重比較、実機品質は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/vehicle-input-acceptance.md",
+      "docs/adventure/standing-deck-water-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "MOVE-06",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/companions.ts",
+      "src/ui/companions.ts",
+      "src/rendering/game/companions.ts"
+    ],
+    "tests": [
+      "companions.test.ts",
+      "companion-render.test.ts"
+    ],
+    "remaining": "餌3回による仲間化、呼ぶ/追従、騎乗、牽引、安全降車。繁殖等は追加要件にしない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "MOVE-07",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/traversal.ts",
+      "src/physics/character.ts",
+      "src/rendering/camera"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "遮蔽補正、照準/建築preview、感度/反転/FOV/揺れ軽減。各場面の公開受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "POWER-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound",
+      "src/ui/powers.ts",
+      "src/rendering/game/skybound.ts"
+    ],
+    "tests": [
+      "skybound.test.ts",
+      "skybound-session.test.ts"
+    ],
+    "remaining": "輪郭/lease/材質質量/移動回転/格子接着preview。新UIの実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "POWER-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound",
+      "src/ui/powers.ts",
+      "src/rendering/game/skybound.ts"
+    ],
+    "tests": [
+      "skybound.test.ts",
+      "skybound-session.test.ts"
+    ],
+    "remaining": "新規世界の採集/工作で武器・盾の合成、火矢変換/発射、装備個体を保った受渡し、解除/再合成、9拒否の資源保全、保存復帰を実2WebSocketで確認。代表素材のcore/通信試験であり、公開touch/描画/全素材組合せは未確認。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/fusion-consumption-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "POWER-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound",
+      "src/ui/powers.ts",
+      "src/rendering/game/skybound.ts"
+    ],
+    "tests": [
+      "skybound.test.ts",
+      "skybound-session.test.ts"
+    ],
+    "remaining": "実2WebSocketで逆再生中の他者掴み/本人競合を拒否、完了後に取得可能。実際の人がpreview出口へ移動すると天抜けを拒否し、退出後は成功。資源/位置保全と保存復帰を確認。公開画面/実端末受入は別。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/power-contention-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "POWER-04",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound",
+      "src/ui/powers.ts",
+      "src/rendering/game/skybound.ts"
+    ],
+    "tests": [
+      "skybound.test.ts",
+      "skybound-session.test.ts"
+    ],
+    "remaining": "実2WebSocketで逆再生中の他者掴み/本人競合を拒否、完了後に取得可能。実際の人がpreview出口へ移動すると天抜けを拒否し、退出後は成功。資源/位置保全と保存復帰を確認。公開画面/実端末受入は別。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/power-contention-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "POWER-05",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound",
+      "src/ui/powers.ts",
+      "src/rendering/game/skybound.ts"
+    ],
+    "tests": [
+      "skybound.test.ts",
+      "skybound-session.test.ts"
+    ],
+    "remaining": "新規世界の実入力で橋作成/両者横断/設計/解体拾得/費用を払った再建を実2WebSocketで確認。2種類の失敗再建は正本と両者で資源保全を確認。公開タッチ全操作は別。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/bridge-input-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "PHYS-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound/powers.ts",
+      "src/game/skybound/rigid.ts",
+      "src/game/skybound/orientation.ts",
+      "src/game/skybound/character.ts"
+    ],
+    "tests": [
+      "skybound-rigid.test.ts",
+      "skybound-rigid-budget.test.ts",
+      "skybound-vehicles.test.ts",
+      "skybound-environment.test.ts",
+      "assembly-contacts.test.ts",
+      "assembly-contact-integration.test.ts",
+      "assembly-buoyancy.test.ts",
+      "wheel-traction.test.ts",
+      "wheel-traction-integration.test.ts",
+      "skybound-water-coupling.test.ts",
+      "quaternion-water-obstacles.test.ts"
+    ],
+    "remaining": "合法的な共有箱へ石8を入れ、同じ4部品の24→40→24質量を実操作で比較。等しい60impulseで速度/空中移動が1→0.6→1となり実2WebSocketで一致、石を保全。長距離/積荷浮力と実端末品質は別受入。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/cargo-weight-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "PHYS-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound/powers.ts",
+      "src/game/skybound/rigid.ts",
+      "src/game/skybound/orientation.ts",
+      "src/game/skybound/character.ts"
+    ],
+    "tests": [
+      "skybound-rigid.test.ts",
+      "skybound-rigid-budget.test.ts",
+      "skybound-vehicles.test.ts",
+      "skybound-environment.test.ts",
+      "assembly-contacts.test.ts",
+      "assembly-contact-integration.test.ts",
+      "assembly-buoyancy.test.ts",
+      "wheel-traction.test.ts",
+      "wheel-traction-integration.test.ts",
+      "skybound-water-coupling.test.ts",
+      "quaternion-water-obstacles.test.ts"
+    ],
+    "remaining": "新規世界から合法8部品車両/2人搭乗/電力切れ/切断操縦引継ぎ/立ち乗り/実掘削放水した盆地の木製船体を実入力・実2WebSocketで確認。傾斜足元を修正。公開画面、外洋長距離、素材荷重比較、実機品質は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/vehicle-input-acceptance.md",
+      "docs/adventure/standing-deck-water-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "PHYS-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound/powers.ts",
+      "src/game/skybound/rigid.ts",
+      "src/game/skybound/orientation.ts",
+      "src/game/skybound/character.ts"
+    ],
+    "tests": [
+      "skybound-rigid.test.ts",
+      "skybound-rigid-budget.test.ts",
+      "skybound-vehicles.test.ts",
+      "skybound-environment.test.ts",
+      "assembly-contacts.test.ts",
+      "assembly-contact-integration.test.ts",
+      "assembly-buoyancy.test.ts",
+      "wheel-traction.test.ts",
+      "wheel-traction-integration.test.ts",
+      "skybound-water-coupling.test.ts",
+      "quaternion-water-obstacles.test.ts"
+    ],
+    "remaining": "火/水/氷/導電/風/爆発を実装。下記の優先順と上限を確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "PHYS-04",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound/powers.ts",
+      "src/game/skybound/rigid.ts",
+      "src/game/skybound/orientation.ts",
+      "src/game/skybound/character.ts"
+    ],
+    "tests": [
+      "skybound-rigid.test.ts",
+      "skybound-rigid-budget.test.ts",
+      "skybound-vehicles.test.ts",
+      "skybound-environment.test.ts",
+      "assembly-contacts.test.ts",
+      "assembly-contact-integration.test.ts",
+      "assembly-buoyancy.test.ts",
+      "wheel-traction.test.ts",
+      "wheel-traction-integration.test.ts"
+    ],
+    "remaining": "現行30Hz/64創作部品/16部品構造/4秒。Node測定は実機性能ではない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/ingress-clock-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "PHYS-05",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/skybound/powers.ts",
+      "src/game/skybound/rigid.ts",
+      "src/game/skybound/orientation.ts",
+      "src/game/skybound/character.ts"
+    ],
+    "tests": [
+      "skybound-rigid.test.ts",
+      "skybound-rigid-budget.test.ts",
+      "skybound-vehicles.test.ts",
+      "skybound-environment.test.ts",
+      "assembly-contacts.test.ts",
+      "assembly-contact-integration.test.ts",
+      "assembly-buoyancy.test.ts",
+      "wheel-traction.test.ts",
+      "wheel-traction-integration.test.ts"
+    ],
+    "remaining": "新規世界から合法8部品車両/2人搭乗/電力切れ/切断操縦引継ぎ/立ち乗り/実掘削放水した盆地の木製船体を実入力・実2WebSocketで確認。傾斜足元を修正。公開画面、外洋長距離、素材荷重比較、実機品質は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/vehicle-input-acceptance.md",
+      "docs/adventure/standing-deck-water-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "ITEM-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/meadows",
+      "src/content/catalog.ts",
+      "src/content/adventure-world.ts"
+    ],
+    "tests": [
+      "meadows.test.ts",
+      "core-action.test.ts",
+      "adventure-gear.test.ts"
+    ],
+    "remaining": "地域素材/鉱物/食材/通貨dropと売却/stackあり。旧「通貨供給なし」は失効。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "ITEM-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/content/adventure-food.ts",
+      "src/game/meadows/rules.ts"
+    ],
+    "tests": [
+      "adventure-food.test.ts"
+    ],
+    "remaining": "5料理効果/3枠/残時間処理に加えHUDへ残秒表示を追加。実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "ITEM-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/meadows",
+      "src/content/catalog.ts",
+      "src/content/adventure-gear.ts",
+      "src/ui/trail-craft.ts",
+      "src/game/equipment/items.ts",
+      "src/game/equipment/inventory.ts",
+      "src/ui/equipment-lots.ts"
+    ],
+    "tests": [
+      "meadows.test.ts",
+      "core-action.test.ts",
+      "adventure-gear.test.ts",
+      "adventure-growth.test.ts",
+      "equipment-items.test.ts",
+      "equipment-session.test.ts",
+      "equipment-websocket.test.ts",
+      "equipment-lots-ui.test.ts"
+    ],
+    "remaining": "個体耐久/破損/修理/強化比較/所持拡張あり。追加装備数そのものを未完了にしない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "ITEM-04",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/meadows",
+      "src/content/catalog.ts",
+      "src/game/skybound/camp.ts",
+      "src/game/equipment/inventory.ts"
+    ],
+    "tests": [
+      "meadows.test.ts",
+      "core-action.test.ts",
+      "adventure-market.test.ts",
+      "mobile-camp.test.ts",
+      "mobile-camp-session.test.ts",
+      "mobile-camp-websocket.test.ts",
+      "mobile-camp-respawn.test.ts",
+      "blueprint-management.test.ts",
+      "equipment-websocket.test.ts"
+    ],
+    "remaining": "交易/固定・移動倉庫/装備metadata受渡し/設計管理あり。公開切断受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "COMBAT-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/adventure.ts",
+      "src/game/combat",
+      "src/game/bosses.ts"
+    ],
+    "tests": [
+      "combat-commitment.test.ts",
+      "combat-feel.test.ts",
+      "layer-combat.test.ts"
+    ],
+    "remaining": "新規世界で採集/工作した盾と弓矢を用い、保持防御/時間合わせparry/回避/100%溜め近接/別プレイヤー射撃撃破/地面報酬/保存復帰を実2WebSocketで確認。公開タッチ全組合せ、同時複数敵と戦闘中切断の追加受入は未確認。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/combat-input-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "COMBAT-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/combat/aim-assist.ts",
+      "src/ui/accessibility.ts"
+    ],
+    "tests": [
+      "aim-assist.test.ts",
+      "combat-feel.test.ts"
+    ],
+    "remaining": "新規世界で採集/工作した盾と弓矢を用い、保持防御/時間合わせparry/回避/100%溜め近接/別プレイヤー射撃撃破/地面報酬/保存復帰を実2WebSocketで確認。公開タッチ全組合せ、同時複数敵と戦闘中切断の追加受入は未確認。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md",
+      "docs/adventure/combat-input-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "COMBAT-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/adventure.ts",
+      "src/game/combat",
+      "src/game/bosses.ts",
+      "src/game/adventure-navigation.ts"
+    ],
+    "tests": [
+      "combat-commitment.test.ts",
+      "combat-feel.test.ts",
+      "adventure-navigation.test.ts"
+    ],
+    "remaining": "各敵役割/環境反応/群れの呼応と包囲/局所再経路。全世界navmeshは必須ではない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "COMBAT-04",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/adventure.ts",
+      "src/game/combat",
+      "src/game/bosses.ts",
+      "src/content/stormcore.ts"
+    ],
+    "tests": [
+      "combat-commitment.test.ts",
+      "combat-feel.test.ts",
+      "stormcore.test.ts",
+      "layer-support.test.ts"
+    ],
+    "remaining": "実入力の連続ルートで3番人と最終敵を討伐し実WebSocketで照合済み。公開タッチ実戦受入は未確認。満杯時の戦利品は684a276bで保存付き再試行へ修正。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "COMBAT-05",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/game/coop-revive.ts",
+      "src/ui/coop.ts"
+    ],
+    "tests": [
+      "coop-revive.test.ts",
+      "coop-revive-clients.test.ts"
+    ],
+    "remaining": "救助/安全復活/途中参加/共有報酬。公開切断/人数減少時受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "QUEST-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/content/adventure-world.ts",
+      "src/game/journey.ts",
+      "src/ui/adventure.ts"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "新規2人の実入力で導入全工程を完了し、実WebSocketで状態照合済み。タッチによる全行程の受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "QUEST-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/content/adventure-trials.ts",
+      "src/ui/dialogue.ts",
+      "src/ui/adventure-map.ts"
+    ],
+    "tests": [
+      "adventure-trials.test.ts"
+    ],
+    "remaining": "新規世界の実入力で7試練を完了し実WebSocketの保存/再起動を照合済み。公開ブラウザ全7試練の連続操作は未確認。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "QUEST-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/content/adventure-world.ts",
+      "src/game/journey.ts",
+      "src/ui/adventure.ts",
+      "src/game/sites.ts",
+      "src/content/adventure-sites.ts"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts",
+      "adventure-sites.test.ts"
+    ],
+    "remaining": "三地域に元3室＋別棟3室/高所書架、NPC/輸送救助復旧/大型敵。到達可能性・長さの公開QA。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "QUEST-04",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/content/adventure-trials.ts",
+      "src/ui/dialogue.ts",
+      "src/ui/adventure-map.ts"
+    ],
+    "tests": [
+      "adventure-trials.test.ts"
+    ],
+    "remaining": "個人記録/共有設備と報酬を分離し一度だけ記録。公開同時完了。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "QUEST-05",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/content/adventure-trials.ts"
+    ],
+    "tests": [
+      "adventure-trials.test.ts",
+      "adventure-growth.test.ts",
+      "beacon-travel.test.ts"
+    ],
+    "remaining": "HP/スタミナ/電池容量/所持枠成長、後参加catch-up、道標/移動拠点。旧移動拠点未実装は失効。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "QUEST-06",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/content/adventure-world.ts",
+      "src/game/journey.ts",
+      "src/ui/adventure.ts",
+      "src/ui/field-guide.ts",
+      "src/game/shared-pins.ts"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts",
+      "field-guide.test.ts",
+      "shared-pins.test.ts",
+      "trail-race.test.ts"
+    ],
+    "remaining": "図鑑/九記録/個人共有ピン/踏査/写真/競走/4装飾。公開写真と操作受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "QUEST-07",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/content/adventure-world.ts",
+      "src/game/journey.ts",
+      "src/ui/adventure.ts"
+    ],
+    "tests": [
+      "traversal-adventure.test.ts"
+    ],
+    "remaining": "新規世界から最終目標まで実2WebSocketで連続攻略済み。次周回UI/保護保存は終了fixtureで確認。後日3依頼と記念碑を実通信で継続完了し、旧参加者の所持品保全と再起動を確認。公開ブラウザ全行程は未確認。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "UX-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/ui/powers.ts",
+      "src/ui/adventure.ts",
+      "src/platform/network.ts"
+    ],
+    "tests": [
+      "network.spec.ts"
+    ],
+    "remaining": "電力/食事残秒/泳ぎ警告と入力再割当対応表記を追加。モバイル可読性受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "UX-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/ui/adventure-map.ts",
+      "src/ui/powers.ts",
+      "src/ui/dialogue.ts",
+      "src/ui/field-guide.ts"
+    ],
+    "tests": [
+      "voxel-adventure.spec.ts",
+      "shared-pins.test.ts",
+      "field-guide.test.ts"
+    ],
+    "remaining": "層/ピン/依頼/recipe/設計/通知あり。検索並替え追加の最終版統合・focus保持受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "UX-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/ui/accessibility.ts",
+      "src/input/keyboard/keyboard.ts",
+      "src/rendering/resolution.ts"
+    ],
+    "tests": [
+      "accessibility.test.ts",
+      "resolution.test.ts",
+      "voxel-adventure.spec.ts"
+    ],
+    "remaining": "無音/自動再生不可でも働くsnapshot駆動音字幕と保存設定を追加。実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "AV-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/rendering/game/skybound.ts",
+      "src/rendering/game/landmarks.ts",
+      "src/rendering/environment"
+    ],
+    "tests": [
+      "skybound-terrain.test.ts",
+      "adventure-creature-models.test.ts"
+    ],
+    "remaining": "独自voxel造形。水の小波/粒子/草の例外を下記に明示。実GPUで顔・手足・道具を確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "AV-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/rendering/game/skybound.ts",
+      "src/rendering/game/landmarks.ts",
+      "src/rendering/environment"
+    ],
+    "tests": [
+      "skybound-terrain.test.ts"
+    ],
+    "remaining": "層色/霧/昼夜/雲/天候/草揺れ/独自音、着地遷移音あり。実聴取受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "AV-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/rendering/game/skybound.ts",
+      "src/rendering/game/landmarks.ts",
+      "src/rendering/environment"
+    ],
+    "tests": [
+      "skybound-terrain.test.ts",
+      "spatial-sound.test.ts"
+    ],
+    "remaining": "輪郭/ghost/接着点/攻撃予兆、lease所有者と残秒あり。実画面で識別性を確認。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "SAVE-01",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/save/repository.ts",
+      "src/save/storage.ts",
+      "src/save/room-storage.ts",
+      "src/save/participant.ts",
+      "src/ui/persistence.ts",
+      "apps/coop/src/index.ts"
+    ],
+    "tests": [
+      "save-repository.test.ts",
+      "save-checkpoint.test.ts",
+      "room-storage.test.ts",
+      "save-participant.test.ts",
+      "session-member-save.test.ts",
+      "coop-authority.test.ts"
+    ],
+    "remaining": "専用namespace/世代保全/破損検出/export/import。共有room管理importは原仕様必須へ追加しない。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "SAVE-02",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/save/repository.ts",
+      "src/save/storage.ts",
+      "src/save/room-storage.ts",
+      "src/save/participant.ts",
+      "src/ui/persistence.ts",
+      "apps/coop/src/index.ts"
+    ],
+    "tests": [
+      "save-repository.test.ts",
+      "save-checkpoint.test.ts",
+      "room-storage.test.ts",
+      "save-participant.test.ts",
+      "session-member-save.test.ts",
+      "coop-authority.test.ts"
+    ],
+    "remaining": "個人と共有の保存完了generation表示を追加。保存失敗時/切断時の実画面受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  },
+  {
+    "id": "SAVE-03",
+    "status": "実装済み・公開受入待ち",
+    "code": [
+      "src/save/repository.ts",
+      "src/save/storage.ts",
+      "src/save/room-storage.ts",
+      "src/save/participant.ts",
+      "src/ui/persistence.ts",
+      "apps/coop/src/index.ts"
+    ],
+    "tests": [
+      "save-repository.test.ts",
+      "save-checkpoint.test.ts",
+      "room-storage.test.ts",
+      "save-participant.test.ts",
+      "session-member-save.test.ts",
+      "coop-authority.test.ts"
+    ],
+    "remaining": "個人/共有保存を分離。下記の終了時挙動と公開全員切断受入。最終版の公開/端末受入は別判定。",
+    "testedBuild": "公開138158d1: CI型/969試験203ファイル/buildとfrontend/authority SHA照合、Android選択6、host実2browser6、WebKit1が初回成功。WebKitは実HDR/縦横/16trusted touch/設定reloadを確認したLinuxエミュレーション。公開2browserは2合格1失敗3未実行: lease全操作後にAが意図せずclosed、Bの実移動をAが観測できず。raw close reasonを次版で収集。4人10.99Hzで30Hz未達。個々の全ID最終受入、実Android/iPhone、Worker CPU/peak heapは未確認。",
+    "evidence": [
+      "docs/adventure/integration13-acceptance.md",
+      "docs/adventure/continuous-socket-playthrough.md",
+      "docs/adventure/boundary-recovery-acceptance.md"
+    ],
+    "audit": "docs/adventure/full-spec-audit.md"
+  }
+]

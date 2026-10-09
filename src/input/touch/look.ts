@@ -3,12 +3,12 @@ export const DEFAULT_CAMERA_PITCH = .18;
 export const DEFAULT_CAMERA_DISTANCE = 5;
 export const MIN_CAMERA_DISTANCE = 2.5;
 export const MAX_CAMERA_DISTANCE = 8;
-export interface CameraView { yaw: number; pitch: number; distance: number; sensitivity: number }
+export interface CameraView { yaw: number; pitch: number; distance: number; sensitivity: number; invertY?: boolean }
 
 /** Positive pointer movement turns right/down for touch and Pointer Lock alike. */
 export function applyCameraLook(camera: CameraView, dx: number, dy: number, scale: number): void {
   camera.yaw -= dx * scale * camera.sensitivity;
-  camera.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.pitch + dy * scale * camera.sensitivity));
+  camera.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.pitch + dy * scale * camera.sensitivity * (camera.invertY?-1:1)));
 }
 
 export function cameraInput(canvas: HTMLCanvasElement, signal: AbortSignal): CameraView {

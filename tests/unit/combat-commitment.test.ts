@@ -115,7 +115,7 @@ describe('committed player combat', () => {
  });
 
  it('keeps heavy weapon recovery committed without gaining stamina mid-swing', () => {
-  const { game } = setup(); game.state.equipment = 'greatsword';
+  const { game } = setup(); game.state.inventory.greatsword=1;game.state.equipment = 'greatsword';
   game.action('heavy'); game.stepPersonal(1.43);
   expect(game.state.stamina).toBe(64);
   expect(() => game.action('dodge')).toThrow('回復');
@@ -160,7 +160,7 @@ describe('committed player combat', () => {
 
  it('drops guard for bow shots and follows aim without snapping to a nearby enemy', () => {
   const { game, enemy } = setup(); enemy(2, -4);
-  game.state.equipment = 'bow'; game.state.inventory.shield = 1;
+  game.state.inventory.bow=1;game.state.equipment = 'bow'; game.state.inventory.shield = 1;
   game.action('guard', 'on'); game.action('attack', '', undefined, { x: 0, y: 0, z: -8 });
   expect(game.guarding).toBe(false);
   expect(game.projectiles[0].vx).toBe(0); expect(game.projectiles[0].vy).toBe(0);

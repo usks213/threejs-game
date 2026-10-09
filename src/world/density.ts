@@ -1,12 +1,13 @@
+import { skyboundDensity } from './skybound-terrain';
 import { biomeAt } from '../content/catalog';
 import { BRICK_SIZE, MAX_EDITS, WORLD, brickId, insideBounds, type EditOperation, type Vec3, type WorldBounds } from './types';
 
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
+function noiseHash(a:number,b:number,seed:number):number {let n=Math.imul(a,374761393)^Math.imul(b,668265263)^seed;n=Math.imul(n^n>>>13,1274126177);return ((n^n>>>16)>>>0)/4294967295;}
 function noise(x: number, z: number, seed: number): number {
   const ix = Math.floor(x), iz = Math.floor(z);
-  const hash = (a: number, b: number) => { let n = Math.imul(a, 374761393) ^ Math.imul(b, 668265263) ^ seed; n = Math.imul(n ^ n >>> 13, 1274126177); return ((n ^ n >>> 16) >>> 0) / 4294967295; };
   const fx = x - ix, fz = z - iz;
-  return mix(mix(hash(ix, iz), hash(ix + 1, iz), fx * fx * (3 - 2 * fx)), mix(hash(ix, iz + 1), hash(ix + 1, iz + 1), fx * fx * (3 - 2 * fx)), fz * fz * (3 - 2 * fz));
+  return mix(mix(noiseHash(ix, iz, seed), noiseHash(ix + 1, iz, seed), fx * fx * (3 - 2 * fx)), mix(noiseHash(ix, iz + 1, seed), noiseHash(ix + 1, iz + 1, seed), fx * fx * (3 - 2 * fx)), fz * fz * (3 - 2 * fz));
 }
 export function terrainHeight(x: number, z: number, seed = WORLD.seed): number {
   return 2 + (noise(x / 35, z / 35, seed) - 0.5) * 6 + (noise(x / 11, z / 11, seed + 1) - 0.5) * 1.2;
@@ -65,10 +66,26 @@ function island(p: Vec3): number {
 }
 export class SdfWorld {
   readonly edits: EditOperation[] = [];
-  private readonly heights = new Map<string,number>();
+  private readonly undone = new Set<number>();
+  private readonly heights = new Map<number,Map<number,number>>();
+  private heightCount=0;
+  private lastHeightX=NaN;private lastHeightZ=NaN;private lastHeight=0;
   private readonly index = new Map<string, EditOperation[]>();
-  constructor(readonly bounds: WorldBounds = { ...WORLD }, readonly generator: 1 | 2 | 3 = 1) {}
-  heightAt(x:number,z:number):number {const id=x+','+z,previous=this.heights.get(id);if(previous!==undefined)return previous;const h=this.generator===3?meadowsHeight(x,z,this.bounds.seed):this.generator===2?landscapeHeight(x,z,this.bounds.seed):terrainHeight(x,z,this.bounds.seed);if(this.heights.size>=16384)this.heights.clear();this.heights.set(id,h);return h;}
+  private editX=NaN;private editY=NaN;private editZ=NaN;private editRevision=-1;private editEntries:EditOperation[]|undefined;
+  constructor(readonly bounds: WorldBounds = { ...WORLD }, readonly generator: 1 | 2 | 3 | 4 = 1) {}
+  heightAt(x:number,z:number):number {
+    // Vertical collision/fluid probes repeatedly query the exact same column.
+    // Keep that one value without allocating another coordinate string each time.
+    if(x===this.lastHeightX&&z===this.lastHeightZ)return this.lastHeight;
+    let column=this.heights.get(x);const previous=column?.get(z);
+    const h=previous??(this.generator>=3?meadowsHeight(x,z,this.bounds.seed):this.generator===2?landscapeHeight(x,z,this.bounds.seed):terrainHeight(x,z,this.bounds.seed));
+    if(previous===undefined){
+      if(this.heightCount>=16384){this.heights.clear();this.heightCount=0;column=undefined;}
+      if(!column){column=new Map();this.heights.set(x,column);}
+      column.set(z,h);this.heightCount++;
+    }
+    this.lastHeightX=x;this.lastHeightZ=z;this.lastHeight=h;return h;
+  }
   isAnchor(p:Vec3):boolean {
     if(p.y<this.bounds.minY+2)return true;
     if(Math.hypot(p.x-13,p.y-15,p.z+17)<1.2)return true;
@@ -77,18 +94,25 @@ export class SdfWorld {
   }
   density(p: Vec3): number {
     if (!insideBounds(p, this.bounds)) return 100;
-    let d = this.generator===3?p.y-this.heightAt(p.x,p.z):Math.min(Math.max(p.y - this.heightAt(p.x, p.z), -cave(p)), island(p));
+    let d = this.generator===4?skyboundDensity(p,this.heightAt(p.x,p.z)):this.generator===3?p.y-this.heightAt(p.x,p.z):Math.min(Math.max(p.y - this.heightAt(p.x, p.z), -cave(p)), island(p));
     if(this.generator===2) d=Math.min(Math.max(d,-generatedCave(p,this.bounds.seed)),naturalArch(p,this.bounds.seed),riftIsland(p));
-    const entries = this.index.get(brickId(Math.floor(p.x / BRICK_SIZE), Math.floor(p.y / BRICK_SIZE), Math.floor(p.z / BRICK_SIZE)));
+    const entries = this.editsAt(p);
     if (entries) for (const e of entries) {
+      if(this.undone.has(e.id))continue;
       const sphere = e.shape==='cylinder'?Math.max(Math.hypot(p.x-e.position.x,p.z-e.position.z)-e.radius,Math.abs(p.y-e.position.y)-e.radius):Math.hypot(p.x - e.position.x, p.y - e.position.y, p.z - e.position.z) - e.radius;
       d = e.kind === 'dig' ? Math.max(d, -sphere) : Math.min(d, sphere);
     }
     return d;
   }
+  private editsAt(p:Vec3):EditOperation[]|undefined {
+    const x=Math.floor(p.x/BRICK_SIZE),y=Math.floor(p.y/BRICK_SIZE),z=Math.floor(p.z/BRICK_SIZE);
+    if(x===this.editX&&y===this.editY&&z===this.editZ&&this.editRevision===this.edits.length)return this.editEntries;
+    this.editX=x;this.editY=y;this.editZ=z;this.editRevision=this.edits.length;
+    return this.editEntries=this.index.get(brickId(x,y,z));
+  }
   soilAt(p:Vec3):boolean {
-    const entries=this.index.get(brickId(Math.floor(p.x/BRICK_SIZE),Math.floor(p.y/BRICK_SIZE),Math.floor(p.z/BRICK_SIZE)));
-    return !!entries?.some(e=>e.surface==='soil'&&Math.hypot(p.x-e.position.x,p.z-e.position.z)<e.radius&&Math.abs(p.y-(e.position.y+(e.kind==='add'?e.radius:-e.radius)))<.3);
+    const entries=this.editsAt(p);
+    return !!entries?.some(e=>!this.undone.has(e.id)&&e.surface==='soil'&&Math.hypot(p.x-e.position.x,p.z-e.position.z)<e.radius&&Math.abs(p.y-(e.position.y+(e.kind==='add'?e.radius:-e.radius)))<.3);
   }
   affectedBricks(e: EditOperation): string[] {
     const ids: string[] = [];
@@ -102,6 +126,11 @@ export class SdfWorld {
   apply(e: EditOperation): string[] {
     if (this.edits.length >= MAX_EDITS || !Number.isSafeInteger(e.id) || e.id !== this.edits.length + 1 || !Number.isSafeInteger(e.tick) || e.tick < 0 || e.tick > 1000000000000 || (e.kind !== 'dig' && e.kind !== 'add') || e.material !== 'stone' || (e.shape!==undefined&&e.shape!=='cylinder') || (e.surface!==undefined&&e.surface!=='soil') || !Number.isFinite(e.radius) || e.radius < 0.2 || e.radius > 2.5 || !insideBounds(e.position, this.bounds, e.radius)) throw new Error('地形編集の範囲または上限が不正です');
     const operation: EditOperation = { ...e, position: { ...e.position } };
+    if(e.undo!==undefined){
+      const original=this.edits[e.undo-1];
+      if(!Number.isSafeInteger(e.undo)||!original||original.undo!==undefined||this.undone.has(e.undo)||original.kind!==e.kind||original.radius!==e.radius||original.shape!==e.shape||original.surface!==e.surface||['x','y','z'].some(axis=>original.position[axis as keyof Vec3]!==e.position[axis as keyof Vec3]))throw Error('取消の参照が不正です');
+      this.undone.add(e.undo);this.edits.push(operation);return this.affectedBricks(original);
+    }
     this.edits.push(operation);
     const affected = this.affectedBricks(operation);
     for (const id of affected) { const list = this.index.get(id) ?? []; list.push(operation); this.index.set(id, list); }

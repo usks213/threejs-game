@@ -1,0 +1,7 @@
+/* Debug controls occupy the combat zone only while the temporary mode is active. */
+#debug-flight-settings{margin:8px 0 16px;padding:10px;border:1px solid #e1c87b;border-radius:10px;background:#343526}
+#debug-flight-settings h3{margin:0 0 8px;font-size:14px}#debug-flight-settings p{font-size:12px;line-height:1.65;margin:8px 0 0}#debug-flight-toggle{min-height:48px;width:100%}
+#debug-flight-controls{position:absolute;right:calc(12px + var(--safe-right));bottom:calc(12px + var(--safe-bottom));display:grid;grid-template-columns:repeat(2,64px);gap:8px;padding:8px;background:#253c39f5;border:2px solid #e1c87b;border-radius:12px;z-index:8}
+#debug-flight-controls strong,#debug-flight-hint,#debug-flight-stop{grid-column:1/-1}#debug-flight-controls strong{font-size:12px;color:#ffebaf}#debug-flight-hint{font-size:10px;max-width:136px;line-height:1.5}#debug-flight-controls button{min-width:48px;min-height:48px;padding:5px;font-size:11px}#debug-flight-controls [aria-pressed=true]{background:#647a43}
+#app[data-debug-flying=true] #right-controls,#app[data-debug-flying=true] #traverse-glide{visibility:hidden}
+#app:has([role=dialog]:not([hidden])) #debug-flight-controls{visibility:hidden}

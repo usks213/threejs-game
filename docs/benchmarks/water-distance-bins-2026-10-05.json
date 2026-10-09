@@ -1,0 +1,227 @@
+{
+  "node": "v24.19.0",
+  "source": {
+    "baseline": "/workspace/shared/pr5-water-bins-baseline-source",
+    "candidate": "/workspace/shared/pr5-water-bins-candidate-source",
+    "baselineIndexedCellsSha256": "bb3047180a4dd77980fa80fc76db8b88f300b14a0a6780f9e6e47e87d13fab33",
+    "candidateIndexedCellsSha256": "155beac666d18de54ac1659f04b41cf42f21d935c0b0f57e8db844c030f9cdae"
+  },
+  "note": "Only finite-radius selection differs. All samples retained. The decoder-free run is a separate cost check and does not replace the full decoded-state comparisons. Node timings do not establish Worker tick rate or device performance.",
+  "counts": {
+    "checks": 1280,
+    "perCase": 320,
+    "cells": 19865,
+    "method": "Four algorithms on the same real mature water cells and player centers; processing order rotates each round so each case occupies each position equally; exact selected IDs/order compared every time; all cold/outlier samples retained",
+    "results": [
+      {
+        "name": "quickselect",
+        "timeMs": {
+          "count": 320,
+          "mean": 2.2656608343749958,
+          "p50": 2.1044580000002497,
+          "p95": 2.861658000000034,
+          "p99": 5.80359100000004,
+          "max": 13.300505999999984
+        }
+      },
+      {
+        "name": "bins256",
+        "timeMs": {
+          "count": 320,
+          "mean": 1.979813121875008,
+          "p50": 1.8120659999999589,
+          "p95": 2.711180999999897,
+          "p99": 4.9209789999999884,
+          "max": 14.984579999999994
+        }
+      },
+      {
+        "name": "bins1024",
+        "timeMs": {
+          "count": 320,
+          "mean": 1.6967278125000032,
+          "p50": 1.5337680000002365,
+          "p95": 2.356807000000117,
+          "p99": 3.1288359999999784,
+          "max": 18.960656
+        }
+      },
+      {
+        "name": "bins4096",
+        "timeMs": {
+          "count": 320,
+          "mean": 1.4693267718749996,
+          "p50": 1.3009809999998652,
+          "p95": 2.170861000000059,
+          "p99": 3.957212000000254,
+          "max": 17.49831899999998
+        }
+      }
+    ]
+  },
+  "initial256": {
+    "checks": 320,
+    "cells": 19865,
+    "method": "Same real mature water cells and four player centers, alternating order; exact selected coordinate IDs/order compared on every query; all cold samples retained",
+    "before": {
+      "count": 320,
+      "mean": 3.4735501374999957,
+      "p50": 2.3653269999999793,
+      "p95": 7.113553999999567,
+      "p99": 27.605533000000037,
+      "max": 68.85755100000006
+    },
+    "after": {
+      "count": 320,
+      "mean": 2.5897386437500023,
+      "p50": 2.0622679999996762,
+      "p95": 5.2925769999999375,
+      "p99": 10.499078999999938,
+      "max": 25.292583999999977
+    }
+  },
+  "whole256": {
+    "method": "Two independent real mature four-player authorities in one Node process, alternating step order with identical inputs; client decoding outside timed steps. All samples retained. No inspector overhead and no realtime/Workers claim.",
+    "elapsedMs": 30165.527976999998,
+    "results": [
+      {
+        "name": "before",
+        "steps": {
+          "count": 300,
+          "mean": 38.53734081666673,
+          "p50": 17.214727999999013,
+          "p95": 92.31255699999747,
+          "p99": 151.95496699999967,
+          "max": 160.3981270000004
+        },
+        "simulation": {
+          "count": 300,
+          "mean": 20.46011112666662,
+          "p50": 17.191005999997287,
+          "p95": 35.44544400000086,
+          "p99": 70.63287200000013,
+          "max": 151.54750200000035
+        },
+        "checks": 8,
+        "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d"
+      },
+      {
+        "name": "after",
+        "steps": {
+          "count": 300,
+          "mean": 37.37701160666675,
+          "p50": 16.394585000000006,
+          "p95": 87.06202499999927,
+          "p99": 139.94501400000036,
+          "max": 177.7058790000001
+        },
+        "simulation": {
+          "count": 300,
+          "mean": 20.167822840000024,
+          "p50": 16.382181999999375,
+          "p95": 33.29608300000109,
+          "p99": 63.56191199999739,
+          "max": 177.41687500000035
+        },
+        "checks": 8,
+        "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d"
+      }
+    ]
+  },
+  "whole4096": {
+    "method": "Two independent real mature four-player authorities in one Node process, alternating step order with identical inputs; client decoding outside timed steps. All samples retained. No inspector overhead and no realtime/Workers claim.",
+    "elapsedMs": 28032.633768,
+    "results": [
+      {
+        "name": "before",
+        "steps": {
+          "count": 300,
+          "mean": 36.272682716666715,
+          "p50": 16.22623999999996,
+          "p95": 85.29491899999994,
+          "p99": 96.88886599999978,
+          "max": 143.79780900000014
+        },
+        "simulation": {
+          "count": 300,
+          "mean": 19.479547496666772,
+          "p50": 16.14927499999976,
+          "p95": 32.257114,
+          "p99": 50.04155300000002,
+          "max": 69.27876700000024
+        },
+        "checks": 8,
+        "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d"
+      },
+      {
+        "name": "after",
+        "steps": {
+          "count": 300,
+          "mean": 34.653421246666625,
+          "p50": 17.195035999999163,
+          "p95": 81.45636099999956,
+          "p99": 107.65804200000002,
+          "max": 130.03309899999977
+        },
+        "simulation": {
+          "count": 300,
+          "mean": 19.366056149999974,
+          "p50": 17.1821259999997,
+          "p95": 33.668533000000025,
+          "p99": 55.73304800000005,
+          "max": 60.304657000000134
+        },
+        "checks": 8,
+        "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d"
+      }
+    ]
+  },
+  "serverOnly4096": {
+    "method": "Two independent real mature four-player authorities in one Node process, alternating step order with identical inputs; no client decoding or exact-read harness during the timed run (checks=0); final complete save hashes compared. All samples retained. No inspector overhead and no realtime/Workers claim.",
+    "elapsedMs": 21498.338501,
+    "results": [
+      {
+        "name": "before",
+        "steps": {
+          "count": 300,
+          "mean": 35.91438272999991,
+          "p50": 16.87736500000028,
+          "p95": 85.71525699999984,
+          "p99": 100.72695700000077,
+          "max": 138.92635900000005
+        },
+        "simulation": {
+          "count": 300,
+          "mean": 19.305622529999997,
+          "p50": 16.861847000000125,
+          "p95": 32.30127100000027,
+          "p99": 60.85439899999983,
+          "max": 65.98360000000002
+        },
+        "checks": 0,
+        "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d"
+      },
+      {
+        "name": "after",
+        "steps": {
+          "count": 300,
+          "mean": 34.49713557999998,
+          "p50": 16.877377000000706,
+          "p95": 78.92779300000075,
+          "p99": 98.57005600000048,
+          "max": 130.97066500000028
+        },
+        "simulation": {
+          "count": 300,
+          "mean": 19.495405196666596,
+          "p50": 16.865671000003204,
+          "p95": 33.039058000000296,
+          "p99": 60.21368399999983,
+          "max": 63.88908700000002
+        },
+        "checks": 0,
+        "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d"
+      }
+    ]
+  }
+}

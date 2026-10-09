@@ -28,7 +28,7 @@ export function blockedByBuilding(b:BuildingState,x:number,y:number,z:number,rad
 }
 export function reconcileCreature(sim:GameSimulation,e:EnemyState,from:Vec3):void{
  if(e.health<=0)return;
- const y=sim.groundAt(e.x,e.z),blocked=Math.abs(y-from.y)>1.3||sim.adventure.state.buildings.some(b=>blockedByBuilding(b,e.x,y,e.z,e.boss?.7:.25));
+ const y=sim.groundAt(e.x,e.z,from.y),radius=e.boss?.7:.25,terrainBlocked=sim.world.generator===4&&[[0,0],[radius,0],[-radius,0],[0,radius],[0,-radius]].some(([x,z])=>[.25,.8,e.boss?2:1.1].some(h=>sim.world.density({x:e.x+x,y:y+h,z:e.z+z})<.02)),blocked=terrainBlocked||Math.abs(y-from.y)>1.3||sim.adventure.state.buildings.some(b=>blockedByBuilding(b,e.x,y,e.z,e.boss?.7:.25));
  if(blocked){e.x=from.x;e.z=from.z;e.y=from.y;}else e.y=y;
 }
 export function sees(sim:GameSimulation,a:Vec3,b:Vec3):boolean{

@@ -1,0 +1,11 @@
+import {it,expect} from 'vitest';
+import {assemblyBuoyancy} from '../../src/game/skybound/buoyancy';
+import {wrench} from '../../src/game/skybound/rigid';
+import {increment} from '../../src/game/skybound/orientation';
+import type {SkyContext,SkyPart} from '../../src/game/skybound/types';
+import {WORLD} from '../../src/world/types';
+const part=(id:number,x:number,material:'wood'|'metal',mass:number):SkyPart=>({id,kind:'block',material,mass,position:{x,y:0,z:0},velocity:{x:0,y:0,z:0},rotation:0,links:[],epoch:0});
+const context:SkyContext={tick:0,bounds:WORLD,player:{x:0,y:0,z:0},inventory:{},actors:[],solid:()=>false,waterFraction:()=>1};
+it('uses every part mass/material and gives the same total buoyancy regardless of root order',()=>{const wood=part(1,-1,'wood',6),metal=part(2,1,'metal',30),a=assemblyBuoyancy([wood,metal],context),b=assemblyBuoyancy([metal,wood],context);expect(a.force.y).toBeCloseTo(6*14+30*4);expect(a.force.y/(6+30)-9.8).toBeLessThan(0);expect(a.force.y).toBeCloseTo(b.force.y,10);expect(a.torque.z).toBeCloseTo(b.torque.z);expect(a.wet).toBeCloseTo(1);});
+it('creates a restoring moment from uneven submersion using oriented samples and bounded impulses',()=>{const p=part(1,0,'wood',6);p.kind='slab';p.q=increment({x:0,y:0,z:1},.5);const water=assemblyBuoyancy([p],{...context,waterFraction:point=>point.y<0?1:0});expect(water.wet).toBeGreaterThan(0);expect(water.wet).toBeLessThan(1);expect(water.torque.z).toBeLessThan(0);wrench([p],water.force,water.torque);expect(p.angularVelocity!.z).toBeLessThan(0);expect(Math.hypot(p.angularVelocity!.x,p.angularVelocity!.y,p.angularVelocity!.z)).toBeLessThanOrEqual(4);const anchored=part(2,0,'wood',6);anchored.anchored=true;wrench([anchored],water.force,water.torque);expect(anchored.velocity).toEqual({x:0,y:0,z:0});});
+it('does not generate lift without a water sampler',()=>{expect(assemblyBuoyancy([part(1,0,'wood',6)],{...context,waterFraction:undefined}).force.y).toBe(0);});

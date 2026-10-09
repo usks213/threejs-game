@@ -1,11 +1,22 @@
 import { GameSimulation } from '../../src/simulation/game-simulation';
 import { test,expect,type Page } from '@playwright/test';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 test.use({deviceScaleFactor:.5});
+const execFileAsync=promisify(execFile);
+async function nativeRelativeMouse(dx:number,dy:number){
+ if(process.platform!=='linux'||!process.env.DISPLAY)throw new Error('Native mouse verification requires headed Linux Chromium on an X11 display');
+ // xdotool calls XTestFakeRelativeMotionEvent here, not XSendEvent or CDP.
+ // Do not use --sync: Pointer Lock can recenter the cursor before its poll.
+ // https://github.com/jordansissel/xdotool/blob/v3.20160805.1/xdo.c
+ await execFileAsync('xdotool',['mousemove_relative','--',String(dx),String(dy)],{timeout:5000,maxBuffer:16384});
+}
 async function streamReport(page:Page){console.log('STREAMING',await page.locator('#app').getAttribute('data-streaming'));}
 async function ready(page:Page){await page.goto('/');try{await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect(page.locator('#error')).toBeHidden();}finally{await streamReport(page);}}
 async function ticks(page:Page,n=10){const tick=Number(await page.locator('#app').getAttribute('data-tick'));await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(tick+n);}
 async function fixture(page:Page,sim:GameSimulation){const epoch=await page.locator('#app').getAttribute('data-world-epoch');await page.locator('#import-file').setInputFiles({name:'core-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});await expect.poll(()=>page.locator('#app').getAttribute('data-world-epoch')).not.toBe(epoch);try{await expect(page.locator('#app')).toHaveAttribute('data-state','running');await ticks(page,4);}finally{await streamReport(page);}}
-function sparse(){const sim=new GameSimulation();sim.adventure.state.resources=[];sim.adventure.state.enemies=[];sim.adventure.state.buildings=[];sim.fluid.cells.clear();return sim;}
+async function lookGesture(page:Page,dx:number,dy:number){const v=page.viewportSize()!,x=v.width*.5,y=v.height*.5;await page.mouse.move(x,y);await page.mouse.down({button:'middle'});await page.mouse.move(x+(v.height>v.width?-dy:dx),y+(v.height>v.width?dx:dy),{steps:4});await page.mouse.up({button:'middle'});}
+function sparse(){const sim=new GameSimulation(undefined,3);sim.adventure.state.resources=[];sim.adventure.state.enemies=[];sim.adventure.state.buildings=[];sim.fluid.cells.clear();return sim;}
 
 test('core landscape starts, moves with keyboard, keeps the landscape canvas across rotation',async({page},info)=>{
  // Software WebGL on CI can spend over 60 seconds booting and resizing this fine-voxel world.
@@ -17,20 +28,66 @@ test('core landscape starts, moves with keyboard, keeps the landscape canvas acr
 test('two fingers move, sprint, crouch and jump together on a rotated phone, and water is always available',async({page},info)=>{
  test.skip(info.project.name==='desktop-chromium','Phone touch coordinates');await ready(page);const sim=sparse();await fixture(page,sim);await expect(page.locator('#position')).toHaveAttribute('data-grounded','true');
  const stick=await page.locator('#stick').boundingBox();if(!stick)throw Error('Touch controls missing');const session=await page.context().newCDPSession(page),left={x:stick.x+stick.width/2,y:stick.y+stick.height*.8,id:1};
- const second=async(id:string)=>{const box=await page.locator('#'+id).boundingBox();if(!box)throw Error(id+' missing');await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[left,{x:box.x+box.width/2,y:box.y+box.height/2,id:2}]});await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[left]});};
+ // Track real pointer delivery so a malformed CDP sequence cannot masquerade as a game regression.
+ await page.evaluate(()=>{
+  document.addEventListener('pointerdown',event=>{const button=(event.target as HTMLElement).closest('button');if(button)button.dataset.touchStarts=String(Number(button.dataset.touchStarts??0)+1);},true);
+  const stick=document.querySelector<HTMLElement>('#stick')!;
+  stick.addEventListener('pointerdown',event=>{stick.dataset.testPointer=String(event.pointerId);});
+  for(const type of ['pointerup','pointercancel'])stick.addEventListener(type,()=>{delete stick.dataset.testPointer;});
+ });
+ const second=async(id:string)=>{
+  const button=page.locator('#'+id),box=await button.boundingBox();if(!box)throw Error(id+' missing');
+  const starts=Number(await button.getAttribute('data-touch-starts')??0),right={x:box.x+box.width/2,y:box.y+box.height/2,id:2};
+  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[left,right]});
+  await expect(button).toHaveAttribute('data-touch-starts',String(starts+1));
+  // Chromium releases the IDs supplied to a nonempty touchEnd, not the omitted IDs.
+  await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[right]});
+  await expect(page.locator('#stick')).toHaveAttribute('data-test-pointer',/\d+/);
+ };
  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[left]});await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(.2);
  await second('sprint');await expect(page.locator('#sprint')).toHaveAttribute('aria-pressed','true');await second('sneak');await expect(page.locator('#sneak')).toHaveAttribute('aria-pressed','true');const before=Number(await page.locator('#position').getAttribute('data-x'));await expect.poll(async()=>Number(await page.locator('#position').getAttribute('data-x'))).toBeGreaterThan(before+.2);await second('sneak');
  await second('jump');await expect.poll(async()=>Number((await page.locator('#metrics').textContent())?.match(/ジャンプ ([\d.]+)m/)?.[1]??0)).toBeGreaterThan(.4);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
  await page.locator('#water-cast').tap();await expect(page.locator('#notice')).toContainText('水を流しました');await expect.poll(async()=>Number((await page.locator('#metrics').textContent())?.match(/水 (\d+)セル/)?.[1]??0)).toBeGreaterThan(8);await page.screenshot({path:info.outputPath('right-movement-controls.png'),scale:'css'});await expect(page.locator('#error')).toBeHidden();
 });
 test('survival adventure uses aim interaction, inventory slots, quick equipment and saved ground drops',async({page},info)=>{
- const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);const sim=sparse(),p=sim.player;sim.adventure.state.inventory={ragTunic:1,club:1,wood:3};sim.adventure.state.resources=[{id:900,kind:'branch',x:p.x,y:sim.groundAt(p.x,p.z-3.2),z:p.z-3.2,amount:2,ready:0},{id:901,kind:'stone',x:p.x+1.5,y:p.y,z:p.z-1,amount:1,ready:0}];await fixture(page,sim);await expect(page.locator('#app')).toHaveAttribute('data-interaction','r:900');await page.keyboard.press('KeyE');await expect(page.locator('#notice')).toContainText('木材');await page.keyboard.press('Tab');await expect(page.locator('.slot-grid button')).toHaveCount(32);await page.locator('[data-slot="2"]').click();await expect(page.locator('#adventure-content')).toContainText('木材 ×5');await page.locator('[data-quantity-action="drop"]').click();await expect(page.locator('#notice')).toContainText('地面に置きました');await page.locator('#adventure-close').click();await page.keyboard.press('Digit2');await expect(page.locator('#adventure-hud')).toContainText('棍棒');await page.keyboard.press('Tab');await page.locator('[data-tab="craft"]').click();await expect(page.locator('#adventure-content')).toContainText('粗末な弓');await page.screenshot({scale:'css',path:info.outputPath('inventory-crafting.png')});await page.locator('#adventure-close').click();await page.locator('#system-menu').click();await page.locator('#save').click();await page.locator('#system-close').click();await page.reload();await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect(page.locator('#adventure-hud')).toContainText('棍棒');expect(errors).toEqual([]);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);const sim=sparse(),p=sim.player;sim.adventure.state.inventory={ragTunic:1,club:1,wood:3};sim.adventure.state.resources=[{id:900,kind:'branch',x:p.x,y:sim.groundAt(p.x,p.z-3.2),z:p.z-3.2,amount:2,ready:0},{id:901,kind:'stone',x:p.x+1.5,y:p.y,z:p.z-1,amount:1,ready:0}];await fixture(page,sim);await lookGesture(page,-32,33);await expect(page.locator('#app')).toHaveAttribute('data-interaction','r:900');await page.keyboard.press('KeyE');await expect(page.locator('#notice')).toContainText('木材');await page.keyboard.press('Tab');await expect(page.locator('.slot-grid button')).toHaveCount(32);await page.locator('[data-slot="2"]').click();await expect(page.locator('#adventure-content')).toContainText('木材 ×5');await page.locator('[data-quantity-action="drop"]').click();await expect(page.locator('#notice')).toContainText('地面に置きました');await page.locator('#adventure-close').click();await page.keyboard.press('Digit2');await expect(page.locator('#adventure-hud')).toContainText('棍棒');await page.keyboard.press('Tab');await page.locator('[data-tab="craft"]').click();await expect(page.locator('#adventure-content')).toContainText('粗末な弓');await page.screenshot({scale:'css',path:info.outputPath('inventory-crafting.png')});await page.locator('#adventure-close').click();await page.locator('#system-menu').click();await page.locator('#save').click();await page.locator('#system-close').click();await page.reload();await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect(page.locator('#adventure-hud')).toContainText('棍棒');expect(errors).toEqual([]);
 });
 test('survival adventure previews, rotates and places the matching voxel building',async({page},info)=>{
- const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);const sim=sparse();sim.adventure.state.inventory={wood:40,stone:40,hammer:1};sim.adventure.state.equipment='hammer';await fixture(page,sim);await page.keyboard.press('KeyB');await page.locator('[data-game-action="place"][data-id="bench"]').click();await expect(page.locator('#build-controls')).toBeVisible();await page.locator('#build-rotate').click();await expect(page.locator('#use-tool')).toBeEnabled();await page.screenshot({scale:'css',path:info.outputPath('voxel-building-preview.png')});await page.locator('#use-tool').click();await expect(page.locator('#notice')).toContainText('作業台を設置');await page.locator('#build-cancel').click();await expect(page.locator('#build-controls')).toBeHidden();expect(errors).toEqual([]);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await ready(page);const sim=sparse();sim.adventure.state.inventory={wood:40,stone:40,hammer:1};sim.adventure.state.equipment='hammer';await fixture(page,sim);await page.keyboard.press('KeyB');await page.locator('[data-game-action="place"][data-id="bench"]').click();await expect(page.locator('#build-controls')).toBeVisible();await page.locator('#build-rotate').click();await lookGesture(page,0,70);await expect(page.locator('#use-tool')).toBeEnabled();await page.screenshot({scale:'css',path:info.outputPath('voxel-building-preview.png')});await page.locator('#use-tool').click();await expect(page.locator('#notice')).toContainText('作業台を設置');await page.locator('#build-cancel').click();await expect(page.locator('#build-controls')).toBeHidden();expect(errors).toEqual([]);
 });
 test('desktop mouse locks the camera, rotates freely, attacks and holds guard',async({page},info)=>{
- test.skip(info.project.name!=='desktop-chromium','Desktop mouse controls');await ready(page);const sim=sparse();sim.adventure.state.inventory={club:1,shield:1};sim.adventure.state.equipment='club';sim.adventure.state.meadows!.gear.offhand='shield';await fixture(page,sim);await page.mouse.click(550,300);await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id)).toBe('game');const before=Number(await page.locator('#app').getAttribute('data-camera-yaw'));await page.mouse.move(620,320);await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-camera-yaw'))).not.toBe(before);await page.mouse.down({button:'right'});await expect(page.locator('#adventure-hud')).toContainText('ガード');await page.mouse.up({button:'right'});await expect(page.locator('#guard')).toHaveAttribute('aria-pressed','false');await page.mouse.click(620,320);await expect(page.locator('#notice')).toContainText('攻撃');await page.keyboard.press('Tab');await expect(page.locator('#adventure-panel')).toBeVisible();await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id??'')).toBe('');
+ test.skip(info.project.name!=='desktop-chromium','Desktop mouse controls');await ready(page);const sim=sparse();sim.adventure.state.inventory={club:1,shield:1};sim.adventure.state.equipment='club';sim.adventure.state.meadows!.gear.offhand='shield';await fixture(page,sim);
+ const nativeMouse=process.env.E2E_NATIVE_MOUSE==='1';
+ if(nativeMouse)expect(info.project.use.headless,'XTEST input must target headed Chromium').toBe(false);
+ // Observe actual browser delivery. This never synthesizes events or modifies
+ // the game's camera, and identifies a lost native move separately from yaw.
+ await page.evaluate(()=>{
+  const app=document.querySelector<HTMLElement>('#app')!,events:unknown[]=[];let sequence=0;
+  document.addEventListener('mousemove',event=>{events.push({sequence:++sequence,x:event.clientX,y:event.clientY,dx:event.movementX,dy:event.movementY,buttons:event.buttons,locked:document.pointerLockElement?.id??'',trusted:event.isTrusted});if(events.length>32)events.shift();app.dataset.mouseLookSequence=String(sequence);app.dataset.mouseLookEvents=JSON.stringify(events);},true);
+ });
+ const mouseEvents=async()=>JSON.parse((await page.locator('#app').getAttribute('data-mouse-look-events'))??'[]') as {sequence:number;dx:number;dy:number;locked:string;trusted:boolean}[];
+ const nativeMove=async(dx:number,dy:number)=>{
+  const sequence=Number(await page.locator('#app').getAttribute('data-mouse-look-sequence')??0);
+  await nativeRelativeMouse(dx,dy);
+  await expect.poll(async()=>(await mouseEvents()).some(event=>event.sequence>sequence&&event.trusted&&event.locked==='game'&&event.dx*dx>0&&event.dy*dy>0),'XTEST must deliver a new trusted, locked relative-mouse event in the requested direction').toBe(true);
+ };
+ try{
+  await page.bringToFront();
+  await page.mouse.click(550,300);await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id)).toBe('game');
+  const before=Number(await page.locator('#app').getAttribute('data-camera-yaw'));
+  if(nativeMouse)await nativeMove(70,20);else await page.mouse.move(620,320,{steps:5});
+  await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-camera-yaw'))).not.toBe(before);
+  if(nativeMouse){
+   await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-camera-yaw'))).toBeLessThan(before);
+   const turned=Number(await page.locator('#app').getAttribute('data-camera-yaw'));
+   await nativeMove(-70,-20);await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-camera-yaw'))).toBeGreaterThan(turned);
+  }
+  await page.mouse.down({button:'right'});await expect(page.locator('#adventure-hud')).toContainText('ガード');await page.mouse.up({button:'right'});await expect(page.locator('#guard')).toHaveAttribute('aria-pressed','false');await page.mouse.click(620,320);await expect(page.locator('#notice')).toContainText('攻撃');await page.keyboard.press('Tab');await expect(page.locator('#adventure-panel')).toBeVisible();await expect.poll(()=>page.evaluate(()=>document.pointerLockElement?.id??'')).toBe('');
+ }finally{
+  const events=await page.locator('#app').getAttribute('data-mouse-look-events',{timeout:1000}).catch(()=>null);
+  console.log('MOUSE_LOOK_EVENTS',events);
+  await info.attach('mouse-look-input.json',{body:JSON.stringify({source:nativeMouse?'X11 XTEST relative motion via xdotool':'Playwright CDP mouse',note:'CI input emulation; not a real-device performance result. Clicks and keys use Playwright.',events:events?JSON.parse(events):[]},null,2),contentType:'application/json'});
+ }
 });
 test('renders equipped voxel characters and physical HDR graphics without shader errors',async({page},info)=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/THREE|WebGL|shader/i.test(m.text()))errors.push(m.text());});await page.goto('/?terrain=mesh&graphicsProbe=1');await expect(page.locator('#app')).toHaveAttribute('data-state','running');await ticks(page,10);const graphics=async()=>JSON.parse((await page.locator('#app').getAttribute('data-graphics'))!);await expect.poll(async()=>(await graphics()).stageSamples).toBeGreaterThan(0);const g=await graphics();expect(g.invalidPixels).toBe(0);expect(g.beautyEnergy).toBeGreaterThan(0);expect(g.features).toEqual(['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']);await page.setViewportSize({width:844,height:390});await page.screenshot({scale:'css',path:info.outputPath('voxel-hdr.png')});expect(errors).toEqual([]);
@@ -73,18 +130,4 @@ test('direct field terrain renders, moves, mines and preserves saves with compar
   await expect(page.locator('#error')).toBeHidden();
  }
  console.log('DIRECT_FIELD_COMPARISON',JSON.stringify(profiles));await info.attach('direct-field-comparison.json',{body:JSON.stringify(profiles,null,2),contentType:'application/json'});expect(errors).toEqual([]);
-});
-
-test.describe('third-person combat capture',()=>{
- test.use({video:{mode:'on',size:{width:844,height:390}}});
- test('survival adventure shoulder aim, weapon contact and right-side combat controls',async({page},info)=>{
-  test.skip(info.project.name!=='android-chromium','Phone combat acceptance');test.setTimeout(90000);await page.setViewportSize({width:844,height:390});await ready(page);await expect(page.locator('#app')).toHaveAttribute('data-terrain-mode','direct-field');
-  const sim=sparse(),p=sim.player;sim.bodies.length=0;sim.adventure.state.inventory={club:1,shield:1};sim.adventure.state.equipment='club';sim.adventure.state.meadows!.gear.offhand='shield';
-  sim.adventure.state.enemies=[{id:901,definition:'boar',tier:1,x:p.x+.6,y:sim.groundAt(p.x+.6,p.z-1.8),z:p.z-1.8,homeX:p.x+.6,homeZ:p.z-1.8,health:200,cooldown:60,windup:0,slow:0,boss:false,stagger:30}];await fixture(page,sim);
-  const touch=await page.context().newCDPSession(page);await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:430,y:150,id:3}]});await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:430,y:187,id:3}]});await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await expect.poll(async()=>JSON.parse((await page.locator('#app').getAttribute('data-camera-probe'))??'{}').head?.x??1).toBeLessThan(-.05);await expect(page.locator('.reticle')).toBeVisible();
-  const hp=async()=>Number((await page.locator('#enemy-focus').textContent())?.match(/([\d.]+) HP/)?.[1]??0),before=await hp();expect(before).toBeGreaterThan(0);await page.locator('#attack').tap();await expect.poll(hp).toBeLessThan(before);await page.screenshot({path:info.outputPath('shoulder-melee-contact.png'),scale:'css'});
-  await expect.poll(async()=>JSON.parse((await page.locator('#app').getAttribute('data-combat'))??'{}').attackMotion??null).toBeNull();const guard=await page.locator('#guard').boundingBox();if(!guard)throw Error('Guard missing');await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:guard.x+guard.width/2,y:guard.y+guard.height/2,id:4}]});await expect(page.locator('#guard')).toHaveAttribute('aria-pressed','true');await page.screenshot({path:info.outputPath('shoulder-guard.png'),scale:'css'});await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.locator('#dodge').tap();await expect(page.locator('#notice')).toContainText('回避');
-  const probe=await page.locator('#app').getAttribute('data-camera-probe');console.log('SHOULDER_COMBAT_PROBE',probe);await info.attach('shoulder-combat-probe.json',{body:probe??'{}',contentType:'application/json'});await expect(page.locator('#error')).toBeHidden();
- });
 });

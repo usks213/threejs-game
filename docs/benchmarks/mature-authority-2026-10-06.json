@@ -1,0 +1,187 @@
+{
+  "status": "isolated-investigation-receipt; narrow cache candidate subsequently promoted for aggregate validation",
+  "source": "immutable milestone29 source for measured before/after runs; no whole-room or Worker30Hz claim",
+  "checkpointSha256": "e5d82c997ea9d50a53766d058ca1260fbed8e370af7f8ca253bba3676f45bbc9",
+  "node": "24.19.0",
+  "bundleTarget": "node22",
+  "fullGameSaveDigest300Ticks": "815cbec830a5f5ce6cde506660081037aca9ca75dfd8de039bb27b0aa29138df",
+  "baselineSourceHash4Files": "dc8c0aa9014fe08e00770eea9675152d83ef823f68a860295bc01977bad2d052",
+  "candidateSourceHash4Files": "ee6763edafbdaaa30faaa1ebe9f475df0a544fc5d1c6c18823800653c78b5331",
+  "cpuProfiles": [
+    "baseline-server.cpuprofile",
+    "deep-server.cpuprofile",
+    "baseline-combined.cpuprofile",
+    "candidate-combined.cpuprofile"
+  ],
+  "runs": {
+    "baseline-server": {
+      "mode": "server-only",
+      "ticks": 300,
+      "exactStateChecks": 0,
+      "roomStep": {
+        "count": 300,
+        "mean": 31.695894673333328,
+        "p50": 11.36954999999989,
+        "p95": 90.68435299999965,
+        "p99": 202.4784120000004,
+        "max": 224.52722799999992,
+        "totalMs": 9508.768401999998
+      },
+      "simulation": {
+        "count": 300,
+        "mean": 14.87735647666664,
+        "p50": 11.317579000000023,
+        "p95": 38.03154699999982,
+        "p99": 59.09470600000009,
+        "max": 63.83837400000016,
+        "totalMs": 4463.206942999992
+      },
+      "saveDigest": "815cbec830a5f5ce6cde506660081037aca9ca75dfd8de039bb27b0aa29138df"
+    },
+    "baseline-combined": {
+      "mode": "combined",
+      "ticks": 300,
+      "exactStateChecks": 8,
+      "roomStep": {
+        "count": 300,
+        "mean": 26.952936986666653,
+        "p50": 8.861565000000155,
+        "p95": 73.04233299999987,
+        "p99": 96.25415700000121,
+        "max": 143.3297009999999,
+        "totalMs": 8085.881095999996
+      },
+      "simulation": {
+        "count": 300,
+        "mean": 13.047219520000008,
+        "p50": 8.851222000000234,
+        "p95": 32.299386000000595,
+        "p99": 52.28213599999981,
+        "max": 62.27541000000019,
+        "totalMs": 3914.1658560000023
+      },
+      "saveDigest": "815cbec830a5f5ce6cde506660081037aca9ca75dfd8de039bb27b0aa29138df"
+    },
+    "deep-server": {
+      "mode": "server-only",
+      "ticks": 150,
+      "exactStateChecks": 0,
+      "roomStep": {
+        "count": 150,
+        "mean": 28.510521999999984,
+        "p50": 10.925408999999945,
+        "p95": 76.72918600000003,
+        "p99": 102.55063100000007,
+        "max": 133.38796200000002,
+        "totalMs": 4276.578299999997
+      },
+      "simulation": {
+        "count": 150,
+        "mean": 15.15915902,
+        "p50": 10.917911999999887,
+        "p95": 42.252846999999974,
+        "p99": 53.93916899999999,
+        "max": 56.50386800000001,
+        "totalMs": 2273.873853
+      },
+      "saveDigest": "880847a587be57afa9bbf29602fc3761a2791cb65e90994eddaa779934fd493e"
+    },
+    "support-trace": {
+      "mode": "server-only",
+      "ticks": 150,
+      "exactStateChecks": 0,
+      "roomStep": {
+        "count": 150,
+        "mean": 26.576263993333345,
+        "p50": 9.631167000000005,
+        "p95": 72.90449200000012,
+        "p99": 91.95597700000008,
+        "max": 115.58548100000007,
+        "totalMs": 3986.4395990000016
+      },
+      "simulation": {
+        "count": 150,
+        "mean": 14.004292300000003,
+        "p50": 9.618465000000015,
+        "p95": 42.376914999999826,
+        "p99": 50.162133999999924,
+        "max": 51.371433000000025,
+        "totalMs": 2100.6438450000005
+      },
+      "saveDigest": "880847a587be57afa9bbf29602fc3761a2791cb65e90994eddaa779934fd493e"
+    },
+    "candidate-combined": {
+      "mode": "combined",
+      "ticks": 300,
+      "exactStateChecks": 8,
+      "roomStep": {
+        "count": 300,
+        "mean": 29.612404010000034,
+        "p50": 10.396523000000343,
+        "p95": 85.46166000000039,
+        "p99": 142.48946799999976,
+        "max": 193.25343399999974,
+        "totalMs": 8883.72120300001
+      },
+      "simulation": {
+        "count": 300,
+        "mean": 14.167709086666642,
+        "p50": 10.382064000000355,
+        "p95": 39.68793400000004,
+        "p99": 89.89217499999995,
+        "max": 95.72694100000012,
+        "totalMs": 4250.312725999993
+      },
+      "saveDigest": "815cbec830a5f5ce6cde506660081037aca9ca75dfd8de039bb27b0aa29138df"
+    }
+  },
+  "densityCalls150Ticks": {
+    "characterStep": 124376,
+    "other": 26458,
+    "characterReconcile": 19500,
+    "groundAt": 59850,
+    "skyStep": 28350,
+    "skyVolumeClear": 109650,
+    "adventureStep": 540472
+  },
+  "supportQueries150Ticks": {
+    "calls": 5602,
+    "sameTickDuplicates": 0,
+    "acrossTickDuplicates": 2805,
+    "changedAnswers": 0
+  },
+  "candidate": "Early existing-model cache lookup in buildingVoxels; no new cache or fidelity changes",
+  "candidateMicro": {
+    "method": "Exact full cell/model equality for every catalog building, repeated-call object identity and unknown-ID errors; paired alternating timing on 203 actual checkpoint building IDs, 10 repeats per sample; models already initialized. No full-room throughput claim.",
+    "exactChecks": 45,
+    "consumed": 974400,
+    "batchCalls": 2030,
+    "before": {
+      "count": 240,
+      "mean": 0.3722421708333326,
+      "p50": 0.24146999999999252,
+      "p95": 1.33403899999999,
+      "p99": 1.6831860000000063,
+      "max": 5.828718000000009
+    },
+    "after": {
+      "count": 240,
+      "mean": 0.1277002249999993,
+      "p50": 0.09984599999998522,
+      "p95": 0.24625100000000089,
+      "p99": 0.4066400000000101,
+      "max": 0.5159940000000063
+    }
+  },
+  "recommendation": "Small exact-state-preserving candidate ready for review, but no proven full-room throughput gain. Do not treat a bundled virtual-clock profile as real-time 30Hz or Workers memory acceptance.",
+  "focusedChecks": {
+    "newCacheRegression": 3,
+    "geometryObstacleAndRay": 9,
+    "navigation": 3,
+    "initialTestHarnessIssue": "Missing legacy.ts helper caused navigation file import failure; copied helper and reran that file, all 3 passed.",
+    "allCatalogGeometryDigest": "e2a01cf6f9d6c5ae49840a36bcfe1f381ecf6d15e90b3639d555887122fd1223",
+    "cacheTest": "voxel-building-cache.test.ts",
+    "baselineNegativeControl": "New regression on unchanged baseline: identity/geometry and unknown IDs pass; warm-cache bypass test fails as expected with 135 catalog.find calls."
+  },
+  "rawProfileAvailability": "CPU profile names identify retained investigation artifacts; summaries are included here, raw profiles are not repository files."
+}

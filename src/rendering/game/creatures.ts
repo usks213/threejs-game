@@ -14,7 +14,17 @@ export function creatureKit(){
   const g=new THREE.Group(),deer=kind==='deer'||kind==='stormstag',boar=kind==='boar',bird=kind==='gull',neck=kind==='neck',boss=kind==='stormstag';
   const fur=boss?'#50493e':deer?'#966b43':boar?'#5a4636':neck?'#648753':bird?'#d8dad5':'#625c43';
   const part=(shape:THREE.BufferGeometry,c:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,name='')=>{const m=new THREE.Mesh(shape,material(c));m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.name=name;m.castShadow=true;m.receiveShadow=true;g.add(m);return m;};
-  if(deer||boar||neck){
+  if(['shellguard','reedspitter','cinderunner','veilray','loadwarden','echowarden','sailwarden'].includes(kind)){
+   const shell=kind==='shellguard'||kind==='loadwarden',ray=kind==='veilray'||kind==='sailwarden',runner=kind==='cinderunner',echo=kind==='echowarden';
+   const color=shell?'#aa9875':ray?'#809faa':runner?'#b46c47':echo?'#8cb1bd':'#899667';
+   part(box,color,0,.7,0,shell?1:.55,.6,ray?1.1:.8);part(sphere,'#bce4bc',0,.85,-.46,.2,.18,.13);
+   if(shell){for(let i=0;i<3;i++)part(box,i%2?'#677b7e':'#b6a17b',0,.6+i*.25,-.42,1.15-i*.18,.22,.22);for(const side of[-1,1])part(box,'#637777',side*.6,.55,.03,.22,.6,.8);}
+   if(ray){for(const side of[-1,1]){const wing=part(box,'#c5c1a2',side*.75,.85,.08,1.15,.08,.8,`wing${side}`);wing.rotation.z=side*.12;part(box,color,side*.38,.68,.65,.15,.15,.85);}part(sphere,'#e4d99e',0,.65,.1,.25,.2,.25);}
+   else for(const side of[-1,1])for(const front of[-1,1]){const leg=new THREE.Group();leg.position.set(side*.36,.53,front*.27);leg.name=`leg${side}${front}`;const mesh=new THREE.Mesh(box,material(color));mesh.scale.set(.12,.5,.14);mesh.position.y=-.25;leg.add(mesh);g.add(leg);}
+   if(runner){for(const side of[-1,1])part(box,'#edb16f',side*.23,1.01,.1,.13,.45,.15).rotation.x=-.4;part(box,'#60483d',0,.4,.8,.2,.2,.65);}
+   if(kind==='reedspitter')for(let i=-1;i<=1;i++)part(cylinder,'#c5c188',i*.18,1.13,0,1,.6,1).rotation.z=i*.25;
+   if(echo)for(const side of[-1,1])part(box,'#d4e3da',side*.52,.85,0,.16,1.05,.75);
+  }else if(deer||boar||neck){
    const h=deer?1.05:boar?.57:.3;
    part(sphere,fur,0,h,.1,deer?.32:boar?.42:.35,deer?.43:.32,deer?.7:.58);
    part(sphere,fur,0,h+(deer?.42:.12),-.56,.24,deer?.45:.23,.26);
