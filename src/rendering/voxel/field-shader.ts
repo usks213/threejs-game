@@ -1,4 +1,5 @@
 import { FIELD_MAX_STEPS, FIELD_REFINEMENT_STEPS } from './field-raycast';
+import { openingSurfaceShader } from './opening-surface';
 
 export const fieldVertexShader = /* glsl */`
 out vec3 fieldWorldPoint;
@@ -29,6 +30,7 @@ uniform vec4 fieldPointLights[5];
 uniform vec3 fieldPointColors[5];
 uniform vec3 fieldFogColor;
 uniform vec3 fieldFogRange;
+${openingSurfaceShader}
 
 float densityAt(vec3 p) {
   // Sample point 0 lies at the CENTER of texel 0, not its outside face.
@@ -112,6 +114,7 @@ void main() {
     else if(p.x< -18.&&p.z> -20.&&p.y<2.)albedo=mix(vec3(.25,.27,.20),vec3(.23,.38,.32),grass)*detail;
     else if(p.x< -18.)albedo=mix(vec3(.13,.16,.10),vec3(.08,.20,.11),grass)*detail;
     else if(p.x>32.&&p.z<0.)albedo=mix(vec3(.24,.25,.27),vec3(.36,.38,.33),grass)*detail;
+    albedo=openingSurface(albedo,p,normal);
   }
   float diffuse = max(dot(normal, fieldSunDirection), 0.0);
   vec3 illumination = fieldAmbient * (0.55 + 0.45 * max(normal.y, 0.0)) + fieldSunColor * diffuse / 3.14159265;
@@ -120,8 +123,10 @@ void main() {
     if(range>0.0&&distanceToLight<range){float falloff=pow(1.0-distanceToLight/range,2.0);illumination+=fieldPointColors[light]*max(dot(normal,normalize(delta)),0.05)*falloff;}
   }
   vec3 shaded=albedo*illumination;
-  if(fieldFogRange.z>0.5)shaded=mix(shaded,fieldFogColor,smoothstep(fieldFogRange.x,fieldFogRange.y,hit));
   gl_FragColor = vec4(shaded, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
+  // Match Three's PBR fog: blend in output space after tone mapping, rather
+  // than applying tone mapping to the ground's fog but not the objects' fog.
+  if(fieldFogRange.z>0.5)gl_FragColor.rgb=mix(gl_FragColor.rgb,linearToOutputTexel(vec4(fieldFogColor,1.)).rgb,smoothstep(fieldFogRange.x,fieldFogRange.y,-(viewMatrix*vec4(p,1.)).z));
 }`;

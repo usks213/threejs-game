@@ -12,6 +12,8 @@ export function createDirectEnvironment(renderer: THREE.WebGLRenderer, skyMateri
   const uniforms = sky.material.uniforms;
   uniforms.sunPosition.value.set(0, 1, -.3).normalize().multiplyScalar(450000);
   uniforms.nightAmount.value = 0; uniforms.cloudCover.value = .3;
+  // Display calibration belongs to the direct camera, not incident radiance.
+  uniforms.skyDisplayGain.value = 1;
   uniforms.turbidity.value = 2.5; uniforms.skyTime.value = 0;
   const ground = new THREE.Mesh(
     new THREE.SphereGeometry(200, 12, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),

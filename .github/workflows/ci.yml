@@ -178,7 +178,8 @@ jobs:
     if: github.event_name == 'pull_request' && needs.verify.outputs.browser == 'true'
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Allow the added fixed-DPR art captures plus existing gameplay/HDR checks.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:

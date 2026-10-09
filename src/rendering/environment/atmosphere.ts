@@ -10,7 +10,10 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
  const sky=new Sky();sky.scale.setScalar(450000);sky.renderOrder=-2;sky.frustumCulled=false;
  const u=sky.material.uniforms;u.sunPosition.value.set(300000,300000,-100000);u.rayleigh.value=3.2;u.mieCoefficient.value=.004;u.mieDirectionalG.value=.8;
  u.nightAmount={value:0};u.cloudCover={value:0};u.skyTime={value:0};
- sky.material.fragmentShader='uniform float nightAmount,cloudCover,skyTime;\n'+sky.material.fragmentShader;
+ // The direct path has no eye adaptation. Calibrate its displayed daylight
+ // sky without dimming subjects, the canonical IBL capture or the HDR path.
+ u.skyDisplayGain={value:scene.userData.direct ? .22 : 1};
+ sky.material.fragmentShader='uniform float nightAmount,cloudCover,skyTime,skyDisplayGain;\n'+sky.material.fragmentShader;
  sky.material.fragmentShader=sky.material.fragmentShader.replace('gl_FragColor = vec4( retColor, 1.0 );',`
   float stars=step(.9987,fract(sin(dot(floor(direction*380.),vec3(12.98,78.23,45.1)))*43758.54))*smoothstep(0.,.15,direction.y);
   float moon=pow(max(dot(direction,-vSunDirection),0.),2400.);
@@ -19,6 +22,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
   vec2 q=direction.xz/max(.15,direction.y)*2.+vec2(skyTime*.005,0.);
   float cloud=smoothstep(.15,.8,sin(q.x+sin(q.y*.8))*sin(q.y*.7)+sin(q.x*2.+q.y)*.25)*smoothstep(.0,.2,direction.y)*cloudCover;
   retColor=mix(retColor,mix(vec3(.75,.8,.86),vec3(.007,.009,.014),nightAmount),cloud);
+  retColor*=mix(skyDisplayGain,1.,nightAmount);
   gl_FragColor=vec4(retColor,1.);`);
  scene.add(sky);
  const sun=new THREE.DirectionalLight('#fff2d9',3.2),probe=new THREE.LightProbe();probe.intensity=.25;

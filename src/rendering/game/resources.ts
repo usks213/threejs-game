@@ -7,6 +7,9 @@ import { pbrMaterial } from '../materials/pbr';
 import * as THREE from 'three';
 import type { AdventureSnapshot, ResourceNode } from '../../game/types';
 import { Instances } from './instances';
+import { BEACONS } from '../../content/adventure-world';
+
+const beaconIds=new Set<number>(BEACONS.map(beacon=>beacon.id));
 
 export function createResources(scene: THREE.Scene, boundedTemplates = false) {
   const trees=new Map<number,THREE.Group>(),treeBatches=new Map<string,{template:THREE.Group;batches:Instances[]}>();
@@ -43,6 +46,9 @@ export function createResources(scene: THREE.Scene, boundedTemplates = false) {
       let templatesRemaining = boundedTemplates ? 1 : Infinity;
       for (const n of state.resources) {
         if (n.ready > state.seconds) continue;
+        // Permanent beacon models are centered on this node in landmarks.ts.
+        // The generic runestone ring offset must not draw a second, false target.
+        if(state.generator===4&&beaconIds.has(n.id))continue;
         loose=n.drop&&!handSized.has(n.kind)?n:null;
         if (TREE_KINDS.has(n.kind)) {
           if (!n.removed?.length) {

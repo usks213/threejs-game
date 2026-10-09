@@ -9,7 +9,7 @@ export function createTerrain(scene: THREE.Scene) {
  const meshes = new Map<string, THREE.LOD>(), raycastMeshes = new Map<string, TerrainRaycastEntry>();
  let active: ReadonlySet<string> | null = null;
  const grass = createGrass(scene), uploads = new TerrainUploads(), rays = new TerrainRaycasts();
- const surface = createTerrainMaterial(), material = surface.material;
+ const adventure={value:0},surface = createTerrainMaterial(adventure), material = surface.material;
  const remove = (id: string) => {
   grass.remove(id); const group = meshes.get(id); if (!group) return;
   scene.remove(group); group.traverse(o => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });
@@ -47,7 +47,7 @@ export function createTerrain(scene: THREE.Scene) {
   stats: uploads.stats,
   raycastStats: rays.stats,
   ids:()=>[...meshes.keys()],has:(id:string)=>meshes.has(id),
-  updateDetails: grass.update,
+  updateDetails(player:THREE.Vector3,seconds:number){adventure.value=scene.userData.generator===4?1:0;grass.update(player,seconds);},
   remove(ids: string[]) { ids.forEach(remove); },
   // Tools reach 7m from the player; the camera is at most 11m away. The finite
   // default leaves headroom while excluding unrelated distant terrain meshes.
