@@ -634,3 +634,99 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     }, null, 2), contentType: 'application/json'});
   }
 });
+
+// Separate from the strict strike recorder above: no extra warmup or capture
+// delay changes its first-frame deadline. This idle trial observes real server
+// time and light-count shader transitions without screenshots in the interval.
+test('dungeon portal lighting observes render pacing across the first timed opening', async ({page, isMobile}, info) => {
+  test.skip(process.env.E2E_DUNGEON !== '1', 'Requires the deployed authoritative dungeon');
+  test.setTimeout(120000);
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(clean(String(error))));
+  page.on('console', message => {if (message.type() === 'error') errors.push(clean(message.text()));});
+  const observeOpening = () => page.evaluate(async () => {
+    const sample = () => {
+      const snapshot = window.__dungeonProbe?.(), actor = snapshot?.actors.find(value => value.id === snapshot.you);
+      return {sampledAtMs: performance.now(), tick: snapshot?.tick, elapsed: snapshot?.elapsed,
+        actor: actor ? {position: actor.position, yaw: actor.yaw, pitch: actor.pitch, hp: actor.hp, status: actor.status} : null,
+        exits: snapshot?.exits.map(({id, opensAt, remaining}) => ({id, opensAt, remaining})),
+        render: window.__dungeonRenderProbe?.() ?? null};
+    };
+    const samples: Array<ReturnType<typeof sample>> = [], startedAtMs = performance.now(), deadline = startedAtMs + 12000;
+    // At most 41 copied samples, normally ten seconds. No GL queries, render
+    // calls, RAF replacement, game writes, video, or screenshot/readback here.
+    for (let i = 0; i < 41; i++) {
+      samples.push(sample());
+      if (i === 40 || performance.now() >= deadline) break;
+      await new Promise<void>(resolve => setTimeout(resolve, Math.min(250, Math.max(0, deadline - performance.now()))));
+    }
+    return {startedAtMs, endedAtMs: performance.now(), samples};
+  });
+  let observations: Awaited<ReturnType<typeof observeOpening>> | null = null;
+  const screenshot = async (name: string) => {
+    const path = info.outputPath(`${name}.png`);
+    await assertTouchProfile(page, isMobile);
+    await captureDungeonLighting(page, name, () => page.screenshot({path, mask: [page.getByTestId('dungeon-invite'), page.getByTestId('dungeon-room')]}));
+    await assertTouchProfile(page, isMobile);
+    await info.attach(name, {path, contentType: 'image/png'});
+  };
+  try {
+    expect(process.env.EXPECTED_COMMIT).toBeTruthy();
+    const deployment = await page.request.get('/deployment.json');
+    expect(deployment.ok()).toBe(true); expect((await deployment.json()).commit).toBe(process.env.EXPECTED_COMMIT);
+    await page.goto('/?mode=dungeon&test=1');
+    await page.getByTestId('dungeon-name').fill('帰還の灯りを見守る探索者');
+    await activate(page.getByTestId('dungeon-create'), isMobile);
+    await until(page, snapshot => snapshot.actors.length === 1, 'A fresh ordinary lighting room exists');
+    await activate(page.getByTestId('dungeon-class-ravager'), isMobile);
+    await until(page, snapshot => own(snapshot).classId === 'ravager', 'The matching greatsword class is selected');
+    await activate(page.getByTestId('dungeon-ready'), isMobile);
+    await until(page, snapshot => own(snapshot).ready, 'The explorer is prepared');
+    await activate(page.getByTestId('dungeon-start'), isMobile);
+    const started = await until(page, snapshot => snapshot.phase === 'raid', 'The real lighting raid starts');
+    await waitForDungeonWorld(page);
+    const firstExit = started.exits.reduce((first, exit) => exit.opensAt < first.opensAt ? exit : first);
+    expect(firstExit).toMatchObject({id: 'exit-west', opensAt: 45, remaining: 2});
+    await screenshot('portal-closed-idle-at-fixed-spawn');
+    await until(page, snapshot => snapshot.elapsed >= firstExit.opensAt - 5, 'Observe the approach to the actual first opening', 50000);
+    const before = (await read(page))!;
+    expect(before.elapsed, 'The passive interval begins before the first light changes').toBeLessThan(firstExit.opensAt);
+    observations = await observeOpening();
+    const samples = observations.samples;
+    expect(samples.length).toBeGreaterThan(1); expect(samples.length).toBeLessThanOrEqual(41);
+    const closed = samples.filter(sample => sample.elapsed! < firstExit.opensAt).at(-1);
+    const opened = samples.find(sample => sample.elapsed! >= firstExit.opensAt);
+    expect(closed, 'A closed-light observation precedes the real opening').toBeTruthy();
+    expect(opened, 'The authoritative clock crosses the opening in this bounded interval').toBeTruthy();
+    expect(samples.some(sample => sample.elapsed! >= firstExit.opensAt &&
+      (sample.render?.diagnostics.submission.lastSuccessfulReturnAtMs ?? -1) > opened!.sampledAtMs),
+      'At least one successful render submission follows the observed opening').toBe(true);
+    for (const sample of samples) {
+      expect(sample.actor).toMatchObject({position: own(started).position, yaw: 0, pitch: 0, hp: 145, status: 'alive'});
+      expect(sample.exits?.find(exit => exit.id === firstExit.id)?.remaining).toBe(2);
+      expect(sample.render?.firstFrame?.meshChunks).toBe(81);
+      expect(sample.render?.diagnostics.stats?.graphicsFailed).toBe(false);
+      expect(sample.render?.diagnostics.submission.failures).toBe(0);
+    }
+    await screenshot('portal-open-idle-at-fixed-spawn');
+    expect(errors).toEqual([]);
+  } finally {
+    // Programs counts cached WebGL programs, not active point lights or measured
+    // compilation time. CPU submission/RAF deltas can locate an opening hitch;
+    // neither these samples nor screenshot timing proves GPU presentation/FPS.
+    const intervals = observations?.samples.slice(1).map((after, index) => {
+      const before = observations!.samples[index], a = after.render?.diagnostics, b = before.render?.diagnostics;
+      if (!a || !b || a.generation !== b.generation) return {fromMs: before.sampledAtMs, toMs: after.sampledAtMs, comparable: false};
+      return {fromMs: before.sampledAtMs, toMs: after.sampledAtMs, fromElapsed: before.elapsed, toElapsed: after.elapsed,
+        rafCallbacks: a.raf.callbacks - b.raf.callbacks, successfulSubmissions: a.submission.successes - b.submission.successes,
+        cpuSubmissionMs: a.submission.durations.totalMs - b.submission.durations.totalMs,
+        rafGapBins: a.raf.gaps.bins.map((count, bin) => count - b.raf.gaps.bins[bin]),
+        cachedProgramsBefore: b.stats?.memory.programs, cachedProgramsAfter: a.stats?.memory.programs};
+    });
+    await info.attach('portal-first-opening-render-observations', {body: JSON.stringify({
+      commit: process.env.EXPECTED_COMMIT, platform: isMobile ? 'Android Chromium emulation' : 'desktop Chromium',
+      meaning: 'Fixed-count passive samples without capture in the interval; CPU render submission, RAF scheduling, and cached program counts only. No presentation or GPU-completion measurement. Fixed-spawn yaw0 faces away from the west portal: the masked images compare world/weapon illumination, not the portal surface. Unit tests separately check preserved portal geometry and emission.',
+      observations, intervals, errors,
+    }, null, 2), contentType: 'application/json'});
+  }
+});

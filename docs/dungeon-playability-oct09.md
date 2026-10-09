@@ -276,3 +276,36 @@ Chromium140 assigns screencast metadata timestamps after captured-frame delivery
 to PageHandler; they are not source-presentation timestamps. The evidence labels
 now state this limitation explicitly. Playability and rendering acceptance remain
 incomplete while this measurement is pending.
+
+## Render-submission evidence and zero-light candidate
+
+Diagnostic remote `87fb5a273494f6b6be80d5742a997e396ad3fcdb` was verified on
+the existing preview at 11:34:56 UTC. Its full local suite passed 1,887 tests in
+202 files. [Run 37923553565](https://github.com/usks213/threejs-game/actions/runs/37923553565)
+again passed 13 executed jobs and failed only the desktop pre-combat capture gate.
+
+During that missing-frame interval, desktop completed nine RAF callbacks and
+nine successful render submissions over about 5.02 seconds. Synchronous render
+calls consumed only 14.4ms total, while the largest RAF gap reached 2.139 seconds.
+The unchanged spawn pose submitted 156 draws /95,816 total triangles at 960x540,
+DPR1, with three cached programs and no failed draw. Android delivered its first
+capture after 3.85 seconds, with ten submissions /20.3ms synchronous render work
+over the observed 3.61-second RAF span. Its largest gap was 1.28 seconds.
+This rules out a five-second synchronous render-call stall in these samples;
+it does not separate GPU, compositor and capture costs or establish device FPS.
+
+The isolated next candidate hides only closed portals' zero-intensity PointLights.
+The existing open predicate, light values, portal surfaces/emission, all 81 chunks,
+resolution and authority remain unchanged. Three otherwise includes these three
+zero-color lights in its twelve point-light shader iterations at spawn. This is
+a source-backed opportunity to remove unnecessary work, not a measured speedup.
+Opening lights can create shader-count variants, so any opening hitch must be
+checked rather than assumed harmless.
+
+Transition unit tests cover exact opening times, exhaustion, changed/reused exits
+and reloads. The two existing Ravager browser test bodies and capture timing stay
+unchanged. A third appended case observes at most 41 passive samples around the
+real first exit opening, without screenshots or recording in that interval.
+Its fixed-spawn screenshots compare room/weapon illumination, not the portal
+surface behind the camera. Exact-head timing, screenshots and gameplay acceptance
+for this candidate remain pending.
