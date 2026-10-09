@@ -1,6 +1,11 @@
 import {test,expect,type Page} from '@playwright/test';
 import {GameSimulation} from '../../src/simulation/game-simulation';
 test.use({deviceScaleFactor:.5,viewport:{width:844,height:390}});
+test.afterEach(async({page},info)=>{
+ if(!info.title.includes('fresh arrival'))return;
+ const evidence=await page.evaluate(()=>{const app=document.querySelector<HTMLElement>('#app');return {state:(window as typeof window&{openingState?:unknown}).openingState,aim:app?.dataset.aim,streaming:app?.dataset.streaming,notice:document.querySelector('#notice')?.textContent};}).catch(()=>null);
+ await info.attach('opening-authority-and-render-evidence',{body:JSON.stringify(evidence),contentType:'application/json'});
+});
 const sky=async(page:Page)=>JSON.parse(await page.locator('#app').getAttribute('data-skybound')??'null') as {parts:{id:number;position:{x:number;y:number;z:number};lease?:unknown}[];blueprints:unknown[]}|null;
 test('voxel adventure exposes original journey, usable room entry, abilities and persistent accessibility settings',async({page},info)=>{
  test.setTimeout(120000);page.setDefaultTimeout(20000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

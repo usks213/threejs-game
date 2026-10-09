@@ -1,11 +1,15 @@
 import type { GameSimulation } from '../../simulation/game-simulation';
 import type { Vec3 } from '../../world/types';
 export interface ProtectedVolume { center: Vec3; radius: number; below: number; above: number }
+/** Shared presentation knowledge; authority remains the final placement validator. */
+export function landmarkProtectedVolumes(nodes:readonly (Vec3&{id:number})[]):ProtectedVolume[]{
+ return nodes.filter(n=>n.id>=810001&&n.id<=810004||n.id>=825001&&n.id<=825007||n.id>=830001&&n.id<=830003||n.id>=855001&&n.id<=855003||n.id>=856001&&n.id<=856009||n.id===857001).map(n=>({center:{x:n.x,y:n.y,z:n.z},radius:.65,below:.8,above:1.9}));
+}
 /** Small entry/landmark cores, not entire trial zones or arbitrary player building areas. */
 export function protectedVolumes(sim:GameSimulation):ProtectedVolume[]{
  if(sim.world.generator!==4)return [];
  const volumes:ProtectedVolume[]=[{center:{x:0,y:sim.world.heightAt(0,8),z:8},radius:1.25,below:1.2,above:2.4}];
- for(const n of sim.adventure.state.resources)if(n.id>=810001&&n.id<=810004||n.id>=825001&&n.id<=825007||n.id>=830001&&n.id<=830003||n.id>=855001&&n.id<=855003||n.id>=856001&&n.id<=856009||n.id===857001)volumes.push({center:{x:n.x,y:n.y,z:n.z},radius:.65,below:.8,above:1.9});
+ volumes.push(...landmarkProtectedVolumes(sim.adventure.state.resources));
  const spawns=sim.sessionSpawns?.()??sim.targets.flatMap(t=>t.adventure.state.spawn?[t.adventure.state.spawn]:[]);
  for(const p of spawns)volumes.push({center:{...p},radius:1,below:.8,above:2});
  return volumes;

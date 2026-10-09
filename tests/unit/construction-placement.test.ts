@@ -2,6 +2,7 @@ import {expect,it} from 'vitest';
 import {GameSimulation} from '../../src/simulation/game-simulation';
 import {createdPreview} from '../../src/game/skybound/preview';
 import {adjacentConstructionPoint} from '../../src/game/skybound/construction-placement';
+import {landmarkProtectedVolumes} from '../../src/game/skybound/protection';
 import {skyContext} from '../../src/game/skybound/context';
 it('previews a separate but joinable second beam and commits only normal create/grab/glue actions',()=>{
  const sim=new GameSimulation(),g=sim.adventure;g.state.inventory.wood=8;sim.fluid.restore([]);g.state.resources=[];g.state.buildings=[];g.state.enemies=[];
@@ -27,6 +28,20 @@ it('builds and joins above a settled beam in the unmodified opening terrain',()=
  const ground=sim.groundAt(wood.x,wood.z),at={x:wood.x,y:Math.max(ground+.75,sim.player.y+.5),z:wood.z};
  g.action('sky-part','beam:wood',at);for(let i=0;i<90;i++)sim.step({x:0,z:0,jump:false});
  const first=sim.skybound.state.parts[0],point=adjacentConstructionPoint(first,'beam');g.action('sky-part','beam:wood',point);
+ const second=sim.skybound.state.parts[1];g.action('sky-grab',String(first.id));g.action('sky-glue',first.id+':'+second.id);
+ expect(first.links).toContain(second.id);expect(g.state.inventory.wood).toBe(8);
+});
+
+it('keeps a stacked draft outside the beacon core after a beam rolls downhill and rotates',()=>{
+ const sim=new GameSimulation(),g=sim.adventure;for(let i=0;i<30;i++)sim.step({x:0,z:0,jump:false});
+ const wood=g.state.resources.find(n=>n.kind==='wood'&&n.drop)!;g.action('gather',String(wood.id));
+ g.action('sky-part','beam:wood',{x:1,y:Math.max(sim.groundAt(1,5)+.75,sim.player.y+.5),z:5});
+ for(let i=0;i<150;i++)sim.step({x:0,z:0,jump:false});
+ const first=sim.skybound.state.parts[0],base=adjacentConstructionPoint(first,'beam');
+ expect(()=>sim.skybound.action('host','sky-part','beam:wood',base,{x:0,y:0,z:-1},skyContext(sim))).toThrow('保護領域');
+ const point=adjacentConstructionPoint(first,'beam',landmarkProtectedVolumes(g.state.resources));
+ expect(Math.hypot(point.x-base.x,point.z-base.z)).toBeLessThanOrEqual(.5);
+ g.action('sky-part','beam:wood',point);expect(sim.skybound.state.parts).toHaveLength(2);
  const second=sim.skybound.state.parts[1];g.action('sky-grab',String(first.id));g.action('sky-glue',first.id+':'+second.id);
  expect(first.links).toContain(second.id);expect(g.state.inventory.wood).toBe(8);
 });
