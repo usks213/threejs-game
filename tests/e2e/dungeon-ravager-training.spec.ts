@@ -407,6 +407,7 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
   const recorder = {
     pageEnableAckAtMs: null as number | null, startRequestedAtMs: null as number | null, startAckAtMs: null as number | null,
     firstFrameAtMs: null as number | null, framesReceived: 0,
+    beforeCapture: null as ReturnType<NonNullable<Window['__dungeonRenderProbe']>>, afterFirstFrame: null as ReturnType<NonNullable<Window['__dungeonRenderProbe']>>,
     visibility: [] as Array<{visible: boolean; wallTimeMs: number}>,
     ackErrors: [] as Array<{message: string; wallTimeMs: number}>,
     failure: null as {stage: string; wallTimeMs: number; page: unknown} | null,
@@ -467,8 +468,8 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
       void session?.send('Page.screencastFrameAck', {sessionId: frame.sessionId}).catch(error => {
         if (recorder.ackErrors.length < 3) recorder.ackErrors.push({message: clean(String(error)).slice(0, 400), wallTimeMs: Date.now()});
       });
-      // A queued compositor frame may predate the current callback-stage/tick.
-      // Keep its capture clock separate; callback context is not capture proof.
+      // Chromium140 stamps metadata when a captured frame reaches PageHandler,
+      // not at source presentation. Neither this timestamp nor callback context proves the captured pose.
       const captureTimestampSeconds = frame.metadata.timestamp ?? 0;
       const sameStage = frames.filter(candidate => candidate.callbackStage === stage);
       if (sameStage.length >= 3 || sameStage.length && captureTimestampSeconds - sameStage.at(-1)!.captureTimestampSeconds < .12) return;
@@ -481,10 +482,12 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     // chromium/140.0.7339.186: inspector_page_agent.cc:524-530,1130-1132,1549-1556;
     // microsoft/playwright/v1.55.1: src/server/chromium/crPage.ts:441-442,850-860.
     await session.send('Page.enable'); recorder.pageEnableAckAtMs = Date.now();
+    recorder.beforeCapture = await page.evaluate(() => window.__dungeonRenderProbe?.() ?? null);
     stage = 'safe-spawn'; recorder.startRequestedAtMs = Date.now();
     await session.send('Page.startScreencast', {format: 'jpeg', quality: 65, maxWidth: 960, maxHeight: 540, everyNthFrame: 2});
     recorder.startAckAtMs = Date.now();
     await expect.poll(() => frames.some(frame => frame.callbackStage === 'safe-spawn'), {timeout: 5000}).toBe(true);
+    recorder.afterFirstFrame = await page.evaluate(() => window.__dungeonRenderProbe?.() ?? null);
     // Resolve ordinary control bounds while safely outside enemy perception.
     const skillPoint = await center(page.getByTestId('dungeon-action-skill'));
     const attackPoint = await center(page.getByTestId('dungeon-action-attack'));
@@ -627,7 +630,7 @@ test('dungeon ravager frenzy increases an actual ordinary-input greatsword hit',
     await info.attach('ravager-strike-ordinary-input-evidence', {body: JSON.stringify({
       commit: process.env.EXPECTED_COMMIT, platform: isMobile ? 'Android Chromium emulation' : 'desktop Chromium',
       evidence, actions, received, inputObservations, recorder, visualFrames: frames.map(({jpeg: _jpeg, ...frame}) => frame), errors,
-      diagnostics: 'Raw trace is disabled to avoid retaining private invitation URLs and hello credentials. Screencast captureTimestampSeconds is the compositor clock; callbackStage, callbackWallTimeMs and callbackTick describe receipt, not image capture. Actual hit proof is the authoritative snapshot/input evidence. The masked PNG is requested only after those hit assertions pass.',
+      diagnostics: 'Raw trace is disabled to avoid retaining private invitation URLs and hello credentials. In Chromium140 captureTimestampSeconds is assigned when PageHandler receives the captured frame, not at source presentation; callbackStage, callbackWallTimeMs and callbackTick describe receipt, not captured pose. Render diagnostics measure CPU submission, not GPU completion or presentation. Actual hit proof is the authoritative snapshot/input evidence. The masked PNG is requested only after those hit assertions pass.',
     }, null, 2), contentType: 'application/json'});
   }
 });

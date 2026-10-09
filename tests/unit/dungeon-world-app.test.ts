@@ -97,4 +97,10 @@ describe('initial dungeon drawing and authorized server time',()=>{
   expect(h.loading).toHaveBeenLastCalledWith(false,false);expect(h.ui.setGraphicsError).toHaveBeenCalledOnce();
  });
 
+ it('exposes bounded RAF diagnostics only under test=1 and removes the probe on disposal',()=>{
+  draw();draw();const evidence=window.__dungeonRenderProbe!();expect(evidence!.diagnostics.raf.callbacks).toBe(2);
+  expect(evidence!.diagnostics.raf.gaps.bins).toHaveLength(8);dispose();expect(window.__dungeonRenderProbe).toBeUndefined();
+  vi.stubGlobal('location',new URL('https://example.test/?mode=dungeon'));dispose=startDungeon();draw();expect(window.__dungeonRenderProbe).toBeUndefined();
+ });
+
 });

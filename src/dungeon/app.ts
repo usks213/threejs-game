@@ -9,18 +9,21 @@ import {dungeonTarget} from './interaction';
 export {dungeonTarget} from './interaction';
 import type {Action,Input,Snapshot} from './types';
 import type {DungeonWorldCoverage} from './world-loader';
+import {DungeonRenderDiagnostics,type DungeonRenderDiagnosticsSnapshot} from './render-diagnostics';
 import './style.css';
 
-declare global {interface Window {__dungeonProbe?:()=>Snapshot|null;__dungeonRenderProbe?:()=>DungeonWorldCoverage|null}}
+export type DungeonRenderProbe=DungeonWorldCoverage&{diagnostics:DungeonRenderDiagnosticsSnapshot};
+declare global {interface Window {__dungeonProbe?:()=>Snapshot|null;__dungeonRenderProbe?:()=>DungeonRenderProbe|null}}
 
 /** Explicit separate mode: no campaign state, save keys or prototype lifecycle are touched. */
 export function startDungeon(){
  const root=document.querySelector<HTMLElement>('#app');if(!root)throw new Error('ゲーム領域が見つかりません');
  const probeEnabled=new URLSearchParams(location.search).get('test')==='1';
+ const diagnostics=probeEnabled?new DungeonRenderDiagnostics():null;
  const audio=createDungeonAudio();
  const previousTitle=document.title;document.title='灰の回廊 · ASHEN VAULT';const lifecycle=new AbortController();
  let client:DungeonClient|null=null,snapshot:Snapshot|null=null,view:ReturnType<typeof createDungeonView>|null=null,input:ReturnType<typeof createDungeonInput>|null=null;
- if(probeEnabled){window.__dungeonProbe=()=>snapshot?structuredClone(snapshot):null;window.__dungeonRenderProbe=()=>view?structuredClone(view.worldCoverage):null;}
+ if(probeEnabled){window.__dungeonProbe=()=>snapshot?structuredClone(snapshot):null;window.__dungeonRenderProbe=()=>view?{...view.worldCoverage,diagnostics:diagnostics!.snapshot(view.renderStats)}:null;}
  let inventory=false,disposed=false,raf=0,last=performance.now(),room='',invite='',initializedLook=false,raid=-1,actorStatus='',lostReported=false,awaitingFreshSnapshot=false;
  const ui=createDungeonUI(root,{
   create:name=>{try{join(randomToken(crypto),name);}catch{ui.notice('部屋を作れません。HTTPS で開き直してください。');}},
@@ -55,7 +58,7 @@ export function startDungeon(){
  const inputSender=createDungeonInputSender({send:sample=>!disposed&&(client?.input(sample)??false)});
  function sendInput(sample:Input){inputSender.submit(sample);}
  input=createDungeonInput(ui,{action:control,changed:release=>{if(input&&client?.connected)inputSender.submit(input.sample(),release);}});
- try{view=createDungeonView(ui.canvas,{worldChanged:syncWorldState});view.resize();ui.canvas.dataset.ready='true';}catch{ui.canvas.dataset.ready='false';ui.setGraphicsError('3D 描画を開始できません。WebGL 対応のブラウザで開いてください。部屋と倉庫の確認は続けられます。');}
+ try{view=createDungeonView(ui.canvas,{worldChanged:syncWorldState,diagnostics:diagnostics??undefined});view.resize();ui.canvas.dataset.ready='true';}catch{ui.canvas.dataset.ready='false';ui.setGraphicsError('3D 描画を開始できません。WebGL 対応のブラウザで開いてください。部屋と倉庫の確認は続けられます。');}
  function join(nextRoom:string,name:string){
   awaitingFreshSnapshot=true;inputSender.reset();client?.dispose();client=null;initializedLook=false;snapshot=null;view?.resetWorld();actorStatus='';inventory=false;ui.setInventory(false);input?.reset();
   let storage:Storage|null=null;try{storage=window.localStorage;}catch{/* Storage denial is surfaced below. */}
@@ -70,14 +73,14 @@ export function startDungeon(){
  }
  function resize(){input?.reset();view?.resize();}window.addEventListener('resize',resize,{signal:lifecycle.signal});
  document.addEventListener('visibilitychange',syncActive,{signal:lifecycle.signal});
- function frame(now:number){if(disposed)return;const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;
+ function frame(now:number){if(disposed)return;diagnostics?.raf(performance.now());const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;
   const sample=input!.sample();ui.renderFeedback(dt,sample);
   if(view&&!document.hidden){view.render(dt,sample);if(view.lost&&!lostReported){lostReported=true;ui.canvas.dataset.ready='false';ui.setGraphicsError('3D 描画が停止しています。ページを更新してください。再接続だけでは復旧できません。遠征の時間は進んでいます。');syncWorldState();}}
   raf=requestAnimationFrame(frame);
  }
  raf=requestAnimationFrame(frame);
  const stopInputPump=startDungeonInputPump({sample:()=>input!.sample(),send:sendInput,enabled:()=>!disposed&&!document.hidden&&!!client?.connected&&snapshot?.phase==='raid'});
- const dispose=()=>{if(disposed)return;disposed=true;stopInputPump();audio.dispose();cancelAnimationFrame(raf);lifecycle.abort();input?.dispose();inputSender.dispose();client?.dispose();view?.dispose();ui.dispose();if(probeEnabled){delete window.__dungeonProbe;delete window.__dungeonRenderProbe;}document.title=previousTitle;};
+ const dispose=()=>{if(disposed)return;disposed=true;stopInputPump();audio.dispose();cancelAnimationFrame(raf);lifecycle.abort();input?.dispose();inputSender.dispose();client?.dispose();view?.dispose();diagnostics?.dispose();ui.dispose();if(probeEnabled){delete window.__dungeonProbe;delete window.__dungeonRenderProbe;}document.title=previousTitle;};
  window.addEventListener('pagehide',dispose,{signal:lifecycle.signal,once:true});
  return dispose;
 }

@@ -247,3 +247,32 @@ The exact cause of the earlier zero-frame interval remains unproven.
 The test-only follow-up again passed the full 1,882-test /201-file suite, both
 type checks, build and diff checks. Its exact-head browser retry remains pending.
 No production runtime code changes are included in this recorder follow-up.
+
+## Repeated capture failure and bounded render measurement
+
+Remote `856c4ee2d279f3138fa8156d8b94e003fb91314b` was deployed at
+10:59:55 UTC. [Run 37919773776](https://github.com/usks213/threejs-game/actions/runs/37919773776)
+finished with 13 executed jobs passing and one failing: the same desktop Ravager
+pre-combat five-second capture gate. Explicit Page.enable was not sufficient.
+Both enable/start commands acknowledged, the page was visible and focused, all
+81 chunks were ready, and no graphics error was reported, but no frame arrived.
+Android capture began after 2.681 seconds and confirmed the ordinary 60-damage
+Frenzy body hit. A successful render call is not evidence of GPU presentation.
+
+The same seed7919, closed doors, spawn(-11,1.52,11), yaw/pitch0 and 960x540 camera
+produces 35 frustum-accepted world meshes /54,364 triangles with the prior steady
+24m stream, versus 61 /91,670 with all chunks retained. Resident geometry rises
+from 50 meshes /83,708 triangles /2.80MB to 81 /134,272 /4.49MB. These are pure
+geometry calculations, not measured GPU timings. Desktop raid PNG requests also
+span 7.8–13.9 seconds, versus 1.0–1.9 seconds in the lobby. Actual rendering and
+capture costs need separation before calling this an infrastructure-only failure.
+
+The next diagnostic is enabled only by the existing test=1 read-only probe:
+fixed-size RAF-gap and synchronous render-submission histograms, submission
+entry/return counts, copied Three draw statistics, and camera/resolution values.
+Before/after samples bracket the unchanged capture gate. There is no GPU finish,
+pixel readback, additional render, timer relaxation or game-state mutation.
+Chromium140 assigns screencast metadata timestamps after captured-frame delivery
+to PageHandler; they are not source-presentation timestamps. The evidence labels
+now state this limitation explicitly. Playability and rendering acceptance remain
+incomplete while this measurement is pending.

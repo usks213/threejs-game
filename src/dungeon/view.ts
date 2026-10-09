@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {attackPose,bladeWorld,meleeDefinition} from '../prototype/core/motion';
 import type {Vec3} from '../prototype/core/voxel';
 import {DungeonWorldLoader} from './world-loader';
+import type {DungeonRenderDiagnostics,DungeonRenderStats} from './render-diagnostics';
 import {ravagerRecoveryRate} from './ravager-training';
 import type {Input,Snapshot,ClassId} from './types';
 
@@ -66,7 +67,7 @@ function actorRig(enemy:boolean,local:boolean){
  };
 }
 
-export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged?():void}={}){
+export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged?():void;diagnostics?:DungeonRenderDiagnostics}={}){
  const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
  const scene=new THREE.Scene();scene.background=new THREE.Color('#0b1011');scene.fog=new THREE.FogExp2('#0b1011',.044);
  const camera=new THREE.PerspectiveCamera(76,1,.035,55);camera.rotation.order='YXZ';scene.add(camera);
@@ -112,10 +113,15 @@ export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged
  // A thrown draw is just as terminal as context loss; never publish a partial first frame.
  const failGraphics=()=>{if(graphicsFailed)return;graphicsFailed=true;world.clear();};
  const contextHandler=(event:Event)=>{event.preventDefault();failGraphics();};canvas.addEventListener('webglcontextlost',contextHandler);
+ function submitFrame(){
+  const diagnostics=options.diagnostics;diagnostics?.beginSubmission(performance.now());
+  try{renderer.render(scene,camera);diagnostics?.endSubmission(performance.now(),true);}
+  catch(error){diagnostics?.endSubmission(performance.now(),false);throw error;}
+ }
  return {
-  setSnapshot(next:Snapshot){if(disposed||graphicsFailed)return;snapshot=next;receivedAt=performance.now();syncWorld(next);syncProps(next);if(next.raid!==currentRaid){currentRaid=next.raid;readyPosition.value=false;}},
+  setSnapshot(next:Snapshot){if(disposed||graphicsFailed)return;if(!snapshot||next.you!==snapshot.you||next.raid!==snapshot.raid||next.seed!==snapshot.seed)options.diagnostics?.reset();snapshot=next;receivedAt=performance.now();syncWorld(next);syncProps(next);if(next.raid!==currentRaid){currentRaid=next.raid;readyPosition.value=false;}},
   resize(){if(disposed||graphicsFailed)return;const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();},
-  render(dt:number,look:Input){if(disposed||graphicsFailed)return;try{seconds+=dt;if(!snapshot){camera.position.set(-11,1.52,11);camera.rotation.set(-.03,0,0);renderer.render(scene,camera);return;}
+  render(dt:number,look:Input){if(disposed||graphicsFailed)return;try{seconds+=dt;if(!snapshot){camera.position.set(-11,1.52,11);camera.rotation.set(-.03,0,0);submitFrame();return;}
    if(snapshot.raid>0&&!world.presentable){renderer.clear();return;}world.show();
    const own=snapshot.actors.find(actor=>actor.id===snapshot!.you),age=Math.min(.1,(performance.now()-receivedAt)/1000);
    if(own){const p=own.position;authoritativePosition.set(p.x,p.y,p.z);if(!readyPosition.value||localPosition.distanceTo(authoritativePosition)>3){localPosition.set(p.x,p.y,p.z);readyPosition.value=true;}else localPosition.lerp(authoritativePosition,1-Math.exp(-dt*24));camera.position.copy(localPosition);camera.position.y+=own.status==='dead'?.6:1.52;camera.rotation.set(look.pitch,look.yaw,0);ownRig.update({...own,position:{x:localPosition.x,y:localPosition.y,z:localPosition.z}},look,age,seconds);ownRig.group.visible=own.status==='alive';}
@@ -123,14 +129,20 @@ export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged
    for(const [id,rig]of rigs)if(!ids.has(id)){rig.dispose();rigs.delete(id);}
    const shotIds=new Set(snapshot.shots.map(s=>s.id));for(const[id,object]of shots)if(!shotIds.has(id)){object.removeFromParent();shots.delete(id);}for(const shot of snapshot.shots){let object=shots.get(shot.id);if(!object){object=mesh(shot.magic?sphere:cylinder,shot.magic?activePortal:iron);shots.set(shot.id,object);}object.position.set(shot.position.x+shot.velocity.x*age,shot.position.y+shot.velocity.y*age,shot.position.z+shot.velocity.z*age);if(shot.magic)object.scale.setScalar(.095);else{object.scale.set(.013,.6,.013);direction.set(shot.velocity.x,shot.velocity.y,shot.velocity.z).normalize();object.quaternion.setFromUnitVectors(up,direction);}}
    for(let i=0;i<lights.length;i++)lights[i].intensity=23+Math.sin(seconds*8+i)*1.3;for(const p of portals.values())p.ring.rotation.y=seconds*.35;
-   renderer.render(scene,camera);
+   submitFrame();
    if(!graphicsFailed)world.rendered();
    }catch{failGraphics();}
   },
   get worldReady(){return world.ready;},get worldStage(){return world.state;},
   get worldCoverage(){return world.coverage;},
-  resetWorld(){snapshot=null;currentRaid=-1;readyPosition.value=false;world.clear();},
+  get renderStats():DungeonRenderStats|null{if(!options.diagnostics||disposed)return null;const info=renderer.info;
+   return {submission:{frame:info.render.frame,calls:info.render.calls,triangles:info.render.triangles,points:info.render.points,lines:info.render.lines},
+    memory:{geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs?.length??0},
+    camera:{position:{x:camera.position.x,y:camera.position.y,z:camera.position.z},yaw:camera.rotation.y,pitch:camera.rotation.x},
+    resolution:{width:canvas.width,height:canvas.height,dpr:renderer.getPixelRatio()},graphicsFailed};
+  },
+  resetWorld(){options.diagnostics?.reset();snapshot=null;currentRaid=-1;readyPosition.value=false;world.clear();},
   get lost(){return graphicsFailed;},
-  dispose(){if(disposed)return;disposed=true;canvas.removeEventListener('webglcontextlost',contextHandler);world.dispose();ownRig.dispose();rigs.forEach(r=>r.dispose());resources.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.clear();renderer.renderLists.dispose();renderer.dispose();},
+  dispose(){if(disposed)return;disposed=true;options.diagnostics?.dispose();canvas.removeEventListener('webglcontextlost',contextHandler);world.dispose();ownRig.dispose();rigs.forEach(r=>r.dispose());resources.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.clear();renderer.renderLists.dispose();renderer.dispose();},
  };
 }
