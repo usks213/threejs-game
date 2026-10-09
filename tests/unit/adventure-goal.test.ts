@@ -2,7 +2,8 @@ import {expect,it} from 'vitest';
 import {GameSimulation} from '../../src/simulation/game-simulation';
 import {journeyGoal} from '../../src/game/journey';
 import {createdPreview} from '../../src/game/skybound/preview';
-import {skyBeaconGoal} from '../../src/game/adventure-goal';
+import {skyBeaconGoal,caveBeaconGoal,CAVE_APPROACH} from '../../src/game/adventure-goal';
+import {journeyDistance,journeyHint} from '../../src/ui/journey-distance';
 import {interactionTarget} from '../../src/game/interaction/target';
 
 it('uses actual assembly state, even if the optional practice was done out of order',()=>{
@@ -20,10 +21,37 @@ it('prioritizes recoverable grave contents, including after the ending',()=>{
  s.grave={};expect(journeyGoal(s,sim.player).title).toBe('三つの高さをつないだ');
 });
 it('guides ramp entry, ascent and the high destination separately',()=>{
- expect(skyBeaconGoal({x:0,y:3,z:8}).target).toEqual({x:10,z:14});
- expect(skyBeaconGoal({x:10,y:10,z:-5}).target).toEqual({x:10,z:-17});
+ expect(skyBeaconGoal({x:0,y:3,z:8}).target).toEqual({x:10,y:2.04,z:14});
+ expect(skyBeaconGoal({x:10,y:2.04,z:14}).title).toBe('斜路を上まで登ろう');
+ expect(skyBeaconGoal({x:10,y:10,z:-5}).target).toEqual({x:10,y:17.5,z:-17});
  expect(skyBeaconGoal({x:10,y:18,z:-17}).title).toContain('天抜け');
+ expect(skyBeaconGoal({x:10,y:18,z:-17}).target?.y).toBe(25);
  expect(skyBeaconGoal({x:18,y:25,z:-18}).title).toContain('灯をともそう');
+});
+it('reports vertical distance and direction without breaking heightless legacy targets',()=>{
+ expect(journeyDistance({x:28,y:-10.5,z:8},{x:28,y:22.7,z:8})).toBe('33m');
+ expect(journeyDistance({x:10,y:25,z:-17},{x:10,y:17.5,z:-17})).toBe('8m');
+ expect(journeyDistance({x:3,y:7,z:4},{x:0,y:-5,z:0})).toBe('13m');
+ expect(journeyDistance({x:3,z:4},{x:0,y:40,z:0})).toBe('5m');
+ expect(journeyDistance(undefined,{x:0,y:0,z:0})).toBe('');
+ const goal={title:'目的地',detail:'翼を開こう',tab:'world',progress:0,target:{x:28,y:-10.5,z:8}};
+ expect(journeyHint(goal,{x:28,y:22.7,z:8})).toBe('下33m · 翼を開こう');
+ expect(journeyHint({...goal,target:{x:10,y:25,z:-17}},{x:10,y:17.5,z:-17})).toBe('上8m · 翼を開こう');
+ expect(journeyHint({...goal,target:undefined},{x:0,y:0,z:0})).toBe(goal.detail);
+});
+it('stages cave approach, landing, recovery and a continuous wing descent',()=>{
+ const sim=new GameSimulation(),s=sim.adventure.snapshot();
+ for(const id of [810001,810002])s.resources.find(n=>n.id===id)!.ready=1e10;
+ expect(journeyGoal(s,{x:18,y:25,z:-18})).toMatchObject({title:'大穴の手前へ着地しよう',target:CAVE_APPROACH});
+ expect(caveBeaconGoal(s,{x:0,y:3,z:8}).target).toMatchObject({x:10,z:14});
+ expect(caveBeaconGoal(s,{x:10,y:2.04,z:14}).target).toEqual(CAVE_APPROACH);
+ s.stamina=9;s.traversal={gliding:true,climbing:false};
+ expect(caveBeaconGoal(s,{x:22,y:3.4,z:8}).title).toContain('着地');
+ s.traversal.gliding=false;
+ expect(caveBeaconGoal(s,CAVE_APPROACH).title).toContain('スタミナ');
+ s.stamina=40;expect(caveBeaconGoal(s,CAVE_APPROACH).title).toContain('翼を開こう');
+ expect(caveBeaconGoal(s,{x:28,y:1,z:8}).target?.y).toBe(-10.5);
+ expect(caveBeaconGoal(s,{x:28,y:-11,z:8}).title).toContain('灯台をともそう');
 });
 it('labels the first beacon with the actual next action',()=>{
  const sim=new GameSimulation(),s=sim.adventure.snapshot(),beacon=s.resources.find(n=>n.id===810001)!;

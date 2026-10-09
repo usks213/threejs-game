@@ -1,11 +1,19 @@
 import {test,expect} from '@playwright/test';
 import {GameSimulation} from '../../src/simulation/game-simulation';
 import {newProgression} from '../../src/game/progression-state';
+import {readCommittedRevisionSample,isNewCommittedRevision,type CommittedRevisionSample} from '../helpers/save-revision';
 test.use({deviceScaleFactor:.5,viewport:{width:844,height:390}});
 test('shows tutorial and collection rewards, cancels reset, then preserves the ending before a confirmed new cycle',async({page},info)=>{
  test.setTimeout(150000);page.setDefaultTimeout(20000);const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto('/',{waitUntil:'domcontentloaded'});await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
- await page.locator('#system-menu').click();await page.locator('#save').click();await expect(page.locator('#save-status')).toHaveAttribute('data-save-scope','local');await expect(page.locator('#save-status')).toHaveAttribute('data-revision',/^[a-f0-9-]{36}$/);const shownRevision=await page.locator('#save-status').getAttribute('data-revision');const storedRevision=await page.evaluate(async()=>new Promise<string>((resolve,reject)=>{const req=indexedDB.open('voxel-coop-adventure-v1',3);req.onerror=()=>reject(req.error);req.onsuccess=()=>{const db=req.result,read=db.transaction('worlds').objectStore('worlds').get('single-player');read.onsuccess=()=>{db.close();resolve(read.result.revision);};};}));expect(shownRevision).toBe(storedRevision);await page.locator('#system-close').click();
+ await page.locator('#system-menu').click();
+ const beforeRevision=await page.locator('#save-status').getAttribute('data-revision'),revisionSamples:CommittedRevisionSample[]=[];
+ await page.locator('#save').click();
+ // Autosaves stay enabled. Compare one contemporaneous committed-state sample,
+ // not a DOM UUID frozen before a later asynchronous database read.
+ try{await expect.poll(async()=>{const sample=await page.evaluate(readCommittedRevisionSample);revisionSamples.push(sample);return isNewCommittedRevision(sample,beforeRevision);},{timeout:20000}).toBe(true);}
+ finally{await info.attach('committed-save-revision-samples',{body:JSON.stringify({beforeRevision,revisionSamples}),contentType:'application/json'});}
+ await page.locator('#system-close').click();
  await page.locator('#adventure-menu').click();await page.locator('[data-tab=guide]').click();await expect(page.locator('#adventure-content')).toContainText('操作を練習する（任意）');await expect(page.locator('#adventure-content')).toContainText('三層の記録集 0/9');await page.locator('#adventure-close').click();
  // Ending fixture exercises UI/persistence; it is not a claim of story completion by play.
  const sim=new GameSimulation();sim.adventure.state.enemies=[];sim.fluid.restore([]);sim.adventure.state.defeated.push('stormcore');sim.adventure.state.progression={...newProgression(),tutorial:5,records:[856001,856002,856003]};sim.adventure.state.inventory.wood=23;const before=await page.locator('#app').getAttribute('data-world-epoch');

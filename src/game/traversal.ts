@@ -27,7 +27,7 @@ export class Traversal {
   if(kind==='glide'){
    if(!this.game.state.inventory.glider)throw Error('帆布の翼が必要です');
    if(p.grounded)throw Error('空中で翼を開いてください');
-   this.gliding=!this.gliding;this.climbing=false;return this.gliding?'翼を開きました':'翼を閉じました';
+   this.gliding=!this.gliding;this.climbing=false;return this.gliding?'翼を開きました。移動で滑空、入力を緩めると降下':'翼を閉じました';
   }
   if(Math.hypot(aim.x,aim.z)>.1)p.heading=Math.atan2(aim.x,aim.z);
   if(!this.wall())throw Error('登れる壁へ近づき、壁を向いてください');
@@ -76,7 +76,11 @@ export class Traversal {
   if(this.gliding){
    if(p.grounded){this.gliding=false;return {handled:false,speed:1};}
    const wind=WIND_COLUMNS.find(w=>Math.hypot(p.x-w.x,p.z-w.z)<w.radius&&p.y<w.top);
-   p.vy=wind?4.5:Math.max(p.vy,-.4);state.stamina=Math.max(0,state.stamina-(wind?2:foodEffect(state,'endurance')?3.5:5)*dt);if(state.meadows)state.meadows.exerting=true;const breeze=adventureEnvironment(state.seconds,p).wind;return {handled:false,speed:1.5,wind:wind?undefined:breeze};
+   // Forward steering retains lift for island crossings. Ease/release movement
+   // over a landing spot to descend at about 3.7m/s (motor gravity follows).
+   // Both modes keep the same stamina price; sky-to-cave needs a rest stop.
+   const intent=Math.hypot(input.x,input.z),steering=Number.isFinite(intent)?Math.min(1,intent):0,fallCap=-3.4+3*steering;
+   p.vy=wind?4.5:Math.max(p.vy,fallCap);state.stamina=Math.max(0,state.stamina-(wind?2:foodEffect(state,'endurance')?3.5:5)*dt);if(state.meadows)state.meadows.exerting=true;const breeze=adventureEnvironment(state.seconds,p).wind;return {handled:false,speed:1.5,wind:wind?undefined:breeze};
   }
   return {handled:false,speed:1};
  }

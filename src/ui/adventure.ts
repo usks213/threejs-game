@@ -1,4 +1,5 @@
 import {deviceEnergy} from './device-energy';
+import {journeyDistance,journeyHint} from './journey-distance';
 import {catalogTools} from './catalog-filter';
 import {traversalStatus} from './traversal-warning';
 import {equipmentWarnings} from './equipment-warning';
@@ -70,9 +71,9 @@ export function adventureUI(signal:AbortSignal,action:(action:GameAction,id?:str
   const warning=equipmentWarnings(s)[0];gearWarning.hidden=!warning;const warningText=warning?.text??'';if(gearWarning.textContent!==warningText)gearWarning.textContent=warningText;gearWarning.dataset.broken=String(warning?.broken??false);
   raceStatus.hidden=!s.race?.run;raceStatus.textContent=s.race?.run?`便り競走 · 門${s.race.run.next+1}/6 · 残り${Math.max(0,90-s.seconds+s.race.run.started).toFixed(1)}秒`:'';
   const mission=journeyGoal(s,player);goalTab=mission.tab;
-  const distance=mission.target?Math.round(Math.hypot(mission.target.x-p.x,mission.target.z-p.z)):0;
-  goal.setAttribute('aria-label',mission.title+'。'+mission.detail);
-  goal.innerHTML=`<span class="goal-kicker">次の目標 ${mission.target?`· ${distance}m`:''}</span><strong>${mission.title}</strong><small>${mission.detail}</small><i style="width:${mission.progress*100}%"></i>`;
+  const distance=journeyDistance(mission.target,player),detail=journeyHint(mission,player);
+  goal.setAttribute('aria-label',[mission.title,detail,distance].filter(Boolean).join('。'));
+  goal.innerHTML=`<span class="goal-kicker">次の目標 ${distance?`· ${distance}`:''}</span><strong>${mission.title}</strong><small>${detail}</small><i style="width:${mission.progress*100}%"></i>`;
   const bearing=mission.target?Math.atan2(mission.target.x-p.x,mission.target.z-p.z)-(yaw+Math.PI):0;
   document.querySelector('#compass')!.innerHTML=`<span>${['北','北西','西','南西','南','南東','東','北東'][((Math.round(yaw/(Math.PI/4))%8)+8)%8]}</span>${mission.target?`<b style="transform:rotate(${-bearing}rad)">↑</b>`:''}`;
   const nearest=s.resources.filter(n=>n.ready<=s.seconds).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];

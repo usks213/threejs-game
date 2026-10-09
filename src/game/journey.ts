@@ -1,10 +1,10 @@
-import { openingBeaconGoal, skyBeaconGoal, graveRecoveryGoal } from './adventure-goal';
+import { openingBeaconGoal, skyBeaconGoal, caveBeaconGoal, graveRecoveryGoal } from './adventure-goal';
 import { BEACONS } from '../content/adventure-world';
 import { roofed } from './meadows/state';
 import { BIOMES, BOSSES, RECIPES } from '../content/catalog';
 import type { AdventureSnapshot } from './types';
 import type { Vec3 } from '../world/types';
-export interface JourneyGoal { title: string; detail: string; tab: string; target?: { x:number; z:number }; progress:number }
+export interface JourneyGoal { title: string; detail: string; tab: string; target?: { x:number; y?:number; z:number }; progress:number }
 /** Derive objectives from existing saves; no tutorial flags can become stale. */
 export function journeyGoal(s: AdventureSnapshot, p: Vec3): JourneyGoal {
  if(s.generator===4){
@@ -13,6 +13,7 @@ export function journeyGoal(s: AdventureSnapshot, p: Vec3): JourneyGoal {
   const next=BEACONS.find(b=>(s.resources.find(n=>n.id===b.id)?.ready??0)<1e9);
   if(next?.id===810001)return openingBeaconGoal(s,p);
   if(next?.id===810002)return skyBeaconGoal(p);
+  if(next?.id===810003)return caveBeaconGoal(s,p);
 
   const active=s.enemies.find(e=>e.definition==='stormcore'&&e.health>0);
   if(active)return {title:'嵐心の機殻を鎮める',detail:'予兆を避け、隙に合成した装備で攻撃',tab:'world',target:active,progress:.85};

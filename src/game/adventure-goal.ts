@@ -32,7 +32,23 @@ export function openingBeaconGoal(s:AdventureSnapshot,p:Vec3):JourneyGoal {
 export function skyBeaconGoal(p:Vec3):JourneyGoal {
  if(p.y<-3)return {title:'地表の灯へ戻ろう',detail:'安全な地面で、地図 → 灯した道標へ移動',tab:'world',target:BEACONS[0],progress:.2};
  if(p.y>=23)return {title:'空の航路灯をともそう',detail:'台地の道標に近づき、照準の「灯をともす」',tab:'world',target:BEACONS[1],progress:.3};
- if(p.y<14&&!(p.x>=7&&p.x<=13&&p.z<10))return {title:'空へ続く斜路へ',detail:'矢印の先、石の斜路を北へ登ろう',tab:'world',target:{x:10,z:14},progress:.22};
- if(p.z>-14)return {title:'斜路を上まで登ろう',detail:'石の道を北へ。頭上の台地に「天抜け」で上がれる',tab:'world',target:{x:10,z:-17},progress:.25};
- return {title:'頭上の台地へ天抜け',detail:'能力 → 移動 → 出口を探す → 出口へ上がる',tab:'powers',target:{x:10,z:-17},progress:.28};
+ if(p.y<14&&!(p.x>=8.3&&p.x<=11.7&&p.z<15))return {title:'空へ続く斜路へ',detail:'矢印の先、石の斜路を北へ登ろう',tab:'world',target:{x:10,y:2.04,z:14},progress:.22};
+ if(p.z>-14)return {title:'斜路を上まで登ろう',detail:'石の道を北へ。頭上の台地に「天抜け」で上がれる',tab:'world',target:{x:10,y:17.5,z:-17},progress:.25};
+ return {title:'頭上の台地へ天抜け',detail:'能力 → 移動 → 出口を探す → 上がる',tab:'powers',target:{x:10,y:25,z:-17},progress:.28};
+}
+
+// Stop west of the 3.5m-radius shaft. The sky leg and the final 14m drop
+// deliberately have separate stamina budgets; no midair reopen loop is taught.
+export const CAVE_APPROACH={x:22,y:3,z:8} as const;
+export function caveBeaconGoal(s:AdventureSnapshot,p:Vec3):JourneyGoal {
+ const beacon=s.resources.find(n=>n.id===810003)??BEACONS[2];
+ if(p.y<-4)return {title:'洞海の灯台をともそう',detail:'中央で移動を緩める。着地して灯をともす',tab:'world',target:beacon,progress:.48};
+ if(p.y>5)return {title:'大穴の手前へ着地しよう',detail:'空中で翼を開き、西の足場で移動を緩める',tab:'world',target:CAVE_APPROACH,progress:.35};
+ const overHole=Math.hypot(p.x-beacon.x,p.z-beacon.z)<3.5;
+ if(overHole)return {title:'翼で洞海へ降りよう',detail:'翼で中央へ。移動を緩め、風には向きを直す',tab:'world',target:beacon,progress:.44};
+ if(s.traversal?.gliding)return {title:'大穴の手前へ着地しよう',detail:'矢印の真上で移動を緩めて降下。着地して回復',tab:'world',target:CAVE_APPROACH,progress:.38};
+ if(p.x<8.3)return {title:'斜路の南を回って大穴へ',detail:'斜路の低い入口を通り、東の大穴へ向かおう',tab:'world',target:{x:10,y:2.04,z:14},progress:.36};
+ if(Math.hypot(p.x-CAVE_APPROACH.x,p.z-CAVE_APPROACH.z)>1.5)return {title:'大穴の西側で足を止めよう',detail:'穴へ入る前に、矢印の先の地面へ',tab:'world',target:CAVE_APPROACH,progress:.38};
+ if(s.stamina<40)return {title:'地面でスタミナを戻そう',detail:'走らず待って40まで回復。翼は空中で開く',tab:'world',target:CAVE_APPROACH,progress:.4};
+ return {title:'大穴へ歩き、翼を開こう',detail:'空中で翼を開き、穴の中央で移動を緩める',tab:'world',target:beacon,progress:.42};
 }

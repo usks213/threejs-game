@@ -6,7 +6,7 @@ import { newMeadows } from '../game/meadows/state';
 export const BEACONS = [
  {id:810001,name:'風原の道標',x:0,y:3,z:3,hint:'木の部品を2つ接着し、道標の近くへ運ぶ'},
  {id:810002,name:'空の航路灯',x:18,y:25,z:-18,hint:'北東の斜路を登り、天抜けで漂う台地へ'},
- {id:810003,name:'洞海の灯台',x:28,y:-10.5,z:8,hint:'帆布の翼で東の大穴を降り、地下の灯台へ'},
+ {id:810003,name:'洞海の灯台',x:28,y:-10.5,z:8,hint:'大穴の西側へ着地して回復。穴へ歩き、空中で翼を開く'},
  {id:810004,name:'嵐心の観測台',x:48,y:29,z:24,hint:'3つの灯を結び、東の観測台で嵐心を鎮める'},
 ] as const;
 export function seedAdventureWorld(sim:GameSimulation,state:AdventureSave):void{
