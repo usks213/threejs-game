@@ -50,7 +50,7 @@ export function startSurvival(root: HTMLElement) {
   const element = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
   const canvas = element<HTMLCanvasElement>('#cave'), overlay = element('#overlay'), game = element('.emberfall');
   let run = new SurvivalRun(seed()), started = false, paused = true, disposed = false;
-  let frame = 0, last = 0, accumulator = 0, saveClock = 0, hudClock = 0, drawRequested = true;
+  let frame = 0, last = 0, accumulator = 0, saveClock = 0, renderClock = 0, hudClock = 0, drawRequested = true;
   let lastNotice = '', noticeUntil = 0, menuTab: MenuTab = 'craft';
   let renderer: Renderer;
   try { renderer = new Renderer(canvas); } catch (error) { root.textContent = String(error); return () => {}; }
@@ -304,7 +304,11 @@ export function startSurvival(root: HTMLElement) {
       if (steps > 5) accumulator = 0;
       saveClock += dt; if (saveClock > 5) { saveClock = 0; persist(); }
     } else accumulator = 0;
-    if (!paused || drawRequested) { renderer.draw(run, controls.state); drawRequested = false; }
+    // Low/balanced also cap canvas presentation work; physics/input retain the
+    // same fixed step. Avoid spending a phone's frame budget on redundant blits.
+    renderClock += dt;
+    const renderInterval = renderer.metrics.effectiveQuality === 'low' ? 1 / 30 : renderer.metrics.effectiveQuality === 'balanced' ? 1 / 45 : 1 / 60;
+    if (drawRequested || !paused && renderClock >= renderInterval) { renderer.draw(run, controls.state); drawRequested = false; renderClock = 0; }
     hudClock += dt; if (hudClock > 0.1) { updateHud(); hudClock = 0; }
     frame = requestAnimationFrame(loop);
   };

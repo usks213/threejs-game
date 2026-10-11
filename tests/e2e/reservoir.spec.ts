@@ -17,9 +17,9 @@ test('ordinary controls build a stone dam, release the reservoir and reopen down
   // Position reports are sampled by the HUD and movement has inertia. Correct
   // the landing with short ordinary walking taps, just as a player steps back
   // from a red 'overlaps player' build preview; do not loosen collision rules.
-  const standNear=async(x:number,tolerance=1.2)=>{for(let attempt=0;attempt<16;attempt++){const s=await read();if(Math.abs(s.x-x)<=tolerance)return;const right=s.x<x;
-    if(cdp){const m=(await page.locator('.move-pad').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:m.x+m.width*(right?.8:.2),y:m.y+m.height/2,id:1}]});}else await page.keyboard.down(right?'KeyD':'KeyA');
-    await page.waitForTimeout(45);if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else await page.keyboard.up(right?'KeyD':'KeyA');await page.waitForTimeout(300);
+  const standNear=async(x:number,tolerance=1.2)=>{for(let attempt=0;attempt<16;attempt++){const s=await read();if(Math.abs(s.x-x)<=tolerance)return;const right=s.x<x,strength=Math.min(.3,Math.max(.09,Math.abs(s.x-x)*.05));
+    if(cdp){const m=(await page.locator('.move-pad').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:m.x+m.width*(.5+(right?strength:-strength)),y:m.y+m.height/2,id:1}]});}else await page.keyboard.down(right?'KeyD':'KeyA');
+    await page.waitForTimeout(!cdp&&Math.abs(s.x-x)<3?20:45);if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else await page.keyboard.up(right?'KeyD':'KeyA');await page.waitForTimeout(300);
   }expect(Math.abs((await read()).x-x)).toBeLessThanOrEqual(tolerance);};
   const menu=async()=>{if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();};
   const cells=async()=>{await menu();const raw=await page.evaluate(()=>localStorage.getItem('emberfall-survival-save-v1'));expect(raw).toBeTruthy();const w=JSON.parse(JSON.parse(raw!).data.run).data.world as {width:number;cells:number[]};const out:number[]=[];for(let n=0;n<w.cells.length;n+=2)for(let k=0;k<w.cells[n+1];k++)out.push(w.cells[n]);await button('世界に戻る');return {width:w.width,values:out};};
