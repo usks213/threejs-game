@@ -1,7 +1,8 @@
 import { BIOMES } from './generation';
-import { Material, MATERIALS } from './materials';
-import { CaveLighting, collectCaveLights, LIGHT_BUDGET } from './lighting';
-import type { LightStructure } from './lighting';
+import { CaveLighting, collectCaveLights, GRAPHICS_PRESETS } from './lighting';
+import type { GraphicsEffects, GraphicsOptions, GraphicsQuality, LightStructure } from './lighting';
+import { TerrainWindow } from './terrain-window';
+import { QualityGovernor } from './render-quality';
 import { SPELLS } from './wands';
 import { structureSize } from './survival';
 import type { Run, Input } from './simulation';
@@ -9,18 +10,22 @@ import type { Run, Input } from './simulation';
 type Placeable = 'wood' | 'stone' | 'sand' | 'torch' | 'workbench' | 'camp';
 type SurvivalView = Run & { mode: 'survival'; structures: readonly LightStructure[]; tool?: string; targetFromAim?: (x: number, y: number) => { x: number; y: number }; canPlace?: (type: Placeable, x: number, y: number) => boolean };
 const isSurvival = (run: Run): run is SurvivalView => 'mode' in run && run.mode === 'survival' && 'structures' in run && Array.isArray(run.structures);
-const pixelNoise = (x: number, y: number) => ((Math.imul(x, 374761393) ^ Math.imul(y, 668265263)) >>> 0) % 17;
+const wrap = (value: number, period: number) => ((value % period) + period) % period;
 
 export class Renderer {
   readonly ctx: CanvasRenderingContext2D;
   readonly terrain = document.createElement('canvas');
   readonly terrainCtx: CanvasRenderingContext2D;
-  readonly pixels: ImageData;
+  pixels: ImageData;
+  readonly terrainWindow = new TerrainWindow();
+  private readonly qualityGovernor = new QualityGovernor();
+  private effects: GraphicsEffects = { pbr: true, volumetric: true, bloom: true };
+  private readonly sourceScan = { cells: 0 };
   readonly lighting = new CaveLighting();
   private readonly lightCanvas = document.createElement('canvas');
   private readonly bloomCanvas = document.createElement('canvas');
-  private readonly lightCtx: CanvasRenderingContext2D;
-  private readonly bloomCtx: CanvasRenderingContext2D;
+  private readonly lightCtx: CanvasRenderingContext2D | null;
+  private readonly bloomCtx: CanvasRenderingContext2D | null;
   private lightPixels: ImageData | null = null;
   private bloomPixels: ImageData | null = null;
   private lastLightTime = -Infinity;
@@ -29,21 +34,36 @@ export class Renderer {
   private renderMs = 0;
   private terrainUploads = 0;
   cameraX = 0; cameraY = 0; width = 240; height = 135; scale = 1;
-  private world: Run['world'] | null = null;
   constructor(readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
     const terrainCtx = this.terrain.getContext('2d', { willReadFrequently: true });
     const lightCtx = this.lightCanvas.getContext('2d');
     const bloomCtx = this.bloomCanvas.getContext('2d');
-    if (!ctx || !terrainCtx || !lightCtx || !bloomCtx) throw new Error('2D描画を開始できません。ブラウザを更新して再試行してください。');
+    if (!ctx || !terrainCtx) throw new Error('2D描画を開始できません。ブラウザを更新して再試行してください。');
     this.ctx = ctx; this.terrainCtx = terrainCtx; this.lightCtx = lightCtx; this.bloomCtx = bloomCtx;
-    this.terrain.width = 256; this.terrain.height = 384; this.pixels = terrainCtx.createImageData(256, 384);
+    this.terrain.width = 1; this.terrain.height = 1; this.pixels = terrainCtx.createImageData(1, 1);
   }
-  get metrics() { return { ...this.lighting.metrics, renderMs: this.renderMs, terrainUploads: this.terrainUploads, lightWidth: this.lighting.width, lightHeight: this.lighting.height, canvasWidth: this.width, canvasHeight: this.height }; }
+  get options(): Readonly<GraphicsOptions> { return { quality: this.qualityGovernor.requested, ...this.effects }; }
+  setQuality(quality: GraphicsQuality) {
+    if (!Object.hasOwn(GRAPHICS_PRESETS, quality)) return false;
+    this.qualityGovernor.set(quality); this.lastLightTime = -Infinity; return true;
+  }
+  setEffects(effects: Partial<GraphicsEffects>) {
+    for (const key of ['pbr', 'volumetric', 'bloom'] as const) if (typeof effects[key] === 'boolean') this.effects[key] = effects[key];
+    this.lastLightTime = -Infinity;
+  }
+  get metrics() {
+    const effectiveQuality = this.qualityGovernor.effective, preset = GRAPHICS_PRESETS[effectiveQuality];
+    return { ...this.lighting.metrics, renderMs: this.renderMs, terrainUploads: this.terrainUploads, lightWidth: this.lighting.width, lightHeight: this.lighting.height,
+      canvasWidth: this.width, canvasHeight: this.height, terrainWidth: this.terrainWindow.width, terrainHeight: this.terrainWindow.height,
+      terrainCellsWritten: this.terrainWindow.cellsWritten, terrainChunksChecked: this.terrainWindow.chunksChecked, emitterCellsScanned: this.sourceScan.cells,
+      quality: this.qualityGovernor.requested, effectiveQuality, fallback: !this.lightCtx || !this.bloomCtx ? 'canvas' : effectiveQuality !== this.qualityGovernor.requested ? 'performance' : 'none',
+      ...this.effects, rayBudget: preset.maxRays, lightBudget: preset.maxLights, lightCellSize: preset.cellSize };
+  }
   resize() {
     const rect = this.canvas.getBoundingClientRect();
     this.width = rect.width < rect.height ? 160 : 240;
-    this.height = Math.ceil(this.width * rect.height / Math.max(1, rect.width));
+    this.height = Math.min(512, Math.ceil(this.width * rect.height / Math.max(1, rect.width)));
     // Native cell pixels only. CSS upscales the scene; the HUD remains sharp.
     this.canvas.width = this.width; this.canvas.height = this.height;
     this.scale = 1; this.ctx.imageSmoothingEnabled = false; this.lastLightTime = -Infinity;
@@ -60,8 +80,8 @@ export class Renderer {
     for (let layer = 0; layer < 2; layer++) {
       const parallax = layer ? 0.34 : 0.16;
       for (let i = 0; i < 19; i++) {
-        const x = Math.round((i * 53 + (run.seed % 37)) % 320 - this.cameraX * parallax - 24);
-        const y = Math.round((i * 79 + layer * 43) % 440 - this.cameraY * parallax - 42);
+        const x = Math.round(wrap(i * 53 + run.seed % 37 - this.cameraX * parallax, width + 80) - 40);
+        const y = Math.round(wrap(i * 79 + layer * 43 - this.cameraY * parallax, height + 100) - 50);
         const w = 7 + i % 11, h = 30 + i * 13 % 53;
         ctx.fillStyle = layer ? '#1c2c38' : '#15222e';
         ctx.fillRect(x, y, w, h); ctx.fillRect(x + 2, y + h, w - 4, 6); ctx.fillRect(x + 4, y + h + 6, Math.max(1, w - 8), 5);
@@ -78,46 +98,21 @@ export class Renderer {
     // A few cool spores give open space depth without a full-screen effect.
     ctx.fillStyle = '#507473';
     for (let i = 0; i < 16; i++) {
-      const x = Math.round((i * 47 + run.seed % 53 + Math.sin(run.time * 0.13 + i) * 3) % 310 - this.cameraX * 0.55);
-      const y = Math.round((i * 71 + run.time * (0.2 + i % 3 * 0.1)) % 430 - this.cameraY * 0.6);
+      const x = Math.round(wrap(i * 47 + run.seed % 53 + Math.sin(run.time * 0.13 + i) * 3 - this.cameraX * 0.55, width + 40) - 20);
+      const y = Math.round(wrap(i * 71 + run.time * (0.2 + i % 3 * 0.1) - this.cameraY * 0.6, height + 40) - 20);
       if (i % 3 === Math.floor(run.time * 0.3) % 3) ctx.fillRect(x, y, 1, 1);
     }
   }
   private uploadTerrain(run: Run) {
-    const world = run.world;
-    if (this.world !== world) { this.world = world; world.markAllDirty(); }
-    let minX = 256, minY = 384, maxX = 0, maxY = 0;
-    for (const chunk of world.dirty) {
-      const cx = (chunk % world.chunkColumns) * 16, cy = Math.floor(chunk / world.chunkColumns) * 16;
-      minX = Math.min(minX, cx); minY = Math.min(minY, cy); maxX = Math.max(maxX, Math.min(world.width, cx + 16)); maxY = Math.max(maxY, Math.min(world.height, cy + 16));
-      for (let y = cy; y < Math.min(world.height, cy + 16); y++) for (let x = cx; x < Math.min(world.width, cx + 16); x++) {
-        const index = y * world.width + x, m = world.cells[index], color = MATERIALS[m].color;
-        const noise = pixelNoise(x, y), exposed = y > 0 && !MATERIALS[world.cells[index - world.width]].solid;
-        let shade = (noise % 7) - 3, r = color[0], g = color[1], b = color[2];
-        if (m === Material.Rock) {
-          const strata = ((Math.floor(x / 9) + Math.floor((y + x * 0.19) / 7)) % 5) - 2;
-          r = 73 + strata * 3; g = 79 + strata * 3; b = 93 + strata * 4;
-          if ((x + Math.floor(y / 9) * 7) % 23 < 2 && y % 9 < 6) shade -= 10;
-          if (exposed) shade += 20;
-        } else if (m === Material.HardRock) {
-          r = 42; g = 50; b = 68; shade += y % 7 === 0 ? 6 : 0;
-          if (exposed) shade += 12;
-        } else if (m === Material.Wood) { shade += x % 6 === 0 ? -23 : y % 4 === 0 ? 11 : 0; if (exposed) shade += 20; }
-        else if (m === Material.Sand) { shade += noise > 13 ? 19 : -3; if (exposed) shade += 12; }
-        else if (m === Material.Gold) { r = 220; g = 164; b = 57; shade += noise > 9 ? 33 : -16; }
-        else if (m === Material.Water) { r = 39; g = 127; b = 185; shade += world.get(x, y - 1) !== m ? 51 : (x + y * 3) % 11 === 0 ? 18 : 0; }
-        else if (m === Material.Oil) { r = 108; g = 89; b = 52; shade += world.get(x, y - 1) !== m ? 37 : 0; }
-        else if (m === Material.Toxic) { r = 111; g = 168; b = 71; shade += world.get(x, y - 1) !== m ? 40 : 0; }
-        else if (m === Material.Lava) { r = 248; g = 90 + noise * 4; b = 39; }
-        else if (m === Material.Fire) { r = 255; g = 157 + noise * 5; b = 55 + noise * 3; }
-        const pixel = (y * 256 + x) * 4;
-        this.pixels.data[pixel] = r + shade; this.pixels.data[pixel + 1] = g + shade; this.pixels.data[pixel + 2] = b + shade;
-        this.pixels.data[pixel + 3] = m === Material.Air ? 0 : m === Material.Smoke ? 155 : m === Material.Steam ? 185 : 255;
-      }
+    const raster = this.terrainWindow, dirty = raster.update(run.world, { x: this.cameraX, y: this.cameraY, width: this.width, height: this.height });
+    if (!dirty) return;
+    if (this.pixels.width !== raster.width || this.pixels.height !== raster.height) {
+      this.terrain.width = raster.width; this.terrain.height = raster.height;
+      this.pixels = this.terrainCtx.createImageData(raster.width, raster.height);
+      this.pixels.data.set(raster.pixels); raster.pixels = this.pixels.data;
     }
-    // One dirty-union upload, never a separate transfer for every chunk.
-    if (maxX > minX) { this.terrainCtx.putImageData(this.pixels, 0, 0, minX, minY, maxX - minX, maxY - minY); this.terrainUploads++; }
-    world.dirty.clear();
+    // Shared ImageData storage, one dirty-union upload, no full-world allocation.
+    this.terrainCtx.putImageData(this.pixels, 0, 0, dirty.x, dirty.y, dirty.width, dirty.height); this.terrainUploads++;
   }
   private structure(s: LightStructure, time: number) {
     const ctx = this.ctx, x = Math.round(s.x), y = Math.round(s.y), flicker = Math.floor(time * 9 + x) % 3;
@@ -141,21 +136,25 @@ export class Renderer {
     }
   }
   private illuminate(run: Run, structures: readonly LightStructure[]) {
-    const { ctx, lighting } = this, changedWorld = this.lightWorld !== run.world;
-    const moved = Math.abs(this.cameraX - this.lightCameraX) > LIGHT_BUDGET.cellSize * 2 || Math.abs(this.cameraY - this.lightCameraY) > LIGHT_BUDGET.cellSize * 2;
-    if (changedWorld || run.time < this.lastLightTime || run.time - this.lastLightTime >= LIGHT_BUDGET.updateSeconds || moved) {
+    const { ctx, lighting, lightCtx, bloomCtx } = this;
+    // Optional effects failing to allocate never stop the playable pixel scene.
+    if (!lightCtx || !bloomCtx) { if (this.canvas.dataset && this.lightWorld !== run.world) this.canvas.dataset.lighting = JSON.stringify(this.metrics); this.lightWorld = run.world; return; }
+    const quality = this.qualityGovernor.effective, preset = GRAPHICS_PRESETS[quality], changedWorld = this.lightWorld !== run.world;
+    const moved = Math.abs(this.cameraX - this.lightCameraX) > preset.cellSize * 2 || Math.abs(this.cameraY - this.lightCameraY) > preset.cellSize * 2;
+    if (changedWorld || run.time < this.lastLightTime || run.time - this.lastLightTime >= preset.updateSeconds || moved) {
       const viewport = { x: this.cameraX, y: this.cameraY, width: this.width, height: this.height };
-      lighting.update(run.world, collectCaveLights(run.world, run.player, structures, viewport), viewport);
+      lighting.update(run.world, collectCaveLights(run.world, run.player, structures, viewport, preset.maxLights, this.sourceScan), viewport, { quality, ...this.effects }, run.time);
       if (!this.lightPixels || this.lightCanvas.width !== lighting.width || this.lightCanvas.height !== lighting.height) {
         this.lightCanvas.width = this.bloomCanvas.width = lighting.width; this.lightCanvas.height = this.bloomCanvas.height = lighting.height;
-        this.lightPixels = this.lightCtx.createImageData(lighting.width, lighting.height); this.bloomPixels = this.bloomCtx.createImageData(lighting.width, lighting.height);
+        this.lightPixels = lightCtx.createImageData(lighting.width, lighting.height); this.bloomPixels = bloomCtx.createImageData(lighting.width, lighting.height);
       }
-      this.lightPixels.data.set(lighting.illumination); this.bloomPixels!.data.set(lighting.emission);
-      this.lightCtx.putImageData(this.lightPixels, 0, 0); this.bloomCtx.putImageData(this.bloomPixels!, 0, 0);
+      this.lightPixels.data.set(lighting.illumination); this.bloomPixels!.data.set(lighting.effects);
+      lightCtx.putImageData(this.lightPixels, 0, 0); bloomCtx.putImageData(this.bloomPixels!, 0, 0);
       this.lastLightTime = run.time; this.lightWorld = run.world; this.lightCameraX = this.cameraX; this.lightCameraY = this.cameraY;
+      if (this.qualityGovernor.observe(lighting.metrics.lightingMs)) this.lastLightTime = -Infinity;
       if (this.canvas.dataset) this.canvas.dataset.lighting = JSON.stringify(this.metrics);
     }
-    const x = lighting.x - this.cameraX, y = lighting.y - this.cameraY, w = lighting.width * LIGHT_BUDGET.cellSize, h = lighting.height * LIGHT_BUDGET.cellSize;
+    const x = lighting.x - this.cameraX, y = lighting.y - this.cameraY, w = lighting.width * lighting.cellSize, h = lighting.height * lighting.cellSize;
     ctx.save(); ctx.imageSmoothingEnabled = true;
     ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(this.lightCanvas, x, y, w, h);
     ctx.globalCompositeOperation = 'screen'; ctx.drawImage(this.bloomCanvas, x, y, w, h);
@@ -168,7 +167,7 @@ export class Renderer {
     this.cameraY = Math.round(Math.max(-38, Math.min(world.height - height, p.y - height * 0.4)));
     ctx.setTransform(scale, 0, 0, scale, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     this.background(run); this.uploadTerrain(run);
-    ctx.drawImage(this.terrain, -this.cameraX, -this.cameraY);
+    ctx.drawImage(this.terrain, this.terrainWindow.x - this.cameraX, this.terrainWindow.y - this.cameraY);
     ctx.save(); ctx.translate(-this.cameraX, -this.cameraY);
     const gate = run.portal;
     if (!survival) {

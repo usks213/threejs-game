@@ -29,6 +29,9 @@ export const MATERIALS: readonly MaterialInfo[] = [
 const DX = [0, 1, 0, -1] as const;
 const DY = [-1, 0, 1, 0] as const;
 const CHUNK_SIZE = 16;
+export const MAX_WORLD_WIDTH = 1536;
+export const MAX_WORLD_HEIGHT = 768;
+export interface ActiveRegion { x: number; y: number; width: number; height: number }
 const isLiquid = (m: Material): boolean => m >= Material.Water && m <= Material.Lava;
 const isGas = (m: Material): boolean => m >= Material.Fire && m <= Material.Steam;
 const lifetime = (m: Material): number => m === Material.Fire ? 90 : m === Material.Smoke ? 120 : m === Material.Steam ? 100 : 0;
@@ -47,10 +50,12 @@ export class CellWorld {
   rngState: number;
   private readonly updated: Uint32Array;
   private frame = 0;
+  activeRegion: ActiveRegion | null = null;
+  lastStepCells = 0;
 
   constructor(readonly width: number, readonly height: number, seed = 1) {
-    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 3 || height < 3 || width > 256 || height > 384) {
-      throw new RangeError('CellWorld dimensions must be integers in 3…256 × 3…384.');
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 3 || height < 3 || width > MAX_WORLD_WIDTH || height > MAX_WORLD_HEIGHT) {
+      throw new RangeError('CellWorld dimensions must be integers in 3…1536 × 3…768.');
     }
     this.cells = new Uint8Array(width * height);
     this.life = new Uint8Array(width * height);
@@ -106,15 +111,28 @@ export class CellWorld {
     for (let i = 0; i < count; i++) this.dirty.add(i);
   }
 
+  /** Null retains the expedition's whole-map physics. Inactive cells are frozen. */
+  setActiveRegion(region: ActiveRegion | null): void {
+    if (region === null) { this.activeRegion = null; return; }
+    if (![region.x, region.y, region.width, region.height].every(Number.isSafeInteger) || region.width < 1 || region.height < 1) throw new RangeError('Invalid active region');
+    const x = Math.max(0, Math.min(this.width - 1, region.x)), y = Math.max(0, Math.min(this.height - 1, region.y));
+    const clipped = { x, y, width: Math.min(this.width, region.x + region.width) - x, height: Math.min(this.height, region.y + region.height) - y };
+    if (region.x >= this.width || region.y >= this.height || clipped.width < 1 || clipped.height < 1) throw new RangeError('Active region is outside world');
+    this.activeRegion = clipped;
+  }
+
   step(): void {
     this.tick++;
     this.frame = (this.frame + 1) >>> 0;
     if (this.frame === 0) { this.updated.fill(0); this.frame = 1; }
+    const region = this.activeRegion;
+    const left = region?.x ?? 0, top = region?.y ?? 0, width = region?.width ?? this.width, height = region?.height ?? this.height;
+    this.lastStepCells = width * height;
     // Alternating scan direction removes a persistent left/right flow bias.
     const direction = this.tick % 2 === 0 ? 1 : -1;
-    for (let y = this.height - 1; y >= 0; y--) {
-      for (let n = 0; n < this.width; n++) {
-        const x = direction === 1 ? n : this.width - 1 - n;
+    for (let y = top + height - 1; y >= top; y--) {
+      for (let n = 0; n < width; n++) {
+        const x = direction === 1 ? left + n : left + width - 1 - n;
         const index = y * this.width + x;
         const material = this.cells[index] as Material;
         if (material === Material.Air || material === Material.HardRock || material === Material.Rock || material === Material.Gold || this.updated[index] === this.frame) continue;
@@ -146,6 +164,11 @@ export class CellWorld {
     return Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < this.width && y < this.height;
   }
 
+  private active(x: number, y: number): boolean {
+    const region = this.activeRegion;
+    return !region || (x >= region.x && x < region.x + region.width && y >= region.y && y < region.y + region.height);
+  }
+
   private random(): number {
     // A 32-bit LCG permits zero seeds and exposes a compact, saveable state.
     this.rngState = (Math.imul(this.rngState, 1664525) + 1013904223) >>> 0;
@@ -166,7 +189,7 @@ export class CellWorld {
   }
 
   private move(index: number, x: number, y: number, material: Material, horizontal = false): boolean {
-    if (!this.inBounds(x, y)) return false;
+    if (!this.inBounds(x, y) || !this.active(x, y)) return false;
     const target = y * this.width + x;
     const other = this.cells[target] as Material;
     if (other !== Material.Air && this.updated[target] === this.frame) return false;
@@ -189,7 +212,7 @@ export class CellWorld {
     for (let n = 0; n < 4; n++) {
       const direction = (start + n) & 3;
       const nx = x + DX[direction]; const ny = y + DY[direction];
-      if (!this.inBounds(nx, ny)) continue;
+      if (!this.inBounds(nx, ny) || !this.active(nx, ny)) continue;
       const target = ny * this.width + nx;
       const other = this.cells[target] as Material;
       if ((material === Material.Lava && (other === Material.Water || other === Material.Toxic)) ||

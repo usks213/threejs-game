@@ -5,7 +5,7 @@ import { MAX_RESOURCE, RECIPES, SurvivalRun, TOOL_RANGE } from '../../src/emberf
 import { editWand } from '../../src/emberfall/wands';
 
 function arena(): SurvivalRun {
-  const run = new SurvivalRun(19);
+  const run = new SurvivalRun(19, false);
   run.world = new CellWorld(96, 96, 19);
   run.world.fillRect(0, 60, 96, 36, Material.Rock);
   Object.assign(run.player, { x: 25, y: 55, vx: 0, vy: 0, grounded: true });
@@ -18,7 +18,7 @@ function resetCooldown(run: SurvivalRun) { tick(run, 21); }
 describe('persistent survival crafting rules', () => {
   it('keeps a seeded world without gates, shops, perks, descent or terminal wins', () => {
     const a = new SurvivalRun(17), b = new SurvivalRun(17);
-    expect(a.world.cells).toEqual(b.world.cells); expect(a.mode).toBe('survival');
+    expect(Buffer.from(a.world.cells).equals(Buffer.from(b.world.cells))).toBe(true); expect(a.mode).toBe('survival');
     const world = a.world;
     expect(a.enterRefuge()).toBe(false); expect(a.descend()).toBe(false);
     expect(a.choosePerk('heart')).toBe(false); expect(a.buySpell('bomb', 30)).toBe(false);

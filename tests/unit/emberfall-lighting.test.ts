@@ -49,7 +49,7 @@ describe('cellular local-light visibility', () => {
     const sources = Array.from({ length: 500 }, (_, i) => ({ ...warm, x: 80 + i % 3, y: 90 + i % 3, radius: 500 }));
     const view = { x: 0, y: 0, width: 240, height: 320 };
     field.update(world, sources, view); repeat.update(world, sources, view);
-    expect(field.illumination).toEqual(repeat.illumination); expect(field.emission).toEqual(repeat.emission);
+    expect(Buffer.from(field.illumination).equals(Buffer.from(repeat.illumination))).toBe(true); expect(Buffer.from(field.emission).equals(Buffer.from(repeat.emission))).toBe(true);
     expect(field.metrics.lights).toBeLessThanOrEqual(LIGHT_BUDGET.maxLights);
     expect(field.metrics.rays).toBeLessThanOrEqual(LIGHT_BUDGET.maxRays);
     expect(field.metrics.raySteps).toBeLessThanOrEqual(LIGHT_BUDGET.maxRays * LIGHT_BUDGET.maxRaySteps);

@@ -9,7 +9,7 @@ test('ordinary controls build a stone dam, release the reservoir and reopen down
   const read=async()=>JSON.parse((await cave.getAttribute('data-survival'))!) as State;
   await expect.poll(async()=>Number(await cave.getAttribute('data-tick'))).toBeGreaterThan(10);
   const aim=async(x:number,y:number,ms=450)=>{const s=await read(),b=(await cave.boundingBox())!;const p={x:b.x+(x-s.cameraX)/s.width*b.width,y:b.y+(y-s.cameraY)/s.height*b.height,id:7};
-    if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[p]});else{await page.mouse.move(p.x,p.y);await page.mouse.down();}await page.waitForTimeout(ms);
+    if(cdp){const u=(await page.locator('#use-button').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[p,{x:u.x+u.width/2,y:u.y+u.height/2,id:8}]});}else{await page.mouse.move(p.x,p.y);await page.mouse.down();}await page.waitForTimeout(ms);
     if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else await page.mouse.up();await page.waitForTimeout(250);};
   const flyRight=async(x:number)=>{if(cdp){const m=(await page.locator('.move-pad').boundingBox())!,f=(await page.locator('.fly-button').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:m.x+m.width*.8,y:m.y+m.height/2,id:1},{x:f.x+f.width/2,y:f.y+f.height/2,id:2}]});}else{await page.keyboard.down('KeyD');await page.keyboard.down('Space');}
     await expect.poll(async()=>(await read()).x,{intervals:[50],timeout:6000}).toBeGreaterThan(x);

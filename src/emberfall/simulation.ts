@@ -136,6 +136,8 @@ export class Run {
     }
     this.burst(p.x, p.y, p.enemy ? '#ef7c91' : '#9bffe7', 5);
   }
+  canAdvanceProjectile(_shot: Projectile, _dt: number): boolean { return true; }
+  isEnemyActive(_enemy: Enemy): boolean { return true; }
   step(dt: number, input: Input) {
     if (this.phase !== 'playing' || !Number.isFinite(dt) || dt <= 0) return;
     dt = Math.max(0, Math.min(dt, 1 / 30)); this.time += dt;
@@ -177,7 +179,9 @@ export class Run {
     if (this.phase !== 'playing') return;
     // Reverse iteration permits bounded impact payload insertion without processing it twice.
     for (let i = this.projectiles.length - 1; i >= 0 && this.phase === 'playing'; i--) {
-      const shot = this.projectiles[i]; shot.life -= dt;
+      const shot = this.projectiles[i];
+      if (!this.canAdvanceProjectile(shot, dt)) continue;
+      shot.life -= dt;
       if (shot.blast) shot.vy += dt * 25;
       const steps = Math.max(1, Math.ceil(Math.hypot(shot.vx, shot.vy) * dt)); let hit = false;
       // An expired projectile impacts at its last location, never beyond its range.
@@ -202,7 +206,7 @@ export class Run {
   updateEnemies(dt: number) {
     const p = this.player;
     for (const e of this.enemies) {
-      if (e.hp <= 0 || this.phase !== 'playing') continue;
+      if (e.hp <= 0 || this.phase !== 'playing' || !this.isEnemyActive(e)) continue;
       e.flash = Math.max(0, e.flash - dt); e.cooldown -= dt;
       const dx = p.x - e.x, dy = p.y - e.y, distance = Math.hypot(dx, dy);
       if (distance > 145) continue;

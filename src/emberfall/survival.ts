@@ -1,7 +1,8 @@
 import { Material } from './materials';
+import { createOpenWorld, focusWorld, openWorldEnemies, OPEN_WORLD_WIDTH, OPEN_WORLD_HEIGHT } from './open-world';
 import { Run } from './simulation';
-import type { Input, Perk } from './simulation';
-import type { SpellId } from './wands';
+import type { Enemy, Input, Perk, Projectile } from './simulation';
+import type { CastShot, SpellId } from './wands';
 
 export const BLOCK_SIZE = 3;
 export const TOOL_RANGE = 18;
@@ -48,7 +49,7 @@ export class SurvivalRun extends Run {
   nextStructureId = 1;
   private stepping = false;
 
-  constructor(seed: number) {
+  constructor(seed: number, expand = true) {
     super(seed);
     this.spawn = { x: this.player.x, y: this.player.y };
     // A usable surface workshop clearing connected to the original seeded caves.
@@ -63,11 +64,46 @@ export class SurvivalRun extends Run {
     this.world.fillRect(112, 27, 26, 7, Material.Water);
     this.world.fillRect(147, 23, 4, 11, Material.Wood);
     this.world.fillRect(142, 19, 14, 4, Material.Wood);
-    this.notice = '木・石・砂を採り、作業台とたいまつを作ろう。水をせき止め、拠点から洞窟へ。';
+    if (expand) this.expandWorld(true);
+    this.notice = '木・石・砂を採り、作業台とたいまつを作ろう。東へ広がる地上と深い洞窟を探索しよう。';
+  }
+
+  expandWorld(fresh = false): boolean {
+    if (this.world.width === OPEN_WORLD_WIDTH && this.world.height === OPEN_WORLD_HEIGHT) { focusWorld(this.world, this.player.x, this.player.y); return false; }
+    this.world = createOpenWorld(this.seed, this.world, fresh);
+    this.enemies.push(...openWorldEnemies(Math.max(-1, ...this.enemies.map(e => e.id)) + 1));
+    focusWorld(this.world, this.player.x, this.player.y);
+    return true;
+  }
+
+  override isEnemyActive(enemy: Enemy): boolean {
+    const area = this.world.activeRegion;
+    return !area || (enemy.x >= area.x && enemy.x < area.x + area.width && enemy.y >= area.y && enemy.y < area.y + area.height);
+  }
+  override canAdvanceProjectile(shot: Projectile, dt: number): boolean {
+    const area = this.world.activeRegion;
+    if (!area) return true;
+    const radius = Math.max(shot.blast > 0 ? shot.blast + 3 : 0, shot.dig > 0 ? 4 + shot.dig : 0, shot.fire ? 2 : 0, shot.enemy ? 4 : 9);
+    const nx = shot.x + shot.vx * dt, ny = shot.y + (shot.vy + (shot.blast ? dt * 25 : 0)) * dt;
+    const left = Math.min(shot.x, nx) - radius, right = Math.max(shot.x, nx) + radius;
+    const top = Math.min(shot.y, ny) - radius, bottom = Math.max(shot.y, ny) + radius;
+    return (area.x === 0 || left >= area.x) && (area.y === 0 || top >= area.y) &&
+      (area.x + area.width === this.world.width || right < area.x + area.width) &&
+      (area.y + area.height === this.world.height || bottom < area.y + area.height);
+  }
+  override addShot(shot: CastShot, x: number, y: number, angle: number, enemy = false): void {
+    if (this.projectiles.length >= 128) {
+      // Dormant shots never monopolize the global transient budget. Retire the
+      // oldest offscreen shot harmlessly, without terrain edits or ammo refunds.
+      const dormant = this.projectiles.findIndex(projectile => !this.canAdvanceProjectile(projectile, 0));
+      if (dormant >= 0) this.projectiles.splice(dormant, 1);
+    }
+    super.addShot(shot, x, y, angle, enemy);
   }
 
   override step(dt: number, input: Input): void {
     if (!Number.isFinite(dt) || dt <= 0 || this.phase !== 'playing') return;
+    focusWorld(this.world, this.player.x, this.player.y);
     const elapsed = Math.min(dt, 1 / 30);
     this.toolCooldown = Math.max(0, this.toolCooldown - elapsed);
     this.respawnProtection = Math.max(0, this.respawnProtection - elapsed);
@@ -305,6 +341,7 @@ export class SurvivalRun extends Run {
     const point = this.recoverSpawn();
     Object.assign(this.player, point, { vx: 0, vy: 0, hp: this.player.maxHp, fuel: this.player.maxFuel, wet: 0, burning: 0, toxic: 0, oxygen: 100, invulnerable: 3, grounded: false });
     this.respawnProtection = 3;
+    focusWorld(this.world, this.player.x, this.player.y);
     this.phase = 'playing'; this.deaths++; this.cause = cause;
     this.notice = `${cause}で倒れた。${this.camp ? '焚き火' : '入口'}で復帰した。世界は続き、持ち物と残った設備は引き継がれる。`;
     // Keep distant projectiles, but remove immediate spawn killers.

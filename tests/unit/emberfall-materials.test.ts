@@ -33,7 +33,7 @@ describe('Emberfall cellular materials', () => {
       expect(world.get(x, y)).toBe(Material.HardRock);
     }
     expect(count(world, Material.Water)).toBe(0);
-    expect(() => new CellWorld(257, 384)).toThrow(RangeError);
+    expect(() => new CellWorld(1537, 768)).toThrow(RangeError);
   });
 
   it('tracks only changed 16×16 chunks after the initial upload', () => {

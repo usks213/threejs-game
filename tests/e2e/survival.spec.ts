@@ -16,7 +16,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   const aim=async(x:number,y:number,ms=600)=>{
     const s=await read(), box=(await cave.boundingBox())!;
     const point={x:box.x+(x-s.cameraX)/s.width*box.width,y:box.y+(y-s.cameraY)/s.height*box.height,id:7};
-    if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});else{await page.mouse.move(point.x,point.y);await page.mouse.down();}
+    if(cdp){const u=(await page.locator('#use-button').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point,{x:u.x+u.width/2,y:u.y+u.height/2,id:8}]});}else{await page.mouse.move(point.x,point.y);await page.mouse.down();}
     await page.waitForTimeout(ms);
     if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else await page.mouse.up();
     await page.waitForTimeout(120);
@@ -42,12 +42,33 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   await craft('torch');await select('torch');await page.waitForTimeout(250);await aim(69.5,34.5,100);
   await expect.poll(async()=>(await read()).structures.filter(s=>s.type==='torch').length).toBe(1);
   await page.screenshot({path:info.outputPath(mobile?'survival-lit-base-portrait.png':'survival-lit-base-desktop.png')});
+  // Compare the actual material/scattering/bloom switches through ordinary
+  // settings, at the same lit base. No renderer hooks or image mockups.
+  const comparisons=[
+    {name:'flat',quality:'balanced',pbr:false,volumetric:false,bloom:false},
+    {name:'material',quality:'balanced',pbr:true,volumetric:false,bloom:false},
+    {name:'scattering',quality:'balanced',pbr:true,volumetric:true,bloom:false},
+    {name:'high-bloom',quality:'high',pbr:true,volumetric:true,bloom:true},
+    {name:'low-fallback',quality:'low',pbr:true,volumetric:true,bloom:true},
+    {name:'balanced',quality:'balanced',pbr:true,volumetric:true,bloom:true},
+  ];
+  const graphicsReceipts:unknown[]=[];
+  for(const config of comparisons){
+    if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();
+    if(mobile)await page.locator('[data-tab="settings"]').tap();else await page.locator('[data-tab="settings"]').click();
+    await page.locator('#quality-select').selectOption(config.quality);
+    for(const key of ['pbr','volumetric','bloom'] as const)await page.locator(`#effect-${key}`).setChecked(config[key]);
+    await activate('世界に戻る');await page.waitForTimeout(200);
+    await page.screenshot({path:info.outputPath(`lighting-${config.name}.png`)});
+    graphicsReceipts.push({config,state:await read(),lighting:await cave.getAttribute('data-lighting')});
+  }
+  await info.attach('graphics-comparison.json',{body:JSON.stringify(graphicsReceipts),contentType:'application/json'});
   const built=await read();
   const ownership=(s:State)=>Object.fromEntries(Object.entries(s.resources).map(([key,value])=>[key,value+s.structures.filter(item=>item.type===key).length]));
   // Face the hard ceiling and levitate while firing the actual explosive wand.
   // This produces lethal self-damage; no health/state injection or respawn API.
   if(mobile)await page.locator('#wand-select').tap();else await page.keyboard.press('Digit2');
-  if(cdp){const a=(await page.locator('.aim-pad').boundingBox())!,f=(await page.locator('.fly-button').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:a.x+a.width/2,y:a.y+a.height*.15,id:3},{x:f.x+f.width/2,y:f.y+f.height/2,id:4}]});}
+  if(cdp){const a=(await page.locator('.aim-pad').boundingBox())!,f=(await page.locator('.fly-button').boundingBox())!,u=(await page.locator('#use-button').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:a.x+a.width/2,y:a.y+a.height*.15,id:3},{x:f.x+f.width/2,y:f.y+f.height/2,id:4},{x:u.x+u.width/2,y:u.y+u.height/2,id:5}]});}
   else{const s=await read(),box=(await cave.boundingBox())!;await page.mouse.move((s.x-s.cameraX)/s.width*box.width,4);await page.keyboard.down('Space');await page.mouse.down();}
   await expect.poll(async()=>(await read()).deaths,{timeout:18000}).toBeGreaterThan(0);
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});else{await page.mouse.up();await page.keyboard.up('Space');}

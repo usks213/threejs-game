@@ -41,9 +41,9 @@ describe('isolated versioned survival saves', () => {
     const restored = loadSurvival(storage).run!;
     expect(restored).toBeInstanceOf(SurvivalRun); expect(restored.mode).toBe('survival');
     for (const key of ['player', 'enemies', 'projectiles', 'loot', 'wands', 'selected', 'spells', 'wandPickups', 'ammo', 'resources', 'structures', 'spawn', 'camp', 'tool', 'toolCooldown', 'deaths', 'pickaxeLevel', 'respawnProtection', 'nextStructureId'] as const) expect(restored[key]).toEqual(run[key]);
-    expect(restored.world.cells).toEqual(run.world.cells); expect(restored.world.life).toEqual(run.world.life);
+    expect(Buffer.from(restored.world.cells).equals(Buffer.from(run.world.cells))).toBe(true); expect(Buffer.from(restored.world.life).equals(Buffer.from(run.world.life))).toBe(true);
     for (let i = 0; i < 20; i++) { run.step(1 / 60, idleInput()); restored.step(1 / 60, idleInput()); }
-    expect(restored.world.cells).toEqual(run.world.cells); expect(restored.world.life).toEqual(run.world.life);
+    expect(Buffer.from(restored.world.cells).equals(Buffer.from(run.world.cells))).toBe(true); expect(Buffer.from(restored.world.life).equals(Buffer.from(run.world.life))).toBe(true);
     expect(restored.world.rngState).toBe(run.world.rngState); expect(restored.player).toEqual(run.player); expect(restored.enemies).toEqual(run.enemies);
     run.player.invulnerable = restored.player.invulnerable = 0;
     run.damage(1000, '爆発'); restored.damage(1000, '爆発');
@@ -78,7 +78,7 @@ describe('isolated versioned survival saves', () => {
   });
   it('strictly rejects malformed, missing, out-of-bounds and over-budget fields even with a new checksum', () => {
     const mutations: ((p: Payload) => void)[] = [
-      p => { p.version = 2; },
+      p => { p.version = 3; },
       p => { Reflect.deleteProperty(p.data.survival, 'spawn'); },
       p => { Reflect.deleteProperty(p.data.survival, 'camp'); },
       p => { p.data.survival.extra = true; },
@@ -114,7 +114,7 @@ describe('isolated versioned survival saves', () => {
     expect(saveSurvival(run, storage).ok).toBe(true);
   });
   it('loads old floating structures through one recovery pass while preserving v1 schema and storage', () => {
-    const run = new SurvivalRun(5), storage = new MemoryStorage(); camp(run);
+    const run = new SurvivalRun(5, false), storage = new MemoryStorage(); camp(run);
     run.world.set(25, 34, Material.Air);
     expect(saveSurvival(run, storage).ok).toBe(true);
     const before = new Map(storage.values), old = JSON.parse(storage.getItem(SURVIVAL_SAVE_KEY)!) as Payload;
