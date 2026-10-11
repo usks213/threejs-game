@@ -155,3 +155,11 @@ describe('versioned Emberfall saves', () => {
     expect(saveRun(new Run(1), denied).ok).toBe(false);
   });
 });
+
+it('rejects impossible final-layer refuge saves and prevents out-of-range descent', () => {
+  const run = new Run(7), storage = new MemoryStorage();
+  run.level = 2; run.phase = 'refuge';
+  expect(saveRun(run, storage).ok).toBe(false);
+  expect(run.descend()).toBe(false);
+  expect(run.level).toBe(2);
+});

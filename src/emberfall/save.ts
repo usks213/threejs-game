@@ -104,6 +104,7 @@ function validateData(value: unknown): asserts value is SaveData {
   array(s.wands, 2); requireValid(s.wands.length === 2); for (const wand of s.wands) validateWand(wand);
   number(s.selected, 0, s.wands.length - 1, true); number(s.gold, 0, 1e9, true); number(s.level, 0, 2, true);
   requireValid(['playing', 'refuge', 'dead', 'won'].includes(s.phase as string));
+  requireValid(s.phase !== 'refuge' || Number(s.level) < 2);
   requireValid(s.phase === 'dead' ? p.hp === 0 : p.hp > 0);
   strings(s.perks, PERKS, 6, true); strings(s.perkOffers, PERKS, 3, true); bool(s.perkChosen); strings(s.spells, SPELLS, 10, true);
   object(s.portal, ['x', 'y']); position(s.portal); number(s.seed, 1, 0xffffffff, true); number(s.time); number(s.kills, 0, 1e9, true);

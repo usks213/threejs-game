@@ -243,7 +243,7 @@ export class Run {
     this.gold -= price; this.spells.push(spell); return true;
   }
   descend() {
-    if (this.phase !== 'refuge') return false;
+    if (this.level >= 2 || this.phase !== 'refuge') return false;
     if (!this.perkChosen && this.perkOffers.length) { this.notice = '無料の特性を一つ選んでから出発しよう。'; return false; }
     this.level++; const next = generateLevel(this.seed, this.level); this.world = next.world; this.portal = next.portal;
     this.player.x = next.spawn.x; this.player.y = next.spawn.y; this.player.vx = this.player.vy = 0; this.player.grounded = false;

@@ -43,8 +43,10 @@ export class Renderer {
       ctx.fillStyle = '#4e706c'; ctx.fillRect(x + 2, y + 5, 1, 2);
     }
     if (this.world !== world) { this.world = world; for (let i = 0; i < 16 * 24; i++) world.dirty.add(i); }
+    let minX = 256, minY = 384, maxX = 0, maxY = 0;
     for (const chunk of world.dirty) {
       const cx = (chunk % 16) * 16, cy = Math.floor(chunk / 16) * 16;
+      minX = Math.min(minX,cx); minY = Math.min(minY,cy); maxX = Math.max(maxX,cx + 16); maxY = Math.max(maxY,cy + 16);
       for (let y = cy; y < cy + 16; y++) for (let x = cx; x < cx + 16; x++) {
         const index = y * 256 + x, m = world.cells[index], color = MATERIALS[m].color;
         const shade = ((x * 17 + y * 29 + (x ^ y) * 7) % 19 - 9);
@@ -52,8 +54,9 @@ export class Renderer {
         this.pixels.data[pixel] = color[0] + shade; this.pixels.data[pixel + 1] = color[1] + shade; this.pixels.data[pixel + 2] = color[2] + shade;
         this.pixels.data[pixel + 3] = m === Material.Air ? 0 : 255;
       }
-      this.terrainCtx.putImageData(this.pixels, 0, 0, cx, cy, 16, 16);
     }
+    // One upload for the dirty union avoids hundreds of Canvas/GPU transfers at startup.
+    if (maxX > minX) this.terrainCtx.putImageData(this.pixels, 0, 0, minX, minY, maxX - minX, maxY - minY);
     world.dirty.clear();
     ctx.drawImage(this.terrain, -Math.round(this.cameraX), -Math.round(this.cameraY));
     ctx.save(); ctx.translate(-this.cameraX, -this.cameraY);

@@ -40,7 +40,7 @@ export function startEmberfall(root: HTMLElement) {
     try { const result = saveRun(run, localStorage); element('#save-status').textContent = result.message; return result.ok; }
     catch { element('#save-status').textContent = '保存できません。ブラウザのストレージ設定を確認してください。'; return false; }
   };
-  function start(seed = newSeed()) { run = new Run(seed); started = true; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.enabled = true; controls.clear(); saveClock = 0; persist(); updateHud(); }
+  function start(seed = requestedSeed()) { run = new Run(seed); started = true; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.enabled = true; controls.clear(); saveClock = 0; persist(); updateHud(); }
   function resume() { if (!started || run.phase !== 'playing') return; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.clear(); controls.enabled = true; updateHud(); }
   function freeze() { element('.emberfall').classList.add('in-menu'); paused = true; controls.enabled = false; controls.clear(); overlay.hidden = false; }
   function button(text: string, handler: () => void, parent: HTMLElement, className = '') {
@@ -117,6 +117,7 @@ export function startEmberfall(root: HTMLElement) {
     element('.notice').textContent = run.notice;
     element('.emberfall').classList.toggle('in-menu', paused);
     element('.spray-button small').textContent = `水 ${Math.floor(run.flask)}`;
+    canvas.dataset.observation = JSON.stringify({ seed: run.seed, phase: run.phase, level: run.level, x: p.x, y: p.y, hp: p.hp, kills: run.kills, gold: run.gold, cameraX: renderer.cameraX, cameraY: renderer.cameraY, width: renderer.width, height: renderer.height, enemies: run.enemies.filter(e => run.lineOfSight(p.x, p.y - 1, e.x, e.y)).map(e => ({ x: e.x, y: e.y })) });
     canvas.dataset.inputMove = String(controls.state.move); canvas.dataset.inputClear = controls.lastClearReason; canvas.dataset.phase = run.phase; canvas.dataset.playerX = p.x.toFixed(2); canvas.dataset.playerY = p.y.toFixed(2); canvas.dataset.fuel = p.fuel.toFixed(2); canvas.dataset.projectiles = String(run.projectiles.length); canvas.dataset.tick = String(run.world.tick);
   };
   const resize = () => renderer.resize(); window.addEventListener('resize', resize); renderer.resize(); welcome();
@@ -137,3 +138,5 @@ export function startEmberfall(root: HTMLElement) {
   return () => { disposed = true; cancelAnimationFrame(frame); controls.dispose(); window.removeEventListener('resize', resize); window.removeEventListener('pagehide', unload); root.innerHTML = ''; };
 }
 function newSeed() { return (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0; }
+
+function requestedSeed() { const value = new URLSearchParams(location.search).get('seed'); return value && /^[0-9]{1,10}$/.test(value) && Number(value) <= 0xffffffff ? Number(value) >>> 0 : newSeed(); }
