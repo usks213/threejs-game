@@ -60,3 +60,12 @@ Game candidate: `6035598b078ebb639469ce66cb77337e8141488a`.
 ## Not established
 
 Full Noita parity, broad procedural world variety, complete spell/perk/item/enemy catalogs and combinations, audio/music, real Android/iPhone FPS, controller/remapping/accessibility breadth, full-run Android and human enjoyment/difficulty balance. See the complete [coverage ledger](coverage.md).
+
+
+## Connected-world / portrait / material-lighting increment
+
+Accepted game candidate: `9bc6329279c3aa6ff80736666a766bd3da0ade6d`, CI38152792533. Strict types/build and 170 unit tests pass; 12 browser cases pass on their first attempt, one PC exploration case passes the configured retry, three profile-specific cases are skipped. Android's complete distant exploration/save/return and all survival/control/physics routes pass first attempt. Independent source, real legacy-save migration and 600-window nonreactive conservation checks plus real PNG review accepted the candidate.
+
+Earlier candidate 5189c4f6 exposed a test-driver TouchEnd-before-start error and a real portrait notification/avatar overlap. f0709662 fixed both, but the Android return pilot flew into a tree's underside, and two phone cases needed a retry (frame-progress threshold and precise dam positioning). The accepted candidate adds ordinary rest/rise-before-canopy navigation, gentler near-target touch positioning, and 30/45/60 maximum presentation rates with fixed-step physics/input unchanged. Assertions, health, inventory, world physics and material counts were not relaxed.
+
+Remaining limits: finite 1536×768 world; distant simulation pauses; small regional content/recipe/enemy catalog; artistic 2D PBR/single-scattering approximation rather than full 3D transport; no real-handset FPS/long-session battery guarantee. See open-world.md for exact migration, budgets, sample timings and comparison evidence. Final publication requires the documentation/gate commit's exact CI and actual preview manifest SHA match; existing production must remain unchanged.
