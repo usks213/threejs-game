@@ -41,6 +41,10 @@ export function createPeerRenderProbe(renderer:THREE.WebGLRenderer,scene:THREE.S
    let chest:THREE.Mesh|undefined;group.traverse(object=>{if(!chest&&object instanceof THREE.Mesh)chest=object;});
    if(!chest)return;
    const mesh=chest,after=mesh.onAfterRender;
+   // renderBufferDirect requires Three's active render context. A tiny scene
+   // establishes that context even after the HDR beauty render has returned.
+   const queryScene=new THREE.Scene(),queryMesh=new THREE.Mesh(mesh.geometry,queryMaterial);
+   queryMesh.matrixAutoUpdate=false;queryMesh.frustumCulled=false;queryScene.add(queryMesh);
    let drawn:DrawnSample|undefined;
    const pending:{query:WebGLQuery;sample:Omit<PeerRenderSample,'visible'>}[]=[];
    mesh.onAfterRender=function(...args){
@@ -62,17 +66,17 @@ export function createPeerRenderProbe(renderer:THREE.WebGLRenderer,scene:THREE.S
      // GPU completion can lag frames. Preserve transient poses in a finite ring.
      if(pending.length>=8){renderer.domElement.dataset.peerRenderSkipped=String(Number(renderer.domElement.dataset.peerRenderSkipped??0)+1);return;}
      const query=gl.createQuery();if(!query){renderer.domElement.dataset.peerRenderError='GPU visibility query allocation failed';return;}
-     const entry={query,sample:colorDraw.sample};pending.push(entry);let active=false,failed=false;
+     const entry={query,sample:colorDraw.sample};pending.push(entry);let active=false,failed=false;const autoClear=renderer.autoClear;
      try{
       gl.beginQuery(gl.ANY_SAMPLES_PASSED,query);active=true;
-      // renderBufferDirect skips object callbacks, reuses the exact torso
-      // geometry/world matrix, and writes neither color nor depth. Testing only
-      // during its original draw could miss terrain painted later in that frame.
-      renderer.renderBufferDirect(camera,scene,mesh.geometry,queryMaterial,mesh,null);
+      // Reuse the exact drawn torso geometry/pose against existing water depth.
+      // The proxy writes neither color nor depth and never calls avatar hooks.
+      queryMesh.matrix.copy(mesh.matrixWorld);queryMesh.layers.mask=mesh.layers.mask;
+      renderer.autoClear=false;renderer.render(queryScene,camera);
      }catch(error){renderer.domElement.dataset.peerRenderError=String(error);failed=true;}
-     finally{if(active)gl.endQuery(gl.ANY_SAMPLES_PASSED);if(failed){gl.deleteQuery(query);pending.splice(pending.indexOf(entry),1);}renderer.state.buffers.depth.setMask(true);renderer.state.buffers.color.setMask(true);}
+     finally{renderer.autoClear=autoClear;if(active)gl.endQuery(gl.ANY_SAMPLES_PASSED);if(failed){gl.deleteQuery(query);pending.splice(pending.indexOf(entry),1);}renderer.state.buffers.depth.setMask(true);renderer.state.buffers.color.setMask(true);}
     },
-    dispose(){for(const entry of pending)gl.deleteQuery(entry.query);pending.length=0;drawn=undefined;mesh.onAfterRender=after;},
+    dispose(){for(const entry of pending)gl.deleteQuery(entry.query);pending.length=0;drawn=undefined;queryScene.remove(queryMesh);mesh.onAfterRender=after;},
    });
   },
   remove(id:string){entries.get(id)?.dispose();entries.delete(id);for(let i=samples.length-1;i>=0;i--)if(samples[i].id===id)samples.splice(i,1);publish();},

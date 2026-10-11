@@ -6,7 +6,7 @@ function fixture(supported=true){
  let available=false,visible=false,target:unknown=null;
  const gl={QUERY_RESULT_AVAILABLE:1,QUERY_RESULT:2,ANY_SAMPLES_PASSED:3,createQuery:vi.fn(()=>({})),getQueryParameter:vi.fn((_q:unknown,name:number)=>name===1?available:visible),deleteQuery:vi.fn(),beginQuery:vi.fn(),endQuery:vi.fn(),isContextLost:()=>false};
  const canvas=new EventTarget() as EventTarget&{dataset:Record<string,string>};canvas.dataset={};
- const render=vi.fn();const renderer={getContext:()=>supported?gl:{...gl,createQuery:undefined},getRenderTarget:()=>target,domElement:canvas,renderBufferDirect:render,state:{buffers:{depth:{setMask:vi.fn()},color:{setMask:vi.fn()}}}} as unknown as THREE.WebGLRenderer;
+ const render=vi.fn();const renderer={getContext:()=>supported?gl:{...gl,createQuery:undefined},getRenderTarget:()=>target,domElement:canvas,autoClear:true,render,state:{buffers:{depth:{setMask:vi.fn()},color:{setMask:vi.fn()}}}} as unknown as THREE.WebGLRenderer;
  const group=new THREE.Group(),chest=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial()),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera();group.add(chest);scene.add(group);group.position.set(1,2,-5);group.rotation.y=.7;scene.updateMatrixWorld(true);camera.updateMatrixWorld();
  const probe=createPeerRenderProbe(renderer,scene);
  const draw=()=>{chest.onAfterRender(renderer,scene,camera,chest.geometry,chest.material,group);scene.onAfterRender(renderer,scene,camera,chest.geometry,chest.material,group);};
@@ -14,7 +14,7 @@ function fixture(supported=true){
  return {probe,renderer,gl,group,draw,render,samples:()=>JSON.parse(renderer.domElement.dataset.renderedPeers??'[]') as PeerRenderSample[],result:(value:boolean)=>{available=true;visible=value;},camera,offscreen:(value:unknown={})=>{target=value;}};
 }
 it('records only completed GPU visibility results with the actual interpolated pose',()=>{
- const f=fixture();expect(f.samples()).toEqual([]);f.draw();expect(f.samples()).toEqual([]);expect(f.gl.beginQuery).toHaveBeenCalledTimes(1);expect(f.gl.endQuery).toHaveBeenCalledTimes(1);expect(f.render.mock.calls[0][3]).toMatchObject({colorWrite:false,depthWrite:false,depthTest:true});
+ const f=fixture();expect(f.samples()).toEqual([]);f.draw();expect(f.samples()).toEqual([]);expect(f.gl.beginQuery).toHaveBeenCalledTimes(1);expect(f.gl.endQuery).toHaveBeenCalledTimes(1);expect(f.render.mock.calls[0][0].children[0].material).toMatchObject({colorWrite:false,depthWrite:false,depthTest:true});expect(f.renderer.autoClear).toBe(true);
  f.group.position.x=9;f.draw();expect(f.gl.beginQuery).toHaveBeenCalledTimes(2);f.result(true);f.draw();expect(f.samples()).toMatchObject([{id:'peer',tick:17,x:1,y:2,z:-5,heading:.7,visible:true},{id:'peer',tick:17,x:9,y:2,z:-5,heading:.7,visible:true}]);expect(f.gl.deleteQuery).toHaveBeenCalledTimes(2);f.probe.dispose();expect(f.gl.deleteQuery).toHaveBeenCalledTimes(3);expect(f.renderer.domElement.dataset.renderedPeers).toBeUndefined();
 });
 it('keeps an occluded draw negative and excludes offscreen render targets',()=>{
@@ -40,4 +40,8 @@ it('samples the actual HDR beauty pose only after the completed water-depth targ
  f.offscreen(waterDepth);f.probe.finishFrame(f.camera,waterDepth);expect(f.gl.beginQuery).toHaveBeenCalledTimes(1);expect(f.samples()).toEqual([]);
  f.result(true);f.probe.beginFrame(beauty);f.offscreen(beauty);f.draw();f.offscreen(waterDepth);f.probe.finishFrame(f.camera,waterDepth);expect(f.samples()).toMatchObject([{id:'peer',tick:17,x:1,y:2,z:-5,heading:.7,visible:true}]);
  f.probe.dispose();beauty.dispose();waterDepth.dispose();unrelated.dispose();
+});
+
+it('restores render clearing and reports failed queries without leaking them',()=>{
+ const f=fixture();f.render.mockImplementationOnce(()=>{throw new Error('query failure');});f.draw();expect(f.renderer.autoClear).toBe(true);expect(f.gl.endQuery).toHaveBeenCalledTimes(1);expect(f.gl.deleteQuery).toHaveBeenCalledTimes(1);expect(f.renderer.domElement.dataset.peerRenderError).toContain('query failure');expect(f.samples()).toEqual([]);f.probe.dispose();
 });
