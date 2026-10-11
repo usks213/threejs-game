@@ -29,8 +29,12 @@ Fixed 60Hz actor steps and 30Hz material steps, maximum five catch-up steps. Ful
 
 ## Verification
 
-Run `npm run typecheck`, `npm run test`, `npm run build`, `npm run e2e`. Browser tests produce title, cave, equipment and touch screenshots. Unit tests separately verify materials, wands, run gates/perks and saves; map-clearance checks are not proof of combat playability. Local browser execution is currently blocked by absent matching Playwright browser executable. CI browser results and images must be checked for the exact PR commit before calling the UI accepted. Android emulation is not a real phone/FPS measurement.
+Run `npm run typecheck`, `npm run test`, `npm run build`, `npm run e2e`. Browser tests produce title, cave, equipment and touch screenshots. Unit tests separately verify materials, wands, run gates/perks and saves; map-clearance checks are not proof of combat playability. Local browser execution is currently blocked by absent matching Playwright browser executable. The exact game candidate 6035598b passed CI38140465815: four applicable browser cases, with two profile-inapplicable skips. PC and Android-profile movement/flight/fire/pause/save/resume, trusted three-finger touch/release/rotation, and the complete desktop three-layer/shop/perk/guardian journey passed. Title, equipment, portrait, landscape, refuge and victory PNGs were inspected. Android emulation is not a real phone/FPS measurement.
 
 On this cloud CPU, the materials-only 256×384 test measured ~1.79 ms/tick for a cavern with 7,800 active particles and ~17.05 ms/tick for an entirely water-filled stress map. These are narrow CPU measurements, not phone FPS or whole-game frame time.
 
 A deterministic input-only headless route (seed 3397) completed all three caves, both refuge decisions and the guardian in 70.22 simulated seconds: 22 kills, 270 gold, 63.225/125 HP. It never teleports or mutates health/world state. Five seeds reached the first refuge. This is rule-level automated play, not browser/phone acceptance. Reproduce with `EMBERFALL_ROUTE_TRACE=1 npm run test -- tests/unit/emberfall-route.test.ts --reporter=verbose --disableConsoleIntercept`.
+
+## Release review
+
+See [release-review.md](release-review.md) for the exact accepted candidate, previous failures and resolved fixes. PR #6 remains a draft. Its upload job targets a version alias of the existing `threejs-game` Worker and verifies that production deployments do not change. It never merges main or updates PR #4/#5.

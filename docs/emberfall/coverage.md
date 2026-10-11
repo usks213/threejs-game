@@ -8,11 +8,11 @@ Reference requested: https://noita.wiki.gg/ja/ . The Japanese entry could not be
 | Actor/material coupling | Implemented subset | Wet, burning, poison, oxygen, lava and bottle fill. Actor feet/head sampling, fire resistance. No coating proportions, ingestion or full stain model. |
 | Wands/decks | Implemented subset | Ordered/shuffled engine, mana/regen, capacity/spread, delay vs recharge, modifiers, multicast, bounded nested impact payload, limited ammo. Wand tests. Normal run currently has only two nonshuffle wands. |
 | Wand inventory and shops | Partial | Safe editing, spell-type unlock purchase and prices checked by rules. Reusable unlocked spell types differ from finite card inventory. No dropped-wand pickup, selling, shuffle-wand acquisition or full catalog. |
-| Movement/input | Implemented; browser verification pending | Platform collision, step-up, fuel-limited flight, aiming, shooting, multitouch and input release. No kick/throw, controller/remap or equivalent accessibility options. |
+| Movement/input | Implemented bounded subset; PC/Android-profile smoke accepted | Platform collision, step-up, fuel-limited flight, aiming, shooting, multitouch and input release. No kick/throw, controller/remap or equivalent accessibility options. |
 | Cave generation | Partial | Three descending zones; seeded path/side pockets, increasing enemies and distinct water/toxic/lava hazards. Downhill character-clearance tests on 18 maps. Shared zigzag topology, no large branching surface world. |
 | Combat/loot | Partial | Crawler/moth/sentry + guardian, LOS/contact/projectile/blast/hazards, gold pickups/mining. No faction AI, wand-using enemies, indirect kill bonus or large enemy catalog. |
 | Refuge/perks/progression | Implemented bounded subset | Healing/ammo/bottle restoration, one-of-three perk selection, six effects, shop and next layer. Unit tests distinguish all effects. No perk stacking/rare combinations/anger/destruction escape simulation. |
-| Boss/victory/death | Implemented rules; full-run real-input acceptance pending | Final gate blocked by living guardian; terminal death/victory preserved on save. Input-only headless seed 3397 wins all three layers with ordinary health/resources; five seeds reach first refuge. Browser and human acceptance remain pending. |
+| Boss/victory/death | Implemented bounded rules; desktop full-run input acceptance passed | Final gate blocked by living guardian; terminal death/victory preserved on save. Input-only headless seed 3397 wins all three layers with ordinary health/resources; five seeds reach first refuge. Desktop normal keyboard/mouse plus shop UI reached victory in CI38140465815. Full-run Android and human acceptance remain pending. |
 | Save/resume | Implemented subset | Full edited terrain/lifetimes/RNG, actors/projectiles, deck/ammo, perks/phase, checksum+schema limits, backup and error reporting. Local single browser only, no cloud sync. |
 | Visuals/audio | Partial | Original procedural pixel sprites, terrain, particles, cheap light pools, Japanese UI. No sampled source assets; audio/music are not implemented. |
 | Performance | Narrow unit/CPU evidence | Bounded finite grid + dirty render chunks + capped effects. No actual Android/iPhone FPS, long-session battery/memory or broad stress acceptance. |
@@ -26,7 +26,7 @@ Reference requested: https://noita.wiki.gg/ja/ . The Japanese entry could not be
 - Additional biomes/topologies, surface, side regions, secret rooms, environmental puzzles, optional bosses/quests/orbs, parallel worlds, NG+, alternate endings.
 - Factions, enemy wand use, many attack patterns, indirect/trick kill rewards and broader encounter balance.
 - Controller, remapping, audio/music, localization/accessibility breadth, actual-device and long-session acceptance.
-- A fully verified end-to-end ordinary-input journey through all layers, shops, boss and ending; current clear-path/rule tests do not substitute for it.
+- Android full-run and human play acceptance through all layers, shops, boss and ending. The desktop ordinary-input seed3397 journey passed; one scripted route does not establish general difficulty balance or fun.
 
 ## Sources
 
