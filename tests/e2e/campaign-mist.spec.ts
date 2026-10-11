@@ -1,0 +1,6 @@
+import {test,expect} from '@playwright/test';
+import {PlayerControls,read,choosePerformance} from './helpers/campaign-controls';
+test('E02/G07 mist has a visible world boundary and an accessible approach warning before entry',async({page,isMobile},info)=>{
+ test.setTimeout(360000);const errors:string[]=[];page.on('pageerror',error=>errors.push(String(error)));await page.goto('/?test=1&streaming=1');await expect(page.locator('#game')).toHaveAttribute('data-ready','true',{timeout:90000});await choosePerformance(page,isMobile);const controls=new PlayerControls(page,isMobile);await controls.activate('#start');await controls.initialize();
+ try{await controls.walkTo(0,5.3);await controls.walkTo(12,5.3);await controls.walkTo(12,-3.5);await controls.walkTo(10.5,-3.5);await controls.aim({x:8,y:1.5,z:-7});await expect(page.locator('#campaign-status')).toHaveAttribute('aria-label',/霧の境界/);const state=await read(page);expect(state.hp).toBeGreaterThan(0);expect(state.position.z).toBeGreaterThan(-5);expect(await page.evaluate(()=>Reflect.get(window,'__coreProbe').stats.mistBoundaries)).toEqual({volumes:3,sheets:12,triangles:24});await page.screenshot({path:info.outputPath('mist-boundary-before-entry.png')});expect(errors).toEqual([]);}finally{await controls.dispose();}
+});

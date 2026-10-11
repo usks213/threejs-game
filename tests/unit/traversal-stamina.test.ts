@@ -1,0 +1,5 @@
+import {it,expect} from 'vitest';
+import {CoreSimulation} from '../../src/prototype/core/simulation';
+const idle={x:0,z:0,sprint:false,block:false,water:false};
+it('gliding drains stamina instead of idle regeneration cancelling its cost',()=>{const s=new CoreSimulation();s.campaign.state.items.glider=1;s.campaign.equip('glider');s.player.position={x:10,y:8,z:7};s.player.yaw=Math.PI;s.player.grounded=false;s.gliding=true;for(let i=0;i<120;i++)s.tick(1/60,idle);expect(s.gliding).toBe(true);expect(s.player.stamina).toBeCloseTo(86,4);expect(s.player.position.z).toBeGreaterThan(13);});
+it('an exhausted glider ends and only then can stamina recover',()=>{const s=new CoreSimulation();s.campaign.state.items.glider=1;s.campaign.equip('glider');s.player.position={x:10,y:10,z:7};s.player.yaw=Math.PI;s.player.grounded=false;s.player.stamina=.1;s.gliding=true;s.tick(1/60,idle);s.tick(1/60,idle);expect(s.gliding).toBe(false);expect(s.player.stamina).toBe(0);for(let i=0;i<36;i++)s.tick(1/60,idle);expect(s.player.stamina).toBeGreaterThan(0);});

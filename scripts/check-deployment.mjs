@@ -18,7 +18,7 @@ for (let attempt = 1; attempt <= 40; attempt++) {
     const page = await fetch(base, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
     if (!page.ok) throw new Error(`Game page returned HTTP ${page.status}`);
     const html = await page.text();
-    if (!html.includes('id="game"') || !html.includes('id="stick"')) {
+    if (!html.includes('id="game"') || !html.includes('id="move-pad"')) {
       throw new Error('The deployed page does not contain the game and touch controls.');
     }
     console.log(`Verified deployed commit ${expected} at ${base.origin}`);

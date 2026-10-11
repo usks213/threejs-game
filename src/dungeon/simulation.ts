@@ -1,0 +1,114 @@
+import {attackPose,bladeWorld,bodyCapsules,segmentDistance,meleeDefinition,facing,type WeaponPose} from '../prototype/core/motion';
+import type {Vec3} from '../prototype/core/voxel';
+import {CLASSES,ITEMS} from './catalog';
+import {BASTION_SKILLS,getBastionTraining,bastionTrainingStats,activeBastionSkill,bastionSkillReadyIn} from './training';
+import {RAVAGER_SKILLS,getRavagerTraining,ravagerSkillReadyIn,ravagerMeleeMultiplier,ravagerIncomingMultiplier,ravagerRecoveryRate} from './ravager-training';
+import {place,transfer,fits,BAG_HEIGHT,STASH_HEIGHT} from './inventory';
+import {blocked,distance,wallRay} from './world';
+import {buySupply,sellTreasure,freshSupplyStock,preparationIssue,loadoutWeapon} from './economy';
+import {acceptQuest,deliverQuest,claimQuest,recordQuestExtraction} from './quests';
+import {DUNGEON_PROTOCOL,RAID_SECONDS,type Actor,type Enemy,type Input,type Profile,type RaidState,type Item,type ItemKind,type ClassId,type Action,type Snapshot,type Exit} from './types';
+const neutral=():Input=>({x:0,z:0,yaw:0,pitch:0,block:false,crouch:false});
+const archetype=(actor:Actor)=>actor.weapon==='greatsword'?'greatsword':actor.weapon==='dagger'?'dagger':'sword';
+const pose=(actor:Actor)=>attackPose(actor.kind,actor.phase,actor.time,1,archetype(actor));
+export function createActor(id:string,name:string,classId:ClassId='bastion'):Actor{return {id,name,classId,team:0,position:{x:-10,y:0,z:10},yaw:0,pitch:0,hp:CLASSES[classId].hp,maxHp:CLASSES[classId].hp,recoverable:CLASSES[classId].hp,phase:'idle',time:0,kind:'slash',hit:[],guard:0,status:'lobby',bag:[],weapon:CLASSES[classId].weapon,arrows:12,spells:CLASSES[classId].spells,cast:0,extract:0,interaction:null,input:neutral(),inputAt:-10,seq:0,kills:0,xp:0,damageTaken:0,ready:false,connected:false};}
+export function createRaid():RaidState{return {version:1,shop:freshSupplyStock(),raid:0,seed:1,phase:'lobby',elapsed:0,tick:0,serial:0,profiles:[],enemies:[],containers:[],doors:[],exits:[],shots:[],events:[]};}
+/** Pure server rules: callers supply elapsed server time, never client position/HP. */
+export class DungeonSimulation {
+ dirty=false;
+ constructor(readonly state:RaidState=createRaid()){}
+ private changed(){this.dirty=true;}
+ private event(text:string){this.state.events.push(text);if(this.state.events.length>12)this.state.events.shift();this.changed();}
+ private item(kind:ItemKind,count=1,quality=0):Item{return {id:`r${this.state.raid}-i${++this.state.serial}`,kind,count,quality,x:0,y:0,rotated:false,found:false};}
+ join(key:string,name:string):Profile|null{let profile=this.state.profiles.find(p=>p.key===key);if(profile){profile.actor.connected=true;profile.actor.input=neutral();return profile;}if(this.state.profiles.length>=6)return null;const actor=createActor(`p${this.state.profiles.length+1}`,name);actor.connected=true;profile={key,actor,stash:[],gold:0,raid:0,lastAction:0,result:'',receipt:[],pendingReturn:[]};this.state.profiles.push(profile);this.changed();return profile;}
+ disconnect(id:string){const p=this.profile(id);if(p){p.actor.connected=false;p.actor.input=neutral();this.changed();}}
+ profile(id:string){return this.state.profiles.find(p=>p.actor.id===id);}
+ input(id:string,sequence:number,input:Input){const a=this.profile(id)?.actor;if(!a||sequence<=a.seq)return false;a.seq=sequence;a.input={...input};a.inputAt=this.state.elapsed;a.yaw=input.yaw;a.pitch=input.pitch;return true;}
+ command(id:string,sequence:number,action:Action):string{const p=this.profile(id);if(!p)return '参加してください';if(sequence<=p.lastAction)return '処理済みの操作です';p.lastAction=sequence;this.changed();const a=p.actor;
+  if(action.kind==='class'){if(this.state.phase==='raid'||a.ready)return '入場前に変更してください';a.classId=action.classId;a.weapon=CLASSES[action.classId].weapon;a.maxHp=a.classId==='bastion'?bastionTrainingStats(getBastionTraining(a)).maxHp:CLASSES[a.classId].hp;a.hp=a.maxHp;a.recoverable=a.maxHp;delete a.skillState;delete a.ravagerSkillState;return '役割を変更しました';}
+  if(action.kind==='configure-training'){if(this.state.phase==='raid'||a.status!=='lobby'||a.ready)return '補給所で準備を解除してから訓練を変更してください';if(a.classId!=='bastion')return '城塞兵だけが訓練を選べます';a.training={skill:action.skill,perk:action.perk};delete a.skillState;a.maxHp=bastionTrainingStats(a.training).maxHp;a.hp=a.maxHp;a.recoverable=a.maxHp;return '訓練を変更しました';}
+  if(action.kind==='configure-ravager-training'){if(this.state.phase==='raid'||a.status!=='lobby'||a.ready)return '補給所で準備を解除してから訓練を変更してください';if(a.classId!=='ravager')return '荒戦士だけが訓練を選べます';a.ravagerTraining={skill:action.skill,perk:action.perk};delete a.ravagerSkillState;return '訓練を変更しました';}
+  if(action.kind==='ready'){if(a.status!=='lobby')return '補給所へ戻ってから準備してください';if(this.state.phase==='raid')return '進行中の遠征には途中入場できません';if(!a.ready&&p.pendingReturn?.length)return '帰還品をすべて受け取ってから準備してください';const issue=preparationIssue(a.bag);if(!a.ready&&issue)return issue;a.ready=!a.ready;return a.ready?'準備完了':'準備を解除';}
+  if(action.kind==='start'){if(this.state.phase==='raid')return '遠征中です';const participants=this.state.profiles.filter(p=>p.actor.connected);if(participants.some(p=>p.pendingReturn?.length))return '帰還品が未受取の探索者がいます。受け取りを完了してください';if(!participants.length||participants.some(p=>!p.actor.ready))return '接続中の全員が準備を完了してください';if(participants.some(p=>preparationIssue(p.actor.bag)))return '武器のない携行品があります。準備を解除して装備を確認してください';this.start();return '遠征を開始しました';}
+  if(action.kind==='return'){if(a.status==='alive')return '生存中は脱出口へ向かってください';if(this.state.phase==='raid'&&this.state.profiles.some(p=>p.actor.status==='alive'))return 'ほかの探索者の結果を待っています';a.status='lobby';a.ready=false;return '補給所へ戻りました';}
+  if(action.kind==='accept-quest')return acceptQuest(this.state,p,action.quest);
+  if(action.kind==='deliver-quest')return deliverQuest(this.state,p,action.quest,action.item);
+  if(action.kind==='claim-quest')return claimQuest(this.state,p,action.quest);
+  if(action.kind==='buy-supply')return buySupply(this.state,p,action.supply);
+  if(action.kind==='sell-treasure')return sellTreasure(this.state,p,action.item);
+  if(action.kind==='claim-return'){if(this.state.phase==='raid'||a.status!=='lobby'||a.ready)return '補給所へ戻り、準備を解除してから帰還品を受け取ってください';const pending=p.pendingReturn??[],destination=action.to==='bag'?a.bag:p.stash;const ok=transfer(pending,destination,action.item,action.to==='bag'?BAG_HEIGHT:STASH_HEIGHT);return ok?'帰還品を受け取りました':'帰還品がないか、受取先に空きがありません';}
+  if(action.kind==='transfer'){if(this.state.phase==='raid'||a.ready)return '補給所で準備前に移してください';const ok=action.to==='bag'?transfer(p.stash,a.bag,action.item):transfer(a.bag,p.stash,action.item,STASH_HEIGHT);return ok?'品物を移しました':'空き領域か品物がありません';}
+  if(action.kind==='move-item'){const item=a.bag.find(i=>i.id===action.item);if(!item)return '品物がありません';const next={...item,x:action.x,y:action.y,rotated:action.rotate};if(!fits(a.bag,next))return 'その位置には入りません';Object.assign(item,next);return '配置を変更しました';}
+  if(this.state.phase!=='raid'||a.status!=='alive')return '遠征中の生存者だけが操作できます';
+  if(action.kind==='skill'&&a.classId==='ravager'){const skill=getRavagerTraining(a).skill;if(!skill)return '荒戦士の技を補給所で選んでください';if(a.phase!=='idle'||a.cast!==0||a.interaction!==null||a.extract>0)return '動作・探索・帰還の終了を待ってください';if(ravagerSkillReadyIn(a,this.state.elapsed)>0)return '技は再使用待ちです';if(a.weapon!=='greatsword'||!a.bag.some(item=>item.kind==='greatsword'))return '狂奔には装備・携行中の大剣が必要です';const definition=RAVAGER_SKILLS[skill];a.ravagerSkillState={skill,activeUntil:this.state.elapsed+definition.duration,readyAt:this.state.elapsed+definition.cooldown};this.event(`${a.name}が${definition.name}を発動`);return `${definition.name}を発動しました`;}
+  if(action.kind==='skill'){const skill=getBastionTraining(a).skill;if(a.classId!=='bastion'||!skill)return '城塞兵の技を補給所で選んでください';if(a.phase!=='idle'||a.cast!==0||a.interaction!==null||a.extract>0)return '動作・探索・帰還の終了を待ってください';if(bastionSkillReadyIn(a,this.state.elapsed)>0)return '技は再使用待ちです';if(skill==='brace'&&!a.bag.some(item=>item.kind==='shield'))return '硬守には携行中の盾が必要です';const definition=BASTION_SKILLS[skill];a.skillState={skill,activeUntil:this.state.elapsed+definition.duration,readyAt:this.state.elapsed+definition.cooldown};this.event(`${a.name}が${definition.name}を発動`);return `${definition.name}を発動しました`;}
+  if(action.kind==='loot'){const box=this.state.containers.find(c=>c.id===action.target);if(!box||!box.opened||!this.reachable(a,box.position,2.5))return '開いた箱のそばで操作してください';if(transfer(box.items,a.bag,action.item)){this.event(`${a.name}が戦利品を拾った`);return '戦利品を拾いました';}return '品物がないか、鞄に空きがありません';}
+  if(action.kind==='interact'){const door=this.state.doors.find(d=>d.id===action.target),box=this.state.containers.find(c=>c.id===action.target),exit=this.state.exits.find(e=>e.id===action.target);const target=door??box??exit;if(!target||distance(a.position,target.position)>2.6)return '対象に近づいてください';if(door){const from={...a.position,y:1.4},to={...door.position,y:1.4};if(wallRay(from,to,this.state.seed,this.state.doors.filter(d=>d!==door)))return '壁に遮られています';if(door.open&&[...this.state.profiles.map(p=>p.actor),...this.state.enemies].some(other=>other.status==='alive'&&Math.abs(other.position.x-door.position.x)<3.35&&Math.abs(other.position.z-door.position.z)<.5))return '身体が重なるため扉を閉められません';door.open=!door.open;this.event('重い扉が軋んだ');return door.open?'扉を開きました':'扉を閉じました';}if(!this.reachable(a,target.position,2.6))return '壁に遮られています';if(box){if(box.opened)return '開いた箱から品物を選んでください';if(box.locked){const key=a.bag.find(i=>i.kind==='key');if(!key)return '細工鍵が必要です';this.consume(a,key);box.locked=false;}a.interaction=box.id;a.extract=0;return '探索中。移動や被撃で中断します';}if(exit){if(this.state.elapsed<exit.opensAt)return '脱出口はまだ開いていません';if(!exit.remaining)return '脱出口は使用済みです';a.interaction=exit.id;a.extract=0;return '帰還の光を維持してください';}}
+  if(a.phase!=='idle'||a.cast>0)return '動作の終了を待ってください';
+  if(action.kind==='attack'&&a.weapon==='bow'&&action.heavy)return '弓では強攻撃できません。通常攻撃で射撃してください';
+  a.interaction=null;a.extract=0;
+  if(action.kind==='shoot'||action.kind==='attack'&&a.weapon==='bow'){if(a.weapon!=='bow'||a.arrows<1)return '弓と矢が必要です';a.phase='heal';a.time=0;a.cast=-.55;return '弓を引いています';}
+  if(action.kind==='attack'){a.phase='windup';a.kind=action.heavy?'overhead':a.kind==='slash'?'return':'slash';a.time=0;a.hit=[];return '攻撃';}
+  if(action.kind==='cast'){if(a.spells<=0)return '術の回数が残っていません';a.phase='heal';a.time=0;a.cast=.8;return '詠唱中';}
+  if(action.kind==='heal'){const item=a.bag.find(i=>i.kind==='potion'||i.kind==='bandage');if(!item)return '薬か包帯が必要です';this.consume(a,item);a.hp=Math.min(a.maxHp,a.hp+(item.kind==='potion'?35:Math.max(0,Math.min(20,a.recoverable-a.hp))));a.phase='heal';a.time=0;return '回復しました';}
+  return '操作できません';
+ }
+ private consume(a:Actor,item:Item){if(--item.count<=0)a.bag.splice(a.bag.indexOf(item),1);this.changed();}
+ private start(){const s=this.state;s.raid++;s.shop=freshSupplyStock();s.seed=(s.raid*7919)%65536;s.phase='raid';s.elapsed=0;s.tick=0;s.enemies=[];s.shots=[];s.events=[];s.containers=[];s.doors=[{id:'door-north',position:{x:0,y:0,z:-4.75},open:false},{id:'door-south',position:{x:0,y:0,z:5.25},open:false}];s.exits=[{id:'exit-west',position:{x:-12,y:0,z:12},opensAt:45,remaining:2},{id:'exit-east',position:{x:12,y:0,z:-12},opensAt:90,remaining:2},{id:'exit-north',position:{x:0,y:0,z:-13},opensAt:180,remaining:2}];
+  const spawns=[[-11,11],[11,-11],[-11,-11],[11,11],[-12,0],[12,0]];
+  s.profiles.forEach((p,i)=>{delete p.actor.skillState;delete p.actor.ravagerSkillState;if(!p.actor.connected)return;const previous=p.actor;const a=createActor(previous.id,previous.name,previous.classId);if(previous.training)a.training={...previous.training};if(previous.ravagerTraining)a.ravagerTraining={...previous.ravagerTraining};if(a.classId==='bastion'){a.maxHp=bastionTrainingStats(getBastionTraining(a)).maxHp;a.hp=a.maxHp;a.recoverable=a.maxHp;}a.position={x:spawns[i][0],y:0,z:spawns[i][1]};a.yaw=i%2?Math.PI:0;a.status='alive';a.connected=true;a.bag=previous.bag;a.seq=previous.seq;a.ready=false;if(!a.bag.length){place(a.bag,this.item(CLASSES[a.classId].weapon));place(a.bag,this.item('potion',2));if(a.classId==='bastion'||a.classId==='keeper')place(a.bag,this.item('shield'));}a.weapon=loadoutWeapon(a.bag,a.classId)!;p.actor=a;p.raid=s.raid;p.result='';});
+  for(const [i,x,z] of [[0,-2,0],[1,2,0],[2,0,-11],[3,0,11]]){const a=createActor(`e${i}`,'灰の番兵',i===2?'ravager':'bastion');a.position={x,y:0,z};a.status='alive';a.hp=70;a.maxHp=70;a.recoverable=70;a.team=-1;s.enemies.push({...a,home:{...a.position},alert:0,lootClaimed:false});}
+  for(const [i,x,z] of [[0,-12,7],[1,12,-7],[2,-12,-12],[3,12,12],[4,0,0]]){const items:Item[]=[];place(items,this.item('relic',1,i===4?3:1));place(items,this.item('ore',2+i,1));place(items,this.item(i===4?'potion':'key'));s.containers.push({id:`chest${i}`,name:i===4?'中央の封印箱':'朽ちた収納箱',position:{x,y:0,z},items,opened:false,locked:i===4,kind:'chest'});}this.event('帰還の光が開くまで、生き延びて戦利品を探す');
+ }
+ private reachable(a:Actor,p:Vec3,range:number){return distance(a.position,p)<=range&&!wallRay({...a.position,y:1.3},{...p,y:1.3},this.state.seed,this.state.doors);}
+ /** Exact fixed 50ms authoritative step. Server adapter bounds catch-up work. */
+ step(){const s=this.state;if(s.phase!=='raid')return;s.elapsed+=.05;s.tick++;
+  for(const p of s.profiles){const a=p.actor;if(a.status!=='alive')continue;if(s.elapsed-a.inputAt>.35)a.input=neutral();this.move(a,a.input.x,a.input.z,(a.classId==='bastion'?bastionTrainingStats(getBastionTraining(a)).speed:CLASSES[a.classId].speed)*(activeBastionSkill(a,s.elapsed)==='rush'?1.4:1)*(a.input.crouch?.55:1));this.actorTick(a);}
+  for(const e of s.enemies){if(e.status==='alive')this.enemyTick(e);}
+  for(const shot of [...s.shots]){const end={x:shot.position.x+shot.velocity.x*.05,y:shot.position.y+shot.velocity.y*.05,z:shot.position.z+shot.velocity.z*.05};if(!shot.magic)shot.velocity.y-=.05*3;const wall=wallRay(shot.position,end,s.seed,s.doors);let hit=false;for(const target of [...s.profiles.map(p=>p.actor),...s.enemies]){if(target.id===shot.owner||target.status!=='alive')continue;if(bodyCapsules(target.position,target.yaw,pose(target)).some(c=>segmentDistance(shot.position,wall??end,c.a,c.b)<c.r+.06)){this.damage(target,shot.damage,shot.owner,shot.position);hit=true;break;}}shot.life-=.05;if(hit||wall||shot.life<=0||end.y<0)s.shots.splice(s.shots.indexOf(shot),1);else shot.position=end;}
+  if(s.elapsed>=RAID_SECONDS-.001){for(const p of s.profiles)if(p.actor.status==='alive')this.kill(p.actor,'時間切れ');}
+  if(s.profiles.every(p=>p.actor.status!=='alive')){s.phase='finished';this.event('遠征終了。持ち帰った品だけが残ります');}
+ }
+ private enemyTick(e:Enemy){
+  const target=this.state.profiles.map(p=>p.actor).filter(a=>a.status==='alive'&&this.reachable(e,a.position,8)).sort((a,b)=>distance(a.position,e.position)-distance(b.position,e.position))[0];
+  e.alert=target?4:Math.max(0,e.alert-.05);
+  // Commit the visible windup's facing and feet through the full recovery.
+  // Navigation resumes on the next idle tick, even if the target was lost.
+  if(e.phase==='idle'){
+   if(target){
+    e.yaw=Math.atan2(-(target.position.x-e.position.x),-(target.position.z-e.position.z));
+    if(distance(target.position,e.position)>1.55)this.move(e,0,1,1.65);
+    else{e.phase='windup';e.time=0;e.hit=[];e.kind='slash';}
+   }else if(distance(e.position,e.home)>1){
+    e.yaw=Math.atan2(-(e.home.x-e.position.x),-(e.home.z-e.position.z));this.move(e,0,1,1.2);
+   }
+  }
+  this.actorTick(e);
+ }
+ private move(a:Actor,x:number,z:number,speed:number){if(!x&&!z)return;const n=Math.max(1,Math.hypot(x,z)),slow=a.phase==='idle'&&!a.input.block?1:.48,dx=(Math.cos(a.yaw)*x-Math.sin(a.yaw)*z)/n*speed*.05*slow,dz=(-Math.sin(a.yaw)*x-Math.cos(a.yaw)*z)/n*speed*.05*slow;const pass=(p:Vec3)=>!blocked(p,this.state.seed,this.state.doors)&&[...this.state.profiles.map(p=>p.actor),...this.state.enemies].every(other=>other.id===a.id||other.status!=='alive'||distance(p,other.position)>=.62);const p={...a.position,x:a.position.x+dx};if(pass(p))a.position.x=p.x;p.x=a.position.x;p.z+=dz;if(pass(p))a.position.z=p.z;if(a.interaction){a.interaction=null;a.extract=0;}}
+ private actorTick(a:Actor){const before=pose(a);a.guard=Math.max(0,Math.min(1,a.guard+(a.input.block&&a.phase==='idle'?1:-1)*.05*6));a.time+=.05*ravagerRecoveryRate(a);if(a.cast){const was=a.cast;a.cast=was>0?Math.max(0,was-.05):Math.min(0,was+.05);if(!a.cast){if(was<0){a.arrows--;this.fire(a,false);}else{a.spells--;if(a.classId==='keeper')a.hp=Math.min(a.maxHp,a.hp+40);else this.fire(a,true);}this.changed();}}
+  const def=meleeDefinition(a.kind,archetype(a));if(a.phase==='windup'&&a.time>=def.windup){a.phase='strike';a.time=0;}if(a.phase==='strike'){this.sweep(a,before,pose(a));if(a.time>=def.strike){a.phase='recover';a.time=0;}}else if(a.phase==='recover'&&a.time>=def.recover||a.phase==='heal'&&a.time>=1.2||a.phase==='stagger'&&a.time>=.5){a.phase='idle';a.time=0;}
+  if(a.interaction){const target=this.state.containers.find(c=>c.id===a.interaction)??this.state.exits.find(e=>e.id===a.interaction);if(!target||!this.reachable(a,target.position,2.6)){a.interaction=null;a.extract=0;return;}a.extract+=.05;if('items'in target&&a.extract>=1.5){target.opened=true;a.interaction=null;a.extract=0;this.event(`${a.name}が箱を開いた`);}else if('remaining'in target&&a.extract>=4){if(target.remaining>0&&this.state.elapsed>=target.opensAt){this.extract(a,target);}a.interaction=null;a.extract=0;}}
+ }
+ /** The ready/start gates ensure there is at most one bag-sized return batch. */
+ private extract(a:Actor,exit:Exit){
+  const p=this.profile(a.id)!,candidate=p.stash.map(item=>({...item})),pending:Item[]=[];
+  let banked=0;
+  for(const item of a.bag){
+   const returned={...item,found:true};
+   if(place(candidate,returned,STASH_HEIGHT))banked++;
+   // A failed placement leaves the original valid bag coordinates untouched.
+   else pending.push(returned);
+  }
+  p.stash=candidate;p.pendingReturn=pending;a.bag=[];exit.remaining--;
+  a.status='extracted';a.phase='idle';a.xp+=50;
+  recordQuestExtraction(p);
+  p.result=`帰還成功。${banked}品を倉庫へ保存、${pending.length}品は帰還品として保管`;
+  this.event(`${a.name}が帰還した`);
+ }
+ private fire(a:Actor,magic:boolean){const cp=Math.cos(a.pitch),direction={x:-Math.sin(a.yaw)*cp,y:Math.sin(a.pitch),z:-Math.cos(a.yaw)*cp};this.state.shots.push({id:`shot${++this.state.serial}`,owner:a.id,position:{...a.position,y:1.4},velocity:{x:direction.x*15,y:direction.y*15,z:direction.z*15},life:2,damage:magic?38:28,magic});}
+ private sweep(a:Actor,before:WeaponPose,after:WeaponPose){const start=bladeWorld(before,a.position,a.yaw,a.pitch),end=bladeWorld(after,a.position,a.yaw,a.pitch),steps=Math.min(96,Math.max(1,Math.ceil(distance(start.tip,end.tip)/.035)));for(let i=0;i<=steps;i++){const f=i/steps,lerp=(p:Vec3,q:Vec3)=>({x:p.x+(q.x-p.x)*f,y:p.y+(q.y-p.y)*f,z:p.z+(q.z-p.z)*f}),grip=lerp(start.grip,end.grip),tip=lerp(start.tip,end.tip);if(wallRay({...a.position,y:1.52},grip,this.state.seed,this.state.doors))continue;const edge=wallRay(grip,tip,this.state.seed,this.state.doors)??tip;for(const target of [...this.state.profiles.map(p=>p.actor),...this.state.enemies]){if(target.id===a.id||target.status!=='alive'||a.hit.includes(target.id)||a.team===-1&&target.team===-1)continue;for(const c of bodyCapsules(target.position,target.yaw,pose(target))){if(segmentDistance(grip,edge,c.a,c.b)>c.r+.035)continue;a.hit.push(target.id);this.damage(target,Math.round(meleeDefinition(a.kind,archetype(a)).damage*(c.zone==='head'?1.35:1)*ravagerMeleeMultiplier(a,this.state.elapsed)),a.id,a.position);break;}}}}
+ private damage(target:Actor,amount:number,owner:string,from:Vec3){const incoming=ravagerIncomingMultiplier(target,this.state.elapsed);amount*=incoming;if(target.guard>.5&&facing(target.yaw,target.position,from)>.45&&target.bag.some(i=>i.kind==='shield')){amount=Math.round(amount*(activeBastionSkill(target,this.state.elapsed)==='brace'&&target.phase==='idle'&&target.input.block?.06:.12));this.event(`${target.name}が防いだ`);}else if(incoming!==1)amount=Math.round(amount);target.hp=Math.max(0,target.hp-amount);target.recoverable=Math.max(target.hp,target.recoverable-amount*.25);target.damageTaken+=amount;target.interaction=null;target.extract=0;target.cast=0;this.changed();if(!target.hp){this.kill(target,owner);const killer=this.profile(owner)?.actor;if(killer){killer.kills++;killer.xp+=20;}}}
+ private kill(a:Actor,reason:string){a.hp=0;a.status='dead';a.phase='dead';a.input=neutral();a.interaction=null;a.cast=0;const items=a.bag;a.bag=[];if(a.team===-1){place(items,this.item('relic'));place(items,this.item('potion'));}this.state.containers.push({id:`corpse-${a.id}-${this.state.raid}`,name:`${a.name}の遺品`,position:{...a.position},items,opened:false,locked:false,kind:'corpse'});const p=this.profile(a.id);if(p)p.result=`死亡。携行品を失いました（${reason==='時間切れ'?reason:'戦闘'}）`;this.event(`${a.name}が倒れた`);}
+ snapshot(id:string):Snapshot{const p=this.profile(id)!;const clean=(a:Actor)=>{const {input:_,inputAt:__,seq:___,hit:____,...rest}=a;return {...rest,bag:a.id===id?a.bag:[]};};return structuredClone({protocol:DUNGEON_PROTOCOL,you:id,raid:this.state.raid,phase:this.state.phase,elapsed:this.state.elapsed,tick:this.state.tick,seed:this.state.seed,actors:this.state.profiles.map(p=>clean(p.actor)),enemies:this.state.enemies.map(e=>({...clean(e),home:e.home,alert:e.alert,lootClaimed:e.lootClaimed})),containers:this.state.containers.map(c=>({...c,items:c.opened&&this.reachable(p.actor,c.position,3)?c.items:[]})),doors:this.state.doors,exits:this.state.exits,shots:this.state.shots,stash:p.stash,pendingReturn:p.pendingReturn??[],quests:p.quests??[],gold:p.gold,shop:this.state.shop??freshSupplyStock(),trades:p.receipt.slice(-6),result:p.result,events:this.state.events,lastAction:p.lastAction,lastInput:p.actor.seq});}
+}

@@ -1,0 +1,1785 @@
+{
+  "schemaVersion": 1,
+  "specVersion": "PR4-DUNGEON-1.0",
+  "asOf": "2026-10-08",
+  "referenceVersion": "DAD-EAS10-HF127",
+  "statusDisclaimer": "Statuses describe only the scoped implementation and evidence recorded per item; they do not certify complete original-game parity or the whole 110-item contract.",
+  "items": [
+    {
+      "id": "NET-01",
+      "category": "基盤",
+      "reference": "A: サーバー内部仕様非公開",
+      "implementation": "独立した権威サーバーがraid時刻・移動許容・HP・命中・AI・loot・脱出を確定。クライアントは入力だけ送る",
+      "dependencies": [],
+      "acceptance": "改造クライアントでHP/金/位置/戦利品を直接送っても確定値が変わらない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "NET-02",
+      "category": "基盤",
+      "reference": "A: ネットコード",
+      "implementation": "入力連番、固定tick、snapshot補間、予測補正、上限付き遅延補償。ゲームプレイロジックを描画から分離",
+      "dependencies": [
+        "NET-01"
+      ],
+      "acceptance": "2独立クライアントで同一結果。遅延150ms/損失2%でも二重命中や瞬間移動を生じない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "NET-03",
+      "category": "基盤",
+      "reference": "A: 所有権整合性",
+      "implementation": "item UUID、所有者、版番号、冪等transaction IDによるインベントリ移転と通貨台帳",
+      "dependencies": [
+        "NET-01"
+      ],
+      "acceptance": "同じ箱を同時取得しても片方だけ成功。100回の再送でも複製ゼロ",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed.",
+        "2026-10-08: Commit 959268af, CI 37703968581: all 1,507 unit tests and the real public desktop/Android capacity cases passed. Seven normal raids yielded 40 stash items and 2 pending returns; reload and explicit claims preserved all 42 item IDs/counts and unlocked preparation (39 stash items and 3 carried items). Screens inspected. The separate full PvPvE test failed with unused keeper healing charges; overall CI did not pass. Shared/account stash and extra pages remain incomplete."
+      ]
+    },
+    {
+      "id": "NET-04",
+      "category": "基盤",
+      "reference": "V S2/S3: 再接続関連",
+      "implementation": "切断中もサーバー上の身体を残し、短時間の再接続で同じraid/avatarへ復帰",
+      "dependencies": [
+        "NET-01",
+        "NET-03"
+      ],
+      "acceptance": "切断・再読込で戦闘逃避/装備複製不可。死亡/脱出後は結果画面に復帰",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "NET-05",
+      "category": "基盤",
+      "reference": "A: 永続化",
+      "implementation": "アカウント、キャラ、倉庫、装備、クエスト、ランクを版付きDBへ保存。raid終了は原子的処理",
+      "dependencies": [
+        "NET-03"
+      ],
+      "acceptance": "終了直後のプロセス再起動でも報酬一回。途中失敗を復旧ログで説明できる",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed.",
+        "2026-10-08: Commit 959268af, CI 37703968581: all 1,507 unit tests and the real public desktop/Android capacity cases passed. Seven normal raids yielded 40 stash items and 2 pending returns; reload and explicit claims preserved all 42 item IDs/counts and unlocked preparation (39 stash items and 3 carried items). Screens inspected. The separate full PvPvE test failed with unused keeper healing charges; overall CI did not pass. Shared/account stash and extra pages remain incomplete.",
+        "2026-10-08: docs/dungeon-supplier-quests.md; two finite supplier tutorial contracts (accepted alive extraction, then explicit delivery of two recovered stash ore) with separate reward claims, private optional journal and save-before-ack implemented for focused acceptance. Public browser verification pending. No kill/craft chains, six-merchant reputation, account-wide progression or full quest content claimed.",
+        "2026-10-08: exact commit 43b2fbae, CI 37714853419 succeeded: 1,525 unit tests; desktop/Android six-case regressions; WebKit; full ordinary-input PvPvE extraction at 168.30 seconds with 48 HP and five banked items; both capacity tests completed seven real raids and conserved all 42 item IDs/counts through overflow, reload, claims and readiness. Screens and actual combat recording inspected. Emulation only, not physical-device or full-project completion."
+      ]
+    },
+    {
+      "id": "NET-06",
+      "category": "基盤",
+      "reference": "A: セッション安全性",
+      "implementation": "署名session、所属room/team検査、入力頻度/長さ制限、秘密をクライアントへ出さない",
+      "dependencies": [
+        "NET-01"
+      ],
+      "acceptance": "他人IDの操作、room越え攻撃、巨大payload、過剰送信を拒否",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "NET-07",
+      "category": "基盤",
+      "reference": "A: 運用",
+      "implementation": "server/client protocol互換、ヘルス、raid一覧、監査ログ、バックアップ、計測を用意",
+      "dependencies": [
+        "NET-05"
+      ],
+      "acceptance": "旧クライアントが安全に更新案内。稼働中raidを破壊せずヘルスを確認",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "RAID-01",
+      "category": "レイド",
+      "reference": "V S1/S2: ロビー",
+      "implementation": "キャラ選択、装備/能力編集、補給、チーム招待、ready、全員準備確認から入場",
+      "dependencies": [
+        "NET-05"
+      ],
+      "acceptance": "装備未確定・二重ready・離脱が起きても一人が二つのraidに入らない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-08: docs/dungeon-supplier-quests.md; two finite supplier tutorial contracts (accepted alive extraction, then explicit delivery of two recovered stash ore) with separate reward claims, private optional journal and save-before-ack implemented for focused acceptance. Public browser verification pending. No kill/craft chains, six-merchant reputation, account-wide progression or full quest content claimed."
+      ]
+    },
+    {
+      "id": "RAID-02",
+      "category": "レイド",
+      "reference": "V S1: 探索と帰還",
+      "implementation": "準備→参加→探索→脱出/死亡/時間切れ→精算→ロビーの明示状態機械",
+      "dependencies": [
+        "RAID-01"
+      ],
+      "acceptance": "全遷移をUIで確認。禁止遷移と二重精算をサーバー拒否",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete."
+      ]
+    },
+    {
+      "id": "RAID-03",
+      "category": "レイド",
+      "reference": "V S2: 脱出ポータル",
+      "implementation": "開放条件・詠唱/操作時間・利用人数・消費状態がある脱出口。抽出完了で所持品を持ち帰る",
+      "dependencies": [
+        "RAID-02",
+        "NET-03"
+      ],
+      "acceptance": "抽出中の被撃/離脱を処理。最後の一枠を同時使用しても人数制限を守る",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed.",
+        "2026-10-08: Commit 959268af, CI 37703968581: all 1,507 unit tests and the real public desktop/Android capacity cases passed. Seven normal raids yielded 40 stash items and 2 pending returns; reload and explicit claims preserved all 42 item IDs/counts and unlocked preparation (39 stash items and 3 carried items). Screens inspected. The separate full PvPvE test failed with unused keeper healing charges; overall CI did not pass. Shared/account stash and extra pages remain incomplete."
+      ]
+    },
+    {
+      "id": "RAID-04",
+      "category": "レイド",
+      "reference": "V S2: 死体探索",
+      "implementation": "死亡で操作停止、死亡地点へ所持品を含む死体。生存者が探索して移転可能",
+      "dependencies": [
+        "RAID-02",
+        "NET-03"
+      ],
+      "acceptance": "死亡者のstashは増えず、死体と略奪者に同一itemが共存しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "RAID-05",
+      "category": "レイド",
+      "reference": "U: 固定出口の現行全種類",
+      "implementation": "ポータルと別に時間開放の階段/昇降機/船を独自実装。利用枠と退出中危険を持つ",
+      "dependencies": [
+        "RAID-03",
+        "MAP-01"
+      ],
+      "acceptance": "閉鎖中は脱出不可、開放表示と実際の退出が一致、船から落ちれば脱出未成立",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RAID-06",
+      "category": "レイド",
+      "reference": "V S2: 階層移動",
+      "implementation": "浅層→深層の選択。生存状態/持物/チーム情報を一回だけ移送",
+      "dependencies": [
+        "RAID-02",
+        "NET-03"
+      ],
+      "acceptance": "階層を跨いでもHP/残弾一致、元層に身体/lootのコピーを残さない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RAID-07",
+      "category": "レイド",
+      "reference": "U: 全モードの制限時間/危険域",
+      "implementation": "閉鎖までの時間と段階的環境危険を設定化。常時縮小円を原作共通仕様と断定しない",
+      "dependencies": [
+        "RAID-02"
+      ],
+      "acceptance": "残秒が全員一致、期限時に未脱出者を精算し、壁内/高所も危険域を回避できない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RAID-08",
+      "category": "レイド",
+      "reference": "V S2: 復活",
+      "implementation": "死体から回収する独自魂片と復活台、長い操作、消費・チーム制約",
+      "dependencies": [
+        "RAID-04"
+      ],
+      "acceptance": "敵/無関係な魂片では復活不可。復活後の身体と観戦対象を全員に同期",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RAID-09",
+      "category": "レイド",
+      "reference": "V S2: 観戦",
+      "implementation": "死亡後は味方限定観戦、チーム全滅時に帰還。対戦情報を過剰表示しない",
+      "dependencies": [
+        "RAID-04"
+      ],
+      "acceptance": "生存敵の透視不可。味方退出/復活でも画面が固まらない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RAID-10",
+      "category": "レイド",
+      "reference": "V S3: 死因/結果",
+      "implementation": "ダメージ履歴、討伐、獲得/喪失、抽出理由、XP/通貨/クエスト差分を結果表示",
+      "dependencies": [
+        "RAID-02"
+      ],
+      "acceptance": "サーバーログと結果一致。表示ダメージだけを理由に無断でランク加算しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-08: docs/dungeon-supplier-quests.md; two finite supplier tutorial contracts (accepted alive extraction, then explicit delivery of two recovered stash ore) with separate reward claims, private optional journal and save-before-ack implemented for focused acceptance. Public browser verification pending. No kill/craft chains, six-merchant reputation, account-wide progression or full quest content claimed."
+      ]
+    },
+    {
+      "id": "COM-01",
+      "category": "戦闘",
+      "reference": "V S1: 一人称アクション",
+      "implementation": "歩行、しゃがみ、ジャンプ、後退、装備/構え/詠唱中減速、重い慣性を操作可能に",
+      "dependencies": [
+        "NET-02"
+      ],
+      "acceptance": "壁抜け/段差抜け不可。低FPSでも移動距離一致、武器切替で減速を無効化できない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "COM-02",
+      "category": "戦闘",
+      "reference": "V S1/S3: 近接",
+      "implementation": "武器軌道sweep、予備動作/有効/後隙、横振り/突き/縦振り、コンボ、壁への干渉",
+      "dependencies": [
+        "COM-01",
+        "NET-01"
+      ],
+      "acceptance": "離れた標的に当たらない。壁越し不可。振りの一回で同じ対象へ無制限多段しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "COM-03",
+      "category": "戦闘",
+      "reference": "V S3: 防御と反撃",
+      "implementation": "盾角度と武器防御点、衝撃差、パリィ窓、反撃窓。防御成功音/硬直を分離",
+      "dependencies": [
+        "COM-02"
+      ],
+      "acceptance": "正面防御と背後被撃で結果が異なる。パリィ窓外で強反撃が出ない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "COM-04",
+      "category": "戦闘",
+      "reference": "V S1/S2: 飛び道具",
+      "implementation": "弓、弩、投げ物、発射準備、弾数/再装填、放物線、飛翔体衝突",
+      "dependencies": [
+        "NET-01",
+        "COM-01"
+      ],
+      "acceptance": "遮蔽物、頭胴脚、距離で軌道どおり判定。装填中の連射を拒否",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "COM-05",
+      "category": "戦闘",
+      "reference": "V S2/S3: 詠唱",
+      "implementation": "呪文選択、装備条件、詠唱、解放/キャンセル、回数/記憶枠、CDを別管理",
+      "dependencies": [
+        "NET-01",
+        "COM-01"
+      ],
+      "acceptance": "詠唱中断で効果だけ出る不具合ゼロ。残回数0から発動不可",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "COM-06",
+      "category": "戦闘",
+      "reference": "V S2: 部位判定",
+      "implementation": "頭/胴/四肢のhurtboxと武器sweet spot倍率を別データ化",
+      "dependencies": [
+        "COM-02",
+        "COM-04"
+      ],
+      "acceptance": "可視モデルと判定一致をデバッグ表示で確認。変身後の頭も正しい",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "COM-07",
+      "category": "戦闘",
+      "reference": "V S2/S3: 能力/装備補正",
+      "implementation": "物理/魔法/固定、耐性/貫通、速度、射程、回復量を明示式で計算",
+      "dependencies": [
+        "NET-01"
+      ],
+      "acceptance": "テスト固定値から期待ダメージ一致。負ダメージ・無限耐性・係数二重適用を防止",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "COM-08",
+      "category": "戦闘",
+      "reference": "V S2: バフ/デバフ",
+      "implementation": "出血、毒、炎上、鈍足、脆弱、沈黙、睡眠、恐怖、透明、バリア、浄化をデータ駆動化",
+      "dependencies": [
+        "COM-07"
+      ],
+      "acceptance": "上書き/加算/延長/免疫/解除を各ケース検証。死後にDOTが残り報酬重複しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "COM-09",
+      "category": "戦闘",
+      "reference": "U: 回復可能HPの現行式",
+      "implementation": "最大HPと回復可能領域を分離し、休息/包帯/薬/魔法/焚火に独自回復条件",
+      "dependencies": [
+        "COM-07"
+      ],
+      "acceptance": "上限超過不可。移動や被撃で休息中断、サーバー時刻で回復量一致",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "COM-10",
+      "category": "戦闘",
+      "reference": "U: 原作の共通スタミナ",
+      "implementation": "共通消耗スタミナを必須にしない。攻撃後隙、装備減速、CD、回数で資源管理。導入時は独自機能と表示",
+      "dependencies": [
+        "COM-01"
+      ],
+      "acceptance": "全クラスで根拠のないスタミナ切れが起きない。UI/ヘルプと実際の制約一致",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "COM-11",
+      "category": "戦闘",
+      "reference": "U: 現行モード別friendly fire",
+      "implementation": "PvPvEで味方誤射あり、PvE練習でoffという独自ルールを明示。召喚/範囲魔法にも同じ関係表を適用",
+      "dependencies": [
+        "COM-07",
+        "TEAM-01"
+      ],
+      "acceptance": "同じ攻撃を敵/味方/本人/召喚に当ててモード別期待値一致",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "COM-12",
+      "category": "戦闘",
+      "reference": "A: 決定性検証",
+      "implementation": "命中計算、攻撃状態、対象関係、武器交換、死亡同tickの決定順序を共有契約に",
+      "dependencies": [
+        "COM-02",
+        "COM-07"
+      ],
+      "acceptance": "録画input replayでサーバー結果再現。低FPS/高ping/再送で資源が増えない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-01",
+      "category": "クラス",
+      "reference": "V S2/S3: クラス技能",
+      "implementation": "独自10アーキタイプを定義。能力スロット、受動特性、装備制限、習得をロビーで選択",
+      "dependencies": [
+        "RAID-01",
+        "COM-05"
+      ],
+      "acceptance": "禁止装備を持込不可。raid内で任意クラスに書換不可",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-08: optional bastion training candidate in docs/dungeon-bastion-training.md. One selectable active skill (2.5-second movement burst or 4-second frontal-shield reinforcement) and passive (+10 maximum HP or +0.15 movement speed), lobby/ready locks, cooldown, and backward-compatible persisted selection. Default remains unselected. Implemented and independently reviewed; all 1,683 local unit tests, application/Worker type checks and build passed. Four PC/Android browser definitions collected only; public acceptance pending. Ten archetypes, the full skill catalogue, equipment restrictions, and unlock progression are not claimed complete.",
+        "2026-10-08: docs/dungeon-ravager-training.md; scoped optional ravager Frenzy skill and laststand/followthrough perks implemented for focused acceptance. Preserve independent bastion selections and missing-field legacy saves. Exact public PC/touch proof pending. Roar, destruction, complete class catalogue and full balance remain incomplete.",
+        "2026-10-08: exact f499b041, CI37739930251 succeeded: 1,691 unit tests; PC/Android actual training movement 3.15 to 4.41 m/s, held shield/brace, persistence/cooldown and visible-notice hit targets; existing quests/capacity/PvPvE passed. Twelve jobs succeeded, ten unrelated historical jobs skipped. Videos/screens inspected. Scoped bastion training accepted; full classes/content still incomplete."
+      ]
+    },
+    {
+      "id": "CLS-02",
+      "category": "クラス",
+      "reference": "V S2: Fighter系",
+      "implementation": "独自「城塞兵」: 盾熟練/片手武器/短距離突進/防御強化/反撃",
+      "dependencies": [
+        "CLS-01",
+        "COM-03"
+      ],
+      "acceptance": "守りを固めた正面と側背面で優劣が生じ、CD中の突進不可",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-08: optional bastion training candidate in docs/dungeon-bastion-training.md. One selectable active skill (2.5-second movement burst or 4-second frontal-shield reinforcement) and passive (+10 maximum HP or +0.15 movement speed), lobby/ready locks, cooldown, and backward-compatible persisted selection. Default remains unselected. Implemented and independently reviewed; all 1,683 local unit tests, application/Worker type checks and build passed. Four PC/Android browser definitions collected only; public acceptance pending. Ten archetypes, the full skill catalogue, equipment restrictions, and unlock progression are not claimed complete.",
+        "2026-10-08: exact f499b041, CI37739930251 succeeded: 1,691 unit tests; PC/Android actual training movement 3.15 to 4.41 m/s, held shield/brace, persistence/cooldown and visible-notice hit targets; existing quests/capacity/PvPvE passed. Twelve jobs succeeded, ten unrelated historical jobs skipped. Videos/screens inspected. Scoped bastion training accepted; full classes/content still incomplete."
+      ]
+    },
+    {
+      "id": "CLS-03",
+      "category": "クラス",
+      "reference": "V S2: Barbarian系",
+      "implementation": "独自「荒戦士」: 両手重撃、咆哮、破壊、低HP強化、長い後隙",
+      "dependencies": [
+        "CLS-01",
+        "COM-02"
+      ],
+      "acceptance": "重撃の予兆を見て回避可能。咆哮が味方/敵へ仕様通り作用",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-08: docs/dungeon-ravager-training.md; scoped optional ravager Frenzy skill and laststand/followthrough perks implemented for focused acceptance. Preserve independent bastion selections and missing-field legacy saves. Exact public PC/touch proof pending. Roar, destruction, complete class catalogue and full balance remain incomplete."
+      ]
+    },
+    {
+      "id": "CLS-04",
+      "category": "クラス",
+      "reference": "V S2: Rogue系",
+      "implementation": "独自「影盗」: 短剣、透明/奇襲、罠解除、短移動技",
+      "dependencies": [
+        "CLS-01",
+        "COM-08"
+      ],
+      "acceptance": "透明化解除条件、奇襲窓、姿勢/足音で対抗可能",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-05",
+      "category": "クラス",
+      "reference": "V S2: Ranger系",
+      "implementation": "独自「狩人」: 弓、追跡、設置罠、動物使役、弾薬管理",
+      "dependencies": [
+        "CLS-01",
+        "COM-04",
+        "AI-05"
+      ],
+      "acceptance": "罠を味方が識別可能。使役命令がサーバーAIに反映",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-06",
+      "category": "クラス",
+      "reference": "V S2/S3: Wizard系",
+      "implementation": "独自「秘術師」: 火/氷/雷/幻惑/転移、有限回数と準備時間",
+      "dependencies": [
+        "CLS-01",
+        "COM-05"
+      ],
+      "acceptance": "各属性の独自効果と遮蔽をテスト。転移先が壁/場外なら拒否",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-07",
+      "category": "クラス",
+      "reference": "V S2/S3: Cleric系",
+      "implementation": "独自「灯守」: 回復、浄化、聖域、防護、復活支援",
+      "dependencies": [
+        "CLS-01",
+        "COM-09",
+        "RAID-08"
+      ],
+      "acceptance": "回復/浄化が対象制約に従う。復活を無消費連打できない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-08",
+      "category": "クラス",
+      "reference": "V S2/S3: Bard系",
+      "implementation": "独自「旅楽師」: 自作短音列のタイミング入力で攻守支援、範囲と品質段階",
+      "dependencies": [
+        "CLS-01",
+        "COM-08",
+        "AUD-01"
+      ],
+      "acceptance": "同じ入力タイミングで同じ品質。BGM音量0でも操作・判定可能",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-09",
+      "category": "クラス",
+      "reference": "V S2: Warlock系",
+      "implementation": "独自「呪縛師」: HP対価、継続呪い、生命吸収、短い憑依",
+      "dependencies": [
+        "CLS-01",
+        "COM-08"
+      ],
+      "acceptance": "HP対価と回復の順序固定。憑依終了で位置/移動能力を確実に復元",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-10",
+      "category": "クラス",
+      "reference": "V S2: Druid系",
+      "implementation": "独自「森化師」: 回復/自然魔法と小型・俊敏・大型の形態変化",
+      "dependencies": [
+        "CLS-01",
+        "COM-06"
+      ],
+      "acceptance": "形態毎の衝突/頭判定/装備を同期。小型から大型で壁抜け不可",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-11",
+      "category": "クラス",
+      "reference": "V S2/S3: Sorcerer系",
+      "implementation": "独自「双術師」: 左右別の属性呪文を合成、組合せとCDで選択",
+      "dependencies": [
+        "CLS-01",
+        "COM-05"
+      ],
+      "acceptance": "左右単体と合成で異なる効果、両手資源を原子的に消費",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CLS-12",
+      "category": "クラス",
+      "reference": "U: 全perk/skill/spell表",
+      "implementation": "各職4技能・8perk・必要な呪文/歌/形態を最低コンテンツ契約として個別ID化。原作全能力数とは呼ばない",
+      "dependencies": [
+        "CLS-02",
+        "CLS-03",
+        "CLS-04",
+        "CLS-05",
+        "CLS-06",
+        "CLS-07",
+        "CLS-08",
+        "CLS-09",
+        "CLS-10",
+        "CLS-11"
+      ],
+      "acceptance": "全能力に説明/操作/効果/対抗策/単体テスト。placeholderボタンを完成数へ加えない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "INV-01",
+      "category": "装備と所持",
+      "reference": "U: 正確な所持格子寸法",
+      "implementation": "独自10×5グリッド、item幅高、衝突/回転可否、ドラッグ/タップ移動",
+      "dependencies": [
+        "NET-03"
+      ],
+      "acceptance": "重なり/格子外配置不可。箱と身体の間で連打しても複製なし",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "INV-02",
+      "category": "装備と所持",
+      "reference": "V S2: Stash",
+      "implementation": "キャラ倉庫と共有倉庫、ページ、検索、整理、stack統合、容量制約",
+      "dependencies": [
+        "INV-01",
+        "NET-05"
+      ],
+      "acceptance": "整理前後で全UUID/総数保存。満杯時に報酬を消さず受取待ちにする",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-07: docs/dungeon-pending-return.md; bounded single returned-bag overflow, private explicit claims and blocked next departure/purchases implemented for full-stash safety. Unit and public browser acceptance pending. No shared/account stash or extra pages claimed.",
+        "2026-10-08: Commit 959268af, CI 37703968581: all 1,507 unit tests and the real public desktop/Android capacity cases passed. Seven normal raids yielded 40 stash items and 2 pending returns; reload and explicit claims preserved all 42 item IDs/counts and unlocked preparation (39 stash items and 3 carried items). Screens inspected. The separate full PvPvE test failed with unused keeper healing charges; overall CI did not pass. Shared/account stash and extra pages remain incomplete.",
+        "2026-10-08: exact commit 43b2fbae, CI 37714853419 succeeded: 1,525 unit tests; desktop/Android six-case regressions; WebKit; full ordinary-input PvPvE extraction at 168.30 seconds with 48 HP and five banked items; both capacity tests completed seven real raids and conserved all 42 item IDs/counts through overflow, reload, claims and readiness. Screens and actual combat recording inspected. Emulation only, not physical-device or full-project completion."
+      ]
+    },
+    {
+      "id": "INV-03",
+      "category": "装備と所持",
+      "reference": "V S2: 装備分類",
+      "implementation": "頭/胴/手/脚/足/外套/装飾/左右武器/予備セット/道具beltとクラス条件",
+      "dependencies": [
+        "INV-01",
+        "CLS-01"
+      ],
+      "acceptance": "両手装備と盾の不正共存なし。交換で補正が一回だけ更新",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "INV-04",
+      "category": "装備と所持",
+      "reference": "V S3: rarity/modifier",
+      "implementation": "独自8段階の品質、基礎性能、抽選修飾、固有效果を区別し、色と文字で表示",
+      "dependencies": [
+        "COM-07",
+        "INV-01"
+      ],
+      "acceptance": "seed付きdrop再現。品質範囲外の値や禁止modifier組合せなし",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "INV-05",
+      "category": "装備と所持",
+      "reference": "V S3: 属性補正",
+      "implementation": "筋力/活力/敏捷/器用/意志/知識/技巧という独自7属性から派生値を作る",
+      "dependencies": [
+        "COM-07",
+        "INV-03"
+      ],
+      "acceptance": "tooltipの増減値と実測一致。DAD数式と同一という表示をしない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "INV-06",
+      "category": "装備と所持",
+      "reference": "V S2: stack/分割",
+      "implementation": "弾薬・素材・通貨container、stack分割/結合/交換、stack上限",
+      "dependencies": [
+        "NET-03",
+        "INV-01"
+      ],
+      "acceptance": "0/負数/上限超え操作拒否、分割と売却の競合で資源保存",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "INV-07",
+      "category": "装備と所持",
+      "reference": "H S5: provenance",
+      "implementation": "発見者、持帰り、取扱済、製作者、譲渡可否をitemに保持",
+      "dependencies": [
+        "NET-03"
+      ],
+      "acceptance": "拾っただけ/抽出/取引/製作で由来フラグが定義通り変わる",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "INV-08",
+      "category": "装備と所持",
+      "reference": "A: 独自装備群",
+      "implementation": "短剣/片剣/大剣/斧/槌/槍/杖/魔導書/弓/弩/投げ物/盾、軽中重防具を独自造形",
+      "dependencies": [
+        "INV-03",
+        "COM-02",
+        "COM-04"
+      ],
+      "acceptance": "各武器に別軌道/速度/射程。見た目だけ変えた同一武器で代用しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "INV-09",
+      "category": "装備と所持",
+      "reference": "V S3: 希少装備",
+      "implementation": "独自artifactは8個、独自効果は武器/防具/装飾へ分散。通常数値と特殊発動を分離",
+      "dependencies": [
+        "INV-04",
+        "COM-08"
+      ],
+      "acceptance": "8効果すべて取得/装備/発動/解除を検証。原作固有名・説明を流用しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-01",
+      "category": "探索",
+      "reference": "V S1: 財宝",
+      "implementation": "箱/敵/床/宝物庫ごとのseed付きloot table、危険度で期待収益調整",
+      "dependencies": [
+        "NET-03",
+        "INV-04"
+      ],
+      "acceptance": "異なる容器に差があり、同一箱は全員で共有。再接続で再抽選しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-02",
+      "category": "探索",
+      "reference": "V S2: インタラクション",
+      "implementation": "ドア/箱/死体/レバー/復活台に距離、視線、時間、中断条件を共通化",
+      "dependencies": [
+        "NET-01"
+      ],
+      "acceptance": "壁越し/遠隔操作不可、移動/被撃/対象破壊で安全に中断",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-03",
+      "category": "探索",
+      "reference": "U: 現行鍵/lockpick細部",
+      "implementation": "鍵付き財宝、消費鍵/解錠道具、任意の短い解錠入力。独自確率なら明記",
+      "dependencies": [
+        "LOOT-02",
+        "INV-06"
+      ],
+      "acceptance": "鍵のない箱を開けられず、同時解錠でも消費は成功者だけ",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-04",
+      "category": "探索",
+      "reference": "H S3/S5: 採集",
+      "implementation": "鉱石・木材・薬草を道具/時間で採集、音で位置露見、クラフト素材化",
+      "dependencies": [
+        "LOOT-02",
+        "CRAFT-01"
+      ],
+      "acceptance": "採集節点の残量共有。道具条件なしで素材を生成できない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-05",
+      "category": "探索",
+      "reference": "V S3: 照明",
+      "implementation": "携帯灯/投擲灯、壁灯on/off、影、光源露見、暗所視認を性能別に調整",
+      "dependencies": [
+        "MAP-01",
+        "AUD-01"
+      ],
+      "acceptance": "灯りを消すと全員で暗くなり、低設定で敵だけ過剰可視にならない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-06",
+      "category": "探索",
+      "reference": "U: 罠全種類",
+      "implementation": "床針/振り子/圧板/矢壁/捕獲罠/環境DOTを独自配置し予兆と回避経路を用意",
+      "dependencies": [
+        "MAP-01",
+        "COM-07"
+      ],
+      "acceptance": "罠とVFXの当たり範囲一致、AIも対象関係に従い被害",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-07",
+      "category": "探索",
+      "reference": "V S2: 破壊と地形",
+      "implementation": "樽/箱/木戸など限定破壊物。支持物破壊・落下・水/溶岩を同期",
+      "dependencies": [
+        "MAP-01",
+        "NET-01"
+      ],
+      "acceptance": "上に立った物を壊してもクラッシュ/浮遊なし",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MAP-01",
+      "category": "世界",
+      "reference": "V S2: モジュール構造",
+      "implementation": "自作部屋と接続口からseed配置。固定ランドマーク＋変動接続。全セル自由破壊にはしない",
+      "dependencies": [
+        "NET-01"
+      ],
+      "acceptance": "100seedでspawn→loot→最低1出口の到達検査、重なり/孤立/場外なし",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "MAP-02",
+      "category": "世界",
+      "reference": "V S2: 階層",
+      "implementation": "独自廃城/地下墓所/炉底の3層。下層ほど敵/報酬/帰還難度が変わる",
+      "dependencies": [
+        "MAP-01",
+        "RAID-06"
+      ],
+      "acceptance": "層ごとに見た目/敵/報酬が異なり、UIで現在階層が分かる",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MAP-03",
+      "category": "世界",
+      "reference": "V S2: 複数環境",
+      "implementation": "独自鉱洞、凍窟、浸水遺跡、火山坑を追加テーマ化。原作配置は写さない",
+      "dependencies": [
+        "MAP-01"
+      ],
+      "acceptance": "各テーマ6以上の独自部屋、危険・視線・退路が区別できる",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MAP-04",
+      "category": "世界",
+      "reference": "A: 対人地形品質",
+      "implementation": "横道/高低差/遮蔽物/音の扉/撤退路を含め、spawn直撃を防ぐ",
+      "dependencies": [
+        "MAP-01",
+        "COM-04"
+      ],
+      "acceptance": "全spawnに遮蔽があり、唯一出口の必須通路を一射線が完全封鎖しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MAP-05",
+      "category": "世界",
+      "reference": "V S2: 地図/ping",
+      "implementation": "階層地図、部屋名、出口状態、チーム色、地点/敵/item/経路ping",
+      "dependencies": [
+        "MAP-01",
+        "TEAM-01"
+      ],
+      "acceptance": "全員のping位置一致、削除/期限/階層変更を反映。未発見敵をサーバーが漏らさない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "AI-01",
+      "category": "敵",
+      "reference": "V S1: 敵との戦闘",
+      "implementation": "巡回→察知→追跡→予兆→攻撃→硬直→復帰。視覚/音/障害物/扉に反応",
+      "dependencies": [
+        "NET-01",
+        "MAP-01"
+      ],
+      "acceptance": "壁越しに永遠追跡せず、攻撃予兆が全員に同じ時刻で見える",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "AI-02",
+      "category": "敵",
+      "reference": "V S2: 敵の多様性",
+      "implementation": "独自近接/盾/弓/術師/飛行/群れ/待伏せ/突進/水棲/支援の10系統",
+      "dependencies": [
+        "AI-01",
+        "COM-07"
+      ],
+      "acceptance": "各系統に最低1固有パターンと対抗策。上下移動で無敵化しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "AI-03",
+      "category": "敵",
+      "reference": "V S2: 強化敵/副ボス",
+      "implementation": "通常/強化/悪夢の3難度と4副ボス。数値だけでなく追加行動/予兆で差別化",
+      "dependencies": [
+        "AI-02"
+      ],
+      "acceptance": "難度切替で行動が変わり、同じloot表の名前替えにしない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "AI-04",
+      "category": "敵",
+      "reference": "V S2/S7: boss",
+      "implementation": "独自8boss: 鎧騎士、鐘の亡霊、骨の司祭、炉心巨人、氷翼獣、深海船長、毒樹、炎竜。段階/範囲/召喚/弱点を組合せ",
+      "dependencies": [
+        "AI-03",
+        "MAP-02"
+      ],
+      "acceptance": "各boss3以上の回避可能行動、2段階、撃破報酬。全員死亡/退出時に正しくreset",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "AI-05",
+      "category": "敵",
+      "reference": "V S2: 使役/変身",
+      "implementation": "召喚/使役に所有者、寿命、命令、攻撃関係、環境制限を付与",
+      "dependencies": [
+        "AI-01",
+        "TEAM-01"
+      ],
+      "acceptance": "待機/追従/攻撃/攻撃的/防御的/受動を検証。水棲個体は陸へ不正移動しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "AI-06",
+      "category": "敵",
+      "reference": "V S2: 特殊報酬敵",
+      "implementation": "逃走する財宝運搬敵と希少spawn。視覚/音で発見し追うリスクを作る",
+      "dependencies": [
+        "AI-01",
+        "LOOT-01"
+      ],
+      "acceptance": "追跡可能・逃走可能・討伐報酬一回。壁へ逃げ込み不能",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "TEAM-01",
+      "category": "対人",
+      "reference": "H S6: party queues",
+      "implementation": "ソロ/2人/3人パーティと人数別キュー。少人数テストは人数不足を明示しprivate roomも用意",
+      "dependencies": [
+        "NET-01",
+        "RAID-01"
+      ],
+      "acceptance": "ソロと3人隊を無告知混在させない。途中招待でraid所属が壊れない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "TEAM-02",
+      "category": "対人",
+      "reference": "V S2/S5: Party Finder",
+      "implementation": "募集/招待/退出/ready/最近の仲間/拒否/ブロック。表示名をsanitize",
+      "dependencies": [
+        "TEAM-01"
+      ],
+      "acceptance": "同時承認/拒否/退出でも上限を守り、招待スパム制限",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "TEAM-03",
+      "category": "対人",
+      "reference": "V S1: PvPvE",
+      "implementation": "人間の敵とAIが同じraidで相互攻撃。対人からPvEへの逃避/乱入/略奪を許す",
+      "dependencies": [
+        "TEAM-01",
+        "AI-01",
+        "COM-07"
+      ],
+      "acceptance": "独立した2人が同時にAIと互いへダメージを与え、AIも標的を変更",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: docs/dungeon-vertical-slice.md; tests/unit/dungeon-core.test.ts + dungeon-server.test.ts: initial 20 local tests passed; no browser/public acceptance yet."
+      ]
+    },
+    {
+      "id": "TEAM-04",
+      "category": "対人",
+      "reference": "A: 通報と対策",
+      "implementation": "試合ID/時刻/対象/理由付き通報とmute、荒らし履歴、観戦情報の制限",
+      "dependencies": [
+        "NET-07",
+        "TEAM-02"
+      ],
+      "acceptance": "通報が権威ログへ結びつく。悪意ある通報だけで自動永久BANしない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MODE-01",
+      "category": "モード",
+      "reference": "V S2: Normal",
+      "implementation": "標準PvPvE、装備入場条件とloot profileをデータ化し画面に表示",
+      "dependencies": [
+        "RAID-02",
+        "TEAM-03",
+        "INV-04"
+      ],
+      "acceptance": "条件外装備をUIとサーバーが双方拒否。退出後の装備に同じ検査",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MODE-02",
+      "category": "モード",
+      "reference": "V S2: High-Roller",
+      "implementation": "高難度敵/高品質報酬/入場条件/ランク進行、標準と別profile",
+      "dependencies": [
+        "MODE-01",
+        "RANK-01"
+      ],
+      "acceptance": "難度と報酬が測定可能に異なる。設定条件を偽装して入場不可",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MODE-03",
+      "category": "モード",
+      "reference": "V S2: PvE Campaign",
+      "implementation": "練習/協力PvEを独立設定。PvP off、報酬/難度を本番と分ける",
+      "dependencies": [
+        "RAID-02",
+        "AI-02"
+      ],
+      "acceptance": "召喚/罠/範囲攻撃も味方や他人へPvPを発生させない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MODE-04",
+      "category": "モード",
+      "reference": "V S2: Arena",
+      "implementation": "ラウンド制対人、装備保持、勝敗/MMR、再戦/観戦。raidの略奪精算と分離",
+      "dependencies": [
+        "TEAM-03",
+        "RANK-01"
+      ],
+      "acceptance": "勝敗/死亡/切断ごとにラウンドを一回精算。Arenaでstashが消えない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MODE-05",
+      "category": "モード",
+      "reference": "H S5: Squire Royale",
+      "implementation": "同条件初期装備→現地調達→生存競争という独自短時間モード",
+      "dependencies": [
+        "MODE-01"
+      ],
+      "acceptance": "持込装備差が混入しない。参加者全員が同一初期budget",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "MODE-06",
+      "category": "モード",
+      "reference": "H S3: SSF/event",
+      "implementation": "取引停止SSF、期間イベント、ドロップ/敵/報酬modifierをserver config化",
+      "dependencies": [
+        "MODE-01",
+        "ECON-03"
+      ],
+      "acceptance": "終了日時で安全に切替。イベント倍率が二重適用/恒久化しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "ECON-01",
+      "category": "経済",
+      "reference": "V S2: 商人",
+      "implementation": "独自6商人、売買、在庫、購入条件、補給セット、vendor価格と通貨消費",
+      "dependencies": [
+        "NET-03",
+        "INV-02"
+      ],
+      "acceptance": "同時購入で負残高/在庫増殖なし。売ったitemが手元に残らない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-07: exact0170d80f CI37693708826 passed all1419 units and PC/Android6cases each, including paid resupply consumption and bank/gold/trade reconnect. Actual screenshots inspected. Independent fullPvPvE failed central combat; merchant partial scope unchanged.",
+        "2026-10-08: exact commit 43b2fbae, CI 37714853419 succeeded: 1,525 unit tests; desktop/Android six-case regressions; WebKit; full ordinary-input PvPvE extraction at 168.30 seconds with 48 HP and five banked items; both capacity tests completed seven real raids and conserved all 42 item IDs/counts through overflow, reload, claims and readiness. Screens and actual combat recording inspected. Emulation only, not physical-device or full-project completion."
+      ]
+    },
+    {
+      "id": "ECON-02",
+      "category": "経済",
+      "reference": "V S2: quests",
+      "implementation": "討伐/探索/抽出/収集納品/製作の連鎖quest、前提、進捗、報酬、商人好感度",
+      "dependencies": [
+        "ECON-01",
+        "RAID-10"
+      ],
+      "acceptance": "対象違い/未抽出品の納品を条件通り拒否。達成と報酬claimを分離して二重受取不可",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-08: docs/dungeon-supplier-quests.md; two finite supplier tutorial contracts (accepted alive extraction, then explicit delivery of two recovered stash ore) with separate reward claims, private optional journal and save-before-ack implemented for focused acceptance. Public browser verification pending. No kill/craft chains, six-merchant reputation, account-wide progression or full quest content claimed.",
+        "2026-10-08: exact aeeebc98, CI 37721009987: both ordinary-input PC/Android quest routes passed actual acceptance, chest haul and extraction, explicit 20-gold claim, selected two-unit recovered ore delivery, explicit 30-gold claim, and reload retaining both claimed journals, 50 gold and all five remaining items. Actual quest/HUD screens and empty browser-error logs inspected. The separate strict full PvPvE gate failed; overall CI not complete. Two tutorial contracts only.",
+        "2026-10-08: eca92a3e, CI37729491927 overall success. Both real PC/Android quest routes retain explicit 20+30 gold, two claimed journals, and five remaining items after reload. Full PvPvE at 217.15 seconds / 29 HP / five items and both capacity tests preserving all 42 items also passed. Two finite tutorial quests only; ECON-02 remains partial."
+      ]
+    },
+    {
+      "id": "ECON-03",
+      "category": "経済",
+      "reference": "V S2: Marketplace",
+      "implementation": "検索/filter/出品/購入/期限/取消/売上受取、server escrowと手数料",
+      "dependencies": [
+        "NET-03",
+        "INV-07"
+      ],
+      "acceptance": "同じ出品を二人が購入しても一人だけ成立。出品中itemを持込不可",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "ECON-04",
+      "category": "経済",
+      "reference": "V S2: Trading Post",
+      "implementation": "対面交換ウィンドウ、双方確認、内容変更で確認解除、一括commit",
+      "dependencies": [
+        "NET-03",
+        "TEAM-02"
+      ],
+      "acceptance": "確認後に相手が内容変更すると再確認必須。片側だけitem/金を失わない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "ECON-05",
+      "category": "経済",
+      "reference": "V S2: Recovery/Express",
+      "implementation": "死亡品復旧候補と中間輸送、手数料/確率/期限を明記。略奪済品を複製復旧しない",
+      "dependencies": [
+        "NET-03",
+        "RAID-04"
+      ],
+      "acceptance": "復旧と拾得の競合を解決。期限超過/満杯は受取待ちへ安全に処理",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "ECON-06",
+      "category": "経済",
+      "reference": "A: 収支健全性",
+      "implementation": "全通貨流入/消費/移転を理由付き記帳し、サーバー監査・価格調整可能に",
+      "dependencies": [
+        "ECON-01",
+        "ECON-03"
+      ],
+      "acceptance": "購入/死亡/抽出/quest/製作の収支を試合単位で照合可能",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically.",
+        "2026-10-07: docs/dungeon-resupply-loop.md; room-local recovered relic/ore sale, finite paid medicine supply, actual weapon preparation, bounded owner receipts and durable transaction tests implemented. Public browser acceptance pending. One supplier only; full six merchants, global economy audit and stash overflow remain incomplete.",
+        "2026-10-07: exact0170d80f CI37693708826 passed all1419 units and PC/Android6cases each, including paid resupply consumption and bank/gold/trade reconnect. Actual screenshots inspected. Independent fullPvPvE failed central combat; merchant partial scope unchanged.",
+        "2026-10-08: docs/dungeon-supplier-quests.md; two finite supplier tutorial contracts (accepted alive extraction, then explicit delivery of two recovered stash ore) with separate reward claims, private optional journal and save-before-ack implemented for focused acceptance. Public browser verification pending. No kill/craft chains, six-merchant reputation, account-wide progression or full quest content claimed.",
+        "2026-10-08: exact commit 43b2fbae, CI 37714853419 succeeded: 1,525 unit tests; desktop/Android six-case regressions; WebKit; full ordinary-input PvPvE extraction at 168.30 seconds with 48 HP and five banked items; both capacity tests completed seven real raids and conserved all 42 item IDs/counts through overflow, reload, claims and readiness. Screens and actual combat recording inspected. Emulation only, not physical-device or full-project completion."
+      ]
+    },
+    {
+      "id": "CRAFT-01",
+      "category": "製作",
+      "reference": "V S2/S3: Workshop",
+      "implementation": "素材recipe、装備制作、分解、強化、工房段階、由来制約を独自設定",
+      "dependencies": [
+        "NET-03",
+        "INV-07"
+      ],
+      "acceptance": "必要素材/費用が不足なら不成立。分解/再製作で無限価値を生まない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "CRAFT-02",
+      "category": "製作",
+      "reference": "A: コンテンツ契約",
+      "implementation": "36以上の独自recipe、3工房段階、素材12種、武器/防具/道具を網羅",
+      "dependencies": [
+        "CRAFT-01"
+      ],
+      "acceptance": "全recipeの材料消費/出力/説明を自動検証。到達不能recipeなし",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RANK-01",
+      "category": "成長",
+      "reference": "V S2/S3: rank/XP",
+      "implementation": "キャラXP、perk解放、冒険評価、Arena MMRを別軸にし値/増減理由を表示",
+      "dependencies": [
+        "NET-05",
+        "RAID-10"
+      ],
+      "acceptance": "PvE用XPとPvP用MMRを混同しない。試合再送で加算されない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RANK-02",
+      "category": "成長",
+      "reference": "V S2: seasons",
+      "implementation": "season ID、終了、報酬claim、reset対象、履歴を管理。現在の利用者saveを無断削除しない",
+      "dependencies": [
+        "RANK-01",
+        "NET-05"
+      ],
+      "acceptance": "テスト用seasonで一回だけreset、旧season結果が新rankへ混入しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RANK-03",
+      "category": "成長",
+      "reference": "H S3: triumph/religion",
+      "implementation": "抽出/協力実績の称号と任意陣営への献納、期間報酬を独自化。宗教設定/名称は写さない",
+      "dependencies": [
+        "RANK-01",
+        "ECON-06"
+      ],
+      "acceptance": "献納費用と進捗一致。過去season報酬を再取得不可",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RANK-04",
+      "category": "成長",
+      "reference": "V S2: cosmetics",
+      "implementation": "外見/名札/emote/装飾/ロビー背景を独自制作。競技性能へ課金優位を導入しない",
+      "dependencies": [
+        "RAID-01"
+      ],
+      "acceptance": "外見変更でhurtbox/攻撃力が変わらず、他人にも表示",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "UI-01",
+      "category": "UI",
+      "reference": "V S1/S2: 戦闘情報",
+      "implementation": "照準、HP/回復可能HP、道具、CD、呪文回数、buff、味方、階層、残時間",
+      "dependencies": [
+        "COM-08",
+        "RAID-02"
+      ],
+      "acceptance": "1920幅/小画面/色覚差で必要情報を判別、見た目のHP0で生存しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "UI-02",
+      "category": "UI",
+      "reference": "V S2: 操作wheel",
+      "implementation": "呪文/歌/変身/使役/表現のradial menuとキーボード代替、中央cancel",
+      "dependencies": [
+        "CLS-01"
+      ],
+      "acceptance": "複数wheel同時開きなし、閉じる操作で誤発動しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "UI-03",
+      "category": "UI",
+      "reference": "V S2: 教習",
+      "implementation": "移動→攻撃→防御→操作→回復→技能→魔法→loot→抽出を安全な実践tutorialに",
+      "dependencies": [
+        "RAID-03",
+        "COM-05",
+        "INV-01"
+      ],
+      "acceptance": "初見が説明を読めるだけでなく全操作を実行して終了、いつでも再挑戦",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "UI-04",
+      "category": "UI",
+      "reference": "A: accessibility",
+      "implementation": "再bind、感度/FOV、長押し切替、画面揺れ/点滅抑制、文字拡大、色以外のrarity表示、字幕",
+      "dependencies": [
+        "UI-01"
+      ],
+      "acceptance": "キーボードのみでロビー/所持操作可能。音無しでも重要警告を理解",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "UI-05",
+      "category": "UI",
+      "reference": "A: モバイル適応",
+      "implementation": "タッチ移動/視点、攻撃/防御/skill、長押し操作、tap inventory、safe area、横画面案内",
+      "dependencies": [
+        "UI-01",
+        "COM-01"
+      ],
+      "acceptance": "iOS Safari/Android Chromeで2点以上同時touch、スクロール誤爆/押下残留なし",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "UI-06",
+      "category": "UI",
+      "reference": "A: エラー回復",
+      "implementation": "読込、切断、再接続、権威拒否、保存中、満室、更新要求を日本語で明示",
+      "dependencies": [
+        "NET-04",
+        "NET-07"
+      ],
+      "acceptance": "黒画面で放置せず戻り方が見える。保存失敗を成功表示しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "AUD-01",
+      "category": "音",
+      "reference": "V S2/S5: 方向/遮蔽",
+      "implementation": "独自足音/武器/詠唱/扉/loot/罠/敵予兆、距離減衰と扉遮蔽、環境音",
+      "dependencies": [
+        "COM-01",
+        "MAP-01"
+      ],
+      "acceptance": "別室の音量/方向が扉で変化。敵位置の手掛かりが映像と整合",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "AUD-02",
+      "category": "音",
+      "reference": "V S2: voice",
+      "implementation": "任意のparty/proximity voice、mute/音量/通報。マイク許可をユーザー操作でのみ要求",
+      "dependencies": [
+        "TEAM-02"
+      ],
+      "acceptance": "拒否してもゲーム可。階層移動/復活/観戦で適切な相手にだけ届く",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "AUD-03",
+      "category": "音",
+      "reference": "A: 音楽とmix",
+      "implementation": "自作環境曲と危険度mix、BGM/効果/voice別音量。無音時の視覚補助",
+      "dependencies": [
+        "AUD-01"
+      ],
+      "acceptance": "他作品音源混入なし。重要な戦闘音がBGMで恒常的に埋もれない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-08",
+      "category": "探索",
+      "reference": "U: Shrine現行全種類",
+      "implementation": "独自祠を回復/防護/速行/発見の4種で配置。操作時間/共有使用回数/CDを設ける",
+      "dependencies": [
+        "LOOT-02",
+        "COM-08"
+      ],
+      "acceptance": "二人同時操作時の利用権を一回確定。効果終了で元の値に戻る",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "LOOT-09",
+      "category": "探索",
+      "reference": "U: 隠し部屋・仕掛けの全仕様",
+      "implementation": "秘密扉/手動レバー/床の謎/鍵の宝物庫を独自配置し、行き詰まりで必須出口を失わない",
+      "dependencies": [
+        "MAP-01",
+        "LOOT-03"
+      ],
+      "acceptance": "条件を満たすと開き、未達で壁抜け不可。最重要移動経路は謎未解決でも確保",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RAID-11",
+      "category": "レイド",
+      "reference": "A: サバイバル機構の整理",
+      "implementation": "既存空腹/渇き/木材建築は原作再現根拠が無ければダンジョンの必須loopから分離。持込と抽出のリスクへ集中",
+      "dependencies": [
+        "RAID-02"
+      ],
+      "acceptance": "ダンジョン教習中に無関係な生活資源欠乏で詰まらない。既存campaign側のsaveは保全",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "UI-07",
+      "category": "UI",
+      "reference": "A: 訓練と検証UI",
+      "implementation": "無報酬訓練場、ダミーの部位別計測、操作一覧、装備比較、効果辞典を用意",
+      "dependencies": [
+        "COM-06",
+        "INV-03"
+      ],
+      "acceptance": "通常経済にダミー討伐XP/金が流入しない。能力説明と実測値を照合可能",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "UI-08",
+      "category": "UI",
+      "reference": "H S3: controller入力",
+      "implementation": "gamepadの移動/視点/攻撃/防御/輪選択/所持操作。キーボード/タッチと切替",
+      "dependencies": [
+        "UI-02",
+        "UI-04"
+      ],
+      "acceptance": "接続/切断で入力が固まらず、最後の入力機器に合うガイドを表示",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "TEAM-05",
+      "category": "対人",
+      "reference": "H S3: karma",
+      "implementation": "良い協力行動への試合後評価、悪用防止、ユーザー間block、チーム被害の記録",
+      "dependencies": [
+        "TEAM-04",
+        "RAID-10"
+      ],
+      "acceptance": "同じ組合せの評価連打で無制限増加しない。誤射だけで自動処罰しない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "RANK-05",
+      "category": "成長",
+      "reference": "V S3: achievements",
+      "implementation": "独自実績と週/season別ランキング、自己ベスト、claim済表示、集計基準",
+      "dependencies": [
+        "RANK-01",
+        "NET-05"
+      ],
+      "acceptance": "集計期間境界/同点順/重複試合をテスト。非公開ユーザーデータを晒さない",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "missing",
+      "evidence": [
+        "2026-10-06: new dungeon mode assessed; this requirement is not implemented in the first G1/G2 slice. Legacy campaign features do not satisfy this mode automatically."
+      ]
+    },
+    {
+      "id": "QA-01",
+      "category": "品質",
+      "reference": "A: 実環境検証",
+      "implementation": "独立ブラウザ2〜6接続、desktop/mobile、弱回線、長時間、reconnect、save再起動を試験",
+      "dependencies": [
+        "NET-07",
+        "UI-05"
+      ],
+      "acceptance": "同一タブ内botだけでPvP合格にしない。試合録画/ログ/端末を記録",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "QA-02",
+      "category": "品質",
+      "reference": "A: 性能",
+      "implementation": "描画LOD/影budget/instancing、AI更新budget、state差分、モバイル品質段階",
+      "dependencies": [
+        "MAP-03",
+        "AI-04"
+      ],
+      "acceptance": "対象端末を記録しdesktop目標60fps/mobile30fpsを測定。未測定は未達扱い",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "QA-03",
+      "category": "品質",
+      "reference": "A: 公開受入",
+      "implementation": "既存PR4プレビューでprotocol/health/UI/実対戦/抽出永続化のsmoke。ビルドSHA表示",
+      "dependencies": [
+        "QA-01",
+        "NET-07"
+      ],
+      "acceptance": "公開URLで別端末から2人参加、1人抽出、再読込後stash維持を再現",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    },
+    {
+      "id": "QA-04",
+      "category": "品質",
+      "reference": "A: 網羅性監査",
+      "implementation": "全IDごと実装commit/テスト/動画/不一致/残件を保存。U/Hは現行確認または独自仕様明示",
+      "dependencies": [
+        "QA-01",
+        "QA-02",
+        "QA-03"
+      ],
+      "acceptance": "未実装/無効化/仮表示/未検証を完成数へ加えず残件を出せる",
+      "referenceVersion": "DAD-EAS10-HF127/as-of-2026-10-06",
+      "status": "partial",
+      "evidence": [
+        "2026-10-06: src/dungeon client/UI/renderer; focused client unit tests and type/build passed. No completed public browser acceptance."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+import {it,expect} from 'vitest';
+import {NormalPlayer} from './helpers/normal-campaign-player';
+import {captureCampaign,hydrateCampaign,defaultSettings} from '../../src/prototype/campaign-session';
+it('fresh resources and hearth lead to a visible tamed, fed, producing animal through ordinary aimed interactions',()=>{
+ const d=new NormalPlayer(),s=d.sim;d.walk(-.55,6.15);d.act('chisel');d.harvest(4,8,[{x:-1.7,y:.58,z:6.25},{x:-1.7,y:.58,z:6.95},{x:-2.2,y:.58,z:6.25}],'sample-wood');d.walk(-.55,5.25);d.walk(-3.45,5.25);d.walk(-3.45,6.35);d.harvest(3,6,[{x:-4.2,y:.55,z:6.8},{x:-4.5,y:.55,z:6.8},{x:-4.5,y:.65,z:6.5}],'sample-stone');d.walk(-3.45,6.65);d.harvest(7,10,[{x:-3.45,y:.5,z:7.9},{x:-3.1,y:.5,z:7.9},{x:-3.8,y:.5,z:7.9}],'sample-grass');d.walk(-3.45,5.3);d.interact('hearth',{x:-3,y:.9,z:4});d.walk(-4.5,5.3);d.walk(-4.5,3.7);
+ const interact=()=>{const p=s.animal.position;d.interact('homestead-animal',{x:p.x,y:p.y+.7,z:p.z});};const grass=s.survival.inventory[7];interact();expect(s.home.state.animal.tamed).toBe(true);interact();expect(s.survival.inventory[7]).toBe(grass-10);d.advance(45.2);interact();expect(s.campaign.state.items.milk).toBe(1);expect(s.home.state.animal.ready).toBe(false);expect(s.campaign.state.deaths).toBe(0);const saved=captureCampaign(s,defaultSettings()),resumed=hydrateCampaign(saved);expect(resumed).not.toBeNull();expect(resumed!.sim.home.snapshot()).toEqual(s.home.snapshot());expect(resumed!.sim.animal.position).toEqual(s.animal.position);
+},20000);

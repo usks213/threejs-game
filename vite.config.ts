@@ -1,3 +1,5 @@
+import {DUNGEON_PROTOCOL} from './src/dungeon/types';
+import {CAMPAIGN_PROTOCOL} from './src/prototype/network/protocol';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -5,20 +7,24 @@ export default defineConfig({
     name: 'deployment-version',
     apply: 'build',
     generateBundle() {
-      const commit = process.env.WORKERS_CI_COMMIT_SHA
+      const commit = process.env.DEPLOYMENT_COMMIT_SHA
+        ?? process.env.WORKERS_CI_COMMIT_SHA
         ?? process.env.CF_PAGES_COMMIT_SHA
         ?? process.env.GITHUB_SHA
         ?? 'local';
       this.emitFile({
         type: 'asset',
         fileName: 'deployment.json',
-        source: JSON.stringify({ application: 'threejs-game', commit }),
+        source: JSON.stringify({ application: 'threejs-game', commit, dungeonProtocol: DUNGEON_PROTOCOL, campaignProtocol: CAMPAIGN_PROTOCOL, campaignCoop: process.env.PR4_CAMPAIGN_RELAY_ENABLED === 'true' }),
       });
     },
   }],
   test: {
     include: ['tests/unit/**/*.test.ts'],
     environment: 'node',
+    // Full-world save/restore fixtures exceed Vitest's 5s default on shared CI.
+    // Performance contracts remain explicit assertions; this only bounds liveness.
+    testTimeout: 15_000,
     maxWorkers: 2,
   },
 });
