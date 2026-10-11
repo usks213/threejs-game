@@ -34,3 +34,7 @@ Required candidate acceptance: strict types, all unit suites, PC/Android-profile
 ## Accepted candidate
 
 `7c38b622` passed CI38144445126 with 129 unit tests and eight applicable browser cases. Both PC and Android-profile ordinary-input survival flows reached crafting/placement, actual explosion death, persistent camp recovery and reload. Lit-world and respawn images were inspected; old save isolation and edited-terrain samples passed. The accepted loop is a small initial survival slice, not long-term balance or device-FPS proof. See [release-review.md](release-review.md).
+
+## Physical base-building follow-up
+
+The equipment-recovery game candidate `459ed014` passed CI38147393997 with 141 unit tests and all ten applicable browser cases (one PC reservoir retry; two profile-specific skips). PC and touch normal input can collect 27 stone cells, build a retaining wall, mine the finite reservoir, observe the dry side stay dry, open the wall, and see water flow downstream before save/reload. The earlier `4f49290d` ran both reservoir routes on their first attempt. Direct workbench recovery and continued ownership after reload also passed in both profiles. Equipment support reconciliation has independent repeated recovery/save tests. Exact publication-candidate verification remains required; see release-review.md for retries and boundaries.

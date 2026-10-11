@@ -17,10 +17,10 @@ test('ordinary controls build a stone dam, release the reservoir and reopen down
   // Position reports are sampled by the HUD and movement has inertia. Correct
   // the landing with short ordinary walking taps, just as a player steps back
   // from a red 'overlaps player' build preview; do not loosen collision rules.
-  const standNear=async(x:number)=>{for(let attempt=0;attempt<16;attempt++){const s=await read();if(Math.abs(s.x-x)<=1.2)return;const right=s.x<x;
+  const standNear=async(x:number,tolerance=1.2)=>{for(let attempt=0;attempt<16;attempt++){const s=await read();if(Math.abs(s.x-x)<=tolerance)return;const right=s.x<x;
     if(cdp){const m=(await page.locator('.move-pad').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:m.x+m.width*(right?.8:.2),y:m.y+m.height/2,id:1}]});}else await page.keyboard.down(right?'KeyD':'KeyA');
     await page.waitForTimeout(45);if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else await page.keyboard.up(right?'KeyD':'KeyA');await page.waitForTimeout(300);
-  }expect(Math.abs((await read()).x-x)).toBeLessThanOrEqual(1.2);};
+  }expect(Math.abs((await read()).x-x)).toBeLessThanOrEqual(tolerance);};
   const menu=async()=>{if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();};
   const cells=async()=>{await menu();const raw=await page.evaluate(()=>localStorage.getItem('emberfall-survival-save-v1'));expect(raw).toBeTruthy();const w=JSON.parse(JSON.parse(raw!).data.run).data.world as {width:number;cells:number[]};const out:number[]=[];for(let n=0;n<w.cells.length;n+=2)for(let k=0;k<w.cells[n+1];k++)out.push(w.cells[n]);await button('世界に戻る');return {width:w.width,values:out};};
   const count=(w:{width:number;values:number[]},material:number,x0:number,x1:number,y0:number,y1:number)=>{let n=0;for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(w.values[y*w.width+x]===material)n++;return n;};
@@ -35,7 +35,7 @@ test('ordinary controls build a stone dam, release the reservoir and reopen down
   for(const y of [34.5,31.05,28.05])await aim(104,y,100);
   expect((await read()).resources.stone).toBe(before-27);
   const dry=await cells();expect(count(dry,1,98,105,25,33)).toBe(27);
-  await flyRight(108);await standNear(115);await page.locator('#tool').selectOption('pick');
+  await flyRight(108);await standNear(117);await expect.poll(async()=>(await read()).y,{intervals:[50]}).toBeGreaterThan(29);await page.locator('#tool').selectOption('pick');
   await aim(111,31,450);await page.waitForTimeout(1800);
   const held=await cells();expect(count(held,5,106,111,27,33)).toBeGreaterThan(5);expect(count(held,5,94,97,27,33)).toBe(0);
   await page.screenshot({path:info.outputPath(mobile?'reservoir-held-touch.png':'reservoir-held-desktop.png')});

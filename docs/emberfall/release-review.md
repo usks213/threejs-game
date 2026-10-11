@@ -4,7 +4,11 @@ The published baseline is `ea4bfb00a02cb8ca16793593444219ff93f13bfa`, verified b
 
 The next candidate adds ordinary PC/touch reservoir engineering acceptance, pickaxe equipment recovery and loss-of-support recovery. Removing support returns a finished item once; death assertions now conserve inventory plus placed equipment rather than assuming explosion-damaged supports survive. Recovered workbench ownership is checked across reload. The old inventory driver now observes movement every 50ms rather than allowing coarse polling to walk beyond the pickup. No interaction ranges, material costs, physics rules or assertions are bypassed.
 
-This follow-up is not yet browser/visual accepted or published. The automatic preview upload is disabled while its candidate is reviewed. The accepted baseline remains available.
+Game code is accepted through `459ed014` / [CI38147393997](https://github.com/usks213/threejs-game/actions/runs/38147393997): strict types, 141 unit tests, build and the complete browser suite. Nine cases passed first attempt; PC reservoir passed on its one configured retry; two profile-specific cases were skipped. The previous candidate `4f49290d` passed both reservoir and both equipment recovery flows first attempt, but failed the legacy journey because its driver stood still at the final gate under enemy fire. The driver now uses ordinary positioning and fuel-limited levitation; game rules/HP/enemies/victory criteria are unchanged.
+
+Independent review verified 100 alternating direct/support-loss recovery cycles per equipment type with save/reload, no duplication, monotonic IDs and untouched old save keys. Actual PC/touch screenshots show held water followed by downstream flow. Receipts on `4f49290d` recorded 27 stone cells, zero water on the dry side, then 21 PC / 17 Android-profile downstream water cells after mining the opening. Deaths remained zero. Equipment pickup and post-recovery saves passed in both profiles.
+
+The remaining PC reservoir retry was an input-positioning issue: at x113.81 the avatar stood on the reservoir rim at y22.99, so the intended wall strike did not open it. The publication candidate only changes that driver to walk to x117 (the existing ±1.2 tolerance keeps the avatar clear of the rim) and observe landing before mining, plus docs and the existing publication guard. It must pass exact-candidate CI before version-only upload. No assertions or material/actor collision rules are relaxed.
 
 ---
 
