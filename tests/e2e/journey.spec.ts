@@ -12,7 +12,7 @@ test('ordinary desktop controls traverse all caves, shop, perks and final guardi
   test.setTimeout(210000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('/?seed=3397'); await page.getByRole('button', { name: '新しい旅を始める', exact: true }).click();
+  await page.goto('/?mode=expedition&seed=3397'); await page.getByRole('button', { name: '新しい旅を始める', exact: true }).click();
   const canvas = page.locator('#cave');
   await expect.poll(async () => Number(await canvas.getAttribute('data-tick'))).toBeGreaterThan(10);
   let node = 0, currentLevel = 0, keys = new Set<string>(), mouseDown = false;

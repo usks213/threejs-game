@@ -1,5 +1,9 @@
 # 燐の底 / Emberfall
 
+**Current direction: persistent 2D survival crafting with cellular physics and local lighting.** The main URL starts this mode. Read [survival.md](survival.md) for mining, crafting, building, camp recovery, save isolation and current limits. The finite expedition described below remains available only at `?mode=expedition` for existing saves and compatibility.
+
+## Earlier expedition and shared engine
+
 Original-content falling-sand magic roguelike, isolated from PR #4/#5 and based on verified main `fe54d7da0379cfd07b0a349c8d8f514dcf9a8e1a`.
 
 ## Current playable scope

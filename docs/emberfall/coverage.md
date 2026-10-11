@@ -1,5 +1,7 @@
 # Source-inspired systems and explicit gaps
 
+The user changed the main direction to persistent survival crafting on 2026-10-11. See [survival.md](survival.md). Expedition gates/perks/roguelike breadth below are legacy/shared-engine context, not the primary roadmap. Current priorities are useful material physics, persistent building/crafting and lighting quality.
+
 Reference requested: https://noita.wiki.gg/ja/ . The Japanese entry could not be read directly in this environment. English wiki pages were available in indexed search. These sources informed mechanics research; they are not copied game content. Status describes this implementation only, never fidelity to every source detail.
 
 | System | Current status | Evidence and gap |
@@ -14,7 +16,7 @@ Reference requested: https://noita.wiki.gg/ja/ . The Japanese entry could not be
 | Refuge/perks/progression | Implemented bounded subset | Healing/ammo/bottle restoration, one-of-three perk selection, six effects, shop and next layer. Unit tests distinguish all effects. No perk stacking/rare combinations/anger/destruction escape simulation. |
 | Boss/victory/death | Implemented bounded rules; desktop full-run input acceptance passed | Final gate blocked by living guardian; terminal death/victory preserved on save. Input-only headless seed 3397 wins all three layers with ordinary health/resources; five seeds reach first refuge. Desktop normal keyboard/mouse plus shop UI reached victory in CI38140465815. Full-run Android and human acceptance remain pending. |
 | Save/resume | Implemented subset | Full edited terrain/lifetimes/RNG, actors/projectiles, deck/shared ammo, finite cards/shop/pickups, perks/phase, checksum+schema limits, backup and error reporting. v1 save migration. Local single browser only, no cloud sync. |
-| Visuals/audio | Partial | Original procedural pixel sprites, terrain, particles, cheap light pools, Japanese UI. No sampled source assets; audio/music are not implemented. |
+| Visuals/audio | Partial | Original procedural pixel sprites, stratified terrain, particles, solid-occluded local light and emitter-only bloom, Japanese UI. No sampled source assets; audio/music are not implemented. |
 | Performance | Narrow unit/CPU evidence | Bounded finite grid + dirty render chunks + capped effects. No actual Android/iPhone FPS, long-session battery/memory or broad stress acceptance. |
 
 ## Remaining breadth required before any full-reproduction claim
@@ -39,3 +41,7 @@ Reference requested: https://noita.wiki.gg/ja/ . The Japanese entry could not be
 ## Finite inventory candidate
 
 See [finite-inventory.md](finite-inventory.md) for new rules and acceptance requirements. Candidate validation and release status are recorded separately from the accepted first release; implementation alone is not browser acceptance.
+
+## Survival increment
+
+Implemented candidate: finite resource mining and cellular placement; torch/workbench/camp recipes; workbench upgrade and ammunition crafting; persistent camp recovery; isolated survival save/backup; terrain-occluded local lighting and emitter bloom. Runtime/visual acceptance is recorded with the candidate release, not inferred from this implementation list. Remaining survival depth includes broader recipes/progression, structural durability, richer world/biomes, mechanisms, safe farming/storage and actual-device performance.

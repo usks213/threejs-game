@@ -7,8 +7,9 @@ function context() {
 }
 afterEach(() => vi.unstubAllGlobals());
 it('uploads startup terrain once, then only the retained dirty union', () => {
-  const main = context(), terrain = context();
-  vi.stubGlobal('document',{ createElement:() => ({ getContext:() => terrain }) });
+  const main = context(), terrain = context(), light = context(), bloom = context();
+  const contexts = [terrain,light,bloom];
+  vi.stubGlobal('document',{ createElement:() => { const ctx = contexts.shift(); return { getContext:() => ctx }; } });
   const renderer = new Renderer({ getContext:() => main } as unknown as HTMLCanvasElement);
   const run = new Run(3397), input = idleInput();
   renderer.draw(run,input);
@@ -20,4 +21,21 @@ it('uploads startup terrain once, then only the retained dirty union', () => {
   expect(terrain.putImageData.mock.calls[1].slice(3)).toEqual([32,16,16,16]);
   expect(renderer.pixels.data[(26*256+41)*4+3]).toBe(255);
   expect(run.world.dirty.size).toBe(0);
+});
+
+it('refreshes only the small lighting buffers at 12 Hz and omits survival portal cues', () => {
+  const main = context(), terrain = context(), light = context(), bloom = context();
+  const contexts = [terrain,light,bloom];
+  vi.stubGlobal('document',{ createElement:() => { const ctx = contexts.shift(); return { getContext:() => ctx }; } });
+  const renderer = new Renderer({ getContext:() => main, dataset:{} } as unknown as HTMLCanvasElement);
+  const run = Object.assign(new Run(3397), { mode: 'survival', structures: [{type:'torch',x:60,y:33}] });
+  renderer.draw(run,idleInput());
+  expect(main.fillText).not.toHaveBeenCalled();
+  expect(light.putImageData).toHaveBeenCalledTimes(1); expect(bloom.putImageData).toHaveBeenCalledTimes(1);
+  expect(renderer.metrics.lights).toBe(2);
+  expect(renderer.metrics.lightWidth).toBeLessThan(renderer.width / 2);
+  run.time = 0.04; renderer.draw(run,idleInput()); expect(light.putImageData).toHaveBeenCalledTimes(1);
+  run.time = 0.09; renderer.draw(run,idleInput()); expect(light.putImageData).toHaveBeenCalledTimes(2);
+  expect(terrain.putImageData).toHaveBeenCalledTimes(1);
+  expect(renderer.metrics.rays).toBeLessThanOrEqual(6144);
 });

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 test('original 2D cave: movement, flight, shooting, equipment and resume', async ({ page }, info) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/');
+  await page.goto('/?mode=expedition');
   await expect(page.getByRole('heading', { name: '燐の底', exact: true })).toBeVisible();
   await page.screenshot({ path: info.outputPath('01-title.png') });
   await page.getByRole('button', { name: '新しい旅を始める', exact: true }).click();
@@ -44,7 +44,7 @@ test('original 2D cave: movement, flight, shooting, equipment and resume', async
 test('trusted multi-touch movement, aim, flight and cancellation', async ({ page, context }, info) => {
   test.skip(info.project.name !== 'android-chromium', 'Touch profile only');
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/'); await page.getByRole('button', { name: '新しい旅を始める', exact: true }).click();
+  await page.goto('/?mode=expedition'); await page.getByRole('button', { name: '新しい旅を始める', exact: true }).click();
   const cdp = await context.newCDPSession(page);
   const move = await page.locator('.move-pad').boundingBox(), aim = await page.locator('.aim-pad').boundingBox(), fly = await page.locator('.fly-button').boundingBox();
   if (!move || !aim || !fly) throw new Error('Touch controls missing');

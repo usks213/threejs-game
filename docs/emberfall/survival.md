@@ -1,0 +1,31 @@
+# 燐の底: persistent cellular survival crafting
+
+The main URL is now a survival-crafting world, following the updated direction of 2026-10-11. The earlier expedition remains isolated at `?mode=expedition` for existing saves and compatibility testing. It is not the main progression loop.
+
+## Ordinary play loop
+
+1. Use the pick to cut actual wood, rock, sand and ore cells. Removed cells produce counted resources; empty cells never do. The tool acts on the first reachable surface, with limited range and cooldown.
+2. Pause with **工作 / II** and spend resources on torches, a workbench and a campfire. Workbench proximity enables finite spell-card editing, pick improvement and limited-ammunition crafting.
+3. Select the crafted item in the tool selector and aim toward a clear supported floor. A camp establishes the respawn location. Wood and stone blocks consume nine matching resources and become actual material cells; sand falls under gravity.
+4. Build from dry edges around the shallow reservoir. Mining its walls releases its finite water. Wood walls can burn; stone stays nonflammable and blocks flowing cells. Lighting is useful when exploring the connected deeper cave.
+5. Death returns the player near camp or the entrance. The edited world, resources, finite card ownership, structures and enemies remain. Save/title/reload continues this same world rather than generating a new run.
+
+Desktop: A/D, Space, mouse use, F water, 1/2 wands, Tab/Escape workshop/pause. Touch: left movement pad, right aim/use pad, flight and water buttons. Select a tool before using it. UI pauses do not advance hazards. All controls release on cancellation, resize or blur.
+
+## Physics and persistence boundaries
+
+- Reuses the cellular powder/liquid/gas, density, oil/fire/wood, water/toxic/lava reactions and terrain carving. This is not a static tile backdrop.
+- Mining and placed-cell resources are conserved. Crafting checks full cost before mutation. Placement rejects occupied actor/structure cells and does not silently delete liquids; build a dam from a dry edge.
+- Camp recovery searches a bounded nearby safe floor. A completely buried/flooded camp needs a tiny emergency air shelter with unmineable flooring. Cleared recovery cells grant no resources. This exception is disclosed rather than claiming literal preservation of every death-site cell.
+- Equipment and lights are bounded anchored structures, not destructible rigid bodies. They currently survive loss of their support; structure salvage/durability/extinguishing are future work.
+- Survival saves use separate `emberfall-survival-save-v1` and backup keys. The legacy expedition keys are not read, migrated or overwritten by this mode. Save envelopes validate bounded resources, structures, ids, camp/spawn, tool, full inherited world/RNG/cards/ammo/enemies and checksums. Backup recovery and storage failures are handled visibly.
+
+## Lighting and visual architecture
+
+Original pixel art at a bounded logical resolution, stratified terrain and distant cave layers. The light grid is coarse enough for mobile budgets, with capped source count, line-of-sight ray work and refresh rate. Solid terrain occludes local lights; water does not become an opaque wall. Player light, fire/lava clusters and placed torches/campfires emit light. Bloom is accumulated from emitting sources, not a blur over the entire scene. The world and control HUD remain readable outside the brightest pools.
+
+## Scope and acceptance
+
+This is one finite seeded 256×384-cell world with a small workshop clearing and connected caves. It does not provide Terraria's world size, item/recipe/boss progression or Noita's full material/spell/physics catalogue. Broad biome variation, structural collapse/durability, mixed flasks, electricity/freezing, audio, multiplayer, controller/remapping and real-device performance remain missing or unverified. Existing coverage-ledger gaps still apply where relevant.
+
+Required candidate acceptance: strict types, all unit suites, PC/Android-profile actual input from mining through crafting/placing camp and torch, lethal self-damage with persistent recovery, save/reload with old-save protection, inspected lit-world images and bounded renderer work/frame progress. Source/unit tests alone do not establish visual quality, phone FPS or a satisfying long-term game.

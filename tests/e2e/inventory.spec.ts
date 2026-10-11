@@ -8,7 +8,7 @@ test('ordinary touch or keyboard pickup swaps finite cards, preserves save and f
   const touch = info.project.name === 'android-chromium';
   await page.setViewportSize(touch ? { width: 393, height: 851 } : { width: 1280, height: 720 });
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/?seed=3397');
+  await page.goto('/?mode=expedition&seed=3397');
   const activate = async (selector: string) => { const node = page.locator(selector); if (touch) await node.tap(); else await node.click(); };
   if (touch) await page.getByRole('button', { name: '新しい旅を始める', exact: true }).tap();
   else await page.getByRole('button', { name: '新しい旅を始める', exact: true }).click();

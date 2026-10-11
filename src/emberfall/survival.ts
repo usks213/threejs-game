@@ -1,0 +1,236 @@
+import { Material } from './materials';
+import { Run } from './simulation';
+import type { Input, Perk } from './simulation';
+import type { SpellId } from './wands';
+
+export const BLOCK_SIZE = 3;
+export const TOOL_RANGE = 18;
+export const MAX_STRUCTURES = 96;
+export const MAX_RESOURCE = 100_000;
+export const WORKBENCH_RANGE = 22;
+export const SURVIVAL_TOOLS = ['pick', 'wood', 'stone', 'sand', 'torch', 'workbench', 'camp', 'wand'] as const;
+export type SurvivalTool = typeof SURVIVAL_TOOLS[number];
+export type StructureType = 'torch' | 'workbench' | 'camp';
+export type Resource = 'wood' | 'stone' | 'sand' | 'ore' | StructureType;
+export type ResourceCounts = Record<Resource, number>;
+export interface Structure { id: number; type: StructureType; x: number; y: number }
+export interface Point { x: number; y: number }
+export const RECIPES = {
+  torch: { name: 'たいまつ', description: '暗い洞窟を照らす。2本できる', cost: { wood: 4, sand: 2 }, output: 2, workbench: false },
+  workbench: { name: '作業台', description: '杖編集と道具強化の拠点', cost: { wood: 18, stone: 9 }, output: 1, workbench: false },
+  camp: { name: '焚き火の拠点', description: '設置した場所を復帰地点にする', cost: { wood: 12, stone: 12 }, output: 1, workbench: false },
+  ammo: { name: '鉱山の実の補充', description: '作業台で爆弾を2発補充（最大6発）', cost: { ore: 6, sand: 6 }, output: 2, workbench: true },
+  pickaxe: { name: '鉱石のつるはし', description: '採掘速度が約2倍になる', cost: { wood: 9, stone: 18, ore: 12 }, output: 1, workbench: true },
+} as const;
+export type RecipeId = keyof typeof RECIPES;
+const drops: Partial<Record<Material, Resource>> = { [Material.Wood]: 'wood', [Material.Rock]: 'stone', [Material.Sand]: 'sand', [Material.Gold]: 'ore' };
+const blocks = { wood: Material.Wood, stone: Material.Rock, sand: Material.Sand } as const;
+const hazardous = new Set([Material.Water, Material.Oil, Material.Toxic, Material.Lava, Material.Fire]);
+export function structureSize(type: StructureType): { halfWidth: number; height: number } {
+  return type === 'torch' ? { halfWidth: 1, height: 6 } : { halfWidth: 3, height: type === 'camp' ? 3 : 5 };
+}
+
+/** One editable, seeded world. Combat/material physics remain the shared engine. */
+export class SurvivalRun extends Run {
+  readonly mode = 'survival' as const;
+  resources: ResourceCounts = { wood: 0, stone: 0, sand: 0, ore: 0, torch: 0, workbench: 0, camp: 0 };
+  structures: Structure[] = [];
+  spawn: Point;
+  camp: Point | null = null;
+  deaths = 0;
+  pickaxeLevel: 0 | 1 = 0;
+  tool: SurvivalTool = 'pick';
+  toolCooldown = 0;
+  respawnProtection = 0;
+  nextStructureId = 1;
+  private stepping = false;
+
+  constructor(seed: number) {
+    super(seed);
+    this.spawn = { x: this.player.x, y: this.player.y };
+    // A usable surface workshop clearing connected to the original seeded caves.
+    this.world.fillRect(15, 8, 147, 26, Material.Air);
+    this.world.fillRect(15, 34, 147, 3, Material.Rock);
+    this.world.fillRect(52, 23, 4, 11, Material.Wood);
+    this.world.fillRect(54, 19, 11, 4, Material.Wood);
+    this.world.fillRect(83, 29, 10, 5, Material.Sand);
+    this.world.fillRect(65, 35, 6, 3, Material.Gold);
+    // The shallow reservoir has an excavatable wall: water is actual finite cells.
+    this.world.fillRect(110, 27, 30, 9, Material.Rock);
+    this.world.fillRect(112, 27, 26, 7, Material.Water);
+    this.world.fillRect(147, 23, 4, 11, Material.Wood);
+    this.world.fillRect(142, 19, 14, 4, Material.Wood);
+    this.notice = '木・石・砂を採り、作業台とたいまつを作ろう。水をせき止め、拠点から洞窟へ。';
+  }
+
+  override step(dt: number, input: Input): void {
+    if (!Number.isFinite(dt) || dt <= 0 || this.phase !== 'playing') return;
+    const elapsed = Math.min(dt, 1 / 30);
+    this.toolCooldown = Math.max(0, this.toolCooldown - elapsed);
+    this.respawnProtection = Math.max(0, this.respawnProtection - elapsed);
+    if (input.fire && this.tool !== 'wand') {
+      const target = this.targetFromAim(input.aimX, input.aimY);
+      this.useToolAt(target.x, target.y);
+    }
+    this.stepping = true;
+    try { super.step(dt, { ...input, fire: input.fire && this.tool === 'wand', interact: false }); }
+    finally { this.stepping = false; }
+    if (this.player.hp <= 0) this.respawn(this.cause);
+    // Structures have no hidden material generation or periodic free healing.
+  }
+
+  targetFromAim(aimX: number, aimY: number): Point {
+    if (![aimX, aimY].every(Number.isFinite) || Math.hypot(aimX, aimY) < 0.0001) { aimX = 1; aimY = 0; }
+    const length = Math.hypot(aimX, aimY), dx = aimX / length, dy = aimY / length;
+    const origin = { x: this.player.x, y: this.player.y - 1 };
+    let last = { x: Math.floor(origin.x + dx * 8), y: Math.floor(origin.y + dy * 8) };
+    for (let distance = 1; distance <= TOOL_RANGE - 1; distance += 0.5) {
+      const point = { x: Math.floor(origin.x + dx * distance), y: Math.floor(origin.y + dy * distance) };
+      if (this.solid(point.x, point.y)) {
+        if (this.tool === 'pick' || this.tool === 'wand') return point;
+        if (this.tool === 'torch' || this.tool === 'workbench' || this.tool === 'camp') return last;
+        return { x: Math.floor((point.x - dx * 2) / BLOCK_SIZE) * BLOCK_SIZE + 1, y: Math.floor((point.y - dy * 2) / BLOCK_SIZE) * BLOCK_SIZE + 1 };
+      }
+      last = point;
+    }
+    if (this.tool === 'wood' || this.tool === 'stone' || this.tool === 'sand') return { x: Math.floor(last.x / BLOCK_SIZE) * BLOCK_SIZE + 1, y: Math.floor(last.y / BLOCK_SIZE) * BLOCK_SIZE + 1 };
+    return last;
+  }
+
+  useToolAt(x: number, y: number): boolean { return this.useTool(this.tool, x, y); }
+  useTool(tool: SurvivalTool, x: number, y: number): boolean {
+    if (tool === 'pick') return this.mine(x, y);
+    if (tool === 'wand' || !SURVIVAL_TOOLS.includes(tool)) return false;
+    return this.place(tool, x, y);
+  }
+  private reachable(x: number, y: number): boolean {
+    return Number.isInteger(x) && Number.isInteger(y) && x >= 3 && y >= 5 && x < this.world.width - 3 && y < this.world.height - 5 &&
+      Math.hypot(x - this.player.x, y - (this.player.y - 1)) <= TOOL_RANGE && this.lineOfSight(this.player.x, this.player.y - 1, x + 0.5, y + 0.5);
+  }
+  mine(x: number, y: number): boolean {
+    if (this.phase !== 'playing' || this.toolCooldown > 0 || !this.reachable(x, y) || drops[this.world.get(x, y)] === undefined) return false;
+    const mined: { x: number; y: number; resource: Resource }[] = [];
+    const counts: Partial<ResourceCounts> = {};
+    // A bounded 3×3 strike. The selected surface must be visible before carving.
+    for (let yy = y - 1; yy <= y + 1; yy++) for (let xx = x - 1; xx <= x + 1; xx++) {
+      if (xx < 3 || yy < 3 || xx >= this.world.width - 3 || yy >= this.world.height - 4 || Math.hypot(xx - this.player.x, yy - this.player.y + 1) > TOOL_RANGE) continue;
+      const resource = drops[this.world.get(xx, yy)];
+      if (resource) { mined.push({ x: xx, y: yy, resource }); counts[resource] = (counts[resource] ?? 0) + 1; }
+    }
+    if (!mined.length || Object.entries(counts).some(([key, amount]) => this.resources[key as Resource] + amount > MAX_RESOURCE)) return false;
+    for (const cell of mined) { this.world.set(cell.x, cell.y, Material.Air); this.resources[cell.resource]++; }
+    this.toolCooldown = this.pickaxeLevel ? 0.14 : 0.32;
+    this.burst(x, y, '#d2b58b', 5);
+    this.notice = Object.entries(counts).map(([key, count]) => `${({ wood: '木', stone: '石', sand: '砂', ore: '鉱石' } as Record<string, string>)[key]} +${count}`).join(' / ');
+    return true;
+  }
+  place(type: Exclude<SurvivalTool, 'pick' | 'wand'>, x: number, y: number): boolean {
+    if (this.phase !== 'playing' || this.toolCooldown > 0 || !this.reachable(x, y)) return false;
+    if (type === 'wood' || type === 'stone' || type === 'sand') {
+      const left = x - 1, top = y - 1;
+      if (this.resources[type] < BLOCK_SIZE ** 2) return false;
+      for (let yy = top; yy < top + BLOCK_SIZE; yy++) for (let xx = left; xx < left + BLOCK_SIZE; xx++) {
+        if (!this.emptyBuildCell(xx, yy) || this.hitsActor(xx, yy) || this.hitsStructure(xx, yy)) return false;
+      }
+      this.resources[type] -= BLOCK_SIZE ** 2;
+      this.world.fillRect(left, top, BLOCK_SIZE, BLOCK_SIZE, blocks[type]);
+      this.toolCooldown = 0.2;
+      this.notice = `${type === 'wood' ? '木材' : type === 'stone' ? '石材' : '砂'}を9個使って設置した。`;
+      return true;
+    }
+    if (type === 'camp' && y < 12) return false;
+    if (!['torch', 'workbench', 'camp'].includes(type) || this.resources[type] < 1 || this.structures.length >= MAX_STRUCTURES || !this.solid(x, y + 1)) return false;
+    const size = structureSize(type);
+    for (let yy = y - size.height + 1; yy <= y; yy++) for (let xx = x - size.halfWidth; xx <= x + size.halfWidth; xx++) {
+      if (!this.emptyBuildCell(xx, yy) || this.hitsActor(xx, yy) || this.hitsStructure(xx, yy)) return false;
+    }
+    this.resources[type]--;
+    this.structures.push({ id: this.nextStructureId++, type, x, y });
+    if (type === 'camp') this.camp = { x, y: y - 4 };
+    this.toolCooldown = 0.2;
+    this.notice = type === 'camp' ? 'この焚き火が新しい復帰地点になった。' : `${RECIPES[type].name}を設置した。`;
+    return true;
+  }
+  private emptyBuildCell(x: number, y: number): boolean {
+    // Liquids may not be silently deleted by construction; dam from dry edges.
+    return x >= 3 && y >= 3 && x < this.world.width - 3 && y < this.world.height - 4 && this.world.get(x, y) === Material.Air;
+  }
+  private hitsActor(x: number, y: number): boolean {
+    const p = this.player;
+    return (Math.abs(x - p.x) < 3 && Math.abs(y - p.y) < 5) || this.enemies.some(e => e.hp > 0 && Math.abs(x - e.x) < 4 && Math.abs(y - e.y) < 5);
+  }
+  private hitsStructure(x: number, y: number): boolean {
+    return this.structures.some(s => { const size = structureSize(s.type); return Math.abs(x - s.x) <= size.halfWidth && y <= s.y && y > s.y - size.height; });
+  }
+  nearWorkbench(): boolean {
+    return this.structures.some(s => s.type === 'workbench' && Math.hypot(s.x - this.player.x, s.y - this.player.y) <= WORKBENCH_RANGE && this.lineOfSight(this.player.x, this.player.y - 1, s.x, s.y - 2));
+  }
+  canCraft(recipe: RecipeId): boolean {
+    if (!Object.hasOwn(RECIPES, recipe) || this.phase !== 'playing') return false;
+    const entry = RECIPES[recipe];
+    if (entry.workbench && !this.nearWorkbench()) return false;
+    if (recipe === 'pickaxe' && this.pickaxeLevel >= 1) return false;
+    if (recipe === 'ammo' && this.ammo.bomb >= 6) return false;
+    if (recipe !== 'pickaxe' && recipe !== 'ammo' && this.resources[recipe] + entry.output > MAX_RESOURCE) return false;
+    return Object.entries(entry.cost).every(([key, amount]) => this.resources[key as Resource] >= amount);
+  }
+  craft(recipe: RecipeId): boolean {
+    if (!this.canCraft(recipe)) return false;
+    const entry = RECIPES[recipe];
+    for (const [key, amount] of Object.entries(entry.cost)) this.resources[key as Resource] -= amount;
+    if (recipe === 'pickaxe') this.pickaxeLevel = 1;
+    else if (recipe === 'ammo') {
+      this.ammo.bomb = Math.min(6, this.ammo.bomb + entry.output);
+      for (const wand of [...this.wands, ...this.wandPickups.map(p => p.wand)]) wand.charges = { ...this.ammo };
+    } else this.resources[recipe] += entry.output;
+    this.notice = `${entry.name}を作った。${entry.description}`;
+    return true;
+  }
+
+  override canEditWands(): boolean { return this.phase === 'playing' && this.nearWorkbench(); }
+  override enterRefuge(): boolean { return false; }
+  override descend(): boolean { return false; }
+  override choosePerk(_perk: Perk): boolean { return false; }
+  override buySpell(_spell: SpellId, _price: number): boolean { return false; }
+  override damage(amount: number, cause: string, continuous = false): void {
+    if (this.respawnProtection > 0) return;
+    super.damage(amount, cause, continuous);
+    if (this.phase === 'dead' && !this.stepping) this.respawn(cause);
+  }
+  private safeSpawn(point: Point): boolean {
+    if (!Number.isInteger(point.x) || !Number.isInteger(point.y) || point.x < 5 || point.y < 8 || point.x > this.world.width - 6 || point.y > this.world.height - 10) return false;
+    for (let y = point.y - 5; y <= point.y + 4; y++) for (let x = point.x - 3; x <= point.x + 3; x++) {
+      if (this.solid(x, y) || hazardous.has(this.world.get(x, y))) return false;
+    }
+    return this.solid(point.x, point.y + 5);
+  }
+  /** Recovery is bounded near the requested camp and never creates harvestable cells. */
+  recoverSpawn(target: Point = this.camp ?? this.spawn): Point {
+    const center = { x: Math.max(6, Math.min(this.world.width - 7, Math.round(target.x))), y: Math.max(9, Math.min(this.world.height - 11, Math.round(target.y))) };
+    for (let radius = 0; radius <= 20; radius++) for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+      const candidate = { x: center.x + dx, y: center.y + dy };
+      if (this.safeSpawn(candidate)) return candidate;
+    }
+    // A completely buried/flooded camp needs a small recovery shelter. Cleared
+    // matter has no drops and the floor is unmineable, so death cannot farm it.
+    this.world.fillRect(center.x - 4, center.y - 7, 9, 12, Material.Air);
+    this.world.fillRect(center.x - 4, center.y + 5, 9, 2, Material.HardRock);
+    return center;
+  }
+  respawn(cause = '探索中の事故'): void {
+    const point = this.recoverSpawn();
+    Object.assign(this.player, point, { vx: 0, vy: 0, hp: this.player.maxHp, fuel: this.player.maxFuel, wet: 0, burning: 0, toxic: 0, oxygen: 100, invulnerable: 3, grounded: false });
+    this.respawnProtection = 3;
+    this.phase = 'playing'; this.deaths++; this.cause = cause;
+    this.notice = `${cause}で倒れた。${this.camp ? '焚き火' : '入口'}で復帰した。地形・持ち物・建物はそのまま。`;
+    // Keep distant projectiles, but remove immediate spawn killers.
+    this.projectiles = this.projectiles.filter(p => Math.hypot(p.x - point.x, p.y - point.y) > 18);
+  }
+  recoverLoadedPlayer(): void {
+    if (!this.collides(this.player.x, this.player.y)) return;
+    const point = this.recoverSpawn();
+    Object.assign(this.player, point, { vx: 0, vy: 0, wet: 0, burning: 0, toxic: 0, oxygen: 100, invulnerable: 3, grounded: false });
+    this.respawnProtection = 3;
+  }
+}
