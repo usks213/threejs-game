@@ -12,7 +12,7 @@ import type {DungeonWorldCoverage} from './world-loader';
 import {DungeonRenderDiagnostics,type DungeonRenderDiagnosticsSnapshot} from './render-diagnostics';
 import './style.css';
 
-export type DungeonRenderProbe=DungeonWorldCoverage&{diagnostics:DungeonRenderDiagnosticsSnapshot};
+export type DungeonRenderProbe=DungeonWorldCoverage&{diagnostics:DungeonRenderDiagnosticsSnapshot;graphics?:ReturnType<typeof createDungeonView>['graphicsStats']};
 declare global {interface Window {__dungeonProbe?:()=>Snapshot|null;__dungeonRenderProbe?:()=>DungeonRenderProbe|null}}
 
 /** Explicit separate mode: no campaign state, save keys or prototype lifecycle are touched. */
@@ -23,7 +23,7 @@ export function startDungeon(){
  const audio=createDungeonAudio();
  const previousTitle=document.title;document.title='灰の回廊 · ASHEN VAULT';const lifecycle=new AbortController();
  let client:DungeonClient|null=null,snapshot:Snapshot|null=null,view:ReturnType<typeof createDungeonView>|null=null,input:ReturnType<typeof createDungeonInput>|null=null;
- if(probeEnabled){window.__dungeonProbe=()=>snapshot?structuredClone(snapshot):null;window.__dungeonRenderProbe=()=>view?{...view.worldCoverage,diagnostics:diagnostics!.snapshot(view.renderStats)}:null;}
+ if(probeEnabled){window.__dungeonProbe=()=>snapshot?structuredClone(snapshot):null;window.__dungeonRenderProbe=()=>view?{...view.worldCoverage,diagnostics:diagnostics!.snapshot(view.renderStats),graphics:view.graphicsStats}:null;}
  let inventory=false,disposed=false,raf=0,last=performance.now(),room='',invite='',initializedLook=false,raid=-1,actorStatus='',lostReported=false,awaitingFreshSnapshot=false;
  const ui=createDungeonUI(root,{
   create:name=>{try{join(randomToken(crypto),name);}catch{ui.notice('部屋を作れません。HTTPS で開き直してください。');}},

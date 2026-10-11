@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createVolumeScenePipeline} from '../rendering/volumetrics/scene-pipeline';
 import {attackPose,bladeWorld,meleeDefinition} from '../prototype/core/motion';
 import type {Vec3} from '../prototype/core/voxel';
 import {DungeonWorldLoader} from './world-loader';
@@ -68,8 +69,8 @@ function actorRig(enemy:boolean,local:boolean){
 }
 
 export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged?():void;diagnostics?:DungeonRenderDiagnostics}={}){
- const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
- const scene=new THREE.Scene();scene.background=new THREE.Color('#0b1011');scene.fog=new THREE.FogExp2('#0b1011',.044);
+ const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});renderer.info.autoReset=false;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+ const scene=new THREE.Scene();scene.background=new THREE.Color('#0b1011');scene.fog=null;
  const camera=new THREE.PerspectiveCamera(76,1,.035,55);camera.rotation.order='YXZ';scene.add(camera);
  scene.add(new THREE.HemisphereLight('#a6b8c4','#403224',.58));
  const lantern=new THREE.PointLight('#f9d6a0',14,10,2);lantern.position.set(0,.15,.65);camera.add(lantern);
@@ -94,6 +95,8 @@ export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged
  }
  const rigs=new Map<string,ReturnType<typeof actorRig>>(),containers=new Map<string,{root:THREE.Group;lid:THREE.Group;lock:THREE.Mesh}>(),portals=new Map<string,{root:THREE.Group;ring:THREE.Mesh;light:THREE.PointLight}>(),shots=new Map<string,THREE.Mesh>();
  const ownRig=actorRig(false,true);scene.add(ownRig.group);
+ const volumeLighting={density:.025,ambient:new THREE.Color('#53646c'),direction:new THREE.Vector3(0,1,0),points:[lantern,...lights],groundHeight:0};
+ const pipeline=createVolumeScenePipeline(renderer,scene,camera,volumeLighting,[{min:[-15,-.3,-15],max:[-6,1.3,-7],density:.11},{min:[6,-.3,5],max:[15,1.1,14],density:.09}]);
  let snapshot:Snapshot|null=null,receivedAt=0,disposed=false,graphicsFailed=false;
  const world=new DungeonWorldLoader(scene,{changed:()=>{canvas.dataset.worldReady=String(world.ready);options.worldChanged?.();}});canvas.dataset.worldReady='false';
  const doorDecor=new Map<string,THREE.Group>();
@@ -108,21 +111,20 @@ export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged
   const ids=new Set(next.containers.map(c=>c.id));for(const [id,view]of containers)if(!ids.has(id)){view.root.removeFromParent();containers.delete(id);}
   for(const c of next.containers){let view=containers.get(c.id);if(!view){const root=new THREE.Group(),lid=new THREE.Group();scene.add(root);root.add(lid);const base=mesh(box,c.kind==='corpse'?cloth:wood,root);base.position.y=.28;base.scale.set(c.kind==='corpse'?.7:.85,.5,.55);lid.position.set(0,.55,.275);const top=mesh(box,wood,lid);top.position.z=-.275;top.scale.set(.88,.1,.58);const lock=mesh(box,gold,root);lock.position.set(0,.43,-.3);lock.scale.set(.1,.13,.06);for(const side of [-1,1]){const band=mesh(box,iron,root);band.position.set(side*.3,.29,0);band.scale.set(.055,.53,.57);}view={root,lid,lock};containers.set(c.id,view);}view.root.position.set(c.position.x,c.position.y,c.position.z);view.lid.rotation.x=c.opened?-1.05:0;view.lock.visible=c.locked;view.lid.visible=c.kind!=='corpse';}
   const exitIds=new Set(next.exits.map(e=>e.id));for(const[id,p]of portals)if(!exitIds.has(id)){p.root.removeFromParent();portals.delete(id);}
-  // Even zero-intensity visible lights add PBR shader work. Keep the closed
-  // portal geometry/emission, but include its light only when it contributes.
-  for(const exit of next.exits){let p=portals.get(exit.id);if(!p){const root=new THREE.Group();scene.add(root);const base=mesh(disk,stone,root),loop=mesh(ring,closedPortal,root);base.position.y=.03;loop.position.y=1.12;const light=new THREE.PointLight('#60ffd8',0,5,2);light.position.y=1.2;root.add(light);p={root,ring:loop,light};portals.set(exit.id,p);}p.root.position.set(exit.position.x,exit.position.y,exit.position.z);const open=next.elapsed>=exit.opensAt&&exit.remaining>0;p.ring.material=open?activePortal:closedPortal;p.light.intensity=open?10:0;p.light.visible=open;p.root.visible=exit.remaining>0;}
+  for(const exit of next.exits){let p=portals.get(exit.id);if(!p){const root=new THREE.Group();scene.add(root);const base=mesh(disk,stone,root),loop=mesh(ring,closedPortal,root);base.position.y=.03;loop.position.y=1.12;const light=new THREE.PointLight('#60ffd8',0,5,2);light.position.y=1.2;root.add(light);p={root,ring:loop,light};portals.set(exit.id,p);}p.root.position.set(exit.position.x,exit.position.y,exit.position.z);const open=next.elapsed>=exit.opensAt&&exit.remaining>0;p.ring.material=open?activePortal:closedPortal;p.light.intensity=open?10:0;p.root.visible=exit.remaining>0;}
  }
  // A thrown draw is just as terminal as context loss; never publish a partial first frame.
  const failGraphics=()=>{if(graphicsFailed)return;graphicsFailed=true;world.clear();};
  const contextHandler=(event:Event)=>{event.preventDefault();failGraphics();};canvas.addEventListener('webglcontextlost',contextHandler);
  function submitFrame(){
+  renderer.info.reset();
   const diagnostics=options.diagnostics;diagnostics?.beginSubmission(performance.now());
-  try{renderer.render(scene,camera);diagnostics?.endSubmission(performance.now(),true);}
+  try{pipeline.render();diagnostics?.endSubmission(performance.now(),true);}
   catch(error){diagnostics?.endSubmission(performance.now(),false);throw error;}
  }
  return {
   setSnapshot(next:Snapshot){if(disposed||graphicsFailed)return;if(!snapshot||next.you!==snapshot.you||next.raid!==snapshot.raid||next.seed!==snapshot.seed)options.diagnostics?.reset();snapshot=next;receivedAt=performance.now();syncWorld(next);syncProps(next);if(next.raid!==currentRaid){currentRaid=next.raid;readyPosition.value=false;}},
-  resize(){if(disposed||graphicsFailed)return;const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();},
+  resize(){if(disposed||graphicsFailed)return;const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5,1280/Math.max(width,height),Math.sqrt(921600/(width*height))));renderer.setSize(width,height,false);pipeline.resize(Math.floor(width*renderer.getPixelRatio()),Math.floor(height*renderer.getPixelRatio()));camera.aspect=width/height;camera.updateProjectionMatrix();},
   render(dt:number,look:Input){if(disposed||graphicsFailed)return;try{seconds+=dt;if(!snapshot){camera.position.set(-11,1.52,11);camera.rotation.set(-.03,0,0);submitFrame();return;}
    if(snapshot.raid>0&&!world.presentable){renderer.clear();return;}world.show();
    const own=snapshot.actors.find(actor=>actor.id===snapshot!.you),age=Math.min(.1,(performance.now()-receivedAt)/1000);
@@ -135,7 +137,7 @@ export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged
    if(!graphicsFailed)world.rendered();
    }catch{failGraphics();}
   },
-  get worldReady(){return world.ready;},get worldStage(){return world.state;},
+  get graphicsStats(){return pipeline.stats;},get worldReady(){return world.ready;},get worldStage(){return world.state;},
   get worldCoverage(){return world.coverage;},
   get renderStats():DungeonRenderStats|null{if(!options.diagnostics||disposed)return null;const info=renderer.info;
    return {submission:{frame:info.render.frame,calls:info.render.calls,triangles:info.render.triangles,points:info.render.points,lines:info.render.lines},
@@ -145,6 +147,6 @@ export function createDungeonView(canvas:HTMLCanvasElement,options:{worldChanged
   },
   resetWorld(){options.diagnostics?.reset();snapshot=null;currentRaid=-1;readyPosition.value=false;world.clear();},
   get lost(){return graphicsFailed;},
-  dispose(){if(disposed)return;disposed=true;options.diagnostics?.dispose();canvas.removeEventListener('webglcontextlost',contextHandler);world.dispose();ownRig.dispose();rigs.forEach(r=>r.dispose());resources.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.clear();renderer.renderLists.dispose();renderer.dispose();},
+  dispose(){if(disposed)return;disposed=true;options.diagnostics?.dispose();canvas.removeEventListener('webglcontextlost',contextHandler);pipeline.dispose();world.dispose();ownRig.dispose();rigs.forEach(r=>r.dispose());resources.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());scene.clear();renderer.renderLists.dispose();renderer.dispose();},
  };
 }

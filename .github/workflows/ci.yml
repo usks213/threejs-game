@@ -214,8 +214,32 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
-  deploy-preview:
+  rendering-browser:
     needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify real SDF water and hybrid fog pixels on both viewport profiles
+        run: npx playwright test --config=playwright.rendering.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: enshrouded-rendering-evidence
+          path: |
+            playwright-report/rendering/
+            test-results/rendering/
+          retention-days: 7
+  deploy-preview:
+    needs: [verify, rendering-browser]
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10

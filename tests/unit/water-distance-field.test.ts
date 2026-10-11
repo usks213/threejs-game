@@ -1,0 +1,20 @@
+import {describe,it,expect} from 'vitest';
+import {VoxelWater} from '../../src/prototype/core/water';
+import {VoxelField} from '../../src/prototype/core/voxel';
+import {WaterDistanceField} from '../../src/prototype/rendering/water-distance-field';
+import {WaterRipples} from '../../src/prototype/rendering/water-ripples';
+const make=()=>{const water=new VoxelWater(new VoxelField());water.volume.fill(0);return water;};
+
+describe('derived bounded surface-brick SDF',()=>{
+ it('represents dry volumes without active proxy bricks',()=>{const f=new WaterDistanceField(make());expect(f.bricks).toHaveLength(0);expect(f.faces).toBe(0);expect(f.encoded.every(v=>v===255)).toBe(true);});
+ it('bakes signed metre distances to exposed filled voxel rectangles',()=>{const w=make();for(let z=10;z<18;z++)for(let y=0;y<4;y++)for(let x=10;x<18;x++)w.volume[w.index(x,y,z)]=1;const f=new WaterDistanceField(w);expect(f.sample(5.7,-.25,-3.3)).toBeLessThan(-.15);expect(f.sample(5.7,.2,-3.3)).toBeCloseTo(.2,4);expect(f.sample(5.7,0,-3.3)).toBeCloseTo(0,4);expect(f.bricks.length).toBeGreaterThan(0);expect(f.bricks.length).toBeLessThanOrEqual(128);});
+ it('keeps vertically separated liquids separate rather than filling under the highest surface',()=>{const w=make();for(let z=10;z<18;z++)for(let x=10;x<18;x++){w.volume[w.index(x,0,z)]=1;w.volume[w.index(x,8,z)]=1;}const f=new WaterDistanceField(w);expect(f.sample(5.7,-.45,-3.3)).toBeLessThan(0);expect(f.sample(5.7,.55,-3.3)).toBeLessThan(0);expect(f.sample(5.7,0,-3.3)).toBeGreaterThan(.2);});
+ it('retains partial fill height and solid exclusion',()=>{const w=make();for(let z=10;z<18;z++)for(let x=10;x<18;x++)w.volume[w.index(x,0,z)]=.75;const f=new WaterDistanceField(w);expect(f.sample(5.7,-.5+.75*.125,-3.3)).toBeCloseTo(0,4);w.blocked.fill(1);f.rebuild();expect(f.bricks).toHaveLength(0);expect(f.encoded.every(v=>v===255)).toBe(true);});
+ it('bounds texture memory, quantization error and samples without mutating solver state',()=>{const w=make();w.add(10,4,12,.9);w.step();const volume=w.volume.slice(),blocked=w.blocked.slice(),revision=w.revision,phase=w.phase,injected=w.injected,transfer=w.downwardTransfer(10,4,12);const f=new WaterDistanceField(w);f.rebuild();expect(f.encoded.byteLength).toBe(65000);for(let i=0;i<f.encoded.length;i++)expect(Math.abs((f.encoded[i]/127.5-1)*f.range-f.distance[i])).toBeLessThanOrEqual(f.range/255+.000001);expect(w.volume).toEqual(volume);expect(w.blocked).toEqual(blocked);expect(w.revision).toBe(revision);expect(w.phase).toBe(phase);expect(w.injected).toBe(injected);expect(w.downwardTransfer(10,4,12)).toBe(transfer);});
+});
+describe('separate height / vertical-velocity ripples',()=>{
+ it('propagates an impulse, stays finite and decays without changing boundary heights',()=>{const r=new WaterRipples(24,24,.125);r.impulse(12,12,.2,2);for(let i=0;i<30;i++)r.update(1/60);expect(Math.abs(r.height[12+12*24])).toBeGreaterThan(0);expect(Math.abs(r.height[14+12*24])).toBeGreaterThan(0);let early=0;for(const h of r.height)early+=h*h;for(let i=0;i<1200;i++)r.update(1/60);let late=0;for(const h of r.height){expect(Number.isFinite(h)).toBe(true);expect(Math.abs(h)).toBeLessThanOrEqual(r.maxHeight);late+=h*h;}expect(late).toBeLessThan(early);for(let i=0;i<24;i++){expect(r.height[i]).toBe(0);expect(r.height[i*24]).toBe(0);}});
+ it('uses bounded fixed steps and rejects invalid inputs',()=>{const r=new WaterRipples(24,24,.125);r.impulse(NaN,1,1);for(const dt of [NaN,Infinity,-1,0])expect(r.update(dt)).toBe(0);expect(r.update(10)).toBeLessThanOrEqual(6);expect(r.height.every(v=>v===0)).toBe(true);});
+});
+
+it.each([.05,.1,.2])('keeps a thin %s-cell layer top traceable with a bounded downward-only render guard',fill=>{const w=make();for(let z=10;z<18;z++)for(let x=10;x<18;x++)w.volume[w.index(x,0,z)]=fill;const f=new WaterDistanceField(w),top=w.origin.y+fill*w.size;expect(Math.abs(f.sample(5.7,top,-3.3))).toBeLessThan(.005);expect(f.sample(5.7,top-.01,-3.3)).toBeLessThan(0);expect(f.sample(5.7,top+.01,-3.3)).toBeGreaterThan(0);expect(w.volume[w.index(12,0,12)]).toBeCloseTo(fill,6);});

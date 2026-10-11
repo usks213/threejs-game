@@ -4,6 +4,7 @@ import {test, expect, type CDPSession, type Locator, type Page} from '@playwrigh
 import type {RavagerTraining, Snapshot} from '../../src/dungeon/types';
 import {angle, observeActions, own, range, read} from './helpers/dungeon-raid-controls';
 import {TouchContacts} from './helpers/touch-contacts';
+import {dungeonAttackObserved,type ExpectedAttack} from './helpers/dungeon-attack-observed';
 
 // Raw traces include private invitation URLs and WebSocket hello credentials.
 // This test deliberately emits only masked pictures, actions and public snapshots.
@@ -176,14 +177,18 @@ test('dungeon optional ravager training preserves class choices and really short
   };
   const attack = async (name: string, heavy: boolean) => {
     const before = await until(page, snapshot => own(snapshot).phase === 'idle', `${name} starts from idle`);
+    const expected:ExpectedAttack={stage:name,actorId:before.you,sequence:before.lastAction+1,heavy,
+      kind:heavy?'overhead':own(before).kind==='slash'?'return':'slash',sampleStart:samples.length,actionStart:actions.length,tick:before.tick,elapsed:before.elapsed};
     stage = name;
     await command(heavy ? 'heavy' : 'attack');
-    await until(page, snapshot => snapshot.lastAction > before.lastAction && own(snapshot).phase !== 'idle', `${name} enters its real attack`);
+    await expect.poll(()=>dungeonAttackObserved(samples,actions,expected),
+      {message:`${name} enters its real attack`,timeout:15000,intervals:[50,100,200]}).toBe(true);
     await expect.poll(() => samples.some(sample => sample.stage === name && sample.actor.phase === 'recover'),
       {message: `${name} reaches recovery`, timeout: 8000, intervals: [50, 100]}).toBe(true);
     await screenshot(name);
     const ended = await until(page, snapshot => own(snapshot).phase === 'idle', `${name} completes recovery`, 8000);
     const measured = measuredRecovery(samples, name); recoveries.push(measured);
+    expect(dungeonAttackObserved(samples,actions,expected),`${name}: exactly the expected ordinary attack was sent and observed`).toBe(true);
     expect(own(ended)).toMatchObject({hp: 145, maxHp: 145, status: 'alive', position: own(before).position});
     expect(own(ended).bag).toEqual(own(before).bag);
     return measured;
