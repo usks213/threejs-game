@@ -158,7 +158,7 @@ describe('persistent survival crafting rules', () => {
   });
   it('safely recovers a completely embedded lava camp without giving free materials', () => {
     const run = arena(); run.resources.camp = 1; expect(run.place('camp', 14, 59)).toBe(true);
-    run.world.fillRect(3, 25, 45, 40, Material.Lava); run.world.fillRect(5, 35, 36, 25, Material.Rock);
+    run.world.fillRect(3, 25, 45, 40, Material.Lava); run.world.fillRect(5, 35, 36, 26, Material.Rock);
     const resources = { ...run.resources }; run.damage(1000, '溶岩');
     expect(run.collides(run.player.x, run.player.y)).toBe(false); expect(run.player.oxygen).toBe(100); expect(run.player.burning).toBe(0);
     expect(run.world.get(run.player.x, run.player.y + 5)).toBe(Material.HardRock);
@@ -169,6 +169,64 @@ describe('persistent survival crafting rules', () => {
     const run = arena(); run.player.hp = 1;
     for (let i = 0; i < 10; i++) run.projectiles.push({ x: 25, y: 55, vx: 0, vy: 0, enemy: true, spell: 'ember', damage: 20, speed: 0, radius: 1, life: 2, blast: 8, dig: 1, fire: false, angle: 0 });
     expect(() => run.step(1 / 60, idleInput())).not.toThrow(); expect(run.deaths).toBe(1); expect(run.phase).toBe('playing');
+  });
+  it.each(['torch', 'workbench', 'camp'] as const)('packs an unsupported %s once as a whole item, never as extra recipe ingredients', type => {
+    const run = arena(); run.resources[type] = 1;
+    expect(run.place(type, 14, 59)).toBe(true); resetCooldown(run);
+    const id = run.structures[0].id;
+    run.player.x = 23; expect(run.mine(14, 60)).toBe(true);
+    expect(run.structures).toHaveLength(0); expect(run.resources[type]).toBe(1);
+    expect(run.resources.wood).toBe(0); expect(run.resources.stone).toBe(6);
+    expect(run.nextStructureId).toBe(id + 1); expect(run.notice).toContain('足場');
+    expect(run.recoverUnsupportedStructures()).toBe(0); tick(run, 30); expect(run.resources[type]).toBe(1);
+    expect(run.camp).toBeNull(); expect(run.canEditWands()).toBe(false);
+  });
+  it.each(['torch', 'workbench', 'camp'] as const)('recovers a supported %s through normal aimed pickaxe input and permits reuse', type => {
+    const run = arena(); run.resources[type] = 1;
+    expect(run.place(type, 14, 59)).toBe(true); resetCooldown(run);
+    const id = run.structures[0].id;
+    const aim = { ...idleInput(), fire: true, aimX: 14 - run.player.x, aimY: 58 - (run.player.y - 1) };
+    const target = run.targetFromAim(aim.aimX, aim.aimY);
+    expect(target.y).toBeLessThan(60); run.step(1 / 60, aim);
+    expect(run.structures).toHaveLength(0); expect(run.resources[type]).toBe(1);
+    expect(run.resources.wood).toBe(0); expect(run.resources.stone).toBe(0);
+    expect(run.world.get(14, 60)).toBe(Material.Rock); expect(run.notice).toContain('回収');
+    resetCooldown(run); expect(run.place(type, 14, 59)).toBe(true);
+    expect(run.structures[0].id).toBeGreaterThan(id); expect(run.resources[type]).toBe(0);
+  });
+  it('reconciles supports broken by blasts, burning wood or falling sand and disables a floating workbench immediately', () => {
+    const blast = arena(); blast.resources.workbench = 1; expect(blast.place('workbench', 14, 59)).toBe(true);
+    blast.carveTerrain(14, 60, 2, 4); expect(blast.resources.workbench).toBe(1); expect(blast.structures).toHaveLength(0);
+    const falling = arena(); falling.resources.torch = 1;
+    falling.world.set(14, 60, Material.Sand); falling.world.fillRect(13, 61, 3, 4, Material.Air);
+    expect(falling.place('torch', 14, 59)).toBe(true); falling.step(1 / 30, idleInput());
+    expect(falling.resources.torch).toBe(1); expect(falling.structures).toHaveLength(0);
+    const burning = arena(); burning.resources.workbench = 1; burning.world.set(14, 60, Material.Wood);
+    expect(burning.place('workbench', 14, 59)).toBe(true); burning.world.set(13, 60, Material.Fire);
+    for (let i = 0; i < 4; i++) burning.step(1 / 30, idleInput());
+    expect(burning.resources.workbench).toBe(1); expect(burning.structures).toHaveLength(0);
+    const suspended = arena(); suspended.resources.workbench = 1; expect(suspended.place('workbench', 14, 59)).toBe(true);
+    suspended.world.set(14, 60, Material.Air); expect(suspended.canEditWands()).toBe(false);
+    expect(suspended.recoverUnsupportedStructures()).toBe(1); expect(suspended.canEditWands()).toBe(false);
+  });
+  it('changes respawn to the newest remaining supported camp, or the entrance when none remain', () => {
+    const run = arena(); run.resources.camp = 2;
+    expect(run.place('camp', 14, 59)).toBe(true); resetCooldown(run);
+    expect(run.place('camp', 36, 59)).toBe(true); resetCooldown(run); expect(run.camp?.x).toBe(36);
+    run.player.x = 27; expect(run.mine(36, 60)).toBe(true); expect(run.resources.camp).toBe(1); expect(run.camp?.x).toBe(14);
+    run.damage(1000, '落盤'); expect(run.player.x).toBe(14); expect(run.deaths).toBe(1);
+    run.world.set(14, 60, Material.Air); run.respawnProtection = 0; run.player.invulnerable = 0;
+    run.damage(1000, '爆発'); expect(run.camp).toBeNull(); expect(run.resources.camp).toBe(2);
+    expect(run.player.x).toBe(run.spawn.x); expect(run.deaths).toBe(2); expect(run.structures).toHaveLength(0);
+  });
+  it('keeps capped manual recovery atomic and reports unsupported overflow without creating duplicate items', () => {
+    const run = arena(); run.resources.torch = MAX_RESOURCE; expect(run.place('torch', 14, 59)).toBe(true); resetCooldown(run);
+    run.resources.torch = MAX_RESOURCE;
+    expect(run.mine(14, 57)).toBe(false); expect(run.structures).toHaveLength(1); expect(run.notice).toContain('上限');
+    run.world.set(14, 60, Material.Air);
+    expect(run.recoverUnsupportedStructures()).toBe(1); expect(run.resources.torch).toBe(MAX_RESOURCE);
+    expect(run.structures).toHaveLength(0); expect(run.notice).toContain('破損');
+    expect(run.recoverUnsupportedStructures()).toBe(0); expect(run.resources.torch).toBe(MAX_RESOURCE);
   });
   it('uses ordinary held-fire input to gather the reachable starter tree and stone', () => {
     const run = new SurvivalRun(23); run.enemies = []; tick(run, 50);

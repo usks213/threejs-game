@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Material } from '../../src/emberfall/materials';
 import { BACKUP_KEY, SAVE_KEY } from '../../src/emberfall/save';
 import { idleInput } from '../../src/emberfall/simulation';
-import { SurvivalRun } from '../../src/emberfall/survival';
+import { MAX_STRUCTURE_ID, SurvivalRun } from '../../src/emberfall/survival';
 import { loadSurvival, saveSurvival, SURVIVAL_BACKUP_KEY, SURVIVAL_SAVE_KEY } from '../../src/emberfall/survival-save';
 import { editWand } from '../../src/emberfall/wands';
 
@@ -96,7 +96,7 @@ describe('isolated versioned survival saves', () => {
       p => { p.data.survival.structures = [{ id: 1, type: 'torch', x: -1, y: 33 }]; p.data.survival.nextStructureId = 2; },
       p => { p.data.survival.structures = [{ id: 1, type: 'torch', x: 20, y: 33 }, { id: 1, type: 'torch', x: 30, y: 33 }]; p.data.survival.nextStructureId = 2; },
       p => { p.data.survival.structures = [{ id: 1, type: 'torch', x: 20, y: 33 }, { id: 2, type: 'torch', x: 20, y: 33 }]; p.data.survival.nextStructureId = 3; },
-      p => { p.data.survival.nextStructureId = 100; },
+      p => { p.data.survival.nextStructureId = 0; },
       p => { p.data.run = '{broken'; },
       p => { const nested = JSON.parse(p.data.run) as { checksum: string; data: { state: { player: { hp: number } } } }; nested.data.state.player.hp = -100; nested.checksum = hash(nested.data); p.data.run = JSON.stringify(nested); },
     ];
@@ -112,6 +112,43 @@ describe('isolated versioned survival saves', () => {
     run.world.fillRect(24, 3, 12, 10, Material.Air); run.world.fillRect(24, 12, 12, 1, Material.Rock);
     expect(run.place('camp', 30, 11)).toBe(false); expect(run.resources.camp).toBe(1); expect(run.camp).toBeNull();
     expect(saveSurvival(run, storage).ok).toBe(true);
+  });
+  it('loads old floating structures through one recovery pass while preserving v1 schema and storage', () => {
+    const run = new SurvivalRun(5), storage = new MemoryStorage(); camp(run);
+    run.world.set(25, 34, Material.Air);
+    expect(saveSurvival(run, storage).ok).toBe(true);
+    const before = new Map(storage.values), old = JSON.parse(storage.getItem(SURVIVAL_SAVE_KEY)!) as Payload;
+    expect(old.version).toBe(1);
+    const result = loadSurvival(storage), loaded = result.run!;
+    expect(loaded.structures).toHaveLength(0); expect(loaded.resources.camp).toBe(1); expect(loaded.camp).toBeNull();
+    expect(loaded.nextStructureId).toBe(2); expect(result.message).toContain('足場'); expect(storage.values).toEqual(before);
+    expect(loaded.recoverUnsupportedStructures()).toBe(0); expect(loaded.resources.camp).toBe(1);
+    expect(saveSurvival(loaded, storage).ok).toBe(true);
+    const again = loadSurvival(storage).run!; expect(again.resources.camp).toBe(1); expect(again.structures).toHaveLength(0);
+    expect(again.nextStructureId).toBe(2); expect(again.camp).toBeNull();
+  });
+  it('preserves monotonic structure IDs after recovering the highest ID and still rejects ID reuse', () => {
+    const run = new SurvivalRun(5), storage = new MemoryStorage(); camp(run);
+    for (let i = 0; i < 20; i++) run.step(1 / 60, idleInput());
+    expect(run.mine(25, 32)).toBe(true); expect(run.structures).toHaveLength(0); expect(run.nextStructureId).toBe(2);
+    expect(saveSurvival(run, storage).ok).toBe(true); const restored = loadSurvival(storage).run!;
+    expect(restored.nextStructureId).toBe(2); expect(restored.resources.camp).toBe(1);
+    for (let i = 0; i < 20; i++) restored.step(1 / 60, idleInput());
+    expect(restored.place('camp', 25, 33)).toBe(true); expect(restored.structures[0].id).toBe(2);
+    expect(saveSurvival(restored, storage).ok).toBe(true);
+    tamper(storage, p => { p.data.survival.nextStructureId = 2; }); expect(loadSurvival(storage).run).toBeNull();
+  });
+  it('keeps the last allocatable structure ID saveable and rejects further placements atomically', () => {
+    const run = new SurvivalRun(5), storage = new MemoryStorage(); run.resources.torch = 2;
+    run.nextStructureId = MAX_STRUCTURE_ID - 1;
+    expect(run.place('torch', 25, 33)).toBe(true);
+    expect(run.structures[0].id).toBe(MAX_STRUCTURE_ID - 1); expect(run.nextStructureId).toBe(MAX_STRUCTURE_ID);
+    expect(saveSurvival(run, storage).ok).toBe(true);
+    const loaded = loadSurvival(storage).run!;
+    for (let i = 0; i < 20; i++) loaded.step(1 / 60, idleInput());
+    expect(loaded.placementStatus('torch', 31, 33).reason).toBe('limit');
+    expect(loaded.place('torch', 31, 33)).toBe(false); expect(loaded.resources.torch).toBe(1); expect(loaded.structures).toHaveLength(1);
+    expect(loaded.nextStructureId).toBe(MAX_STRUCTURE_ID); expect(saveSurvival(loaded, storage).ok).toBe(true);
   });
   it('rejects changed checksums and oversized payloads', () => {
     const storage = new MemoryStorage(); saveSurvival(new SurvivalRun(3), storage);

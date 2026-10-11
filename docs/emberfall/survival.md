@@ -8,7 +8,7 @@ The main URL is now a survival-crafting world, following the updated direction o
 2. Pause with **工作 / II** and spend resources on torches, a workbench and a campfire. Workbench proximity enables finite spell-card editing, pick improvement and limited-ammunition crafting.
 3. Select the crafted item in the tool selector and aim toward a clear supported floor. A camp establishes the respawn location. Wood and stone blocks consume nine matching resources and become actual material cells; sand falls under gravity.
 4. Build from dry edges around the shallow reservoir. Mining its walls releases its finite water. Wood walls can burn; stone stays nonflammable and blocks flowing cells. Lighting is useful when exploring the connected deeper cave.
-5. Death returns the player near camp or the entrance. The edited world, resources, finite card ownership, structures and enemies remain. Save/title/reload continues this same world rather than generating a new run.
+5. Death returns the player near camp or the entrance. The edited world, resources, finite card ownership, surviving structures and enemies remain. Equipment whose support was destroyed is returned to inventory by the same rule used during ordinary play. Save/title/reload continues this same world rather than generating a new run.
 
 Desktop: A/D, Space, mouse use, F water, 1/2 wands, Tab/Escape workshop/pause. Touch: left movement pad, right aim/use pad, flight and water buttons. Select a tool before using it. UI pauses do not advance hazards. All controls release on cancellation, resize or blur.
 
@@ -17,7 +17,8 @@ Desktop: A/D, Space, mouse use, F water, 1/2 wands, Tab/Escape workshop/pause. T
 - Reuses the cellular powder/liquid/gas, density, oil/fire/wood, water/toxic/lava reactions and terrain carving. This is not a static tile backdrop.
 - Mining and placed-cell resources are conserved. Crafting checks full cost before mutation. Placement rejects occupied actor/structure cells and does not silently delete liquids; build a dam from a dry edge.
 - Camp recovery searches a bounded nearby safe floor. A completely buried/flooded camp needs a tiny emergency air shelter with unmineable flooring. Cleared recovery cells grant no resources. This exception is disclosed rather than claiming literal preservation of every death-site cell.
-- Equipment and lights are bounded anchored structures, not destructible rigid bodies. They currently survive loss of their support; structure salvage/durability/extinguishing are future work.
+- Equipment needs the same center-cell support required at placement. Mining that support, an explosion, falling sand or burning wood returns one finished item exactly once; pointing the pick at equipment uses the same recovery transaction. Recovery of the active camp selects the newest remaining supported camp, or the entrance. There is no recipe-material refund. At the exceptional 100,000-item inventory cap, manual recovery is refused and automatic overflow is lost with a notice. Equipment does not simulate rigid-body falling, durability or extinguishing.
+- Existing survival saves retain their format. Removed equipment leaves monotonic ID gaps; the reader accepts bounded gaps and reconciles formerly floating equipment in memory without rewriting the original save merely by loading it.
 - Survival saves use separate `emberfall-survival-save-v1` and backup keys. The legacy expedition keys are not read, migrated or overwritten by this mode. Save envelopes validate bounded resources, structures, ids, camp/spawn, tool, full inherited world/RNG/cards/ammo/enemies and checksums. Backup recovery and storage failures are handled visibly.
 
 ## Lighting and visual architecture

@@ -85,7 +85,7 @@ export function startSurvival(root: HTMLElement) {
       paragraph(recipe,`${Object.entries(data.cost).map(([key,n])=>`${RESOURCES[key as keyof typeof RESOURCES]} ${n}`).join(' + ')}${data.workbench?' · 作業台が必要':''}`,'recipe-cost');
       const b=button(`${data.name}を作る`,()=>{if(run.craft(id as keyof typeof RECIPES)){persist();menu();}},recipe);b.disabled=!run.canCraft(id as keyof typeof RECIPES);b.dataset.recipe=id;recipes.append(recipe);
     }p.append(recipes);
-    paragraph(p,'木の壁は燃えます。石の壁は水をせき止め、防火にも使えます。置いたブロックはつるはしで回収できます。たいまつと設備は床の上に置きます。','muted');
+    paragraph(p,'木の壁は燃えます。石の壁は水をせき止め、防火にも使えます。置いたブロックはつるはしで回収できます。たいまつと設備は床の上に置きます。つるはしで設備を回収できます。中央の足場を失った設備も完成品として戻ります。','muted');
     editor(p);button('保存してタイトルへ',()=>{if(persist()){started=false;welcome();}},p);
   }
   function pickup() {

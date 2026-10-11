@@ -1,3 +1,13 @@
+# Physical base-building follow-up candidate
+
+The published baseline is `ea4bfb00a02cb8ca16793593444219ff93f13bfa`, verified by CI38145085958 and the served deployment manifest. That final run had seven first-attempt passes, one legacy PC inventory retry pass and two profile-specific skips; both new survival routes passed on the first attempt. The Cloudflare status precheck returned HTTP500 before upload on the first publication attempt; retrying the same publication job succeeded with the production deployment unchanged.
+
+The next candidate adds ordinary PC/touch reservoir engineering acceptance, pickaxe equipment recovery and loss-of-support recovery. Removing support returns a finished item once; death assertions now conserve inventory plus placed equipment rather than assuming explosion-damaged supports survive. Recovered workbench ownership is checked across reload. The old inventory driver now observes movement every 50ms rather than allowing coarse polling to walk beyond the pickup. No interaction ranges, material costs, physics rules or assertions are bypassed.
+
+This follow-up is not yet browser/visual accepted or published. The automatic preview upload is disabled while its candidate is reviewed. The accepted baseline remains available.
+
+---
+
 # Survival crafting acceptance (2026-10-11)
 
 Game candidate `7c38b622a4865d0fc78c208eccfd0e039a972fd0` passed [CI38144445126](https://github.com/usks213/threejs-game/actions/runs/38144445126): strict types, 129 unit tests across 11 files, production build, eight applicable browser cases and two explicit legacy-profile skips. No retry was needed for the accepted browser cases.

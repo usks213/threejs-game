@@ -6,6 +6,7 @@ import type { SpellId } from './wands';
 export const BLOCK_SIZE = 3;
 export const TOOL_RANGE = 18;
 export const MAX_STRUCTURES = 96;
+export const MAX_STRUCTURE_ID = 1_000_000_000;
 export const MAX_RESOURCE = 100_000;
 export const WORKBENCH_RANGE = 22;
 export const SURVIVAL_TOOLS = ['pick', 'wood', 'stone', 'sand', 'torch', 'workbench', 'camp', 'wand'] as const;
@@ -77,6 +78,7 @@ export class SurvivalRun extends Run {
     this.stepping = true;
     try { super.step(dt, { ...input, fire: input.fire && this.tool === 'wand', interact: false }); }
     finally { this.stepping = false; }
+    this.recoverUnsupportedStructures();
     if (this.player.hp <= 0) this.respawn(this.cause);
     // Structures have no hidden material generation or periodic free healing.
   }
@@ -88,6 +90,7 @@ export class SurvivalRun extends Run {
     let last = { x: Math.floor(origin.x + dx * 8), y: Math.floor(origin.y + dy * 8) };
     for (let distance = 1; distance <= TOOL_RANGE - 1; distance += 0.5) {
       const point = { x: Math.floor(origin.x + dx * distance), y: Math.floor(origin.y + dy * distance) };
+      if (this.tool === 'pick' && !this.solid(point.x, point.y) && this.structureAt(point.x, point.y)) return point;
       if (this.solid(point.x, point.y)) {
         if (this.tool === 'pick' || this.tool === 'wand') return point;
         if (this.tool === 'torch' || this.tool === 'workbench' || this.tool === 'camp') return last;
@@ -112,7 +115,10 @@ export class SurvivalRun extends Run {
       Math.hypot(x - this.player.x, y - (this.player.y - 1)) <= TOOL_RANGE && this.lineOfSight(this.player.x, this.player.y - 1, x + 0.5, y + 0.5);
   }
   mine(x: number, y: number): boolean {
-    if (this.phase !== 'playing' || this.toolCooldown > 0 || !this.reachable(x, y) || drops[this.world.get(x, y)] === undefined) return false;
+    if (this.phase !== 'playing' || this.toolCooldown > 0 || !this.reachable(x, y)) return false;
+    const structure = this.structureAt(x, y);
+    if (structure) return this.recoverStructure(structure.id);
+    if (drops[this.world.get(x, y)] === undefined) return false;
     const mined: { x: number; y: number; resource: Resource }[] = [];
     const counts: Partial<ResourceCounts> = {};
     // A bounded 3×3 strike. The selected surface must be visible before carving.
@@ -126,6 +132,8 @@ export class SurvivalRun extends Run {
     this.toolCooldown = this.pickaxeLevel ? 0.14 : 0.32;
     this.burst(x, y, '#d2b58b', 5);
     this.notice = Object.entries(counts).map(([key, count]) => `${({ wood: '木', stone: '石', sand: '砂', ore: '鉱石' } as Record<string, string>)[key]} +${count}`).join(' / ');
+    const minedNotice = this.notice;
+    if (this.recoverUnsupportedStructures()) this.notice = `${minedNotice}。${this.notice}`;
     return true;
   }
   /** A pure query shared by the placement preview and the actual transaction. */
@@ -143,7 +151,7 @@ export class SurvivalRun extends Run {
     } else {
       if (this.resources[type] < 1) return { ok: false, reason: 'resources', message: `${RECIPES[type].name}がない。工作メニューで作ろう。` };
       if (type === 'camp' && y < 12) return { ok: false, reason: 'camp-clearance', message: 'ここは天井に近すぎる。復帰できる広い場所へ。' };
-      if (this.structures.length >= MAX_STRUCTURES) return { ok: false, reason: 'limit', message: 'この世界の建物数の上限に達した。' };
+      if (this.structures.length >= MAX_STRUCTURES || this.nextStructureId >= MAX_STRUCTURE_ID) return { ok: false, reason: 'limit', message: 'この世界の建物数の上限に達した。' };
       if (!this.solid(x, y + 1)) return { ok: false, reason: 'floor', message: '足場が必要。地面のすぐ上を狙おう。' };
     }
     const size = block ? { halfWidth: 1, height: BLOCK_SIZE } : structureSize(type);
@@ -185,11 +193,59 @@ export class SurvivalRun extends Run {
     const p = this.player;
     return (Math.abs(x - p.x) < 3 && Math.abs(y - p.y) < 5) || this.enemies.some(e => e.hp > 0 && Math.abs(x - e.x) < 4 && Math.abs(y - e.y) < 5);
   }
-  private hitsStructure(x: number, y: number): boolean {
-    return this.structures.some(s => { const size = structureSize(s.type); return Math.abs(x - s.x) <= size.halfWidth && y <= s.y && y > s.y - size.height; });
+  private structureAt(x: number, y: number): Structure | undefined {
+    return this.structures.find(s => { const size = structureSize(s.type); return Math.abs(x - s.x) <= size.halfWidth && y <= s.y && y > s.y - size.height; });
+  }
+  private hitsStructure(x: number, y: number): boolean { return this.structureAt(x, y) !== undefined; }
+  private refreshCamp(): void {
+    let newest: Structure | undefined;
+    for (const structure of this.structures) if (structure.type === 'camp' && this.solid(structure.x, structure.y + 1) && (!newest || structure.id > newest.id)) newest = structure;
+    this.camp = newest ? { x: newest.x, y: newest.y - 4 } : null;
+  }
+  /** Pickaxe recovery moves one whole placed item back into inventory. */
+  private recoverStructure(id: number): boolean {
+    const index = this.structures.findIndex(s => s.id === id);
+    if (index < 0) return false;
+    const structure = this.structures[index];
+    if (this.resources[structure.type] >= MAX_RESOURCE) { this.notice = '設備の所持数が上限。先に設置して空きを作ろう。'; return false; }
+    this.structures.splice(index, 1);
+    this.resources[structure.type]++;
+    this.refreshCamp();
+    this.toolCooldown = this.pickaxeLevel ? 0.14 : 0.32;
+    this.burst(structure.x, structure.y - 1, '#dfbd88', 5);
+    this.notice = `${RECIPES[structure.type].name}を1個回収した。再び設置できる。`;
+    if (structure.type === 'camp') this.notice += this.camp ? '残る焚き火が復帰地点になった。' : '復帰地点は入口に戻った。';
+    return true;
+  }
+  /**
+   * Loss of the same center-cell support required at placement packs an item
+   * once. No recipe ingredients are generated. Recovery also reconciles old
+   * floating structures when a v1 survival save is opened.
+   */
+  recoverUnsupportedStructures(): number {
+    const unsupported = this.structures.filter(s => !this.solid(s.x, s.y + 1));
+    if (!unsupported.length) return 0;
+    const removed = new Set(unsupported.map(s => s.id));
+    // Remove first: repeat calls, respawn and save/load cannot recover twice.
+    this.structures = this.structures.filter(s => !removed.has(s.id));
+    let packed = 0, lost = 0;
+    for (const structure of unsupported) {
+      if (this.resources[structure.type] < MAX_RESOURCE) { this.resources[structure.type]++; packed++; }
+      else lost++;
+    }
+    this.refreshCamp();
+    this.notice = packed ? `足場を失った設備を${packed}個回収した。再び設置できる。` : '';
+    if (lost) this.notice += `所持上限のため${lost}個は破損して失われた。`;
+    if (unsupported.some(s => s.type === 'camp')) this.notice += this.camp ? '残る焚き火が復帰地点になった。' : '復帰地点は入口に戻った。';
+    return unsupported.length;
+  }
+  override carveTerrain(x: number, y: number, radius: number, power: number): number {
+    const removed = super.carveTerrain(x, y, radius, power);
+    if (removed) this.recoverUnsupportedStructures();
+    return removed;
   }
   nearWorkbench(): boolean {
-    return this.structures.some(s => s.type === 'workbench' && Math.hypot(s.x - this.player.x, s.y - this.player.y) <= WORKBENCH_RANGE && this.lineOfSight(this.player.x, this.player.y - 1, s.x, s.y - 2));
+    return this.structures.some(s => s.type === 'workbench' && this.solid(s.x, s.y + 1) && Math.hypot(s.x - this.player.x, s.y - this.player.y) <= WORKBENCH_RANGE && this.lineOfSight(this.player.x, this.player.y - 1, s.x, s.y - 2));
   }
   canCraft(recipe: RecipeId): boolean {
     if (!Object.hasOwn(RECIPES, recipe) || this.phase !== 'playing') return false;
@@ -245,11 +301,12 @@ export class SurvivalRun extends Run {
     return center;
   }
   respawn(cause = '探索中の事故'): void {
+    this.recoverUnsupportedStructures();
     const point = this.recoverSpawn();
     Object.assign(this.player, point, { vx: 0, vy: 0, hp: this.player.maxHp, fuel: this.player.maxFuel, wet: 0, burning: 0, toxic: 0, oxygen: 100, invulnerable: 3, grounded: false });
     this.respawnProtection = 3;
     this.phase = 'playing'; this.deaths++; this.cause = cause;
-    this.notice = `${cause}で倒れた。${this.camp ? '焚き火' : '入口'}で復帰した。地形・持ち物・建物はそのまま。`;
+    this.notice = `${cause}で倒れた。${this.camp ? '焚き火' : '入口'}で復帰した。世界は続き、持ち物と残った設備は引き継がれる。`;
     // Keep distant projectiles, but remove immediate spawn killers.
     this.projectiles = this.projectiles.filter(p => Math.hypot(p.x - point.x, p.y - point.y) > 18);
   }

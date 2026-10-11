@@ -43,6 +43,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   await expect.poll(async()=>(await read()).structures.filter(s=>s.type==='torch').length).toBe(1);
   await page.screenshot({path:info.outputPath(mobile?'survival-lit-base-portrait.png':'survival-lit-base-desktop.png')});
   const built=await read();
+  const ownership=(s:State)=>Object.fromEntries(Object.entries(s.resources).map(([key,value])=>[key,value+s.structures.filter(item=>item.type===key).length]));
   // Face the hard ceiling and levitate while firing the actual explosive wand.
   // This produces lethal self-damage; no health/state injection or respawn API.
   if(mobile)await page.locator('#wand-select').tap();else await page.keyboard.press('Digit2');
@@ -52,7 +53,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});else{await page.mouse.up();await page.keyboard.up('Space');}
   await page.waitForTimeout(150);
   await page.screenshot({path:info.outputPath('survival-camp-respawn.png')});
-  const revived=await read();expect(revived.hp).toBeGreaterThan(0);expect(revived.structures).toEqual(built.structures);expect(revived.resources).toEqual(built.resources);expect(revived.camp).toEqual(built.camp);
+  const revived=await read();expect(revived.hp).toBeGreaterThan(0);expect(ownership(revived)).toEqual(ownership(built));for(const structure of revived.structures)expect(built.structures).toContainEqual(structure);expect(revived.camp).toEqual(built.camp);
   if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();
   await page.screenshot({path:info.outputPath('survival-crafting-after-respawn.png')});
   await activate('保存してタイトルへ');
@@ -61,12 +62,22 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   expect(cells(snapshot!)[0]).toBe(0);
   await page.reload();await activate('この世界を続ける');
   await expect.poll(async()=>(await read()).deaths).toBe(revived.deaths);
-  const restored=await read();expect(restored.structures).toEqual(built.structures);expect(restored.resources).toEqual(built.resources);expect(restored.camp).toEqual(built.camp);
+  const restored=await read();expect(restored.structures).toEqual(revived.structures);expect(restored.resources).toEqual(revived.resources);expect(restored.camp).toEqual(revived.camp);
   expect(await page.evaluate(()=>localStorage.getItem('emberfall-save-v1'))).toBe('legacy-record-preserved');
   if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();
   const resaved=await page.evaluate(()=>localStorage.getItem('emberfall-survival-save-v1'));expect(cells(resaved!)).toEqual(cells(snapshot!));await activate('世界に戻る');
   const before=Number(await cave.getAttribute('data-tick'));await page.waitForTimeout(1000);expect(Number(await cave.getAttribute('data-tick'))-before).toBeGreaterThan(12);
   const lighting=JSON.parse((await cave.getAttribute('data-lighting'))!);expect(lighting.rays).toBeLessThanOrEqual(6144);expect(lighting.lights).toBeLessThanOrEqual(7);expect(lighting.canvasWidth).toBe(mobile?160:240);
   await info.attach('survival-receipt.json',{body:JSON.stringify({built,revived,restored,lighting:await cave.getAttribute('data-lighting')},null,2),contentType:'application/json'});
+  // Reclaim equipment through the actual pick control; the finished item returns
+  // exactly once and remains owned across another save/reload.
+  await select('pick');await aim(34,31,100);
+  await expect.poll(async()=>(await read()).structures.filter(s=>s.type==='workbench').length).toBe(0);
+  expect((await read()).resources.workbench).toBe(1);
+  await aim(34,31,100);expect((await read()).resources.workbench).toBe(1);
+  if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();
+  await activate('保存してタイトルへ');await page.reload();await activate('この世界を続ける');
+  expect((await read()).resources.workbench).toBe(1);expect((await read()).structures.some(s=>s.type==='workbench')).toBe(false);
+  await page.screenshot({path:info.outputPath('survival-reclaimed-workbench.png')});
   expect(errors).toEqual([]);
 });

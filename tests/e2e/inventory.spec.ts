@@ -19,7 +19,7 @@ test('ordinary touch or keyboard pickup swaps finite cards, preserves save and f
     const box = (await page.locator('.move-pad').boundingBox())!;
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width * .8, y: box.y + box.height / 2, id: 1 }] });
   } else await page.keyboard.down('KeyD');
-  await expect.poll(async () => Number(await cave.getAttribute('data-player-x'))).toBeGreaterThan(65);
+  await expect.poll(async () => Number(await cave.getAttribute('data-player-x')), { intervals: [50], timeout: 5000 }).toBeGreaterThan(65);
   if (cdp) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   else await page.keyboard.up('KeyD');
   await expect(page.locator('#pickup')).toBeVisible();

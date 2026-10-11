@@ -1,6 +1,6 @@
 import { WORLD_HEIGHT, WORLD_WIDTH } from './generation';
 import { loadRun, SAVE_KEY, saveRun } from './save';
-import { MAX_RESOURCE, MAX_STRUCTURES, structureSize, SURVIVAL_TOOLS, SurvivalRun } from './survival';
+import { MAX_RESOURCE, MAX_STRUCTURES, MAX_STRUCTURE_ID, structureSize, SURVIVAL_TOOLS, SurvivalRun } from './survival';
 import type { Point, ResourceCounts, Structure, SurvivalTool } from './survival';
 
 /** Survival never reads, overwrites, migrates or removes expedition saves. */
@@ -45,7 +45,7 @@ function validateSurvival(value: unknown): asserts value is SurvivalState {
   const ids = new Set<number>();
   for (const structure of value.structures) {
     object(structure, ['id', 'type', 'x', 'y']);
-    number(structure.id, 1, 1e9); requireValid(!ids.has(structure.id)); ids.add(structure.id);
+    number(structure.id, 1, MAX_STRUCTURE_ID - 1); requireValid(!ids.has(structure.id)); ids.add(structure.id);
     requireValid(structure.type === 'torch' || structure.type === 'workbench' || structure.type === 'camp');
     const size = structureSize(structure.type);
     number(structure.x, 3 + size.halfWidth, WORLD_WIDTH - 4 - size.halfWidth);
@@ -66,8 +66,9 @@ function validateSurvival(value: unknown): asserts value is SurvivalState {
   number(value.deaths, 0, 1e9); number(value.pickaxeLevel, 0, 1);
   requireValid(typeof value.tool === 'string' && SURVIVAL_TOOLS.includes(value.tool as SurvivalTool));
   number(value.toolCooldown, 0, 1, false); number(value.respawnProtection, 0, 3, false);
-  number(value.nextStructureId, 1, 1e9);
-  requireValid(value.nextStructureId === Math.max(0, ...ids) + 1);
+  number(value.nextStructureId, 1, MAX_STRUCTURE_ID);
+  // Recovered structures leave gaps; IDs are monotonic and never reused.
+  requireValid(value.nextStructureId > Math.max(0, ...ids));
 }
 function decodeRun(raw: unknown) {
   requireValid(typeof raw === 'string' && raw.length <= MAX_BYTES);
@@ -121,7 +122,9 @@ export function loadSurvival(storage: SurvivalStorage): { run: SurvivalRun | nul
   if (!saved) return { run: null, message: primary || backup ? '保存データの形式または内容が不正です。元のデータは変更していません。' : '保存された拠点はありません。' };
   const run = new SurvivalRun(saved.base.seed);
   Object.assign(run, saved.base, saved.data.survival);
+  const recoveredStructures = run.recoverUnsupportedStructures();
+  const recoveryNotice = recoveredStructures ? run.notice : '';
   run.recoverLoadedPlayer();
-  return { run, message: recovered ? '主保存を読み込めなかったため、予備の保存から拠点を再開した。' : '保存した世界と拠点を再開した。' };
+  return { run, message: (recovered ? '主保存を読み込めなかったため、予備の保存から拠点を再開した。' : '保存した世界と拠点を再開した。') + recoveryNotice };
 }
 
