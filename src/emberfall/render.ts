@@ -10,19 +10,20 @@ export class Renderer {
   cameraX = 0; cameraY = 0; width = 240; height = 135; scale = 1;
   private world: Run['world'] | null = null;
   constructor(readonly canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext('2d', { alpha: false });
-    const terrainCtx = this.terrain.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
+    const terrainCtx = this.terrain.getContext('2d', { willReadFrequently: true });
     if (!ctx || !terrainCtx) throw new Error('2D描画を開始できません。ブラウザを更新して再試行してください。');
     this.ctx = ctx; this.terrainCtx = terrainCtx;
     this.terrain.width = 256; this.terrain.height = 384; this.pixels = terrainCtx.createImageData(256, 384);
   }
   resize() {
     const rect = this.canvas.getBoundingClientRect();
-    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
-    this.canvas.width = Math.round(rect.width * dpr); this.canvas.height = Math.round(rect.height * dpr);
     this.width = rect.width < rect.height ? 160 : 240;
-    this.height = this.width * rect.height / rect.width;
-    this.scale = this.canvas.width / this.width; this.ctx.imageSmoothingEnabled = false;
+    this.height = Math.ceil(this.width * rect.height / Math.max(1, rect.width));
+    // Each simulated cell is one real canvas pixel. CSS scales the original pixel
+    // art; the DOM HUD stays sharp. Avoid a full-device-resolution GPU surface.
+    this.canvas.width = this.width; this.canvas.height = this.height;
+    this.scale = 1; this.ctx.imageSmoothingEnabled = false;
   }
   point(clientX: number, clientY: number) {
     const rect = this.canvas.getBoundingClientRect();

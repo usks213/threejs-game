@@ -25,7 +25,7 @@ This is a limited implementation, **not a complete Noita reproduction**. Catalog
 - `save.ts`: bounded schema/checksum, RLE cell/lifetime arrays, last-valid backup and failure reporting; no DOM.
 - `input.ts`, `render.ts`, `app.ts`: pointer/keyboard mapping, original pixel art Canvas 2D, lifecycle and responsive Japanese UI.
 
-Fixed 60Hz actor steps and 30Hz material steps, maximum five catch-up steps. Full finite 256×384 cell map remains simulated (no offscreen deletion). Render updates only dirty 16×16 chunks. Projectiles and visual particles have explicit caps (128 and 180); this is a finite scoped implementation, not an unbounded world. DPR ≤1.5. No network, accounts or new hosting resources are part of the game.
+Fixed 60Hz actor steps and 30Hz material steps, maximum five catch-up steps. Full finite 256×384 cell map remains simulated (no offscreen deletion). Color computation updates dirty 16×16 chunks, followed by one dirty-union image upload. Rendering uses one backing pixel per world cell (160 pixels wide in portrait, 240 in landscape), nearest-neighbor CSS scaling and a crisp DOM HUD; paused scenes are not redrawn continuously. Projectiles and visual particles have explicit caps (128 and 180); this is a finite scoped implementation, not an unbounded world. DPR ≤1.5. No network, accounts or new hosting resources are part of the game.
 
 ## Verification
 

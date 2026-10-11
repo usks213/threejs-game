@@ -16,7 +16,7 @@ export function startEmberfall(root: HTMLElement) {
     <div id="overlay" class="overlay"></div><span id="save-status" aria-live="polite"></span></main>`;
   const element = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
   const canvas = element<HTMLCanvasElement>('#cave');
-  let run = new Run(newSeed()), started = false, paused = true, frame = 0, last = 0, accumulator = 0, saveClock = 0, hudClock = 0, disposed = false;
+  let run = new Run(newSeed()), started = false, paused = true, frame = 0, last = 0, accumulator = 0, saveClock = 0, hudClock = 0, disposed = false, drawRequested = true;
   let renderer: Renderer;
   try { renderer = new Renderer(canvas); } catch (error) { root.textContent = String(error); return () => {}; }
   const overlay = element('#overlay');
@@ -40,9 +40,9 @@ export function startEmberfall(root: HTMLElement) {
     try { const result = saveRun(run, localStorage); element('#save-status').textContent = result.message; return result.ok; }
     catch { element('#save-status').textContent = '保存できません。ブラウザのストレージ設定を確認してください。'; return false; }
   };
-  function start(seed = requestedSeed()) { run = new Run(seed); started = true; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.enabled = true; controls.clear(); saveClock = 0; persist(); updateHud(); }
-  function resume() { if (!started || run.phase !== 'playing') return; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.clear(); controls.enabled = true; updateHud(); }
-  function freeze() { element('.emberfall').classList.add('in-menu'); paused = true; controls.enabled = false; controls.clear(); overlay.hidden = false; }
+  function start(seed = requestedSeed()) { drawRequested = true; run = new Run(seed); started = true; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.enabled = true; controls.clear(); saveClock = 0; persist(); updateHud(); }
+  function resume() { drawRequested = true; if (!started || run.phase !== 'playing') return; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.clear(); controls.enabled = true; updateHud(); }
+  function freeze() { drawRequested = true; element('.emberfall').classList.add('in-menu'); paused = true; controls.enabled = false; controls.clear(); overlay.hidden = false; }
   function button(text: string, handler: () => void, parent: HTMLElement, className = '') {
     const node = document.createElement('button'); node.textContent = text; node.className = className; node.addEventListener('click', handler); parent.append(node); if (parent.classList.contains('panel') && !parent.querySelector('button[data-initial-focus]')) { node.dataset.initialFocus = 'true'; queueMicrotask(() => { if (node.isConnected && !overlay.hidden) node.focus(); }); } return node;
   }
@@ -120,7 +120,7 @@ export function startEmberfall(root: HTMLElement) {
     canvas.dataset.observation = JSON.stringify({ seed: run.seed, phase: run.phase, level: run.level, x: p.x, y: p.y, hp: p.hp, kills: run.kills, gold: run.gold, cameraX: renderer.cameraX, cameraY: renderer.cameraY, width: renderer.width, height: renderer.height, enemies: run.enemies.filter(e => run.lineOfSight(p.x, p.y - 1, e.x, e.y)).map(e => ({ x: e.x, y: e.y })) });
     canvas.dataset.inputMove = String(controls.state.move); canvas.dataset.inputClear = controls.lastClearReason; canvas.dataset.phase = run.phase; canvas.dataset.playerX = p.x.toFixed(2); canvas.dataset.playerY = p.y.toFixed(2); canvas.dataset.fuel = p.fuel.toFixed(2); canvas.dataset.projectiles = String(run.projectiles.length); canvas.dataset.tick = String(run.world.tick);
   };
-  const resize = () => renderer.resize(); window.addEventListener('resize', resize); renderer.resize(); welcome();
+  const resize = () => { renderer.resize(); drawRequested = true; }; window.addEventListener('resize', resize); renderer.resize(); welcome();
   const loop = (now: number) => {
     if (disposed) return; const dt = Math.min(0.1, (now - (last || now)) / 1000); last = now;
     if (!paused && started) {
@@ -130,7 +130,7 @@ export function startEmberfall(root: HTMLElement) {
       saveClock += dt; if (saveClock > 8) { saveClock = 0; persist(); updateHud(); }
       if (run.phase !== 'playing') { if (run.phase === 'refuge') openRefuge(); else terminal(); }
     } else accumulator = 0;
-    renderer.draw(run, controls.state); hudClock += dt; if (hudClock > 0.1) { updateHud(); hudClock = 0; }
+    if (!paused || drawRequested) { renderer.draw(run, controls.state); drawRequested = false; } hudClock += dt; if (hudClock > 0.1) { updateHud(); hudClock = 0; }
     frame = requestAnimationFrame(loop);
   };
   const unload = () => { if (started) persist(); };
