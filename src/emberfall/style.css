@@ -486,4 +486,3 @@ button.primary:hover{
 .fly-button,.spray-button{
   right:calc(16px + env(safe-area-inset-right))}
 }
-
