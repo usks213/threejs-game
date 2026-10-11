@@ -1,3 +1,4 @@
+import {createSparseWaterView} from '../water/sparse-view';
 import {createTrailRace} from '../game/trail-race';
 import {createPeerRenderProbe} from './peer-render-probe';
 import {createExpeditions} from '../game/expeditions';
@@ -26,6 +27,7 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
   const feedback=createFeedback(scene), preview=createBuildingPreview(scene);
   const atmosphere = createAtmosphere(scene,renderer), entities = createEntities(scene,direct), bodies = createBodies(scene), shadows = createContactShadows(scene);
   const avatars = createAvatarAssets(), localAvatar = avatars.create(), player = localAvatar.group; scene.add(player);
+  const sparseWater=createSparseWaterView();
   const waterColors = new Float32Array(WATER_VERTEX_CAPACITY * 3);
   const waterPositions = new Float32Array(WATER_VERTEX_CAPACITY * 3), waterNormals = new Float32Array(WATER_VERTEX_CAPACITY * 3);
   const waterGeometry = new THREE.BufferGeometry();
@@ -48,16 +50,17 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
   const marker = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.025, 5, 24), new THREE.MeshBasicMaterial({ color: '#ffeab6', depthTest: false })); marker.renderOrder = 2; marker.visible = false; scene.add(marker);
   const remotePlayers = new Map<string, { model: ReturnType<typeof avatars.create>; target: THREE.Vector3; heading: number }>();
   let waterTick = -1;
-  const waterMesher = new WaterMeshingController(() => new Worker(new URL('../water/worker.ts', import.meta.url), { type: 'module' }));
-  const resetWater = () => { waterTick = -1; waterMesher.reset(); waterGeometry.setDrawRange(0, 0); };
+  const waterMesher = new WaterMeshingController(() => new Worker(new URL('../water/worker.ts', import.meta.url), { type: 'module' }),true);
+  const resetWater = () => { waterTick = -1; waterMesher.reset(); sparseWater.reset(); waterGeometry.setDrawRange(0, 0); };
   return {
     setReducedMotion(value:boolean){scene.userData.reducedMotion=value;feedback.setReducedMotion(value);},
-    scene, player, marker, atmosphere, waterSurface:water, preview:preview.update,faceCamera:entities.faceCamera,
+    scene, player, marker, atmosphere, sparseWater, waterSurface:water, preview:preview.update,faceCamera:entities.faceCamera,
     raycastBuildings: entities.raycast,
     resetWater,selectPart:skybound.select,
-    get waterStats() { return waterMesher.stats; },
+    get waterStats() { return {...waterMesher.stats,...sparseWater.stats,error:waterMesher.stats.error||sparseWater.stats.sdfError}; },
     prepareWater() {
       return waterMesher.prepare(result => {
+        if(result.field)sparseWater.apply(result.field,result.revision);
         waterPositions.set(result.positions); waterNormals.set(result.normals); waterColors.set(result.colors);
         waterGeometry.setDrawRange(0, result.count);
         for (const name of ['position', 'normal', 'color']) {
@@ -72,6 +75,7 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
       renderedStateTick=state.tick;
       scene.userData.generator=state.adventure.generator;glow.intensity=foodEffect(state.adventure,'glow')?3:0;glow.position.set(state.player.x,state.player.y+1,state.player.z);
       race.update(state);skybound.update(state.adventure.skybound,state.player);companions.update(state);expeditions.update(state);
+      sparseWater.interact(state.player.x,state.player.y,state.player.z,state.fluids);
       waterTime.value = state.adventure.seconds; feedback.update(state);
       player.rotation.z=state.adventure.coop?.downedSeconds?-1.25:0;
       localAvatar.setPose({ ...state.adventure,crouching:!!state.player.crouching,riding:!!state.adventure.companions?.riding, shield: !!(state.adventure.inventory.shield||state.adventure.inventory.towerShield),tower:state.adventure.meadows?state.adventure.meadows.gear.offhand==='towerShield':!!state.adventure.inventory.towerShield,gear:state.adventure.meadows?Object.fromEntries(Object.entries(state.adventure.meadows.gear).filter(([,id])=>state.adventure.inventory[id]>0)):undefined, grounded: state.player.grounded });
@@ -106,7 +110,7 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
     },
     dispose() {
       peerProbe?.dispose();
-      race.dispose();companions.dispose();expeditions.dispose();landmarks.dispose();skybound.dispose();waterMesher.dispose();
+      race.dispose();companions.dispose();expeditions.dispose();landmarks.dispose();skybound.dispose();waterMesher.dispose();sparseWater.dispose();
       atmosphere.dispose();feedback.dispose();preview.dispose();bodies.dispose(); entities.dispose(); shadows.dispose(); scene.remove(player);
       for (const view of remotePlayers.values()) scene.remove(view.model.group); avatars.dispose();
       const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();

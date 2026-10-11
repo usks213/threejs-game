@@ -1,3 +1,4 @@
+import type {SparseWaterField} from './sparse-field';
 export interface WaterBuffers {
   positions: Float32Array;
   normals: Float32Array;
@@ -5,6 +6,7 @@ export interface WaterBuffers {
 }
 export interface WaterMeshRequest {
   type: 'mesh';
+  sdf?: boolean;
   epoch: number;
   revision: number;
   // Seven Float64 values per cell preserve the original JS-number surface calculation.
@@ -12,6 +14,7 @@ export interface WaterMeshRequest {
   recycle?: WaterBuffers;
 }
 export interface WaterMeshResult extends WaterBuffers {
+  field?: SparseWaterField;
   type: 'mesh';
   epoch: number;
   revision: number;

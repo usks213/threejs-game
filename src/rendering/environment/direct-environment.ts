@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { captureProbe } from './probe';
 
-/** Direct rendering skips the HDR compositor, but physical materials still need sky light.
+/** Field rendering caches sky capture to bound CPU/GPU work while retaining the HDR compositor.
  * Capture a small, canonical daylight sky once; subsequent day/night/weather changes only
  * scale its radiance and matching SH. This intentionally approximates moving sky reflections.
  */

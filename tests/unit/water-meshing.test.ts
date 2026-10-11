@@ -215,3 +215,18 @@ describe('bounded asynchronous water pipeline', () => {
     expect(controller.stats).toMatchObject({ error: 'transfer failed', pending: 0 });
   });
 });
+
+it('atomically changes between SDF water, thin film and frozen fallback in one worker result',()=>{
+ const mesher=new WaterSurfaceMesher();
+ const build=(volume:number,frozen=false)=>mesher.build({type:'mesh',epoch:0,revision:1,sdf:true,cells:packWaterCells([{x:0,y:0,z:0,size:.5,volume,frozen}])});
+ const deep=build(.125),thin=build(.02),ice=build(.125,true);
+ expect(deep.field?.bricks.length).toBeGreaterThan(0);expect(deep.count).toBe(0);
+ for(const fallback of [thin,ice]){expect(fallback.field?.bricks.length).toBe(0);expect(fallback.count).toBe(36);}
+});
+it('skips identical SDF inputs and rebuilds after a material change or epoch reset',()=>{
+ const workers:FakeWorker[]=[];const controller=new WaterMeshingController(()=>{const worker=new FakeWorker();workers.push(worker);return worker;},true);
+ controller.request([cell()],0);workers[0].finish();controller.prepare(()=>{});
+ controller.request([cell()],1);expect(workers[0].requests).toHaveLength(1);
+ controller.request([{...cell(),frozen:true}],2);expect(workers[0].requests).toHaveLength(2);workers[0].finish();controller.prepare(()=>{});
+ controller.reset();controller.request([{...cell(),frozen:true}],0);expect(workers[1].requests).toHaveLength(1);controller.dispose();
+});

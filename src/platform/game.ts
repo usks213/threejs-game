@@ -11,7 +11,7 @@ import { GUIDES, TRIALS } from '../content/adventure-trials';
 import { coopUI } from '../ui/coop';
 import { accessibilityUI } from '../ui/accessibility';
 import { powersUI } from '../ui/powers';
-import {probeWaterLighting} from '../rendering/water/lighting-probe';
+
 import {liveDiagnostics} from './live-diagnostics';
 import {createFieldTerrain} from '../rendering/voxel/field-terrain';
 import { FrameTimings } from './frame-timings';
@@ -79,7 +79,7 @@ export function startGame() {
   const terrain=field?{...field,update:(data:MeshData,r:THREE.WebGLRenderer)=>{if(data.field)field.update(data.field,r);}}:createTerrain(world.scene);
   app.dataset.terrainMode=direct?'direct-field':'surface-mesh';if(direct)renderer.shadowMap.enabled=false;
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, direct?110:80);
-  const pipeline=createPipeline(renderer,world.scene,camera,world.atmosphere);
+  const pipeline=createPipeline(renderer,world.scene,camera,world.atmosphere,world.sparseWater,direct);
   const readKeyboard = keyboardInput(signal,preferences.boundCode,()=>sendMotion()), touch = touchInput(document.querySelector('#stick')!, document.querySelector('#knob')!, signal), view = cameraInput(canvas, signal);preferences.bindView(view);
   let waterProbeStarted=false;const probeWater=direct&&new URLSearchParams(location.search).has('waterProbe');
   const input: Axis = { x: 0, z: 0 };
@@ -286,7 +286,7 @@ export function startGame() {
       try { if(renderDue&&state&&!loading){
         if(lastDraw>0&&now-lastDraw<10000)pipeline.observeFrame(now-lastDraw);
         const renderStart=performance.now();
-        world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}if(direct){world.atmosphere.prepareDirect();renderer.setRenderTarget(null);renderer.render(world.scene,camera);if(probeWater&&!waterProbeStarted&&world.atmosphere.stats.shUpdates>0&&world.waterSurface.geometry.drawRange.count>0){waterProbeStarted=true;void probeWaterLighting(renderer,world.scene,world.waterSurface).then(result=>app.dataset.waterProbe=JSON.stringify(result)).catch(error=>app.dataset.waterProbe=JSON.stringify({error:String(error)}));}}else pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);
+        world.prepareWater();if(world.waterStats.error){fail('水面の背景処理に失敗しました。再読み込みしてください。');return;}pipeline.render(Math.min(.1,(now-lastDraw)/1000),menuOpen);if(direct){if(probeWater&&!waterProbeStarted&&world.atmosphere.stats.shUpdates>0&&world.sparseWater.stats.sdfBricks>0){waterProbeStarted=true;void pipeline.probeWater().then(result=>app.dataset.waterProbe=JSON.stringify(result)).catch(error=>app.dataset.waterProbe=JSON.stringify({error:String(error)}));}}
         if(photoNext){photoNext=false;try{canvas.toBlob(blob=>{if(!blob||signal.aborted){if(!signal.aborted)notice('写真を書き出せませんでした');return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='skybound-photo-'+Date.now()+'.png';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('風景写真を端末へ保存しました。自動で共有はしていません');},'image/png');}catch{notice('この端末では写真を書き出せませんでした');}}draws++;frames++;renderedLastFrame=true;lastDraw=now;frameTimings.record('renderWall',performance.now()-renderStart);
       } } catch (renderError) { console.error(renderError); fail('描画に失敗しました。ページを再読み込みしてください。'); return; }
       if (now - fpsStarted > 1000) { fps = Math.round(frames * 1000 / (now - fpsStarted)); fpsStarted = now; frames = 0; }
@@ -294,7 +294,7 @@ export function startGame() {
         const p = state.player, m = state.metrics; if(state.adventure.meadows){document.querySelector('#cast')!.innerHTML=itemIcon(state.adventure.meadows.fishing?'fishingRod':'hammer')+'<span>'+ (state.adventure.meadows.fishing?.phase==='bite'?'合わせる':state.adventure.meadows.fishing?.phase==='fight'?(state.adventure.meadows.fishing.reeling?'緩める':'巻く'):'使う')+'</span>';} adventure.update(state.adventure, p,view.yaw);flight.update(state,network.guest);powers.update(state,target,reticleAim);companions.update(state);rescue.update(state.adventure,state.player);coop.update(state);dialogue.update(state.adventure);app.dataset.skybound=JSON.stringify(state.adventure.skybound);app.dataset.traversal=JSON.stringify(state.adventure.traversal);glide.hidden=state.adventure.generator!==4;glide.setAttribute('aria-pressed',String(!!state.adventure.traversal?.gliding));
         if(state.adventure.meadows){const slots=reconcileSlots(state.adventure.meadows,state.adventure.inventory);const markup=slots.slice(0,8).map((slot,i)=>`<button type=button data-quick=${i} aria-label="${slot?slot.id:'空き'}" class="${slot?.id===state!.adventure.equipment?'selected':''}"><kbd>${i+1}</kbd>${slot?itemIcon(slot.id)+'<small>'+slot.count+'</small>':'·'}</button>`).join('');const hotbar=document.querySelector('#hotbar')!;if(hotbar.innerHTML!==markup)hotbar.innerHTML=markup;}
         app.dataset.performance=JSON.stringify({terrainQueue:terrainQueue.stats,terrainGPU:terrain.stats,terrainWorkers:1,meshThread:'dedicated-worker',water:world.waterStats,timings:frameTimings.snapshot()});
-        app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:direct?['pbr','physical-sky','ibl','sh','direct-field']:['pbr','physical-sky','ibl','sh','volumetric','exposure','bloom','shadow','ssr']});
+        app.dataset.graphics=JSON.stringify({...world.atmosphere.stats,...pipeline.stats,features:direct?['pbr','physical-sky','ibl','sh','direct-field','water-sdf','froxel-fog','exposure','bloom']:['pbr','physical-sky','ibl','sh','water-sdf','froxel-fog','volumetric','exposure','bloom','shadow','ssr']});
         app.dataset.cameraPitch = String(view.pitch); app.dataset.cameraYaw = String(view.yaw);
         projectedHead.copy(world.player.position); projectedHead.y += 1.65; projectedHead.project(camera);
         app.dataset.cameraProbe = JSON.stringify({ head: { x: projectedHead.x, y: projectedHead.y }, attackOrigin: aimOrigin, aim: reticleAim, reticleTarget: reticlePoint, cameraDistance });

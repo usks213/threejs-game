@@ -144,10 +144,37 @@ jobs:
       - name: Verify Cloudflare published this exact commit
         run: node scripts/check-deployment.mjs
 
+  rendering-gpu:
+    # Do not replace the playable PR5 preview with an unvalidated rendering candidate.
+    if: github.event_name == 'pull_request' && needs.verify.outputs.game == 'true'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Validate sparse water and hybrid fog GPU mechanisms
+        run: npm run e2e -- --config playwright.rendering.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sparse-water-rendering
+          path: |
+            playwright-report/rendering/
+            test-results/rendering/
+          retention-days: 7
+
   deploy-preview:
     # Only same-repository PRs may use the deployment credential.
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.verify.outputs.game == 'true'
-    needs: verify
+    needs: [verify, rendering-gpu]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

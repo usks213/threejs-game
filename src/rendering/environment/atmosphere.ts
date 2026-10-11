@@ -10,9 +10,9 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
  const sky=new Sky();sky.scale.setScalar(450000);sky.renderOrder=-2;sky.frustumCulled=false;
  const u=sky.material.uniforms;u.sunPosition.value.set(300000,300000,-100000);u.rayleigh.value=3.2;u.mieCoefficient.value=.004;u.mieDirectionalG.value=.8;
  u.nightAmount={value:0};u.cloudCover={value:0};u.skyTime={value:0};
- // The direct path has no eye adaptation. Calibrate its displayed daylight
- // sky without dimming subjects, the canonical IBL capture or the HDR path.
- u.skyDisplayGain={value:scene.userData.direct ? .22 : 1};
+ // Both terrain paths feed the same linear HDR compositor and eye adaptation.
+ // Keep sky radiance unscaled until the single output conversion.
+ u.skyDisplayGain={value:1};
  sky.material.fragmentShader='uniform float nightAmount,cloudCover,skyTime,skyDisplayGain;\n'+sky.material.fragmentShader;
  sky.material.fragmentShader=sky.material.fragmentShader.replace('gl_FragColor = vec4( retColor, 1.0 );',`
   float stars=step(.9987,fract(sin(dot(floor(direction*380.),vec3(12.98,78.23,45.1)))*43758.54))*smoothstep(0.,.15,direction.y);
@@ -51,7 +51,7 @@ export function createAtmosphere(scene: THREE.Scene, renderer:THREE.WebGLRendere
    sun.intensity=THREE.MathUtils.lerp(3.2*Math.max(.04,altitude)*(cloudy?.55:1),.055,night);sun.color.set(night>.5?'#b0c4ff':altitude<.25?'#ffd0a0':'#fff5e6');
    volume.direction.copy(sun.position).sub(player).normalize();volume.density=cloudy?.025:.008;volume.ambient.set(night>.5?'#111b35':'#748a9b');
    // Distance fog is handled by the volumetric pass, not applied twice in PBR shaders.
-   const region=state.environment.regionId?ADVENTURE_REGIONS[state.environment.regionId]:undefined;scene.fog=underground?new THREE.Fog(region?.fog??'#102b38',8,36):region&&scene.userData.direct?new THREE.Fog(region.fog,30,78):null;if(underground){sun.intensity=.08;probe.intensity=.12;volume.density=.04;volume.ambient.set('#183e4c');}else probe.intensity=.25;
+   const region=state.environment.regionId?ADVENTURE_REGIONS[state.environment.regionId]:undefined;scene.fog=null;if(underground){sun.intensity=.08;probe.intensity=.12;volume.density=.04;volume.ambient.set('#183e4c');}else probe.intensity=.25;
    precipitation.visible=!underground&&['rain','storm','snow','magic'].includes(weather);weatherMaterial.size=weather==='snow'?.12:.05;
    if(precipitation.visible){for(let i=0;i<180;i++){weatherPositions[i*3]=player.x+Math.sin(i*174.13)*15;weatherPositions[i*3+1]=player.y+12-((seconds*(weather==='snow'?1.2:6)+i*.413)%14);weatherPositions[i*3+2]=player.z+Math.cos(i*74.92)*15;}weatherGeometry.getAttribute('position').needsUpdate=true;}
    captureRequested=Math.abs(hour-lastHour)>.18||weather!==lastWeather;

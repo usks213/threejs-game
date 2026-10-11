@@ -94,7 +94,7 @@ describe('bounded opening surface and daylight presentation',()=>{
   }finally{surface.dispose();}
  });
 
- it('calibrates only the direct daylight backdrop; canonical IBL, full HDR and night colors retain their gain',async()=>{
+ it('keeps canonical sky radiance for both HDR-composited terrain paths',async()=>{
   const target=new THREE.WebGLRenderTarget(96,128),capture=vi.spyOn(THREE.PMREMGenerator.prototype,'fromScene').mockReturnValue(target);
   vi.spyOn(THREE.CubeCamera.prototype,'update').mockImplementation(()=>{});
   vi.mocked(captureProbe).mockResolvedValue(new THREE.LightProbe());
@@ -104,13 +104,13 @@ describe('bounded opening surface and daylight presentation',()=>{
   try{
    const sky=scene.children[0] as THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;
    const hdrSky=hdrScene.children[0] as THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;
-   expect(sky.material.uniforms.skyDisplayGain.value).toBe(.22);expect(hdrSky.material.uniforms.skyDisplayGain.value).toBe(1);
+   expect(sky.material.uniforms.skyDisplayGain.value).toBe(1);expect(hdrSky.material.uniforms.skyDisplayGain.value).toBe(1);
    expect(sky.material.fragmentShader).toContain('mix(skyDisplayGain,1.,nightAmount)');
    view.update(state,new THREE.Vector3());view.prepareDirect();await Promise.resolve();
    const capturedSky=capture.mock.calls[0][0].children[0] as THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;
    expect(capturedSky.material.uniforms.skyDisplayGain.value).toBe(1);
    expect(scene.environment).toBe(target.texture);expect(capture).toHaveBeenCalledTimes(1);
-   expect(sky.material.uniforms.skyDisplayGain.value).toBe(.22);
+   expect(sky.material.uniforms.skyDisplayGain.value).toBe(1);
   }finally{view.dispose();hdr.dispose();}
  });
 });

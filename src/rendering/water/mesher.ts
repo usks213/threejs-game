@@ -1,3 +1,4 @@
+import {buildSparseWaterField,usesWaterField} from './sparse-field';
 import { MAX_FLUID_CELLS, type FluidCell } from '../../fluid/fluid';
 import { waterSurface, WATER_VERTEX_CAPACITY } from '../../fluid/surface';
 import type { WaterBuffers, WaterMeshRequest, WaterMeshResult } from './protocol';
@@ -37,7 +38,8 @@ export class WaterSurfaceMesher {
       const capacity = Math.min(WATER_VERTEX_CAPACITY * 3, Math.max(required, this.scratch.positions.length * 2));
       this.scratch = { positions: new Float32Array(capacity), normals: new Float32Array(capacity), colors: new Float32Array(capacity) };
     }
-    const count = waterSurface(cells, this.scratch.positions, this.scratch.normals, this.scratch.colors), length = count * 3;
+    const field=request.sdf?buildSparseWaterField(cells):undefined;
+    const count = waterSurface(request.sdf?cells.filter(cell=>!usesWaterField(cell)):cells, this.scratch.positions, this.scratch.normals, this.scratch.colors), length = count * 3;
     let allocatedBytes = 0, reusedBytes = 0;
     const used = (source: Float32Array, recycled?: Float32Array) => {
       const reuse = recycled?.length === length && recycled.byteOffset === 0 && recycled.buffer.byteLength === length * 4;
@@ -49,7 +51,7 @@ export class WaterSurfaceMesher {
     const positions = used(this.scratch.positions, request.recycle?.positions);
     const normals = used(this.scratch.normals, request.recycle?.normals);
     const colors = used(this.scratch.colors, request.recycle?.colors);
-    return { type: 'mesh', epoch: request.epoch, revision: request.revision, cells: request.cells,
+    return { type: 'mesh', field, epoch: request.epoch, revision: request.revision, cells: request.cells,
       count, positions, normals, colors, milliseconds: performance.now() - started, allocatedBytes, reusedBytes };
   }
 }
