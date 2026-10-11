@@ -69,6 +69,22 @@ describe('persistent survival crafting rules', () => {
     expect(run.mine(34, 53)).toBe(true); resetCooldown(run); expect(run.mine(36, 53)).toBe(true);
     expect(run.resources.wood).toBe(18);
   });
+  it('targets blocks flush against the actual surface instead of leaving a grid-sized floor gap', () => {
+    const run = new SurvivalRun(23); run.enemies = []; tick(run, 50); run.tool = 'stone'; run.resources.stone = 9;
+    const floor = run.targetFromAim(49 - run.player.x, 34 - (run.player.y - 1));
+    expect(floor.y).toBe(32); expect(run.world.get(floor.x, 34)).toBe(Material.Rock);
+    expect(run.canPlace('stone', floor.x, floor.y)).toBe(true);
+    expect(run.place('stone', floor.x, floor.y)).toBe(true); expect(run.resources.stone).toBe(0);
+    for (let x = floor.x - 1; x <= floor.x + 1; x++) {
+      expect(run.world.get(x, 33)).toBe(Material.Rock); expect(run.world.get(x, 34)).toBe(Material.Rock);
+    }
+    resetCooldown(run); expect(run.mine(floor.x - 1, floor.y)).toBe(true);
+    resetCooldown(run); expect(run.mine(floor.x + 1, floor.y)).toBe(true); expect(run.resources.stone).toBe(9);
+    const wall = run.targetFromAim(1, 0); expect(wall).toEqual({ x: 50, y: 28 });
+    expect(run.world.get(wall.x + 2, wall.y)).toBe(Material.Wood);
+    expect(run.canPlace('stone', wall.x, wall.y)).toBe(false); // Mining cooldown is still respected.
+    resetCooldown(run); expect(run.canPlace('stone', wall.x, wall.y)).toBe(true);
+  });
   it('retains actual sand gravity, water flow and wood burning while stone dams remain solid', () => {
     const run = arena(); run.resources.wood = 9; run.resources.stone = 9; run.resources.sand = 9;
     expect(run.place('wood', 35, 53)).toBe(true); resetCooldown(run);
@@ -101,6 +117,24 @@ describe('persistent survival crafting rules', () => {
     expect(Array.from(run.world.cells).filter(m => m === Material.Water)).toHaveLength(21);
     expect(Array.from(run.world.cells).some((m, index) => m === Material.Water && index % run.world.width < 34)).toBe(true);
     expect(run.resources.stone).toBe(9);
+  });
+  it('shares pure placement previews with transactions and explains range, cost, footing and obstruction failures', () => {
+    const run = arena(); run.resources.torch = 1;
+    const before = { cells: run.world.cells.slice(), resources: { ...run.resources }, structures: [...run.structures], notice: run.notice, cooldown: run.toolCooldown, nextId: run.nextStructureId, dirty: [...run.world.dirty] };
+    expect(run.canPlace('torch', 15, 59)).toBe(true);
+    expect(run.placementStatus('torch', 15, 59)).toMatchObject({ ok: true, reason: 'ready' });
+    expect(run.placementStatus('torch', 65, 59).reason).toBe('range');
+    expect(run.placementStatus('wood', 35, 53).reason).toBe('resources');
+    expect(run.placementStatus('torch', 15, 54).reason).toBe('floor');
+    expect(run.placementStatus('torch', 25, 59).reason).toBe('blocked');
+    expect({ cells: run.world.cells, resources: run.resources, structures: run.structures, notice: run.notice, cooldown: run.toolCooldown, nextId: run.nextStructureId, dirty: [...run.world.dirty] }).toEqual(before);
+    expect(run.place('torch', 65, 59)).toBe(false); expect(run.notice).toContain('近づこう');
+    expect(run.place('wood', 35, 53)).toBe(false); expect(run.notice).toContain('9個');
+    expect(run.place('torch', 15, 54)).toBe(false); expect(run.notice).toContain('足場');
+    expect(run.place('torch', 25, 59)).toBe(false); expect(run.notice).toContain('重なって');
+    expect(run.resources.torch).toBe(1); expect(run.structures).toHaveLength(0);
+    expect(run.place('torch', 15, 59)).toBe(true);
+    const success = run.notice; expect(run.canPlace('torch', 17, 59)).toBe(false); expect(run.place('torch', 17, 59)).toBe(false); expect(run.notice).toBe(success);
   });
   it('requires a nearby visible workbench for upgrading, refilling and finite card editing', () => {
     const run = arena(); Object.assign(run.resources, { wood: 100, stone: 100, sand: 30, ore: 30 });

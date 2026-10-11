@@ -36,7 +36,7 @@ describe('cellular local-light visibility', () => {
     const field = new CaveLighting(); field.update(world, [warm], viewport);
     expect(sample(field, field.illumination, 10, 15)[0]).toBeGreaterThan(200);
     expect(sample(field, field.illumination, 30, 15)).toEqual([139, 157, 186]);
-    expect(sample(field, field.emission, 10, 15)[0]).toBeGreaterThan(0);
+    expect(sample(field, field.emission, 10, 15)[0]).toBeGreaterThan(45);
     expect(sample(field, field.emission, 30, 15)).toEqual([0, 0, 0]);
     field.update(world, [{ ...warm, emission: 0 }], viewport);
     expect(sample(field, field.emission, 10, 15)).toEqual([0, 0, 0]);

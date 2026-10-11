@@ -109,12 +109,13 @@ export class CaveLighting {
         const ray = traceLight(world, light.x, light.y, tx, ty); metrics.rays++; metrics.raySteps += ray.steps;
         if (!ray.visible) continue;
         const falloff = 1 - Math.sqrt(distance2) / radius;
-        const amount = falloff * falloff * Math.min(1.5, Math.max(0, light.strength));
+        const amount = falloff ** 1.7 * Math.min(1.5, Math.max(0, light.strength));
         const index = yy * width + xx, pixel = index * 4;
         this.red[index] += amount * light.color[0]; this.green[index] += amount * light.color[1]; this.blue[index] += amount * light.color[2];
         // Bloom comes from emission only, restricted to the occluded light field.
-        // Its narrow core preserves crisp terrain and silhouette boundaries.
-        const bloom = (falloff ** 7 * 58 + falloff ** 3 * 8) * Math.max(0, Math.min(1, light.emission));
+        // A bright narrow core and restrained shoulder make a flame legible in
+        // dark air; only this small mask is interpolated, never scene pixels.
+        const bloom = (falloff ** 5 * 130 + falloff ** 2 * 30) * Math.max(0, Math.min(1, light.emission));
         this.emission[pixel] += bloom * light.color[0]; this.emission[pixel + 1] += bloom * light.color[1]; this.emission[pixel + 2] += bloom * light.color[2];
       }
       if (metrics.rays >= LIGHT_BUDGET.maxRays) break;

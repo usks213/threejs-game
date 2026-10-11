@@ -6,7 +6,8 @@ import { SPELLS } from './wands';
 import { structureSize } from './survival';
 import type { Run, Input } from './simulation';
 
-type SurvivalView = Run & { mode: 'survival'; structures: readonly LightStructure[]; tool?: string; targetFromAim?: (x: number, y: number) => { x: number; y: number } };
+type Placeable = 'wood' | 'stone' | 'sand' | 'torch' | 'workbench' | 'camp';
+type SurvivalView = Run & { mode: 'survival'; structures: readonly LightStructure[]; tool?: string; targetFromAim?: (x: number, y: number) => { x: number; y: number }; canPlace?: (type: Placeable, x: number, y: number) => boolean };
 const isSurvival = (run: Run): run is SurvivalView => 'mode' in run && run.mode === 'survival' && 'structures' in run && Array.isArray(run.structures);
 const pixelNoise = (x: number, y: number) => ((Math.imul(x, 374761393) ^ Math.imul(y, 668265263)) >>> 0) % 17;
 
@@ -217,7 +218,10 @@ export class Renderer {
     // A crisp, unobtrusive placement/mining reticle is drawn after illumination.
     if (survival && run.tool !== 'wand' && run.targetFromAim) {
       const target = run.targetFromAim(input.aimX, input.aimY), x = Math.round(target.x) - this.cameraX, y = Math.round(target.y) - this.cameraY;
-      ctx.fillStyle = input.fire ? '#ffe0a0' : '#a0c8b8';
+      const tool = run.tool;
+      const placement = tool === 'wood' || tool === 'stone' || tool === 'sand' || tool === 'torch' || tool === 'workbench' || tool === 'camp';
+      const valid = placement && run.canPlace ? run.canPlace(tool, target.x, target.y) : null;
+      ctx.fillStyle = valid === false ? '#d48987' : valid === true ? '#b0deb3' : input.fire ? '#ffe0a0' : '#a0c8b8';
       const structure = run.tool === 'torch' || run.tool === 'workbench' || run.tool === 'camp' ? structureSize(run.tool) : null;
       const half = structure ? structure.halfWidth + 1 : 2, top = structure ? y - structure.height : y - 2, bottom = structure ? y + 1 : y + 2;
       for (const sx of [-1, 1]) for (const yy of [top, bottom]) { ctx.fillRect(x + sx * half, yy, 1, 1); ctx.fillRect(x + sx * (half - 1), yy, 1, 1); }

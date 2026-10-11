@@ -35,7 +35,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   // Fly over the harvested trunk/floor holes using the normal fuel control.
   if(cdp){const m=(await page.locator('.move-pad').boundingBox())!,f=(await page.locator('.fly-button').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:m.x+m.width*.8,y:m.y+m.height/2,id:1},{x:f.x+f.width/2,y:f.y+f.height/2,id:2}]});}
   else{await page.keyboard.down('KeyD');await page.keyboard.down('Space');}
-  await expect.poll(async()=>(await read()).x).toBeGreaterThan(76);
+  await expect.poll(async()=>(await read()).x,{intervals:[50],timeout:5000}).toBeGreaterThan(76);
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else{await page.keyboard.up('KeyD');await page.keyboard.up('Space');}
   await page.waitForTimeout(900);await select('pick');await aim(86,31,1000);
   await expect.poll(async()=>(await read()).resources.sand).toBeGreaterThanOrEqual(2);
@@ -51,6 +51,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   await expect.poll(async()=>(await read()).deaths,{timeout:18000}).toBeGreaterThan(0);
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});else{await page.mouse.up();await page.keyboard.up('Space');}
   await page.waitForTimeout(150);
+  await page.screenshot({path:info.outputPath('survival-camp-respawn.png')});
   const revived=await read();expect(revived.hp).toBeGreaterThan(0);expect(revived.structures).toEqual(built.structures);expect(revived.resources).toEqual(built.resources);expect(revived.camp).toEqual(built.camp);
   if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();
   await page.screenshot({path:info.outputPath('survival-crafting-after-respawn.png')});
@@ -65,6 +66,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();
   const resaved=await page.evaluate(()=>localStorage.getItem('emberfall-survival-save-v1'));expect(cells(resaved!)).toEqual(cells(snapshot!));await activate('世界に戻る');
   const before=Number(await cave.getAttribute('data-tick'));await page.waitForTimeout(1000);expect(Number(await cave.getAttribute('data-tick'))-before).toBeGreaterThan(12);
+  const lighting=JSON.parse((await cave.getAttribute('data-lighting'))!);expect(lighting.rays).toBeLessThanOrEqual(6144);expect(lighting.lights).toBeLessThanOrEqual(7);expect(lighting.canvasWidth).toBe(mobile?160:240);
   await info.attach('survival-receipt.json',{body:JSON.stringify({built,revived,restored,lighting:await cave.getAttribute('data-lighting')},null,2),contentType:'application/json'});
   expect(errors).toEqual([]);
 });

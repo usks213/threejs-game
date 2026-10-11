@@ -11,6 +11,8 @@ export const WORKBENCH_RANGE = 22;
 export const SURVIVAL_TOOLS = ['pick', 'wood', 'stone', 'sand', 'torch', 'workbench', 'camp', 'wand'] as const;
 export type SurvivalTool = typeof SURVIVAL_TOOLS[number];
 export type StructureType = 'torch' | 'workbench' | 'camp';
+export type Placeable = Exclude<SurvivalTool, 'pick' | 'wand'>;
+export interface PlacementStatus { ok: boolean; reason: 'ready' | 'inactive' | 'cooldown' | 'range' | 'blocked' | 'resources' | 'floor' | 'limit' | 'camp-clearance'; message: string }
 export type Resource = 'wood' | 'stone' | 'sand' | 'ore' | StructureType;
 export type ResourceCounts = Record<Resource, number>;
 export interface Structure { id: number; type: StructureType; x: number; y: number }
@@ -89,11 +91,13 @@ export class SurvivalRun extends Run {
       if (this.solid(point.x, point.y)) {
         if (this.tool === 'pick' || this.tool === 'wand') return point;
         if (this.tool === 'torch' || this.tool === 'workbench' || this.tool === 'camp') return last;
-        return { x: Math.floor((point.x - dx * 2) / BLOCK_SIZE) * BLOCK_SIZE + 1, y: Math.floor((point.y - dy * 2) / BLOCK_SIZE) * BLOCK_SIZE + 1 };
+        // Align the 3×3 block to the surface face, not a global grid. A
+        // floor at y=34 needs center y=32 so its bottom touches that floor.
+        const verticalFace = point.y !== last.y && !this.solid(point.x, point.y - Math.sign(dy));
+        return verticalFace ? { x: point.x, y: point.y - Math.sign(dy) * 2 } : { x: point.x - Math.sign(dx) * 2, y: point.y };
       }
       last = point;
     }
-    if (this.tool === 'wood' || this.tool === 'stone' || this.tool === 'sand') return { x: Math.floor(last.x / BLOCK_SIZE) * BLOCK_SIZE + 1, y: Math.floor(last.y / BLOCK_SIZE) * BLOCK_SIZE + 1 };
     return last;
   }
 
@@ -124,25 +128,47 @@ export class SurvivalRun extends Run {
     this.notice = Object.entries(counts).map(([key, count]) => `${({ wood: '木', stone: '石', sand: '砂', ore: '鉱石' } as Record<string, string>)[key]} +${count}`).join(' / ');
     return true;
   }
-  place(type: Exclude<SurvivalTool, 'pick' | 'wand'>, x: number, y: number): boolean {
-    if (this.phase !== 'playing' || this.toolCooldown > 0 || !this.reachable(x, y)) return false;
+  /** A pure query shared by the placement preview and the actual transaction. */
+  placementStatus(type: Placeable, x: number, y: number): PlacementStatus {
+    if (this.phase !== 'playing') return { ok: false, reason: 'inactive', message: '探索を再開してから設置しよう。' };
+    if (this.toolCooldown > 0) return { ok: false, reason: 'cooldown', message: '少し待つと、次を設置できる。' };
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 3 || y < 5 || x >= this.world.width - 3 || y >= this.world.height - 5 || Math.hypot(x - this.player.x, y - (this.player.y - 1)) > TOOL_RANGE) {
+      return { ok: false, reason: 'range', message: '届かない。設置場所へ近づこう。' };
+    }
+    if (!this.lineOfSight(this.player.x, this.player.y - 1, x + 0.5, y + 0.5)) return { ok: false, reason: 'blocked', message: '手前の地形が邪魔で設置できない。' };
+    const block = type === 'wood' || type === 'stone' || type === 'sand';
+    if (!block && type !== 'torch' && type !== 'workbench' && type !== 'camp') return { ok: false, reason: 'blocked', message: '設置する道具を選ぼう。' };
+    if (block) {
+      if (this.resources[type] < BLOCK_SIZE ** 2) return { ok: false, reason: 'resources', message: `${type === 'wood' ? '木材' : type === 'stone' ? '石材' : '砂'}が9個必要。つるはしで集めよう。` };
+    } else {
+      if (this.resources[type] < 1) return { ok: false, reason: 'resources', message: `${RECIPES[type].name}がない。工作メニューで作ろう。` };
+      if (type === 'camp' && y < 12) return { ok: false, reason: 'camp-clearance', message: 'ここは天井に近すぎる。復帰できる広い場所へ。' };
+      if (this.structures.length >= MAX_STRUCTURES) return { ok: false, reason: 'limit', message: 'この世界の建物数の上限に達した。' };
+      if (!this.solid(x, y + 1)) return { ok: false, reason: 'floor', message: '足場が必要。地面のすぐ上を狙おう。' };
+    }
+    const size = block ? { halfWidth: 1, height: BLOCK_SIZE } : structureSize(type);
+    const top = block ? y - 1 : y - size.height + 1, bottom = block ? y + 1 : y;
+    for (let yy = top; yy <= bottom; yy++) for (let xx = x - size.halfWidth; xx <= x + size.halfWidth; xx++) {
+      if (!this.emptyBuildCell(xx, yy) || this.hitsStructure(xx, yy)) return { ok: false, reason: 'blocked', message: '地形・水・建物に重なっている。空いた場所を狙おう。' };
+      if (this.hitsActor(xx, yy)) return { ok: false, reason: 'blocked', message: '自分や敵に重なっている。少し離れて設置しよう。' };
+    }
+    return { ok: true, reason: 'ready', message: 'ここに設置できる。' };
+  }
+  canPlace(type: Placeable, x: number, y: number): boolean { return this.placementStatus(type, x, y).ok; }
+  place(type: Placeable, x: number, y: number): boolean {
+    const status = this.placementStatus(type, x, y);
+    if (!status.ok) {
+      // Holding the tool through its short cooldown should not overwrite the
+      // successful placement notice. Other failures explain how to proceed.
+      if (status.reason !== 'cooldown') this.notice = status.message;
+      return false;
+    }
     if (type === 'wood' || type === 'stone' || type === 'sand') {
-      const left = x - 1, top = y - 1;
-      if (this.resources[type] < BLOCK_SIZE ** 2) return false;
-      for (let yy = top; yy < top + BLOCK_SIZE; yy++) for (let xx = left; xx < left + BLOCK_SIZE; xx++) {
-        if (!this.emptyBuildCell(xx, yy) || this.hitsActor(xx, yy) || this.hitsStructure(xx, yy)) return false;
-      }
       this.resources[type] -= BLOCK_SIZE ** 2;
-      this.world.fillRect(left, top, BLOCK_SIZE, BLOCK_SIZE, blocks[type]);
+      this.world.fillRect(x - 1, y - 1, BLOCK_SIZE, BLOCK_SIZE, blocks[type]);
       this.toolCooldown = 0.2;
       this.notice = `${type === 'wood' ? '木材' : type === 'stone' ? '石材' : '砂'}を9個使って設置した。`;
       return true;
-    }
-    if (type === 'camp' && y < 12) return false;
-    if (!['torch', 'workbench', 'camp'].includes(type) || this.resources[type] < 1 || this.structures.length >= MAX_STRUCTURES || !this.solid(x, y + 1)) return false;
-    const size = structureSize(type);
-    for (let yy = y - size.height + 1; yy <= y; yy++) for (let xx = x - size.halfWidth; xx <= x + size.halfWidth; xx++) {
-      if (!this.emptyBuildCell(xx, yy) || this.hitsActor(xx, yy) || this.hitsStructure(xx, yy)) return false;
     }
     this.resources[type]--;
     this.structures.push({ id: this.nextStructureId++, type, x, y });

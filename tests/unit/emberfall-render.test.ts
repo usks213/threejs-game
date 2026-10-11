@@ -39,3 +39,17 @@ it('refreshes only the small lighting buffers at 12 Hz and omits survival portal
   expect(terrain.putImageData).toHaveBeenCalledTimes(1);
   expect(renderer.metrics.rays).toBeLessThanOrEqual(6144);
 });
+
+it('uses the pure placement rule for green/red target corners at the actual footprint', () => {
+  const main = context(), contexts = [context(),context(),context()], colors: string[] = [];
+  Object.defineProperty(main,'fillStyle',{set:(value:string)=>colors.push(value)});
+  vi.stubGlobal('document',{ createElement:() => { const ctx = contexts.shift(); return { getContext:() => ctx }; } });
+  const renderer = new Renderer({getContext:()=>main} as unknown as HTMLCanvasElement);
+  const canPlace = vi.fn().mockReturnValue(false);
+  const run = Object.assign(new Run(3397),{mode:'survival',structures:[],tool:'torch',targetFromAim:()=>({x:70,y:33}),canPlace});
+  renderer.draw(run,idleInput());
+  expect(canPlace).toHaveBeenLastCalledWith('torch',70,33); expect(colors.at(-1)).toBe('#d48987');
+  // Torch footprint is three cells wide and six high; corners enclose it.
+  expect(main.fillRect).toHaveBeenCalledWith(68,27-renderer.cameraY,1,1);
+  canPlace.mockReturnValue(true); renderer.draw(run,idleInput()); expect(colors.at(-1)).toBe('#b0deb3');
+});
