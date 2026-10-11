@@ -1,4 +1,4 @@
-import { Run, PERKS } from './simulation';
+import { Run, PERKS, SPELL_PRICES } from './simulation';
 import type { Perk } from './simulation';
 import { BIOMES } from './generation';
 import { Controls } from './input';
@@ -11,7 +11,7 @@ export function startEmberfall(root: HTMLElement) {
   root.innerHTML = `<main class="emberfall"><canvas id="cave" data-control="aim" aria-label="燐の底 2Dゲーム画面"></canvas>
     <header class="hud"><div class="vitals"><span class="eyebrow">EMBERFALL / 燐の底</span><div class="meter health"><span>体力</span><i></i><b></b></div><div class="meter mana"><span>魔力</span><i></i><b></b></div><div class="meter fuel"><span>浮遊</span><i></i><b></b></div></div><div class="location"><span id="biome"></span><small id="depth"></small></div><button id="menu-button" aria-label="一時停止と装備">装備 / II</button></header>
     <div class="notice" role="status"></div><div class="wandbar"><button data-wand="0"></button><button data-wand="1"></button><span id="gold"></span></div>
-    <div class="controls"><div class="move-pad" data-control="move" aria-label="左右に移動"><span>◀</span><span>▶</span><small>移動</small></div><div class="aim-pad" data-control="aim" aria-label="照準と射撃">✧<small>狙う / 撃つ</small></div><button class="fly-button" data-control="fly">↑<small>浮遊</small></button><button class="spray-button" data-control="spray">≈<small>水瓶 F</small></button><button id="interact" class="interact-button">門に入る E</button></div>
+    <div class="controls"><div class="move-pad" data-control="move" aria-label="左右に移動"><span>◀</span><span>▶</span><small>移動</small></div><div class="aim-pad" data-control="aim" aria-label="照準と射撃">✧<small>狙う / 撃つ</small></div><button class="fly-button" data-control="fly">↑<small>浮遊</small></button><button class="spray-button" data-control="spray">≈<small>水瓶 F</small></button><button id="interact" class="interact-button">門に入る E</button><button id="pickup" class="pickup-button">杖を調べる E</button></div>
     <div class="desktop-help">A / D 移動 · W / Space 浮遊 · マウス 射撃 · 1 / 2 杖 · F 水瓶 · E 門 · Tab 装備</div>
     <div id="overlay" class="overlay"></div><span id="save-status" aria-live="polite"></span></main>`;
   const element = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
@@ -52,7 +52,7 @@ export function startEmberfall(root: HTMLElement) {
     p.classList.add('welcome'); const intro = document.createElement('p'); intro.className = 'intro'; intro.textContent = '一粒の火が、世界を変える。'; p.append(intro);
     const desc = document.createElement('p'); desc.textContent = '崩れる砂、流れる水、燃える油。杖を組み替え、三つの地層を抜けて炉心の種を探す。死んだら新しい旅へ。'; p.append(desc);
     let loaded: ReturnType<typeof loadRun> = { run: null, message: '' }; try { loaded = loadRun(localStorage); } catch { /* storage is optional, failures displayed below */ }
-    if (loaded.run && ['playing','refuge'].includes(loaded.run.phase)) button('旅を続ける', () => { run = loaded.run!; started = true; if (run.phase === 'refuge') openRefuge(); else resume(); }, p, 'primary');
+    if (loaded.run && ['playing','refuge'].includes(loaded.run.phase)) button('旅を続ける', () => { run = loaded.run!; run.notice = loaded.message; started = true; if (run.phase === 'refuge') openRefuge(); else resume(); }, p, 'primary');
     button('新しい旅を始める', () => start(), p, 'primary');
     const help = document.createElement('p'); help.className = 'muted'; help.textContent = 'スマホ: 左で移動、右の円で照準・射撃、↑で浮遊。PC: A/D + Space + マウス。油と爆発には自分も巻き込まれます。'; p.append(help);
     const status = document.createElement('small'); status.textContent = `${loaded.message} 独自コンテンツの開発版。原作全体の再現は未完成です。`; p.append(status);
@@ -60,24 +60,35 @@ export function startEmberfall(root: HTMLElement) {
   function wandEditor(p: HTMLElement) {
     const heading = document.createElement('h2'); heading.textContent = '杖の編成'; p.append(heading);
     const canEdit = run.canEditWands();
-    const info = document.createElement('p'); info.className = 'muted'; info.textContent = canEdit ? '左から順に唱えます。修飾 → 同時詠唱 → 弾の組み合わせを試そう。空欄は取り除かれます。' : '杖の編集は休息所で。今は構成だけ確認できます。'; p.append(info);
+    const info = document.createElement('p'); info.className = 'muted'; info.textContent = canEdit ? 'カードは有限です。外したカードは手持ちに戻ります。別の杖へ移すには先に外して適用。鉱山の実の残弾は全カードで共有し、休息所だけで補充。修飾 → 同時詠唱 → 弾を試そう。' : '杖の編集は休息所で。今は構成だけ確認できます。'; p.append(info);
     run.wands.forEach((wand, wi) => {
       const card = document.createElement('div'); card.className = 'wand-card';
       const h = document.createElement('h3'); h.textContent = `${wi + 1}  ${wand.name}`; card.append(h);
-      const stats = document.createElement('small'); stats.textContent = `${wand.shuffle ? 'ランダム順' : '順番固定'} / 魔力 ${Math.floor(wand.mana)}/${wand.maxMana} / 回復 ${wand.regen}/秒 / 詠唱 ${wand.castDelay}秒 / 再充填 ${wand.recharge}秒`; card.append(stats);
+      const stats = document.createElement('small'); stats.textContent = `${wand.shuffle ? 'ランダム順' : '順番固定'} / 魔力 ${Math.floor(wand.mana)}/${wand.maxMana} / 回復 ${wand.regen}/秒 / 詠唱 ${wand.castDelay}秒 / 再充填 ${wand.recharge}秒 / 共通爆薬 ${run.ammo.bomb}/6`; card.append(stats);
       const slots = document.createElement('div'); slots.className = 'spell-slots'; const selects: HTMLSelectElement[] = [];
       for (let slot = 0; slot < wand.capacity; slot++) {
         const select = document.createElement('select'); select.setAttribute('aria-label', `${wand.name} の枠 ${slot + 1}`); select.disabled = !canEdit;
         const empty = new Option('空欄', ''); select.add(empty);
-        const known = [...new Set([...run.spells, ...wand.spells])]; for (const id of known) select.add(new Option(SPELLS[id].name, id));
+        const available = [...run.spells, ...wand.spells]; const known = [...new Set(available)]; for (const id of known) select.add(new Option(`${SPELLS[id].name} ×${available.filter(s => s === id).length}`, id));
         select.value = wand.spells[slot] || ''; selects.push(select); slots.append(select);
       }
       card.append(slots);
-      if (canEdit) button('この構成を適用', () => { const ids = selects.map(s => s.value).filter(Boolean) as SpellId[]; if (run.editRunWand(wi, ids)) { persist(); run.notice = `${wand.name}の構成を変更した。`; openMenu(); } }, card);
+      if (canEdit) {
+        const feedback = document.createElement('p'); feedback.className = 'edit-feedback'; feedback.setAttribute('role', 'status');
+        button('この構成を適用', () => {
+          const ids = selects.map(s => s.value).filter(Boolean) as SpellId[];
+          if (run.editRunWand(wi, ids)) { run.notice = `${wand.name}の構成を変更した。`; persist(); openMenu(); }
+          else feedback.textContent = 'カードが足りません。手持ち＋この杖の枚数以内で組んでください。構成は変更していません。';
+        }, card);
+        card.append(feedback);
+      }
       p.append(card);
     });
+    const inventory = document.createElement('h2'); inventory.textContent = `手持ちカード · ${run.spells.length}枚`; p.append(inventory);
     const catalog = document.createElement('div'); catalog.className = 'spell-guide';
-    for (const id of [...new Set(run.spells)]) { const row = document.createElement('p'); row.textContent = `${SPELLS[id].name}: ${SPELLS[id].description}`; catalog.append(row); } p.append(catalog);
+    for (const id of [...new Set([...run.spells, ...run.wands.flatMap(w => w.spells)])]) {
+      const row = document.createElement('p'); row.textContent = `${SPELLS[id].name} · 手持ち ${run.spells.filter(s => s === id).length}枚: ${SPELLS[id].description}`; catalog.append(row);
+    } p.append(catalog);
   }
   function openMenu() {
     if (!started) return welcome(); if (run.phase === 'refuge') return openRefuge(); if (run.phase !== 'playing') return terminal();
@@ -93,8 +104,10 @@ export function startEmberfall(root: HTMLElement) {
     const perks = document.createElement('div'); perks.className = 'perk-list';
     for (const perk of run.perkOffers) { const data = PERKS[perk]; const b = button(`${data.name}\n${data.description}`, () => { run.choosePerk(perk as Perk); openRefuge(); }, perks); b.disabled = run.perkChosen; if (run.perks.includes(perk)) b.classList.add('chosen'); } p.append(perks);
     const shop = document.createElement('div'); shop.className = 'shop';
-    for (const [id, price] of [['lance',35],['bomb',30],['force',25],['haste',25],['twin',40],['echo',50]] as [SpellId,number][]) {
-      const owned = run.spells.includes(id); const b = button(`${SPELLS[id].name} · ${owned ? '習得済み' : price + ' G'}`, () => { run.buySpell(id, price); openRefuge(); }, shop); b.disabled = owned || run.gold < price;
+    for (const [id, price] of Object.entries(SPELL_PRICES) as [SpellId,number][]) {
+      const stock = run.shopStock[id] ?? 0;
+      const b = button(`${SPELLS[id].name} · ${price} G · 残${stock}枚`, () => { run.buySpell(id, price); openRefuge(); }, shop);
+      b.disabled = stock <= 0 || run.gold < price;
     } p.append(shop); wandEditor(p);
     const next = button('次の地層へ', () => { if (run.descend()) { persist(); resume(); } }, p, 'primary'); next.disabled = !run.perkChosen && run.perkOffers.length > 0;
   }
@@ -103,9 +116,22 @@ export function startEmberfall(root: HTMLElement) {
     const detail = document.createElement('p'); detail.textContent = `${won ? '三層の底で炉守を倒した。' : run.cause + 'で倒れた。'} ${run.level + 1}層 / ${run.kills}体撃破 / 金貨${run.gold} / ${Math.floor(run.time)}秒 / 種${run.seed}`; p.append(detail);
     button('新しい種で旅立つ', () => start(), p, 'primary'); button('同じ種でやり直す', () => start(run.seed), p);
   }
-  function interact() { controls.state.interact = true; }
+  function openPickup() {
+    const pickup = run.nearbyWand(); if (!pickup || paused || run.phase !== 'playing') return;
+    const p = panel('拾った杖', 'WAND CACHE / 交換');
+    const name = document.createElement('h2'); name.textContent = pickup.wand.name; p.append(name);
+    const details = document.createElement('p');
+    details.textContent = `${pickup.wand.shuffle ? 'ランダム順' : '順番固定'} · 魔力 ${Math.floor(pickup.wand.mana)}/${pickup.wand.maxMana} · ${pickup.wand.spells.map(id => SPELLS[id].name).join(' → ')}`; p.append(details);
+    const note = document.createElement('p'); note.textContent = '2本まで持てます。交換すると古い杖と中のカードをここに置きます。再交換しても弾数・魔力は回復しません。'; p.append(note);
+    run.wands.forEach((wand, index) => button(`${index + 1} ${wand.name} と交換`, () => {
+      if (run.exchangeWand(pickup.id, index)) { persist(); resume(); }
+    }, p, 'primary'));
+    button('交換せず戻る', resume, p);
+  }
+  function interact() { if (run.nearbyWand()) openPickup(); else controls.state.interact = true; }
   element('#menu-button').addEventListener('click', openMenu);
-  element('#interact').addEventListener('click', interact);
+  element('#interact').addEventListener('click', () => { controls.state.interact = true; });
+  element('#pickup').addEventListener('click', openPickup);
   for (const b of root.querySelectorAll<HTMLButtonElement>('[data-wand]')) b.addEventListener('click', () => { run.selected = Number(b.dataset.wand); controls.clear(); });
   const updateHud = () => {
     const p = run.player, wand = run.wands[run.selected];
@@ -114,10 +140,13 @@ export function startEmberfall(root: HTMLElement) {
     element('#gold').textContent = `◆ ${run.gold} G`;
     for (const b of root.querySelectorAll<HTMLButtonElement>('[data-wand]')) { const i = Number(b.dataset.wand), w = run.wands[i]; b.textContent = `${i + 1} ${w.name}`; b.classList.toggle('selected', i === run.selected); }
     element('#interact').hidden = Math.hypot(p.x - run.portal.x, p.y - run.portal.y) >= 19 || paused;
+    element('#pickup').hidden = !run.nearbyWand() || paused;
     element('.notice').textContent = run.notice;
     element('.emberfall').classList.toggle('in-menu', paused);
     element('.spray-button small').textContent = `水 ${Math.floor(run.flask)}`;
     canvas.dataset.observation = JSON.stringify({ seed: run.seed, phase: run.phase, level: run.level, x: p.x, y: p.y, hp: p.hp, kills: run.kills, gold: run.gold, cameraX: renderer.cameraX, cameraY: renderer.cameraY, width: renderer.width, height: renderer.height, enemies: run.enemies.filter(e => run.lineOfSight(p.x, p.y - 1, e.x, e.y)).map(e => ({ x: e.x, y: e.y })) });
+    canvas.dataset.inventory = JSON.stringify({ loose: run.spells, wands: run.wands.map(w => ({ id: w.id, name: w.name, spells: w.spells, shuffle: w.shuffle, charges: w.charges })), pickups: run.wandPickups.map(item => ({ id: item.id, x: item.x, y: item.y, wand: { id: item.wand.id, spells: item.wand.spells } })), stock: run.shopStock, ammo: run.ammo });
+    canvas.dataset.triggerImpact = JSON.stringify(run.lastTriggerImpact);
     canvas.dataset.inputMove = String(controls.state.move); canvas.dataset.inputClear = controls.lastClearReason; canvas.dataset.phase = run.phase; canvas.dataset.playerX = p.x.toFixed(2); canvas.dataset.playerY = p.y.toFixed(2); canvas.dataset.fuel = p.fuel.toFixed(2); canvas.dataset.projectiles = String(run.projectiles.length); canvas.dataset.tick = String(run.world.tick);
   };
   const resize = () => { renderer.resize(); drawRequested = true; }; window.addEventListener('resize', resize); renderer.resize(); welcome();

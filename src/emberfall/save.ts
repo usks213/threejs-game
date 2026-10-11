@@ -3,14 +3,18 @@ import { CellWorld, MATERIALS } from './materials';
 import { PERKS, Run } from './simulation';
 import type { CastShot, SpellId, Wand } from './wands';
 import { SPELLS } from './wands';
+import { createAmmo, createShopStock, createWandPickups, MAX_LOOSE_SPELLS, MAX_WAND_PICKUPS, SPELL_PRICES, SPELL_STOCK } from './inventory';
 
 export const SAVE_KEY = 'emberfall-save-v1';
 export const BACKUP_KEY = 'emberfall-save-backup-v1';
 type SaveStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
-const STATE_KEYS = ['player', 'enemies', 'projectiles', 'loot', 'wands', 'selected', 'gold', 'level', 'phase', 'perks', 'perkChosen', 'perkOffers', 'spells', 'portal', 'seed', 'time', 'kills', 'cause', 'notice', 'flask', 'sprayCooldown', 'materialAccumulator'] as const;
+const LEGACY_STATE_KEYS = ['player', 'enemies', 'projectiles', 'loot', 'wands', 'selected', 'gold', 'level', 'phase', 'perks', 'perkChosen', 'perkOffers', 'spells', 'portal', 'seed', 'time', 'kills', 'cause', 'notice', 'flask', 'sprayCooldown', 'materialAccumulator'] as const;
+const STATE_KEYS = [...LEGACY_STATE_KEYS, 'wandPickups', 'shopStock', 'ammo'] as const;
 type RunState = Pick<Run, typeof STATE_KEYS[number]>;
+type LegacyState = Pick<Run, typeof LEGACY_STATE_KEYS[number]>;
 interface WorldState { width: number; height: number; tick: number; rngState: number; cells: number[]; life: number[] }
 interface SaveData { state: RunState; world: WorldState }
+interface LegacySaveData { state: LegacyState; world: WorldState }
 const MAX_BYTES = 4_000_000;
 const MAX_CELLS = WORLD_WIDTH * WORLD_HEIGHT;
 type RecordValue = Record<string, unknown>;
@@ -80,13 +84,13 @@ function validateShot(value: unknown, projectile: boolean, budget: { left: numbe
   if (projectile) { position(value); velocity(value); bool(value.enemy); }
   if (hasTrigger) { array(value.trigger, 16); for (const shot of value.trigger) validateShot(shot, false, budget, depth + 1); }
 }
-function validateData(value: unknown): asserts value is SaveData {
+function validateData(value: unknown, version: 1 | 2 = 2): void {
   object(value, ['state', 'world']);
   const world = value.world; object(world, ['width', 'height', 'tick', 'rngState', 'cells', 'life']);
   requireValid(world.width === WORLD_WIDTH && world.height === WORLD_HEIGHT);
   number(world.tick, 0, 1e12, true); number(world.rngState, 0, 0xffffffff, true);
   validateRle(world.cells, MATERIALS.length - 1); validateRle(world.life, 255);
-  const s = value.state; object(s, STATE_KEYS);
+  const s = value.state; object(s, version === 1 ? LEGACY_STATE_KEYS : STATE_KEYS);
   const p = s.player; object(p, ['x', 'y', 'vx', 'vy', 'hp', 'maxHp', 'fuel', 'maxFuel', 'wet', 'burning', 'toxic', 'oxygen', 'invulnerable', 'grounded']);
   position(p); velocity(p); number(p.maxHp, 1, 10000); number(p.hp, 0, p.maxHp); number(p.maxFuel, 1, 10000); number(p.fuel, 0, p.maxFuel);
   for (const key of ['wet', 'burning', 'toxic', 'invulnerable']) number(p[key], 0, 10000);
@@ -106,9 +110,32 @@ function validateData(value: unknown): asserts value is SaveData {
   requireValid(['playing', 'refuge', 'dead', 'won'].includes(s.phase as string));
   requireValid(s.phase !== 'refuge' || Number(s.level) < 2);
   requireValid(s.phase === 'dead' ? p.hp === 0 : p.hp > 0);
-  strings(s.perks, PERKS, 6, true); strings(s.perkOffers, PERKS, 3, true); bool(s.perkChosen); strings(s.spells, SPELLS, 10, true);
+  strings(s.perks, PERKS, 6, true); strings(s.perkOffers, PERKS, 3, true); bool(s.perkChosen); strings(s.spells, SPELLS, version === 1 ? 10 : MAX_LOOSE_SPELLS, version === 1);
   object(s.portal, ['x', 'y']); position(s.portal); number(s.seed, 1, 0xffffffff, true); number(s.time); number(s.kills, 0, 1e9, true);
   text(s.cause, 500); text(s.notice, 2000); number(s.flask, 0, 180); number(s.sprayCooldown, 0, 1); number(s.materialAccumulator, 0, 1);
+  if (version === 2) {
+    array(s.wandPickups, MAX_WAND_PICKUPS); requireValid(s.wandPickups.length === 1);
+    const pickupIds = new Set<string>();
+    const wands = [...s.wands] as Wand[];
+    for (const pickup of s.wandPickups) {
+      object(pickup, ['id', 'x', 'y', 'wand']);
+      text(pickup.id, 100); requireValid(pickup.id === `cache-${s.seed}-${s.level}` && !pickupIds.has(pickup.id)); pickupIds.add(pickup.id);
+      number(pickup.x, 3, WORLD_WIDTH - 4); number(pickup.y, 4, WORLD_HEIGHT - 5);
+      validateWand(pickup.wand); wands.push(pickup.wand);
+    }
+    requireValid(new Set(wands.map(wand => wand.id)).size === wands.length);
+    const maxAmmo = createAmmo(); object(s.ammo, Object.keys(maxAmmo));
+    for (const [id, maximum] of Object.entries(maxAmmo)) {
+      number(s.ammo[id], 0, maximum, true);
+      requireValid(wands.every(wand => wand.charges[id] === (s.ammo as RecordValue)[id]));
+    }
+    for (const wand of wands) {
+      requireValid(wand.id.length > 0);
+      if (!wand.shuffle) requireValid(JSON.stringify(wand.spells) === JSON.stringify(wand.deck));
+    }
+    object(s.shopStock, Object.keys(SPELL_PRICES));
+    for (const id of Object.keys(SPELL_PRICES)) number(s.shopStock[id], 0, SPELL_STOCK, true);
+  }
 }
 /** Integrity check for accidental corruption, not a security/anti-cheat signature. */
 function checksum(input: string): string {
@@ -116,13 +143,27 @@ function checksum(input: string): string {
   for (let i = 0; i < input.length; i++) hash = Math.imul(hash ^ input.charCodeAt(i), 0x01000193);
   return (hash >>> 0).toString(16).padStart(8, '0');
 }
-function parse(raw: string | null): SaveData | null {
+function parse(raw: string | null): { data: SaveData; migrated: boolean } | null {
   if (!raw || raw.length > MAX_BYTES) return null;
   try {
     const envelope: unknown = JSON.parse(raw); object(envelope, ['version', 'checksum', 'data']);
-    requireValid(envelope.version === 1); text(envelope.checksum, 8);
+    requireValid(envelope.version === 1 || envelope.version === 2); text(envelope.checksum, 8);
     requireValid(envelope.checksum === checksum(JSON.stringify(envelope.data)));
-    validateData(envelope.data); return envelope.data;
+    validateData(envelope.data, envelope.version);
+    if (envelope.version === 2) return { data: envelope.data as SaveData, migrated: false };
+    const legacy = envelope.data as LegacySaveData;
+    // v1 unlocks were unlimited. Preserve every equipped copy; grant one loose
+    // copy only for legacy unlocked types not already present on either wand.
+    const equipped = new Set(legacy.state.wands.flatMap(wand => wand.spells));
+    const ammo = createAmmo();
+    for (const id of Object.keys(ammo)) ammo[id] = Math.min(...legacy.state.wands.map(wand => wand.charges[id]));
+    const migrated: SaveData = { ...legacy, state: { ...legacy.state,
+      spells: legacy.state.spells.filter(id => !equipped.has(id)),
+      wandPickups: createWandPickups(legacy.state.seed, legacy.state.level, legacy.state.perks.includes('reservoir')),
+      shopStock: createShopStock(), ammo,
+    } };
+    for (const wand of [...migrated.state.wands, ...migrated.state.wandPickups.map(pickup => pickup.wand)]) wand.charges = { ...ammo };
+    validateData(migrated); return { data: migrated, migrated: true };
   } catch { return null; }
 }
 function restore(data: SaveData): Run {
@@ -142,7 +183,7 @@ export function saveRun(run: Run, storage: SaveStorage): { ok: boolean; message:
     const data: SaveData = { state, world: { width: world.width, height: world.height, tick: world.tick, rngState: world.rngState, cells: encodeRle(world.cells), life: encodeRle(world.life) } };
     // Validate before stringify: JSON would silently convert NaN/Infinity into null.
     validateData(data);
-    const serialized = JSON.stringify({ version: 1, checksum: checksum(JSON.stringify(data)), data });
+    const serialized = JSON.stringify({ version: 2, checksum: checksum(JSON.stringify(data)), data });
     requireValid(serialized.length <= MAX_BYTES);
     const primary = storage.getItem(SAVE_KEY), backup = storage.getItem(BACKUP_KEY);
     if (parse(primary)) storage.setItem(BACKUP_KEY, primary!);
@@ -151,13 +192,14 @@ export function saveRun(run: Run, storage: SaveStorage): { ok: boolean; message:
     return { ok: true, message: '冒険を保存した。' };
   } catch { return { ok: false, message: '保存できませんでした。空き容量や保存設定を確認してください。既存の有効な保存は保持しています。' }; }
 }
+const MIGRATION_NOTICE = '旧保存を移行した。装備中のカードは保持し、未装備の習得術式は各1枚。鉱山の実は全杖で共通の残弾になった。';
 export function loadRun(storage: SaveStorage): { run: Run | null; message: string } {
   let primary: string | null, backup: string | null;
   try { primary = storage.getItem(SAVE_KEY); } catch { return { run: null, message: '保存データを読み取れませんでした。' }; }
   const validPrimary = parse(primary);
-  if (validPrimary) return { run: restore(validPrimary), message: '保存した冒険を再開した。' };
+  if (validPrimary) return { run: restore(validPrimary.data), message: validPrimary.migrated ? MIGRATION_NOTICE : '保存した冒険を再開した。' };
   try { backup = storage.getItem(BACKUP_KEY); } catch { return { run: null, message: '予備の保存データを読み取れませんでした。' }; }
   const validBackup = parse(backup);
-  if (validBackup) return { run: restore(validBackup), message: '主保存を読み込めなかったため、予備の保存から再開した。' };
+  if (validBackup) return { run: restore(validBackup.data), message: '主保存を読み込めなかったため、予備の保存から再開した。' + (validBackup.migrated ? MIGRATION_NOTICE : '') };
   return { run: null, message: primary || backup ? '保存データの形式または内容が不正です。元のデータは変更していません。' : '保存された冒険はありません。' };
 }

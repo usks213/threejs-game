@@ -2,6 +2,10 @@ import { CellWorld, Material, MATERIALS } from './materials';
 import { generateLevel, random } from './generation';
 import { castWand, createWand, editWand, resetWand, tickWand } from './wands';
 import type { CastShot, Wand, SpellId } from './wands';
+import { createAmmo, createShopStock, createWandPickups, exchangeCards, MAX_LOOSE_SPELLS, SPELL_PRICES, WAND_PICKUP_RANGE } from './inventory';
+import type { WandPickup } from './inventory';
+export { SPELL_PRICES } from './inventory';
+export type { WandPickup } from './inventory';
 export type Phase = 'playing' | 'refuge' | 'dead' | 'won';
 export interface Input { move: number; fly: boolean; fire: boolean; aimX: number; aimY: number; interact: boolean; spray: boolean }
 export const idleInput = (): Input => ({ move: 0, fly: false, fire: false, aimX: 1, aimY: 0, interact: false, spray: false });
@@ -27,6 +31,11 @@ export class Run {
   particles: Particle[] = [];
   loot: Loot[] = [];
   wands: Wand[];
+  wandPickups: WandPickup[];
+  shopStock = createShopStock();
+  /** Limited-use cards share a run-wide reserve; moving cards cannot refill it. */
+  ammo = createAmmo();
+  lastTriggerImpact: { sequence: number; x: number; y: number; playerX: number; playerY: number; payload: { spell: SpellId; x: number; y: number; damage: number }[] } | null = null;
   selected = 0;
   gold = 0;
   level = 0;
@@ -34,7 +43,7 @@ export class Run {
   perks: Perk[] = [];
   perkChosen = false;
   perkOffers: Perk[] = [];
-  spells: SpellId[] = ['shard', 'ember', 'excavate', 'bomb'];
+  spells: SpellId[] = ['ember'];
   portal = { x: 213, y: 355 };
   seed: number;
   time = 0;
@@ -50,7 +59,8 @@ export class Run {
     this.world = level.world;
     this.portal = level.portal;
     this.player = { ...level.spawn, vx: 0, vy: 0, hp: 100, maxHp: 100, fuel: 100, maxFuel: 100, wet: 0, burning: 0, toxic: 0, oxygen: 100, invulnerable: 0, grounded: false };
-    this.wands = [createWand(0, seed), createWand(1, seed + 1)];
+    this.wands = [createWand(0, this.seed), createWand(1, this.seed + 1)];
+    this.wandPickups = createWandPickups(this.seed, this.level);
     this.setEnemies(level.enemies);
   }
   setEnemies(spawns: ReturnType<typeof generateLevel>['enemies']) {
@@ -112,7 +122,18 @@ export class Run {
       this.burst(p.x, p.y, '#ffd287', 20);
     } else if (p.dig) this.carveTerrain(p.x, p.y, 4 + p.dig, p.dig);
     if (p.fire) for (let i = -2; i <= 2; i++) if (this.world.get(p.x + i, p.y) === Material.Air) this.world.set(p.x + i, p.y, Material.Fire);
-    if (p.trigger) for (const shot of p.trigger) this.addShot(shot, p.x - Math.sign(p.vx) * 2, p.y - Math.sign(p.vy) * 2, Math.atan2(p.vy, p.vx), p.enemy);
+    if (p.trigger) {
+      const payload: NonNullable<Run['lastTriggerImpact']>['payload'] = [];
+      for (const shot of p.trigger) {
+        const before = this.projectiles.length;
+        this.addShot(shot, p.x - Math.sign(p.vx) * 2, p.y - Math.sign(p.vy) * 2, Math.atan2(p.vy, p.vx), p.enemy);
+        if (this.projectiles.length > before) {
+          const child = this.projectiles[this.projectiles.length - 1];
+          payload.push({ spell: child.spell, x: child.x, y: child.y, damage: child.damage });
+        }
+      }
+      this.lastTriggerImpact = { sequence: (this.lastTriggerImpact?.sequence ?? 0) + 1, x: p.x, y: p.y, playerX: this.player.x, playerY: this.player.y, payload };
+    }
     this.burst(p.x, p.y, p.enemy ? '#ef7c91' : '#9bffe7', 5);
   }
   step(dt: number, input: Input) {
@@ -146,7 +167,7 @@ export class Run {
     if (p.oxygen <= 0) this.damage(dt * 10, '窒息', true);
     if (this.phase !== 'playing') return;
     const angle = Math.atan2(input.aimY, input.aimX);
-    if (input.fire) for (const shot of castWand(this.wands[this.selected])) this.addShot(shot, p.x, p.y - 1, angle);
+    if (input.fire) for (const shot of this.castSelectedWand()) this.addShot(shot, p.x, p.y - 1, angle);
     this.sprayCooldown = Math.max(0, this.sprayCooldown - dt);
     if (input.spray && this.flask > 0 && this.sprayCooldown === 0) {
       for (let i = 5; i < 10 && this.flask > 0; i++) { const x = p.x + Math.cos(angle) * i, y = p.y + Math.sin(angle) * i - 2; if (this.world.get(x, y) === Material.Air) { this.world.set(x, y, Material.Water); this.flask--; } }
@@ -208,12 +229,23 @@ export class Run {
     for (let i = 1; i < n; i++) if (this.solid(x + (tx - x) * i / n, y + (ty - y) * i / n)) return false;
     return true;
   }
+  private syncAmmo() {
+    for (const wand of [...this.wands, ...this.wandPickups.map(pickup => pickup.wand)]) wand.charges = { ...this.ammo };
+  }
+  castSelectedWand(): CastShot[] {
+    if (this.phase !== 'playing') return [];
+    const wand = this.wands[this.selected];
+    wand.charges = { ...this.ammo };
+    const shots = castWand(wand);
+    this.ammo = { ...wand.charges }; this.syncAmmo();
+    return shots;
+  }
   enterRefuge() {
     if (this.phase !== 'playing') return false;
     if (this.level === 2) { if (this.enemies.some(e => e.kind === 'warden')) { this.notice = '門は炉守に封じられている。'; return false; } this.phase = 'won'; this.notice = '炉心の種を持ち帰った。旅を越えて、次の種へ。'; return true; }
     this.phase = 'refuge'; this.player.hp = this.player.maxHp; this.player.fuel = this.player.maxFuel;
     this.player.wet = this.player.burning = this.player.toxic = 0; this.player.oxygen = 100; this.flask = 180;
-    this.wands.forEach(resetWand); this.perkChosen = false;
+    this.wands.forEach(resetWand); this.ammo = createAmmo(); this.syncAmmo(); this.perkChosen = false;
     const rng = random(this.seed + this.level * 131); const pool = (Object.keys(PERKS) as Perk[]).filter(k => !this.perks.includes(k));
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
     this.perkOffers = pool.slice(0, 3); this.notice = '休息所。体力と弾数を回復した。杖を組み、特性を一つ選ぼう。'; return true;
@@ -222,8 +254,26 @@ export class Run {
     return this.phase === 'refuge' || (this.phase === 'playing' && this.perks.includes('workshop'));
   }
   editRunWand(index: number, spells: SpellId[]) {
-    if (!Number.isInteger(index) || index < 0 || index >= this.wands.length || !this.canEditWands() || !spells.every(spell => this.spells.includes(spell))) return false;
-    return editWand(this.wands[index], spells);
+    if (!Number.isInteger(index) || index < 0 || index >= this.wands.length || !this.canEditWands() || !Array.isArray(spells)) return false;
+    const wand = this.wands[index];
+    if (spells.length > wand.capacity) return false;
+    const remaining = exchangeCards(this.spells, wand.spells, spells);
+    if (!remaining || !editWand(wand, spells)) return false;
+    this.spells = remaining;
+    return true;
+  }
+  nearbyWand(): WandPickup | undefined {
+    if (this.phase !== 'playing') return undefined;
+    return this.wandPickups.find(pickup => Math.hypot(pickup.x - this.player.x, pickup.y - this.player.y) <= WAND_PICKUP_RANGE && this.lineOfSight(this.player.x, this.player.y, pickup.x, pickup.y));
+  }
+  exchangeWand(id: string, index: number): boolean {
+    if (!Number.isInteger(index) || index < 0 || index >= this.wands.length) return false;
+    const pickup = this.nearbyWand();
+    if (!pickup || pickup.id !== id) return false;
+    // Move the entire objects: exchanging never recharges, reshuffles, or copies a card.
+    [this.wands[index], pickup.wand] = [pickup.wand, this.wands[index]];
+    this.notice = `${this.wands[index].name}を持った。前の杖は同じ場所に置いた。`;
+    return true;
   }
   editSelectedWand(spells: SpellId[]) {
     return this.editRunWand(this.selected, spells);
@@ -232,20 +282,21 @@ export class Run {
     if (this.phase !== 'refuge' || this.perkChosen || !this.perkOffers.includes(perk)) return false;
     this.perks.push(perk); this.perkChosen = true;
     if (perk === 'heart') { this.player.maxHp += 25; this.player.hp += 25; }
-    if (perk === 'reservoir') for (const w of this.wands) { w.maxMana += 40; w.mana += 40; }
+    if (perk === 'reservoir') for (const w of [...this.wands, ...this.wandPickups.map(pickup => pickup.wand)]) { w.maxMana += 40; w.mana += 40; }
     if (perk === 'ascent') { this.player.maxFuel *= 1.35; this.player.fuel = this.player.maxFuel; }
     return true;
   }
   buySpell(spell: SpellId, price: number) {
     // Price is checked against the fixed shop catalog, never accepted from UI data.
-    const catalog: Partial<Record<SpellId, number>> = { lance: 35, bomb: 30, force: 25, haste: 25, twin: 40, echo: 50 };
-    if (this.phase !== 'refuge' || catalog[spell] !== price || this.gold < price || this.spells.includes(spell)) return false;
-    this.gold -= price; this.spells.push(spell); return true;
+    if (this.phase !== 'refuge' || !Object.hasOwn(SPELL_PRICES, spell) || SPELL_PRICES[spell] !== price || this.gold < price || (this.shopStock[spell] ?? 0) <= 0 || this.spells.length >= MAX_LOOSE_SPELLS) return false;
+    this.gold -= price; this.spells.push(spell); this.shopStock[spell]!--; return true;
   }
   descend() {
     if (this.level >= 2 || this.phase !== 'refuge') return false;
     if (!this.perkChosen && this.perkOffers.length) { this.notice = '無料の特性を一つ選んでから出発しよう。'; return false; }
     this.level++; const next = generateLevel(this.seed, this.level); this.world = next.world; this.portal = next.portal;
+    this.wandPickups = createWandPickups(this.seed, this.level, this.perks.includes('reservoir'));
+    this.shopStock = createShopStock(); this.syncAmmo(); this.lastTriggerImpact = null;
     this.player.x = next.spawn.x; this.player.y = next.spawn.y; this.player.vx = this.player.vy = 0; this.player.grounded = false;
     this.player.invulnerable = 0; this.materialAccumulator = 0; this.sprayCooldown = 0;
     this.setEnemies(next.enemies); this.projectiles = []; this.loot = []; this.particles = []; this.phase = 'playing'; this.notice = '新しい地層に入った。'; return true;

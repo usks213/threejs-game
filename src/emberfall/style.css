@@ -490,3 +490,9 @@ button.primary:hover{
 @media (hover:hover) and (pointer:fine){
   .move-pad,.aim-pad,.fly-button,.spray-button{display:none}
 }
+
+/* A separate pickup action never obscures the gate action or touch aiming. */
+.pickup-button{bottom:168px;left:50%;transform:translateX(-50%);background:#594e72ed;min-width:140px}
+.edit-feedback{color:#ffc1a3!important}
+@media(max-width:550px){.pickup-button{bottom:246px}.panel{max-width:100%;overflow-x:hidden}.panel button{max-width:100%}}
+@media(max-height:450px){.pickup-button{bottom:162px}}

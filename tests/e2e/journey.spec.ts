@@ -32,11 +32,29 @@ test('ordinary desktop controls traverse all caves, shop, perks and final guardi
       const options = await offered.allTextContents();
       const preferred = ['耐熱の外套','琥珀の心臓','深い魔力槽','風の靴','金砂の磁針','旅の工房'].find(name => options.some(t => t.includes(name)));
       if (preferred) await page.locator('.perk-list button', { hasText: preferred }).click();
+      if (state.level === 0) {
+        const first = page.locator('.wand-card').first(), slots = first.locator('select');
+        const before = JSON.parse((await canvas.getAttribute('data-inventory'))!) as { loose:string[]; wands:{spells:string[]}[] };
+        const owned = [...before.loose, ...before.wands.flatMap(w => w.spells)].sort();
+        for (let i = 0; i < await slots.count(); i++) await slots.nth(i).selectOption(i < 3 ? 'shard' : '');
+        await first.getByRole('button', { name: 'この構成を適用' }).click();
+        await expect(first.locator('.edit-feedback')).toContainText('カードが足りません');
+        await page.waitForTimeout(150);
+        const afterReject = JSON.parse((await canvas.getAttribute('data-inventory'))!);
+        expect([...afterReject.loose, ...afterReject.wands.flatMap((w:{spells:string[]}) => w.spells)].sort()).toEqual(owned);
+        for (let i = 0; i < await slots.count(); i++) await slots.nth(i).selectOption('');
+        await first.getByRole('button', { name: 'この構成を適用' }).click();
+        await expect.poll(async () => JSON.parse((await canvas.getAttribute('data-inventory'))!).wands[0].spells.length).toBe(0);
+        const newSlots = page.locator('.wand-card').first().locator('select');
+        await newSlots.nth(0).selectOption('shard'); await newSlots.nth(1).selectOption('shard');
+        await page.locator('.wand-card').first().getByRole('button', { name: 'この構成を適用' }).click();
+        await expect.poll(async () => JSON.parse((await canvas.getAttribute('data-inventory'))!).wands[0].spells.length).toBe(2);
+      }
       for (const name of ['暁の槍','重ね力']) { const purchase = page.locator('.shop button', { hasText: name }); if (await purchase.isEnabled()) await purchase.click(); }
       const card = page.locator('.wand-card').first(), selects = card.locator('select');
       const known = await selects.first().locator('option').evaluateAll(options => options.map(o => (o as HTMLOptionElement).value));
       if (known.includes('lance')) {
-        const spells = known.includes('force') ? ['force','lance'] : ['lance','lance'];
+        const spells = known.includes('force') ? ['force','lance'] : ['lance'];
         for (let i = 0; i < await selects.count(); i++) await selects.nth(i).selectOption(spells[i] ?? '');
         await card.getByRole('button', { name: 'この構成を適用' }).click();
       }

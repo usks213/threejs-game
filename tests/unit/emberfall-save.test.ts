@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Material } from '../../src/emberfall/materials';
-import { Run } from '../../src/emberfall/simulation';
+import { idleInput, Run } from '../../src/emberfall/simulation';
 import { BACKUP_KEY, loadRun, SAVE_KEY, saveRun } from '../../src/emberfall/save';
+import { createWandPickups, MAX_LOOSE_SPELLS } from '../../src/emberfall/inventory';
 import { castWand, editWand } from '../../src/emberfall/wands';
 
 class MemoryStorage {
@@ -13,7 +14,7 @@ class MemoryStorage {
 }
 interface TestEnvelope {
   version: number; checksum: string;
-  data: { state: Pick<Run, 'player' | 'wands' | 'enemies' | 'phase'> & { extra?: boolean }; world: { width: number; cells: number[]; life: number[] } };
+  data: { state: Pick<Run, 'player' | 'wands' | 'enemies' | 'phase' | 'spells' | 'wandPickups' | 'shopStock' | 'ammo'> & { extra?: boolean }; world: { width: number; cells: number[]; life: number[] } };
 }
 function tamper(storage: MemoryStorage, mutate: (data: TestEnvelope) => void, rehash = true): void {
   // Deliberate untrusted JSON mutation for schema adversarial tests.
@@ -40,7 +41,7 @@ describe('versioned Emberfall saves', () => {
     expect(saveRun(run, storage).ok).toBe(true);
     const restored = loadRun(storage).run!;
     expect(restored).toBeInstanceOf(Run);
-    for (const key of ['player', 'enemies', 'projectiles', 'loot', 'wands', 'selected', 'gold', 'level', 'phase', 'perks', 'perkOffers', 'perkChosen', 'spells', 'portal', 'seed', 'time', 'kills', 'flask', 'sprayCooldown', 'materialAccumulator'] as const) expect(restored[key]).toEqual(run[key]);
+    for (const key of ['player', 'enemies', 'projectiles', 'loot', 'wands', 'selected', 'gold', 'level', 'phase', 'perks', 'perkOffers', 'perkChosen', 'spells', 'wandPickups', 'shopStock', 'ammo', 'portal', 'seed', 'time', 'kills', 'flask', 'sprayCooldown', 'materialAccumulator'] as const) expect(restored[key]).toEqual(run[key]);
     expect(restored.particles).toEqual([]);
     expect(restored.world.cells).toEqual(run.world.cells);
     expect(restored.world.life).toEqual(run.world.life);
@@ -63,7 +64,7 @@ describe('versioned Emberfall saves', () => {
   it('retains limited charges, mana and an in-progress deck without rest', () => {
     const storage = new MemoryStorage(), run = new Run(4);
     editWand(run.wands[1], ['bomb', 'excavate']);
-    castWand(run.wands[1]);
+    run.selected = 1; run.castSelectedWand();
     expect(saveRun(run, storage).ok).toBe(true);
     const loaded = loadRun(storage).run!;
     expect(loaded.wands[1]).toEqual(run.wands[1]);
@@ -73,7 +74,7 @@ describe('versioned Emberfall saves', () => {
   });
   it.each(['dead', 'won'] as const)('preserves terminal %s state rather than resurrecting', phase => {
     const storage = new MemoryStorage(), run = new Run(1);
-    run.phase = phase; run.level = 2;
+    run.phase = phase; run.level = 2; run.wandPickups = createWandPickups(run.seed, run.level);
     if (phase === 'dead') { run.player.hp = 0; run.cause = '溶岩'; }
     expect(saveRun(run, storage).ok).toBe(true);
     const loaded = loadRun(storage).run!;
@@ -121,7 +122,7 @@ describe('versioned Emberfall saves', () => {
   });
   it('rejects unknown versions without touching stored data', () => {
     const storage = new MemoryStorage(); saveRun(new Run(2), storage);
-    tamper(storage, payload => { payload.version = 2; });
+    tamper(storage, payload => { payload.version = 3; });
     const before = new Map(storage.values);
     expect(loadRun(storage).run).toBeNull(); expect(storage.values).toEqual(before);
   });
@@ -162,4 +163,117 @@ it('rejects impossible final-layer refuge saves and prevents out-of-range descen
   expect(saveRun(run, storage).ok).toBe(false);
   expect(run.descend()).toBe(false);
   expect(run.level).toBe(2);
+});
+
+function legacySave(storage: MemoryStorage, run = new Run(19)): void {
+  expect(saveRun(run, storage).ok).toBe(true);
+  tamper(storage, payload => {
+    payload.version = 1;
+    for (const key of ['wandPickups', 'shopStock', 'ammo']) Reflect.deleteProperty(payload.data.state, key);
+    payload.data.state.spells = ['shard', 'ember', 'excavate', 'bomb', 'force', 'lance', 'echo'];
+  });
+}
+
+describe('finite-inventory save v2 and v1 migration', () => {
+  it('writes v2 under the existing keys and preserves duplicate loose copies', () => {
+    const storage = new MemoryStorage(), run = new Run(19); run.enterRefuge(); run.gold = 100;
+    run.buySpell('lance', 35); run.buySpell('lance', 35);
+    expect(saveRun(run, storage).ok).toBe(true);
+    expect(JSON.parse(storage.getItem(SAVE_KEY)!).version).toBe(2);
+    const loaded = loadRun(storage).run!;
+    expect(loaded.spells).toEqual(['ember', 'lance', 'lance']); expect(loaded.shopStock.lance).toBe(0);
+    expect(loaded.wandPickups).toEqual(run.wandPickups); expect(loaded.ammo).toEqual(run.ammo);
+    expect(loaded.buySpell('lance', 35)).toBe(false);
+  });
+  it('migrates exact v1 data without losing equipped copies, cloning unlocks, or refilling ammunition', () => {
+    const storage = new MemoryStorage(), run = new Run(19);
+    editWand(run.wands[0], ['echo', 'lance', 'lance']);
+    run.wands[0].cursor = 2; run.wands[0].mana = 31; run.wands[0].cooldown = 0.3;
+    legacySave(storage, run);
+    tamper(storage, payload => { payload.data.state.wands[1].charges.bomb = 2; });
+    const before = new Map(storage.values), result = loadRun(storage), loaded = result.run!;
+    expect(result.message).toContain('旧保存を移行');
+    expect(loaded).not.toBeNull(); expect(storage.values).toEqual(before);
+    expect(loaded.spells).toEqual(['shard', 'ember', 'force']);
+    expect(loaded.wands.map(wand => wand.spells)).toEqual(run.wands.map(wand => wand.spells));
+    expect(loaded.wands[0]).toMatchObject({ cursor: 2, mana: 31, cooldown: 0.3, rng: run.wands[0].rng });
+    expect(loaded.ammo.bomb).toBe(2);
+    expect([...loaded.wands, loaded.wandPickups[0].wand].map(wand => wand.charges.bomb)).toEqual([2, 2, 2]);
+    expect(loaded.world.cells).toEqual(run.world.cells);
+    expect(loaded.wandPickups).toHaveLength(1); expect(loaded.wandPickups[0].wand.spells).toContain('pebble');
+    expect(saveRun(loaded, storage).ok).toBe(true);
+    expect(JSON.parse(storage.getItem(SAVE_KEY)!).version).toBe(2);
+    expect(JSON.parse(storage.getItem(BACKUP_KEY)!).version).toBe(1);
+    expect(loadRun(storage).run!.spells).toEqual(loaded.spells);
+  });
+  it('recovers and migrates a valid legacy backup when the primary is corrupt', () => {
+    const storage = new MemoryStorage(); legacySave(storage);
+    storage.setItem(BACKUP_KEY, storage.getItem(SAVE_KEY)!); storage.setItem(SAVE_KEY, '{broken');
+    const before = new Map(storage.values), loaded = loadRun(storage);
+    expect(loaded.run!.spells).toEqual(['ember', 'force', 'lance', 'echo']);
+    expect(loaded.message).toContain('予備'); expect(storage.values).toEqual(before);
+  });
+  it('strictly validates v1 before migration rather than laundering unknown fields or duplicate unlocks', () => {
+    const mutations: ((payload: TestEnvelope) => void)[] = [
+      p => { p.data.state.extra = true; },
+      p => { p.data.state.spells.push('shard'); },
+      p => { Reflect.set(p.data.state, 'ammo', { bomb: 6 }); },
+      p => { p.data.state.wands[0].charges.bomb = -1; },
+      p => { p.data.world.cells = [0, 1]; },
+    ];
+    for (const mutate of mutations) {
+      const storage = new MemoryStorage(); legacySave(storage); tamper(storage, mutate);
+      const before = new Map(storage.values); expect(loadRun(storage).run).toBeNull(); expect(storage.values).toEqual(before);
+    }
+  });
+  it('rejects counterfeit inventory identities, out-of-bounds stock and pickups, and unknown v2 fields', () => {
+    const mutations: ((payload: TestEnvelope) => void)[] = [
+      p => { p.data.state.spells = Array(MAX_LOOSE_SPELLS + 1).fill('shard'); },
+      p => { Reflect.set(p.data.state, 'spells', ['counterfeit']); },
+      p => { p.data.state.wandPickups = []; },
+      p => { p.data.state.wandPickups.push(p.data.state.wandPickups[0]); },
+      p => { p.data.state.wandPickups[0].id = 'counterfeit-cache'; },
+      p => { p.data.state.wandPickups[0].wand.id = p.data.state.wands[0].id; },
+      p => { p.data.state.wands[1].id = p.data.state.wands[0].id; },
+      p => { p.data.state.wands[0].id = ''; },
+      p => { p.data.state.wandPickups[0].x = -1; },
+      p => { p.data.state.wandPickups[0].x = 256; },
+      p => { p.data.state.wandPickups[0].y = 384; },
+      p => { Reflect.set(p.data.state.wandPickups[0], 'extra', 1); },
+      p => { Reflect.set(p.data.state.wandPickups[0].wand, 'extra', 1); },
+      p => { p.data.state.shopStock.lance = 3; },
+      p => { p.data.state.shopStock.lance = -1; },
+      p => { p.data.state.shopStock.lance = 0.5; },
+      p => { delete p.data.state.shopStock.lance; },
+      p => { Reflect.set(p.data.state.shopStock, 'counterfeit', 1); },
+      p => { p.data.state.ammo.bomb = 7; },
+      p => { p.data.state.ammo.bomb = 0; },
+      p => { p.data.state.wandPickups[0].wand.charges.bomb = 0; },
+      p => { Reflect.set(p.data.state.ammo, 'counterfeit', 1); },
+      p => { p.data.state.wands[1].deck.reverse(); },
+    ];
+    for (const mutate of mutations) {
+      const storage = new MemoryStorage(); expect(saveRun(new Run(2), storage).ok).toBe(true); tamper(storage, mutate);
+      const before = new Map(storage.values); expect(loadRun(storage).run).toBeNull(); expect(storage.values).toEqual(before);
+    }
+  });
+  it('resumes swapped shuffled decks and world simulation deterministically without repeating a cache reward', () => {
+    const storage = new MemoryStorage(), run = new Run(3397);
+    for (let frame = 0; frame < 120 && run.player.x < 66; frame++) run.step(1 / 60, { ...idleInput(), move: 1 });
+    const pickup = run.nearbyWand()!; expect(run.exchangeWand(pickup.id, 0)).toBe(true);
+    for (let frame = 0; frame < 31; frame++) run.step(1 / 60, { ...idleInput(), fire: true });
+    expect(saveRun(run, storage).ok).toBe(true); const loaded = loadRun(storage).run!;
+    expect(loaded.lastTriggerImpact).toBeNull(); expect(loaded.wandPickups).toEqual(run.wandPickups);
+    for (let frame = 0; frame < 180; frame++) {
+      const input = { ...idleInput(), fire: true, aimY: frame % 60 > 30 ? 0.5 : -0.3 };
+      run.step(1 / 60, input); loaded.step(1 / 60, input);
+    }
+    expect(loaded.wands).toEqual(run.wands); expect(loaded.projectiles).toEqual(run.projectiles);
+    expect(loaded.player).toEqual(run.player); expect(loaded.ammo).toEqual(run.ammo);
+    expect(loaded.world.cells).toEqual(run.world.cells); expect(loaded.world.rngState).toBe(run.world.rngState);
+    expect(loaded.wandPickups).toEqual(run.wandPickups);
+    const a = new MemoryStorage(), b = new MemoryStorage();
+    expect(saveRun(run, a).ok).toBe(true); expect(saveRun(loaded, b).ok).toBe(true);
+    expect(b.getItem(SAVE_KEY)).toBe(a.getItem(SAVE_KEY));
+  });
 });

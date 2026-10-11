@@ -21,9 +21,10 @@ function travel(seed: number, allLayers = false) {
       checkpoints.push({ refuge: run.level, hp: run.player.hp, gold: run.gold, offers: [...run.perkOffers], time: Math.round(run.time) });
       const preferred = (['heat', 'heart', 'reservoir', 'ascent', 'magnet', 'workshop'] as const).find(p => run.perkOffers.includes(p));
       if (!preferred || !run.choosePerk(preferred)) break;
-      if (!run.spells.includes('lance')) run.buySpell('lance', 35);
-      if (!run.spells.includes('force')) run.buySpell('force', 25);
-      if (run.spells.includes('lance')) run.editRunWand(0, run.spells.includes('force') ? ['force', 'lance'] : ['lance', 'lance']);
+      const available = () => [...run.spells, ...run.wands[0].spells];
+      if (!available().includes('lance')) run.buySpell('lance', 35);
+      if (!available().includes('force')) run.buySpell('force', 25);
+      if (available().includes('lance')) expect(run.editRunWand(0, available().includes('force') ? ['force', 'lance'] : ['lance'])).toBe(true);
       if (!run.descend()) break;
       node = 0; route = routeNodes(seed, run.level);
     }

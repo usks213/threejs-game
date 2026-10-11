@@ -66,6 +66,13 @@ export class Renderer {
     ctx.fillStyle = '#142c41'; ctx.fillRect(gate.x - 6, gate.y - 10, 12, 18);
     ctx.strokeStyle = `rgba(102,232,243,${pulse})`; ctx.lineWidth = 2; ctx.strokeRect(gate.x - 5, gate.y - 9, 10, 17);
     ctx.fillStyle = '#72e8e1'; ctx.fillRect(gate.x - 1, gate.y - 5, 2, 8);
+    for (const item of run.wandPickups) {
+      const x = Math.round(item.x), y = Math.round(item.y);
+      ctx.fillStyle = '#304c55'; ctx.fillRect(x - 7, y + 3, 14, 3);
+      ctx.strokeStyle = '#e5b874'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 5, y + 1); ctx.lineTo(x + 4, y - 4); ctx.stroke();
+      ctx.fillStyle = '#c5afff'; ctx.fillRect(x + 2, y - 6, 4, 4);
+      ctx.strokeStyle = '#c5afff88'; ctx.lineWidth = 1; ctx.strokeRect(x - 9, y - 9, 18, 18);
+    }
     for (const l of run.loot) { ctx.fillStyle = '#ffda78'; ctx.fillRect(l.x - 1, l.y - 1, 3, 3); }
     for (const e of run.enemies) {
       const x = Math.round(e.x), y = Math.round(e.y), boss = e.kind === 'warden';

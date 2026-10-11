@@ -82,7 +82,8 @@ jobs:
 
   publish-emberfall-preview:
     needs: verify
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 6 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feature/emberfall-pixel-roguelike'
+    # Candidate checks run without replacing the accepted public preview.
+    if: false && github.event_name == 'pull_request' && github.event.pull_request.number == 6 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feature/emberfall-pixel-roguelike'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
