@@ -29,3 +29,7 @@ Original pixel art at a bounded logical resolution, stratified terrain and dista
 This is one finite seeded 256×384-cell world with a small workshop clearing and connected caves. It does not provide Terraria's world size, item/recipe/boss progression or Noita's full material/spell/physics catalogue. Broad biome variation, structural collapse/durability, mixed flasks, electricity/freezing, audio, multiplayer, controller/remapping and real-device performance remain missing or unverified. Existing coverage-ledger gaps still apply where relevant.
 
 Required candidate acceptance: strict types, all unit suites, PC/Android-profile actual input from mining through crafting/placing camp and torch, lethal self-damage with persistent recovery, save/reload with old-save protection, inspected lit-world images and bounded renderer work/frame progress. Source/unit tests alone do not establish visual quality, phone FPS or a satisfying long-term game.
+
+## Accepted candidate
+
+`7c38b622` passed CI38144445126 with 129 unit tests and eight applicable browser cases. Both PC and Android-profile ordinary-input survival flows reached crafting/placement, actual explosion death, persistent camp recovery and reload. Lit-world and respawn images were inspected; old save isolation and edited-terrain samples passed. The accepted loop is a small initial survival slice, not long-term balance or device-FPS proof. See [release-review.md](release-review.md).

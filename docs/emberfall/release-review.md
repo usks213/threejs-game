@@ -1,3 +1,19 @@
+# Survival crafting acceptance (2026-10-11)
+
+Game candidate `7c38b622a4865d0fc78c208eccfd0e039a972fd0` passed [CI38144445126](https://github.com/usks213/threejs-game/actions/runs/38144445126): strict types, 129 unit tests across 11 files, production build, eight applicable browser cases and two explicit legacy-profile skips. No retry was needed for the accepted browser cases.
+
+PC and Android-profile normal input both completed: actual wood/stone/sand mining → finite-resource camp/workbench/torch crafting → supported placement → lethal self-inflicted explosion → camp recovery → save/title/reload/continue. No inventory grants, position teleports, health edits or direct game-method calls are used by this browser route. All three structures, resource counts and camp survived death and reload; sampled mined terrain remained edited. The survival flow left the existing expedition save key unchanged. Legacy tests additionally retain the complete three-layer journey, finite-card exchanges/trigger impact and trusted three-finger cancellation/rotation checks.
+
+Actual lit-base PC/portrait and camp-respawn screenshots were inspected. The warm light pools are visible around emitting structures, crisp materials and enemies remain readable, and portrait resource labels no longer cover the player's head. Renderer receipts remained within seven sources / 6144 rays; one-second gameplay tick progress checks passed. Snapshot render timings are not phone FPS measurements.
+
+Independent review covered legacy save migration, finite ownership/ammunition, strict isolated survival saves, safe recovery, high-camp placement bounds, structure/render/light geometry and pure placement validation. Review-found mismatches were fixed before acceptance. A first browser attempt passed mining/workbench/camp but failed torch placement because the input driver overshot its walking target; short-interval input observation fixed this without changing range/cost/placement rules. A separate targeting correction lets 3×3 stone blocks sit flush on the actual floor instead of leaving a grid-snap water gap.
+
+Publication still uses the existing Worker version-only script, exact build SHA and production-before/after checks described below. The publication commit changes only documentation, the enablement guard, and normal tap-duration acceptance (instead of holding a placement into a second attempt); game rules/art are unchanged from the accepted candidate. That final commit must pass the entire CI before upload.
+
+Known limits: finite 256×384 world; small recipe and encounter catalog; anchored equipment lacks structural durability/collapse; emergency camp recovery may clear a tiny non-harvestable shelter; no audio, multiplayer or real-device FPS/long-session validation. Water/dam/fire behavior has rule-level tests; a full browser reservoir engineering scenario is not yet claimed. See [survival.md](survival.md) and [coverage.md](coverage.md).
+
+---
+
 # First playable release review
 
 Game candidate: `6035598b078ebb639469ce66cb77337e8141488a`.

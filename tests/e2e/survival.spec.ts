@@ -28,9 +28,9 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   await expect.poll(async()=>(await read()).resources.wood).toBeGreaterThanOrEqual(34);
   for(const x of [49,52,55])await aim(x,34,400);
   await expect.poll(async()=>(await read()).resources.stone).toBeGreaterThanOrEqual(21);
-  await craft('camp');await select('camp');await aim(25.5,34.5,450);
+  await craft('camp');await select('camp');await page.waitForTimeout(250);await aim(25.5,34.5,100);
   await expect.poll(async()=>(await read()).structures.filter(s=>s.type==='camp').length).toBe(1);
-  await craft('workbench');await select('workbench');await aim(33.5,34.5,450);
+  await craft('workbench');await select('workbench');await page.waitForTimeout(250);await aim(33.5,34.5,100);
   await expect.poll(async()=>(await read()).structures.filter(s=>s.type==='workbench').length).toBe(1);
   // Fly over the harvested trunk/floor holes using the normal fuel control.
   if(cdp){const m=(await page.locator('.move-pad').boundingBox())!,f=(await page.locator('.fly-button').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:m.x+m.width*.8,y:m.y+m.height/2,id:1},{x:f.x+f.width/2,y:f.y+f.height/2,id:2}]});}
@@ -39,7 +39,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   if(cdp)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else{await page.keyboard.up('KeyD');await page.keyboard.up('Space');}
   await page.waitForTimeout(900);await select('pick');await aim(86,31,1000);
   await expect.poll(async()=>(await read()).resources.sand).toBeGreaterThanOrEqual(2);
-  await craft('torch');await select('torch');await aim(69.5,34.5,450);
+  await craft('torch');await select('torch');await page.waitForTimeout(250);await aim(69.5,34.5,100);
   await expect.poll(async()=>(await read()).structures.filter(s=>s.type==='torch').length).toBe(1);
   await page.screenshot({path:info.outputPath(mobile?'survival-lit-base-portrait.png':'survival-lit-base-desktop.png')});
   const built=await read();
