@@ -44,6 +44,9 @@ void main(){
  if(buffersReady<.5)discard;
  vec2 uv=gl_FragCoord.xy/viewport;
  vec3 rd=normalize(worldAt(uv,1.)-eye);
+ // Evaluate derivatives before divergent ray traversal. Project this pixel cone
+ // onto the surface below, so grazing/subpixel normal detail cannot form moire.
+ float pixelCone=max(length(dFdx(rd)),length(dFdy(rd)));
  // Slab intersection also works when the camera/near plane is inside a brick.
  vec3 safeDirection=sign(rd)*max(abs(rd),vec3(.000001));safeDirection+=vec3(equal(rd,vec3(0.)))*.000001;
  vec3 a=(brickMin-eye)/safeDirection,b=(brickMax-eye)/safeDirection;
@@ -77,12 +80,17 @@ void main(){
   discard;
  }
  if(d*previous<0.){float low=previousT,high=t;for(int i=0;i<5;i++){float middle=(low+high)*.5;float dm=distanceAt(eye+rd*middle);if(dm*previous>0.)low=middle;else high=middle;}t=(low+high)*.5;}
+ // The near-hit epsilon only locates a candidate. Project it back onto the
+ // interpolated zero crossing so separate bricks do not retain different depths.
+ for(int i=0;i<2;i++){vec3 candidate=eye+rd*t;float value=distanceAt(candidate),slope=(distanceAt(candidate+rd*.01)-distanceAt(candidate-rd*.01))/.02;if(abs(slope)>.08)t=clamp(t-clamp(value/slope,-.03,.03),start,end);}
  vec3 p=eye+rd*t,n=surfaceNormal(p);if(dot(n,rd)>0.)n=-n;
  // Small surface detail only; large waves would diverge from the voxel liquid.
  vec4 coastData=texture(coast,(p.xz-basinMin.xz)/basinSize.xz);
  vec2 coastDirection=coastData.rg*2.-1.;float coastWave=sin(dot(p.xz,coastDirection)*14.-time*2.)*coastData.b;
  vec2 waves=coastDirection*coastWave+vec2(sin(p.x*18.+p.z*11.+time*1.7),cos(p.z*21.-p.x*9.-time*1.3));
- n=normalize(n+vec3(waves.x,0.,waves.y)*.035*abs(n.y));
+ float footprint=t*pixelCone/max(abs(dot(n,-rd)),.04);
+ float detailFilter=1.-smoothstep(.35,2.5,footprint*25.);
+ n=normalize(n+vec3(waves.x,0.,waves.y)*.035*abs(n.y)*detailFilter);
  vec4 clip=viewProjection*vec4(p,1.);float hitDepth=clip.z/clip.w*.5+.5;
  if(hitDepth>=sceneDepth)discard;gl_FragDepth=hitDepth;
  // Stop absorption at the first liquid exit, not at distant terrain behind
@@ -99,7 +107,12 @@ void main(){
  vec3 reflected=reflect(rd,n);vec3 sky=mix(vec3(.10,.16,.19),vec3(.42,.58,.66),clamp(reflected.y*.6+.4,0.,1.));
  // Bounded screen-space reflection with depth intersection and sky fallback.
  for(int i=1;i<=12;i++){vec3 q=p+reflected*(float(i)*.24);vec4 projected=viewProjection*vec4(q,1.);if(projected.w<=0.)break;vec3 ndc=projected.xyz/projected.w;vec2 suv=ndc.xy*.5+.5;if(any(lessThan(suv,vec2(.01)))||any(greaterThan(suv,vec2(.99))))break;float depth=texture(opaqueDepth,suv).r;vec3 surface=worldAt(suv,depth);if(ndc.z*.5+.5>depth&&length(surface-q)<.3){sky=texture(opaqueColor,suv).rgb;break;}}
- float shore=(1.-smoothstep(.015,.15,thickness))*.18+coastData.b*coastData.b*(1.-smoothstep(.2,1.4,coastData.a*3.))*max(0.,coastWave)*.12;
+ // A calm shore or a thin film is not automatically white foam. The old
+ // positive sine half-waves painted periodic bands across the whole basin.
+ // Confine disturbed foam to the immediate coast, with filtered irregular detail.
+ float disturbance=smoothstep(.002,.016,abs(ripple(p)));
+ float breakup=.65+.35*sin(p.x*6.7+sin(p.z*4.3))*sin(p.z*5.9-p.x*2.1);
+ float shore=pow(coastData.b,6.)*disturbance*breakup*.12*detailFilter;
  float spec=pow(max(0.,dot(reflect(-normalize(vec3(.3,.8,.4)),n),-rd)),90.)*.5;
  vec3 color=mix(body,sky,fresnel)+vec3(.75,.85,.82)*shore+spec;
  if(underwater)color=mix(color,vec3(.02,.12,.15),.2);

@@ -95,5 +95,11 @@ Android performance, and submitted draw timing is not GPU frame/presentation tim
 
 Current local browser limitation: installed Chromium's normal launch fails with
 socket EPERM in the managed environment. No security workaround was attempted.
-GPU/visual validation remains pending CI; do not call the overhaul accepted from
-typechecking, a successful build, or unit-test counts alone.
+CI run [38133214130](https://github.com/usks213/threejs-game/actions/runs/38133214130)
+on 423f23dc passed the full 1,922-test verification and both dedicated WebGL
+viewport profiles. Its captured pixels demonstrate actual water/fog rendering,
+but visual inspection found periodic white coast-foam bands, so that technical
+pass is not visual acceptance. The same run exposed an existing defensive-retreat
+driver applying the offensive stamina reserve; ordinary campaign acceptance
+remains open. Follow-up shader/driver changes require their own exact-head run.
+The CI renderer is software WebGL, not evidence of hardware-GPU or Android FPS.

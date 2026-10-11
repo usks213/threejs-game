@@ -239,7 +239,8 @@ export class PlayerControls {
    if(p.seconds>initial.seconds+2.6&&p.stamina>90&&displacement>.6)return;
    // Keep facing the threat while steering through the physical doorway. A
    // blocked input never counts as an escape and never lowers the shield.
-   if(enemy&&distance<4){const yaw=Math.atan2(p.position.x-enemy.position.x,p.position.z-enemy.position.z);if(Math.abs(angle(yaw-p.yaw))>.3){await this.moveAxes(0,0);await this.aim({...enemy.position,y:enemy.position.y+1.52},true,55);}}
+   // Defensive look must remain available below the next offensive cycle's reserve.
+   if(enemy&&distance<4){const yaw=Math.atan2(p.position.x-enemy.position.x,p.position.z-enemy.position.z);if(Math.abs(angle(yaw-p.yaw))>.3){await this.moveAxes(0,0);await this.aim({...enemy.position,y:enemy.position.y+1.52},true);}}
    const now=await motion(this.page),waypoint=cryptRetreatWaypoint(now.position,enemy?.position??{x:0,z:-9});
    if(waypoint.jump){await this.followCryptWaypoint(waypoint,true);continue;}
    const axes=waypointAxes(now.position,now.yaw,waypoint);

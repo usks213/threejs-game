@@ -15,8 +15,21 @@ function pixels(){const gl=renderer.getContext(),data=new Uint8Array(canvas.widt
 function difference(a,b){let changed=0;for(let i=0;i<a.length;i+=4)if(Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2])>6)changed++;return changed;}
 
 function draw(frames=1){for(let i=0;i<frames;i++){view.update(1/60);pipeline.render(1/60);}}
+// Diagnostic shader variants exist only in this dev-server fixture. They do
+// not change the production material API or silently disable a rendering feature.
+const baseWaterShader=view.mesh.material.fragmentShader;
+function waterVariant(name='current'){
+ let source=baseWaterShader;
+ if(name==='no-foam')source=source.replace(/float shore=[^;]+;/,'float shore=0.;');
+ if(name==='legacy-foam')source=source.replace(/float shore=[^;]+;/,'float shore=(1.-smoothstep(.015,.15,thickness))*.18+coastData.b*coastData.b*(1.-smoothstep(.2,1.4,coastData.a*3.))*max(0.,coastWave)*.12;');
+ if(name==='no-ssr'||name==='no-ssr-detail')source=source.replace('for(int i=1;i<=12;i++)','for(int i=1;i<=0;i++)');
+ if(name==='no-detail'||name==='no-ssr-detail')source=source.replace('n=normalize(n+vec3(waves.x,0.,waves.y)*.035*abs(n.y)*detailFilter);','n=n;');
+ view.mesh.material.fragmentShader=source;view.mesh.material.needsUpdate=true;
+ pipeline.render(1/60);
+}
 function restoreFull(){w.volume.fill(0);for(let z=2;z<46;z++)for(let x=2;x<46;x++)for(let y=0;y<4;y++)w.volume[w.index(x,y,z)]=1;w.revision++;view.update(.1);}
-window.__waterHarness={renderer,scene,camera,water:w,view,draw,
+window.__waterHarness={renderer,scene,camera,water:w,view,draw,waterVariant,
+ compareCalmCoast(){const amplitude=view.mesh.material.uniforms.rippleAmplitude.value;view.mesh.material.uniforms.rippleAmplitude.value=0;waterVariant('current');const current=pixels();waterVariant('no-foam');const noFoam=pixels();waterVariant('legacy-foam');const legacy=pixels();view.mesh.material.uniforms.rippleAmplitude.value=amplitude;waterVariant('current');return {currentVsNoFoamPixels:difference(current,noFoam),legacyVsNoFoamPixels:difference(legacy,noFoam)};},
  hdrStats(){const target=pipeline.volume.target,half=target.texture.type===THREE.HalfFloatType,data=half?new Uint16Array(target.width*target.height*4):new Uint8Array(target.width*target.height*4);renderer.readRenderTargetPixels(target,0,0,target.width,target.height,data);let invalid=0,negative=0,invalidAlpha=0;for(let i=0;i<data.length;i++){const value=half?THREE.DataUtils.fromHalfFloat(data[i]):data[i]/255;if(!Number.isFinite(value))invalid++;if(i%4===3){if(value<0||value>1)invalidAlpha++;}else if(value<0)negative++;}return {invalid,negative,invalidAlpha};},
  compareLayers(){draw();const both=pixels();view.mesh.visible=false;pipeline.render(1/60);const noWater=pixels();view.mesh.visible=true;clearPipeline.render(1/60);const noFog=pixels();draw();return {waterPixels:difference(both,noWater),fogPixels:difference(both,noFog)};},
  pixelStats(){const data=pixels();let nonBlack=0,total=0;for(let i=0;i<data.length;i+=4){const energy=data[i]+data[i+1]+data[i+2];if(energy>12)nonBlack++;total+=energy;}return {nonBlack,mean:total/(data.length/4)/3,pixels:data.length/4};},
