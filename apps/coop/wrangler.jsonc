@@ -1,0 +1,8 @@
+{
+ "name": "voxel-coop-adventure",
+ "main": "src/index.ts",
+ "compatibility_date": "2026-10-03",
+ "assets": { "directory": "../../dist", "binding": "ASSETS", "run_worker_first": ["/coop/*"] },
+ "durable_objects": { "bindings": [{ "name": "COOP_ROOMS", "class_name": "CoopRoom" }] },
+ "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CoopRoom"] }]
+}

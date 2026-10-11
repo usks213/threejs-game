@@ -1,0 +1,1103 @@
+{
+  "baselineTree": "710cca49aa76eb95bedc2ee2703a51a1e7e98593",
+  "decision": "Retain exact scan-bound computation reduction; no cache or general performance acceptance.",
+  "candidate": {
+    "decision": "Candidate supports a narrow exact-work reduction and co-located broadcast-tail improvement; ready for review only. No general30Hz, public Worker, overall worst-tail, or device claim.",
+    "sourceTree": "710cca49aa76eb95bedc2ee2703a51a1e7e98593",
+    "patch": "candidate.patch",
+    "scope": "Only non-quaternion loop extents; optimize .5/1 binary cell sizes and finite positive boxes; add scale-aware8EPS padding and clamp to original radius; generic sizes/unusual boxes keep original scan. Geometry, probe/slab math, overlap semantics, loop order, limits, cache retention and invalidation unchanged. Final review adds abs(center)+r+size < Number.MAX_SAFE_INTEGER*size/4 on both horizontal axes; larger finite coordinates use original radius loop.",
+    "correctness": {
+      "orderedChecks": 2423,
+      "capturedExactKeyArrays": 14,
+      "allMeasuredKeysCovered": true,
+      "missingStartupOnlyKeyIds": [
+        0,
+        1
+      ],
+      "fullFramePairs": 800,
+      "authorityFinalChecks": 16,
+      "cases": [
+        "1800 seeded random yaw boxes",
+        "thin barriers and half-grid \u00b1ULP positions",
+        "negative coordinates and rotations",
+        "mixed overlapping quaternion/yaw hulls",
+        "generic .1/.2/.3/.25/2 fallback including reviewer counterexample",
+        "edit/move/delete/JSON-restore obstacle lists",
+        "Terminating large-coordinate original fallback at2^51 with.5 and2^52 with1",
+        "Conservative index-limit boundary offsets on both signs"
+      ],
+      "saveDigests": [
+        {
+          "layout": "colocated",
+          "baseline": "e0623d61a1b238247b779ddc2e99acf4b84d0e17c3089f59c5f650694f8cac72",
+          "candidate": "e0623d61a1b238247b779ddc2e99acf4b84d0e17c3089f59c5f650694f8cac72"
+        },
+        {
+          "layout": "spread",
+          "baseline": "f5b6eb5b7a9f26ed4f08dd9a8d3ad52d71edc77dd957e09af8989b7df5fcfff1",
+          "candidate": "f5b6eb5b7a9f26ed4f08dd9a8d3ad52d71edc77dd957e09af8989b7df5fcfff1"
+        }
+      ],
+      "guardProductionEqualityChecks": 168
+    },
+    "loopReduction": {
+      "minimum": 0.43666558124389454,
+      "maximum": 0.44315143890548825,
+      "note": "Final padded bounds; unpadded earlier prototype53% figure is superseded for candidate performance."
+    },
+    "compileMicro": {
+      "before": {
+        "count": 168,
+        "mean": 12.346291458333363,
+        "p50": 11.73230199999989,
+        "p95": 16.411423999999897,
+        "max": 25.24026799999956
+      },
+      "after": {
+        "count": 168,
+        "mean": 8.532501982142861,
+        "p50": 8.118425000000116,
+        "p95": 12.19766299999992,
+        "max": 17.672516000000087
+      }
+    },
+    "rooms": [
+      {
+        "layout": "colocated",
+        "before": {
+          "room": {
+            "count": 300,
+            "mean": 15.844721903333406,
+            "p50": 2.922318000000814,
+            "p95": 52.07849500000157,
+            "p99": 76.55445899999904,
+            "max": 77.35997899999711
+          },
+          "broadcast": {
+            "count": 100,
+            "mean": 42.03842895000032,
+            "p50": 38.682747999999265,
+            "p95": 73.10811200000171,
+            "p99": 77.35997899999711,
+            "max": 77.35997899999711
+          },
+          "obstacles": {
+            "count": 100,
+            "mean": 3.0190609799998676,
+            "p50": 0.21715100000074017,
+            "p95": 19.23432800000228,
+            "p99": 28.183920999999827,
+            "max": 28.183920999999827
+          }
+        },
+        "after": {
+          "room": {
+            "count": 300,
+            "mean": 15.43938790999989,
+            "p50": 2.757940999999846,
+            "p95": 50.88137300000017,
+            "p99": 69.973578000001,
+            "max": 83.59525399999984
+          },
+          "broadcast": {
+            "count": 100,
+            "mean": 40.92390132999974,
+            "p50": 38.1960250000011,
+            "p95": 60.254704999999376,
+            "p99": 83.59525399999984,
+            "max": 83.59525399999984
+          },
+          "obstacles": {
+            "count": 100,
+            "mean": 1.7982030999997551,
+            "p50": 0.20751600000221515,
+            "p95": 8.986707000000024,
+            "p99": 14.699309999999969,
+            "max": 14.699309999999969
+          }
+        }
+      },
+      {
+        "layout": "spread",
+        "before": {
+          "room": {
+            "count": 300,
+            "mean": 15.617210843333742,
+            "p50": 4.259537000005366,
+            "p95": 47.1870290000079,
+            "p99": 59.44492499998887,
+            "max": 82.11704499999178
+          },
+          "broadcast": {
+            "count": 100,
+            "mean": 39.094469749999114,
+            "p50": 36.973592999987886,
+            "p95": 58.15561699999671,
+            "p99": 82.11704499999178,
+            "max": 82.11704499999178
+          },
+          "obstacles": {
+            "count": 100,
+            "mean": 0.2971208700000716,
+            "p50": 0.26458800000546034,
+            "p95": 0.5135569999984,
+            "p99": 0.8647840000048745,
+            "max": 0.8647840000048745
+          }
+        },
+        "after": {
+          "room": {
+            "count": 300,
+            "mean": 15.610292629999604,
+            "p50": 4.3747500000026776,
+            "p95": 44.65087100000528,
+            "p99": 63.370976999998675,
+            "max": 84.62135999999009
+          },
+          "broadcast": {
+            "count": 100,
+            "mean": 39.12645157999912,
+            "p50": 37.50604399999429,
+            "p95": 57.227249999996275,
+            "p99": 84.62135999999009,
+            "max": 84.62135999999009
+          },
+          "obstacles": {
+            "count": 100,
+            "mean": 0.2858350099998643,
+            "p50": 0.261077999995905,
+            "p95": 0.44980599998962134,
+            "p99": 0.5918019999953685,
+            "max": 0.5918019999953685
+          }
+        }
+      }
+    ],
+    "limits": [
+      "One bounded paired room set; independent micro rounds provide stronger narrow cost evidence than whole-room percentage",
+      "Co-located maximum77.36\u219283.60ms worsens; spread p99/max also worsen, so no universal tail claim",
+      "Spread mean effectively unchanged; optimization targets expensive static-map rebuilds at changing48m memberships",
+      "No live source changes, publication, aggregate repository tests or typecheck performed for this experimental patch",
+      "No new cache or retained map; finite-check argument array is transient",
+      "Node elapsed timing, off-step spooling and deferred decode; not provider CPU/heap"
+    ],
+    "artifacts": [
+      "candidate.patch",
+      "candidate.ts",
+      "test.ts",
+      "micro.json",
+      "padded-iteration-counts.json",
+      "fixtures.json",
+      "full-room.json",
+      "colocated-room.json",
+      "spread-room.json",
+      "full-room.mjs",
+      "guard-overhead.json",
+      "guard-overhead.ts"
+    ],
+    "guardOverhead": {
+      "before": {
+        "count": 168,
+        "mean": 23.412941589285662,
+        "p50": 17.67663999999968,
+        "p95": 53.956428000000415,
+        "max": 194.19368399999985
+      },
+      "guarded": {
+        "count": 168,
+        "mean": 21.970114380952346,
+        "p50": 17.43412999999964,
+        "p95": 51.846810000000005,
+        "max": 203.54433999999947
+      },
+      "interpretation": "Separate168-pair exact guarded-vs-unguarded comparison was highly variable: rounds move in both directions and max approaches200ms. No consistent guard regression established, but exact added overhead is unresolved; do not claim guard speedup or zero cost."
+    },
+    "fullRoomSourceQualification": "Recorded800-frame paired room set predates only the final safe-index guard. All recovered production fixed arrays and dynamic player coordinates are far inside the guarded domain, so they retain the same bound arithmetic. No full-room timing rerun was performed after guard addition; do not label those measurements guarded-source timings.",
+    "regressionSuggestion": "Use a frozen test-only legacy yaw voxelization oracle, retaining original radius-based bounds and original sample/intersection math. Compare ordered [...occupied] and [...barriers] including fallback coordinates, not only normalized sets. Keep the oracle independent of the new extent-selection helper."
+  },
+  "guardedMicro": {
+    "checks": 2423,
+    "capturedKeys": 14,
+    "randomCases": 1800,
+    "fallbackSizes": [
+      0.1,
+      0.2,
+      0.3,
+      0.25,
+      2
+    ],
+    "method": "Exact insertion-ordered occupied Maps and barrier Sets; paired alternating compile microbenchmark on14 SHA-verified captured fixed arrays; all samples retained",
+    "before": {
+      "count": 168,
+      "mean": 12.346291458333363,
+      "p50": 11.73230199999989,
+      "p95": 16.411423999999897,
+      "max": 25.24026799999956
+    },
+    "after": {
+      "count": 168,
+      "mean": 8.532501982142861,
+      "p50": 8.118425000000116,
+      "p95": 12.19766299999992,
+      "max": 17.672516000000087
+    },
+    "rounds": [
+      {
+        "before": {
+          "count": 14,
+          "mean": 13.135139714285717,
+          "p50": 12.054924999999912,
+          "p95": 21.706474999999955,
+          "max": 21.706474999999955
+        },
+        "after": {
+          "count": 14,
+          "mean": 9.731323214285712,
+          "p50": 9.095597999999995,
+          "p95": 15.079066999999895,
+          "max": 15.079066999999895
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 12.559456142857162,
+          "p50": 12.181801000000178,
+          "p95": 15.99510599999985,
+          "max": 15.99510599999985
+        },
+        "after": {
+          "count": 14,
+          "mean": 9.746230928571403,
+          "p50": 9.65231300000005,
+          "p95": 14.802260999999817,
+          "max": 14.802260999999817
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 12.599571142857112,
+          "p50": 12.69180799999981,
+          "p95": 16.411423999999897,
+          "max": 16.411423999999897
+        },
+        "after": {
+          "count": 14,
+          "mean": 7.957818714285752,
+          "p50": 7.731164000000035,
+          "p95": 10.309331000000157,
+          "max": 10.309331000000157
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 11.899474142857132,
+          "p50": 11.356506000000081,
+          "p95": 18.11608000000001,
+          "max": 18.11608000000001
+        },
+        "after": {
+          "count": 14,
+          "mean": 7.98669992857143,
+          "p50": 7.3466120000002775,
+          "p95": 12.427598000000216,
+          "max": 12.427598000000216
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 12.13419264285715,
+          "p50": 11.760428999999931,
+          "p95": 14.432304999999815,
+          "max": 14.432304999999815
+        },
+        "after": {
+          "count": 14,
+          "mean": 8.45534164285719,
+          "p50": 8.229946999999811,
+          "p95": 12.240013999999974,
+          "max": 12.240013999999974
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 11.912892571428497,
+          "p50": 11.495112999999947,
+          "p95": 17.412444999999934,
+          "max": 17.412444999999934
+        },
+        "after": {
+          "count": 14,
+          "mean": 8.59319514285718,
+          "p50": 8.665234000000055,
+          "p95": 11.881587000000309,
+          "max": 11.881587000000309
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 13.086754000000026,
+          "p50": 13.057781999999861,
+          "p95": 16.670830999999907,
+          "max": 16.670830999999907
+        },
+        "after": {
+          "count": 14,
+          "mean": 8.731435571428651,
+          "p50": 8.232700999999906,
+          "p95": 17.672516000000087,
+          "max": 17.672516000000087
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 12.123272714285738,
+          "p50": 11.7852969999999,
+          "p95": 16.876741999999922,
+          "max": 16.876741999999922
+        },
+        "after": {
+          "count": 14,
+          "mean": 8.646522714285766,
+          "p50": 8.701688999999988,
+          "p95": 12.19766299999992,
+          "max": 12.19766299999992
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 13.25392828571434,
+          "p50": 12.729933999999957,
+          "p95": 23.34682699999985,
+          "max": 23.34682699999985
+        },
+        "after": {
+          "count": 14,
+          "mean": 8.662103857142872,
+          "p50": 8.530448000000433,
+          "p95": 11.52775100000008,
+          "max": 11.52775100000008
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 12.828585071428538,
+          "p50": 11.756916999999703,
+          "p95": 25.24026799999956,
+          "max": 25.24026799999956
+        },
+        "after": {
+          "count": 14,
+          "mean": 7.734452499999926,
+          "p50": 7.65093700000034,
+          "p95": 9.716321999999309,
+          "max": 9.716321999999309
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 11.536131785714522,
+          "p50": 11.398686999999882,
+          "p95": 13.640666000000238,
+          "max": 13.640666000000238
+        },
+        "after": {
+          "count": 14,
+          "mean": 8.331445857142885,
+          "p50": 8.294763000000785,
+          "p95": 11.442137000000002,
+          "max": 11.442137000000002
+        }
+      },
+      {
+        "before": {
+          "count": 14,
+          "mean": 11.086099285714422,
+          "p50": 10.75072100000034,
+          "p95": 15.946482000000287,
+          "max": 15.946482000000287
+        },
+        "after": {
+          "count": 14,
+          "mean": 7.81345371428558,
+          "p50": 7.3869109999996,
+          "p95": 10.576655999999275,
+          "max": 10.576655999999275
+        }
+      }
+    ]
+  },
+  "guardOverhead": {
+    "method": "Paired alternating pre-index-guard versus final guarded candidate on14 exact production fixed arrays,12 rounds; ordered outputs checked, all samples retained. Measures guard path overhead only, not Worker or full-room capacity.",
+    "checks": 168,
+    "before": {
+      "count": 168,
+      "mean": 23.412941589285662,
+      "p50": 17.67663999999968,
+      "p95": 53.956428000000415,
+      "max": 194.19368399999985
+    },
+    "guarded": {
+      "count": 168,
+      "mean": 21.970114380952346,
+      "p50": 17.43412999999964,
+      "p95": 51.846810000000005,
+      "max": 203.54433999999947
+    },
+    "rounds": [
+      {
+        "before": 54.793517928571454,
+        "guarded": 36.008230714285716
+      },
+      {
+        "before": 27.570825071428626,
+        "guarded": 18.698275500000104
+      },
+      {
+        "before": 14.334063857142903,
+        "guarded": 19.385946499999914
+      },
+      {
+        "before": 17.05096471428562,
+        "guarded": 19.161673999999916
+      },
+      {
+        "before": 28.38644885714289,
+        "guarded": 34.73286985714286
+      },
+      {
+        "before": 35.66546149999996,
+        "guarded": 32.681566000000075
+      },
+      {
+        "before": 33.14841328571428,
+        "guarded": 25.92314942857151
+      },
+      {
+        "before": 18.39303428571423,
+        "guarded": 18.520365714285553
+      },
+      {
+        "before": 19.921347642856876,
+        "guarded": 26.812244285713923
+      },
+      {
+        "before": 9.135521428571597,
+        "guarded": 9.555582642857189
+      },
+      {
+        "before": 11.216299571428603,
+        "guarded": 12.60372957142876
+      },
+      {
+        "before": 11.339400928570935,
+        "guarded": 9.557738357142625
+      }
+    ]
+  },
+  "fixedRebuildDiagnosis": {
+    "decision": "Reject the proposed second exact-key compiled-map cache. Reuse is too infrequent for a meaningful whole-room/tail reduction at this retention cost.",
+    "uniqueKeysAll": 16,
+    "uniqueKeysMeasured": 14,
+    "allCalls": 210,
+    "measuredCalls": 100,
+    "measuredCompiles": 19,
+    "measuredStaticCompile": {
+      "count": 19,
+      "mean": 14.614105263157876,
+      "min": 10.373513999999886,
+      "max": 33.51899500000036
+    },
+    "staticCompileTotalMs": 277.66799999999967,
+    "dynamicEveryCall": {
+      "count": 100,
+      "mean": 0.10990864999993391,
+      "min": 0.0680979999997362,
+      "max": 1.119314999999915
+    },
+    "fixedObstacleCounts": {
+      "count": 100,
+      "mean": 291.95,
+      "min": 284,
+      "max": 301
+    },
+    "dynamicObstacleCounts": {
+      "count": 100,
+      "mean": 4,
+      "min": 4,
+      "max": 4
+    },
+    "fixedOccupied": {
+      "count": 100,
+      "mean": 2518.76,
+      "min": 2459,
+      "max": 2577
+    },
+    "fixedBarriers": {
+      "count": 100,
+      "mean": 8075.92,
+      "min": 7844,
+      "max": 8184
+    },
+    "sameCompleteSave": true,
+    "saveDigest": "e0623d61a1b238247b779ddc2e99acf4b84d0e17c3089f59c5f650694f8cac72",
+    "exactDecodeChecks": 4,
+    "framesDecoded": 400,
+    "lru2": {
+      "additionalMeasuredHits": 1,
+      "avoidedStaticCompileMs": 11.365525000000162,
+      "avoided": [
+        {
+          "tick": 369,
+          "keyId": 3,
+          "staticMs": 11.365525000000162
+        }
+      ],
+      "maximumExtraOccupiedPlusBarrierEntries": 10675,
+      "meanExtraOccupiedPlusBarrierEntries": 10487.547619047618,
+      "avoidedMsPerMeasuredTick": 0.037885083333333874,
+      "fractionOfStaticCompile": 0.04093206635262319,
+      "fractionOfMeasuredRoomTime": 0.0024938728571790828,
+      "retentionCaveat": "Entry counts and JSON-key UTF-8 lengths are retention-cost proxies, not Node or Worker heap byte measurements. No compiled secondary maps were actually retained or implemented."
+    },
+    "keys": [
+      {
+        "keyId": 0,
+        "seen": 1,
+        "compiles": 1,
+        "compileMs": 32.44179599999998,
+        "occupied": 2477,
+        "barriers": 7432,
+        "keyBytes": 21963
+      },
+      {
+        "keyId": 1,
+        "seen": 2,
+        "compiles": 1,
+        "compileMs": 16.634023000000013,
+        "occupied": 2525,
+        "barriers": 7792,
+        "keyBytes": 22995
+      },
+      {
+        "keyId": 2,
+        "seen": 42,
+        "compiles": 2,
+        "compileMs": 37.699476000000345,
+        "occupied": 2577,
+        "barriers": 8016,
+        "keyBytes": 23420
+      },
+      {
+        "keyId": 3,
+        "seen": 3,
+        "compiles": 3,
+        "compileMs": 37.67018400000086,
+        "occupied": 2513,
+        "barriers": 7844,
+        "keyBytes": 22474
+      },
+      {
+        "keyId": 4,
+        "seen": 6,
+        "compiles": 3,
+        "compileMs": 33.437343000000055,
+        "occupied": 2527,
+        "barriers": 7972,
+        "keyBytes": 22553
+      },
+      {
+        "keyId": 5,
+        "seen": 7,
+        "compiles": 3,
+        "compileMs": 37.66124599999989,
+        "occupied": 2527,
+        "barriers": 7964,
+        "keyBytes": 22565
+      },
+      {
+        "keyId": 6,
+        "seen": 23,
+        "compiles": 4,
+        "compileMs": 69.51177800000073,
+        "occupied": 2543,
+        "barriers": 8092,
+        "keyBytes": 22644
+      },
+      {
+        "keyId": 7,
+        "seen": 2,
+        "compiles": 2,
+        "compileMs": 28.26837300000011,
+        "occupied": 2525,
+        "barriers": 8060,
+        "keyBytes": 22561
+      },
+      {
+        "keyId": 8,
+        "seen": 20,
+        "compiles": 4,
+        "compileMs": 61.043433999999706,
+        "occupied": 2493,
+        "barriers": 8028,
+        "keyBytes": 22492
+      },
+      {
+        "keyId": 9,
+        "seen": 12,
+        "compiles": 4,
+        "compileMs": 49.95659799999885,
+        "occupied": 2511,
+        "barriers": 8052,
+        "keyBytes": 22587
+      },
+      {
+        "keyId": 10,
+        "seen": 12,
+        "compiles": 4,
+        "compileMs": 44.816777999999886,
+        "occupied": 2511,
+        "barriers": 8116,
+        "keyBytes": 23957
+      },
+      {
+        "keyId": 11,
+        "seen": 6,
+        "compiles": 4,
+        "compileMs": 61.396799000000556,
+        "occupied": 2459,
+        "barriers": 7924,
+        "keyBytes": 22408
+      },
+      {
+        "keyId": 12,
+        "seen": 6,
+        "compiles": 4,
+        "compileMs": 55.262168999999176,
+        "occupied": 2491,
+        "barriers": 8160,
+        "keyBytes": 23361
+      },
+      {
+        "keyId": 13,
+        "seen": 2,
+        "compiles": 2,
+        "compileMs": 22.134759999999915,
+        "occupied": 2491,
+        "barriers": 8184,
+        "keyBytes": 23439
+      },
+      {
+        "keyId": 14,
+        "seen": 64,
+        "compiles": 2,
+        "compileMs": 32.38301500000034,
+        "occupied": 2491,
+        "barriers": 8152,
+        "keyBytes": 23373
+      },
+      {
+        "keyId": 15,
+        "seen": 2,
+        "compiles": 2,
+        "compileMs": 25.87772799999948,
+        "occupied": 2491,
+        "barriers": 7956,
+        "keyBytes": 22477
+      }
+    ],
+    "spikes": [
+      {
+        "tick": 369,
+        "total": 11.561657999999625,
+        "trace": {
+          "keyMs": 0.09363800000028277,
+          "changed": true,
+          "staticMs": 11.365525000000162,
+          "dynamicMs": 0.07928100000026461,
+          "fixedCount": 284,
+          "dynamicCount": 4,
+          "occupied": 2513,
+          "barriers": 7844,
+          "dynamicOccupied": 37,
+          "dynamicBarriers": 166,
+          "keyId": 3,
+          "keyBytes": 22474,
+          "phase": "measured",
+          "tick": 369
+        }
+      },
+      {
+        "tick": 372,
+        "total": 11.181083999999828,
+        "trace": {
+          "keyMs": 0.09559900000022026,
+          "changed": true,
+          "staticMs": 10.986230999999862,
+          "dynamicMs": 0.07629099999940081,
+          "fixedCount": 285,
+          "dynamicCount": 4,
+          "occupied": 2527,
+          "barriers": 7972,
+          "dynamicOccupied": 31,
+          "dynamicBarriers": 134,
+          "keyId": 4,
+          "keyBytes": 22553,
+          "phase": "measured",
+          "tick": 372
+        }
+      },
+      {
+        "tick": 378,
+        "total": 10.580793999999514,
+        "trace": {
+          "keyMs": 0.09501999999974942,
+          "changed": true,
+          "staticMs": 10.389446000000135,
+          "dynamicMs": 0.073566000000028,
+          "fixedCount": 285,
+          "dynamicCount": 4,
+          "occupied": 2527,
+          "barriers": 7964,
+          "dynamicOccupied": 29,
+          "dynamicBarriers": 134,
+          "keyId": 5,
+          "keyBytes": 22565,
+          "phase": "measured",
+          "tick": 378
+        }
+      },
+      {
+        "tick": 384,
+        "total": 13.977632000000085,
+        "trace": {
+          "keyMs": 0.09485200000017358,
+          "changed": true,
+          "staticMs": 13.787792000000081,
+          "dynamicMs": 0.07211699999970733,
+          "fixedCount": 286,
+          "dynamicCount": 4,
+          "occupied": 2543,
+          "barriers": 8092,
+          "dynamicOccupied": 37,
+          "dynamicBarriers": 134,
+          "keyId": 6,
+          "keyBytes": 22644,
+          "phase": "measured",
+          "tick": 384
+        }
+      },
+      {
+        "tick": 402,
+        "total": 14.787752000000182,
+        "trace": {
+          "keyMs": 0.21797400000014022,
+          "changed": true,
+          "staticMs": 14.455213000000185,
+          "dynamicMs": 0.09243399999922985,
+          "fixedCount": 285,
+          "dynamicCount": 4,
+          "occupied": 2525,
+          "barriers": 8060,
+          "dynamicOccupied": 37,
+          "dynamicBarriers": 134,
+          "keyId": 7,
+          "keyBytes": 22561,
+          "phase": "measured",
+          "tick": 402
+        }
+      },
+      {
+        "tick": 405,
+        "total": 15.83894700000019,
+        "trace": {
+          "keyMs": 0.10007200000018202,
+          "changed": true,
+          "staticMs": 15.623759000000064,
+          "dynamicMs": 0.09258000000045286,
+          "fixedCount": 284,
+          "dynamicCount": 4,
+          "occupied": 2493,
+          "barriers": 8028,
+          "dynamicOccupied": 37,
+          "dynamicBarriers": 134,
+          "keyId": 8,
+          "keyBytes": 22492,
+          "phase": "measured",
+          "tick": 405
+        }
+      },
+      {
+        "tick": 420,
+        "total": 15.43596399999933,
+        "trace": {
+          "keyMs": 0.10182600000007369,
+          "changed": true,
+          "staticMs": 15.204216999999517,
+          "dynamicMs": 0.10767800000030547,
+          "fixedCount": 285,
+          "dynamicCount": 4,
+          "occupied": 2511,
+          "barriers": 8052,
+          "dynamicOccupied": 33,
+          "dynamicBarriers": 184,
+          "keyId": 9,
+          "keyBytes": 22587,
+          "phase": "measured",
+          "tick": 420
+        }
+      },
+      {
+        "tick": 429,
+        "total": 10.78635899999972,
+        "trace": {
+          "keyMs": 0.15957199999957083,
+          "changed": true,
+          "staticMs": 10.52845999999954,
+          "dynamicMs": 0.0741649999999936,
+          "fixedCount": 301,
+          "dynamicCount": 4,
+          "occupied": 2511,
+          "barriers": 8116,
+          "dynamicOccupied": 21,
+          "dynamicBarriers": 152,
+          "keyId": 10,
+          "keyBytes": 23957,
+          "phase": "measured",
+          "tick": 429
+        }
+      },
+      {
+        "tick": 438,
+        "total": 13.316380000000208,
+        "trace": {
+          "keyMs": 0.10415300000022398,
+          "changed": true,
+          "staticMs": 12.819029000000228,
+          "dynamicMs": 0.36909900000046036,
+          "fixedCount": 284,
+          "dynamicCount": 4,
+          "occupied": 2459,
+          "barriers": 7924,
+          "dynamicOccupied": 33,
+          "dynamicBarriers": 184,
+          "keyId": 11,
+          "keyBytes": 22408,
+          "phase": "measured",
+          "tick": 438
+        }
+      },
+      {
+        "tick": 444,
+        "total": 11.63526599999932,
+        "trace": {
+          "keyMs": 0.34382600000026287,
+          "changed": true,
+          "staticMs": 11.190121999999974,
+          "dynamicMs": 0.07747599999947852,
+          "fixedCount": 295,
+          "dynamicCount": 4,
+          "occupied": 2491,
+          "barriers": 8160,
+          "dynamicOccupied": 27,
+          "dynamicBarriers": 152,
+          "keyId": 12,
+          "keyBytes": 23361,
+          "phase": "measured",
+          "tick": 444
+        }
+      },
+      {
+        "tick": 447,
+        "total": 10.601894000000357,
+        "trace": {
+          "keyMs": 0.11188099999981205,
+          "changed": true,
+          "staticMs": 10.373513999999886,
+          "dynamicMs": 0.07208400000035908,
+          "fixedCount": 296,
+          "dynamicCount": 4,
+          "occupied": 2491,
+          "barriers": 8184,
+          "dynamicOccupied": 21,
+          "dynamicBarriers": 152,
+          "keyId": 13,
+          "keyBytes": 23439,
+          "phase": "measured",
+          "tick": 447
+        }
+      },
+      {
+        "tick": 450,
+        "total": 11.549828000000161,
+        "trace": {
+          "keyMs": 0.1047019999996337,
+          "changed": true,
+          "staticMs": 11.346348000000035,
+          "dynamicMs": 0.07450999999946362,
+          "fixedCount": 295,
+          "dynamicCount": 4,
+          "occupied": 2491,
+          "barriers": 8152,
+          "dynamicOccupied": 27,
+          "dynamicBarriers": 152,
+          "keyId": 14,
+          "keyBytes": 23373,
+          "phase": "measured",
+          "tick": 450
+        }
+      },
+      {
+        "tick": 546,
+        "total": 19.777415999998993,
+        "trace": {
+          "keyMs": 0.11966500000016822,
+          "changed": true,
+          "staticMs": 19.54893599999923,
+          "dynamicMs": 0.08655399999952351,
+          "fixedCount": 295,
+          "dynamicCount": 4,
+          "occupied": 2491,
+          "barriers": 8160,
+          "dynamicOccupied": 21,
+          "dynamicBarriers": 162,
+          "keyId": 12,
+          "keyBytes": 23361,
+          "phase": "measured",
+          "tick": 546
+        }
+      },
+      {
+        "tick": 552,
+        "total": 21.07266299999901,
+        "trace": {
+          "keyMs": 0.17015799999899173,
+          "changed": true,
+          "staticMs": 20.785453000000416,
+          "dynamicMs": 0.09167399999932968,
+          "fixedCount": 284,
+          "dynamicCount": 4,
+          "occupied": 2459,
+          "barriers": 7924,
+          "dynamicOccupied": 33,
+          "dynamicBarriers": 162,
+          "keyId": 11,
+          "keyBytes": 22408,
+          "phase": "measured",
+          "tick": 552
+        }
+      },
+      {
+        "tick": 555,
+        "total": 15.879977000000508,
+        "trace": {
+          "keyMs": 0.0990590000001248,
+          "changed": true,
+          "staticMs": 15.649521999999706,
+          "dynamicMs": 0.10774300000048243,
+          "fixedCount": 285,
+          "dynamicCount": 4,
+          "occupied": 2491,
+          "barriers": 7956,
+          "dynamicOccupied": 33,
+          "dynamicBarriers": 162,
+          "keyId": 15,
+          "keyBytes": 22477,
+          "phase": "measured",
+          "tick": 555
+        }
+      },
+      {
+        "tick": 558,
+        "total": 13.134918000001562,
+        "trace": {
+          "keyMs": 0.1082509999996546,
+          "changed": true,
+          "staticMs": 12.92683500000021,
+          "dynamicMs": 0.0770280000015191,
+          "fixedCount": 301,
+          "dynamicCount": 4,
+          "occupied": 2511,
+          "barriers": 8116,
+          "dynamicOccupied": 33,
+          "dynamicBarriers": 162,
+          "keyId": 10,
+          "keyBytes": 23957,
+          "phase": "measured",
+          "tick": 558
+        }
+      },
+      {
+        "tick": 567,
+        "total": 14.242584999999963,
+        "trace": {
+          "keyMs": 1.1500319999995554,
+          "changed": true,
+          "staticMs": 12.991140000000087,
+          "dynamicMs": 0.07560599999851547,
+          "fixedCount": 285,
+          "dynamicCount": 4,
+          "occupied": 2511,
+          "barriers": 8052,
+          "dynamicOccupied": 27,
+          "dynamicBarriers": 162,
+          "keyId": 9,
+          "keyBytes": 22587,
+          "phase": "measured",
+          "tick": 567
+        }
+      },
+      {
+        "tick": 576,
+        "total": 14.367718999999852,
+        "trace": {
+          "keyMs": 0.09509599999910279,
+          "changed": true,
+          "staticMs": 14.177462999999989,
+          "dynamicMs": 0.07147099999929196,
+          "fixedCount": 284,
+          "dynamicCount": 4,
+          "occupied": 2493,
+          "barriers": 8028,
+          "dynamicOccupied": 33,
+          "dynamicBarriers": 144,
+          "keyId": 8,
+          "keyBytes": 22492,
+          "phase": "measured",
+          "tick": 576
+        }
+      },
+      {
+        "tick": 591,
+        "total": 33.71222999999918,
+        "trace": {
+          "keyMs": 0.09794899999906193,
+          "changed": true,
+          "staticMs": 33.51899500000036,
+          "dynamicMs": 0.07005599999865808,
+          "fixedCount": 286,
+          "dynamicCount": 4,
+          "occupied": 2543,
+          "barriers": 8092,
+          "dynamicOccupied": 37,
+          "dynamicBarriers": 144,
+          "keyId": 6,
+          "keyBytes": 22644,
+          "phase": "measured",
+          "tick": 591
+        }
+      }
+    ],
+    "causalScope": "This diagnostic bundle measures the actual fixed-key inequality branch and its voxelizeObstacles call. Every measured >5ms setObstacles spike is a changed-key static compilation; dynamic obstacle count remains4. This is local callsite attribution, not causal attribution of public Worker15.09Hz.",
+    "remainingGap": "Meaningful fixed-obstacle work reduction would require a separately justified approach preserving exact overlapping occupancy/barrier semantics with bounded memory, tested on multiple layouts; current evidence does not authorize or validate such a redesign."
+  }
+}

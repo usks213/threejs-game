@@ -24,6 +24,7 @@ export class TerrainScheduler {
   paused = false;
 
   reset(): void { this.epoch++; this.entries.clear(); this.active = null; }
+  get activeJob():string|null{return this.active?.brick.id??null;}
   get size(): number { return this.entries.size; }
   get pending(): number { let n = 0; for (const entry of this.entries.values()) if (!entry.ready) n++; return n; }
   get dirtyPending(): number { let n = 0; for (const entry of this.entries.values()) if (entry.dirty) n++; return n; }
@@ -95,6 +96,7 @@ export class TerrainUploadWindow {
   private outstanding = 0;
   constructor(readonly limit = 4) {}
   reset(epoch: number): void { this.epoch = epoch; this.outstanding = 0; }
+  get credits():number{return this.outstanding;}
   get available(): boolean { return this.outstanding < this.limit; }
   sent(count: number): void { this.outstanding += count; }
   acknowledge(epoch: number, count: number): void {

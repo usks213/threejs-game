@@ -1,0 +1,92 @@
+{
+  "source": "2a1debf141cbf2398694a82f4a31be2ee6f41a40 plus single-step timer option only; bundles differ only by scheduleBeforeStep boolean",
+  "bundleSha256": "b9d9cde50bb5feeb69a22cc93c0b7c3e669de2b083560cb79009a569c9cc4daa",
+  "runtime": "Miniflare5.20261001.0-alpha/workerd1.20261001.1",
+  "limitations": "Short local fresh-world ABBA; no deployed-clock/CPU/128MB proof; external machine load not controlled",
+  "results": [
+    {
+      "variant": "after",
+      "round": 0,
+      "status": "completed",
+      "hz": 29.890996389879245,
+      "elapsed": 5018.233518999999,
+      "ping": {
+        "count": 2,
+        "p50": 4.972625000000335,
+        "p95": 4.972625000000335,
+        "max": 77.4701729999997
+      },
+      "timing": {
+        "steps": 61,
+        "turns": 61,
+        "catchUpSteps": 0,
+        "rebases": 0,
+        "droppedMs": 0,
+        "ticks": 61
+      }
+    },
+    {
+      "variant": "before",
+      "round": 1,
+      "status": "completed",
+      "hz": 29.822598874895064,
+      "elapsed": 5029.7427339999995,
+      "ping": {
+        "count": 2,
+        "p50": 0.9347880000022997,
+        "p95": 0.9347880000022997,
+        "max": 1.608632999999827
+      },
+      "timing": {
+        "steps": 61,
+        "turns": 61,
+        "catchUpSteps": 0,
+        "rebases": 0,
+        "droppedMs": 0,
+        "ticks": 61
+      }
+    },
+    {
+      "variant": "before",
+      "round": 2,
+      "status": "completed",
+      "hz": 29.366358639574763,
+      "elapsed": 5005.7278739999965,
+      "ping": {
+        "count": 2,
+        "p50": 12.825472000000445,
+        "p95": 12.825472000000445,
+        "max": 85.44860599999811
+      },
+      "timing": {
+        "steps": 64,
+        "turns": 64,
+        "catchUpSteps": 0,
+        "rebases": 0,
+        "droppedMs": 0,
+        "ticks": 64
+      }
+    },
+    {
+      "variant": "after",
+      "round": 3,
+      "status": "completed",
+      "hz": 29.780725016066715,
+      "elapsed": 5036.814917000003,
+      "ping": {
+        "count": 2,
+        "p50": 1.8921800000025542,
+        "p95": 1.8921800000025542,
+        "max": 41.5494250000047
+      },
+      "timing": {
+        "steps": 62,
+        "turns": 62,
+        "catchUpSteps": 0,
+        "rebases": 0,
+        "droppedMs": 0,
+        "ticks": 62
+      }
+    }
+  ]
+}

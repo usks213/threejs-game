@@ -1,0 +1,48 @@
+{
+  "method": "Two independent real mature four-player authorities in one Node process, alternating step order with identical inputs; client decoding outside timed steps. All samples retained. No inspector overhead and no realtime/Workers claim.",
+  "elapsedMs": 29751.65442,
+  "results": [
+    {
+      "name": "before",
+      "steps": {
+        "count": 300,
+        "mean": 38.59001293666676,
+        "p50": 19.634367999999085,
+        "p95": 88.56581700000243,
+        "p99": 109.3793110000006,
+        "max": 122.00567499999988
+      },
+      "simulation": {
+        "count": 300,
+        "mean": 21.538646573333285,
+        "p50": 19.617342000001372,
+        "p95": 34.41739499999994,
+        "p99": 48.019241000001784,
+        "max": 62.23537299999998
+      },
+      "checks": 8,
+      "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d"
+    },
+    {
+      "name": "after",
+      "steps": {
+        "count": 300,
+        "mean": 36.75158091333332,
+        "p50": 17.305068000001484,
+        "p95": 84.78002200000265,
+        "p99": 122.45779399999992,
+        "max": 170.99113899999975
+      },
+      "simulation": {
+        "count": 300,
+        "mean": 19.887974953333323,
+        "p50": 17.292240999999194,
+        "p95": 31.246084999998857,
+        "p99": 49.85619299999962,
+        "max": 122.44479399999909
+      },
+      "checks": 8,
+      "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d"
+    }
+  ]
+}

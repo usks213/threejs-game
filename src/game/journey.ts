@@ -1,10 +1,25 @@
+import { openingBeaconGoal, skyBeaconGoal, caveBeaconGoal, graveRecoveryGoal } from './adventure-goal';
+import { BEACONS } from '../content/adventure-world';
 import { roofed } from './meadows/state';
 import { BIOMES, BOSSES, RECIPES } from '../content/catalog';
 import type { AdventureSnapshot } from './types';
 import type { Vec3 } from '../world/types';
-export interface JourneyGoal { title: string; detail: string; tab: string; target?: { x:number; z:number }; progress:number }
+export interface JourneyGoal { title: string; detail: string; tab: string; target?: { x:number; y?:number; z:number }; progress:number }
 /** Derive objectives from existing saves; no tutorial flags can become stale. */
 export function journeyGoal(s: AdventureSnapshot, p: Vec3): JourneyGoal {
+ if(s.generator===4){
+  const recovery=graveRecoveryGoal(s,p);if(recovery)return recovery;
+  if(s.defeated.includes('stormcore'))return {title:'三つの高さをつないだ',detail:'仲間と設計帳を持ち、新しい航路へ',tab:'world',progress:1};
+  const next=BEACONS.find(b=>(s.resources.find(n=>n.id===b.id)?.ready??0)<1e9);
+  if(next?.id===810001)return openingBeaconGoal(s,p);
+  if(next?.id===810002)return skyBeaconGoal(p);
+  if(next?.id===810003)return caveBeaconGoal(s,p);
+
+  const active=s.enemies.find(e=>e.definition==='stormcore'&&e.health>0);
+  if(active)return {title:'嵐心の機殻を鎮める',detail:'予兆を避け、隙に合成した装備で攻撃',tab:'world',target:active,progress:.85};
+  if(next?.id===810004&&s.siteWorld?.storyMode==='full'){const site=s.expeditions?.sites.find(site=>!site.completed);if(site)return {title:site.name,detail:site.reason,tab:'world',target:site,progress:.6+s.siteWorld.completed.length*.07};}
+  return {title:next?.name??'灯の航路を探索',detail:next?.hint??s.objective,tab:'world',target:next,progress:(s.unlocked-1)/5};
+ }
  if(s.meadows){
   const nearest=(kind:string)=>s.resources.filter(n=>n.kind===kind&&n.ready<=s.seconds).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
   if(s.death&&Object.values(s.grave??{}).some(n=>n>0))return {title:'墓標へ戻ろう',detail:'落とした荷物は「採集」で回収',tab:'bag',target:s.death,progress:0};

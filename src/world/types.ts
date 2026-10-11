@@ -5,7 +5,7 @@ export const CHUNK_SIZE = 16;
 export const BRICK_SIZE = 8;
 export const MAX_EDITS = 100000;
 export type EditKind = 'dig' | 'add';
-export interface EditOperation { id: number; kind: EditKind; position: Vec3; radius: number; material: 'stone'; shape?: 'cylinder'; surface?: 'soil'; tick: number }
+export interface EditOperation { undo?:number; id: number; kind: EditKind; position: Vec3; radius: number; material: 'stone'; shape?: 'cylinder'; surface?: 'soil'; tick: number }
 /** Faces: axis * 2 + side. Edges: free axis * 4 + other-axis side bits. */
 export interface FieldLod { faces: readonly number[]; edges: readonly number[] }
 export interface Brick { id: string; origin: Vec3; step: number; fieldLod?: FieldLod }

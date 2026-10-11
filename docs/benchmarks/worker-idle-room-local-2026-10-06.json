@@ -1,0 +1,30 @@
+{
+  "status": "completed",
+  "scope": "instrumented local Worker cold-room lifecycle; no performance or memory acceptance",
+  "startedAt": "2026-10-06T01:53:20.274Z",
+  "finishedAt": "2026-10-06T01:53:26.508Z",
+  "sameDurableObjectInstance": true,
+  "authorityEpochChangedOnColdRejoin": true,
+  "terrainEditsPreserved": true,
+  "ownerInventoryPreserved": true,
+  "administratorAndKnownIdentityPreserved": true,
+  "lockAndBanPreserved": true,
+  "unknownIdentityDenied": 4004,
+  "bannedIdentityDenied": 4003,
+  "unbanAndReceiptReplayPreserved": true,
+  "finalReferences": {
+    "instance": "f3f13d05-bc79-4780-bfd2-38a84fbbdcbb",
+    "room": false,
+    "loading": false,
+    "pendingSaves": 0,
+    "pendingJoins": 0,
+    "timingRun": 3
+  },
+  "sourceSha256": "4c0795ad98749b65bd5911bdc83cfea85d678aa481d979afb809d57119628e2c",
+  "limitations": [
+    "Local workerd only; not deployed.",
+    "Local-only read-only reference endpoint; no forced GC or security flags.",
+    "No heap or 128 MiB acceptance measurement.",
+    "No tick-rate causal attribution."
+  ]
+}

@@ -1,0 +1,10 @@
+import {expect,it} from 'vitest';
+import {SoundCaptions} from '../../src/ui/sound-captions';
+import type {SkyboundSnapshot} from '../../src/game/skybound/types';
+import {deviceEnergy} from '../../src/ui/device-energy';
+import {normalizePreferences} from '../../src/ui/accessibility';
+import {SessionAuthority} from '../../src/simulation/session';
+import {sessionFrame} from '../../src/networking/frame';
+it('keeps sound captions optional and valid in old preferences',()=>{expect(normalizePreferences(null).soundCaptions).toBe(false);expect(normalizePreferences({soundCaptions:true}).soundCaptions).toBe(true);});
+it('shows one landing caption per state transition, expires and resets on restart',()=>{const a=new SessionAuthority(null,true),s=sessionFrame(a,'host'),c=new SoundCaptions();s.tick=1;s.player.grounded=false;expect(c.update(s)).toBe('');s.tick=2;s.player.grounded=true;expect(c.update(s)).toContain('着地');expect(c.update(s)).toContain('着地');s.tick=93;expect(c.update(s)).toBe('');s.tick=1;expect(c.update(s)).toBe('');});
+it('shows energy from linked assembly batteries, without counting unrelated distant devices',()=>{const a=new SessionAuthority(null,true),s=sessionFrame(a,'host').adventure.skybound!;const part=(id:number,kind:'seat'|'battery',x:number,links:number[],energy=0):SkyboundSnapshot['parts'][number]=>({id,kind,material:'wood',position:{x,y:0,z:0},velocity:{x:0,y:0,z:0},rotation:0,mass:1,links,epoch:0,energy,recalling:false,powered:false,lightRadius:0});s.parts=[part(1,'seat',0,[2]),part(2,'battery',1,[1],42),part(3,'battery',10,[],99)];s.riding={seat:1,driver:true};expect(deviceEnergy(s,{x:0,y:0,z:0})).toBe('装置エネルギー 42');s.parts[1].energy=0;expect(deviceEnergy(s,{x:0,y:0,z:0})).toContain('充電');s.parts=[];expect(deviceEnergy(s,{x:0,y:0,z:0})).toBe('');});

@@ -1,65 +1,96 @@
+import {roomManagementUI} from '../ui/room-management';
+import {canContinueReplica,replicaIdentity,type ReplicaIdentity} from './replica-continuation';
 import type { ClientMessage, Snapshot, WorkerMessage } from '../simulation/protocol';
 import type { WorldSave } from '../save/format';
 import type { EditOperation } from '../world/types';
-import { WebRTCSession, type PeerPacket } from '../networking/webrtc/session';
+import { CoopClient, type ConnectionState, type CoopActionResult } from '../networking/coop-client';
 import { dedicatedIdentity } from '../networking/identity';
-export function networkUI(signal: AbortSignal, post: (message: ClientMessage) => void, notice: (message: string) => void) {
+import type {CoopAction} from '../networking/coop-protocol';
+export function networkUI(signal: AbortSignal, post: (message: ClientMessage) => void, notice: (message: string) => void,options?:{savedRevision?:(revision:string|undefined)=>void;loadPersonal?:()=>Promise<WorldSave|null>;exported?:(save:WorldSave)=>void;continueReplica?:(state:Snapshot,edits:EditOperation[])=>void}) {
  const panel = document.querySelector<HTMLElement>('#session-panel')!, status = document.querySelector<HTMLElement>('#session-status')!, token = document.querySelector<HTMLInputElement>('#session-code')!;
- let session: WebRTCSession | null = null, guest = false, sequence = 0, lastState: Snapshot | null = null, edits: EditOperation[] = [], dedicated: { send(type: string, value: unknown): void; leave(): Promise<unknown> } | null = null;
- const receive = (_peer: string, packet: PeerPacket) => {
-  if (!guest) {
-   if (packet.type === 'resync') post({type:'peer-join',peer:_peer});
-   if (packet.type === 'input') post({ type: 'peer-input', peer: _peer, input: packet.input as import('../simulation/protocol').PlayerInput, sequence: packet.sequence as number });
-   if (packet.type === 'action') post({ type: 'peer-action', peer: _peer, message: packet.message as ClientMessage });
-  } else if (packet.type === 'welcome') {
-   const save = packet.save as WorldSave; lastState = packet.state as Snapshot; edits = save.edits; post({ type: 'replica-init', save }); post({ type: 'replica-state', state: lastState, edits }); status.textContent = '協力プレイに参加中';
-  } else if (packet.type === 'frame') { lastState = packet.state as Snapshot; const incoming = packet.edits as EditOperation[], base = packet.editBase as number | undefined;
-   if(base === undefined) edits = incoming;
-   else if(base > edits.length){session?.broadcast({type:'resync'});return;}
-   else edits = [...edits.slice(0,base),...incoming];
-   post({ type: 'replica-state', state: lastState, edits }); }
+ let session: CoopClient | null = null, guest = false, sequence = 0, edits: EditOperation[] = [], generation = 0, lastTick = -1;
+ let identity:ReplicaIdentity|null=null;
+ let dedicated: { send(type: string, value: unknown): void; leave(): Promise<unknown> } | null = null;
+ const management=roomManagementUI(panel,signal,(operation,targetId)=>{if(!session?.admin(operation,targetId))management.acknowledged();});
+ const updateManagement=()=>{const access=session?.roomAccess??null;management.update(access?{...access,pending:access.pending||!!session?.adminPending}:null,(status.dataset.connection??'closed') as ConnectionState,status.dataset.player);status.dataset.roomLocked=String(access?.locked??false);status.dataset.adminPending=String(access?.pending||session?.adminPending||false);status.dataset.readOnly=String(access?.readOnly??false);};
+ const labels: Record<ConnectionState,string> = { connecting:'共有ワールドへ接続中…', syncing:'ワールドを同期中…', online:'協力プレイに参加中', reconnecting:'切断されました · 再接続中…', closed:'未接続' };
+ const show = (state: ConnectionState) => { status.textContent = labels[state]; status.dataset.connection = state;updateManagement(); };
+ const receiveState = (state: Snapshot, incoming: EditOperation[], base?: number,continued=false) => {
+  if (state.tick < lastTick) return;
+  if (base!==undefined&&(base>edits.length||base<0)) { session?.resync(); return; }
+  const next=base===undefined?incoming:[...edits.slice(0,base),...incoming];
+  if (next.length !== state.edits) { session?.resync(); return; }
+  edits=next;lastTick = state.tick;if(continued&&options?.continueReplica)options.continueReplica(state,edits);else post({ type:'replica-state', state, edits });
+  status.dataset.players = String((state.peers?.length ?? 0) + 1); status.dataset.peers = JSON.stringify(state.peers?.map(p=>({id:p.id,...p.player}))??[]); status.dataset.tick = String(state.tick);
  };
- const close = () => { if(!guest)for(const peer of session?.peers.keys()??[])post({type:'peer-leave',peer}); session?.disconnect(); session = null; if (dedicated) void dedicated.leave(); dedicated = null; if (guest) { guest = false; void import('../save/storage').then(async s => post({ type: 'init', save: await s.loadWorld() })); } status.textContent = 'Single Player'; };
+ const welcome = (save: WorldSave, state: Snapshot,next:ReplicaIdentity|null=null) => {
+  const continued=!!options?.continueReplica&&!!next&&canContinueReplica(identity,next,lastTick,edits,save,state);
+  identity=next;status.dataset.welcomeMode=continued?'continued':'reinitialized';status.dataset.welcomeCount=String(Number(status.dataset.welcomeCount??0)+1);
+  if(!continued){lastTick=-1;post({type:'replica-init',save});}
+  receiveState(state,save.edits,undefined,continued);show('online');
+ };
+ const close = (restore = true) => {
+  const oldGuest = guest, operation = ++generation; session?.disconnect(); session = null;
+  if (dedicated) void dedicated.leave(); dedicated = null; guest = false; lastTick = -1; edits = [];identity=null;
+  show('closed');status.textContent='Single Player'; delete status.dataset.player; delete status.dataset.players;
+  if (oldGuest && restore) void (options?.loadPersonal?options.loadPersonal():import('../save/storage').then(storage=>storage.loadWorld())).then(async save => { if (operation === generation && !guest && !signal.aborted) post({type:'init',save}); }).catch(error=>notice(String(error)));
+ };
  document.querySelector('#session-menu')!.addEventListener('click', () => { panel.hidden = !panel.hidden; }, { signal });
+ window.addEventListener('keydown',event=>{if(event.code==='Escape'&&!panel.hidden){if(!management.cancelConfirmation())panel.hidden=true;event.preventDefault();event.stopImmediatePropagation();}}, {signal,capture:true});
  document.querySelector('#session-close')!.addEventListener('click', () => { panel.hidden = true; }, { signal });
- document.querySelector('#session-leave')!.addEventListener('click', close, { signal });
- const connect = async (host: boolean) => {
-  close();
-  if (host) { const bytes = crypto.getRandomValues(new Uint8Array(24)); token.value = [...bytes].map(n => n.toString(16).padStart(2, '0')).join(''); }
-  guest = !host; status.textContent = '接続中…';
-  session = new WebRTCSession(host, token.value.trim(), receive, peer => { if (host) post({ type: 'peer-join', peer }); status.textContent = host ? `Host Game · ${session!.stats().peers + 1}人` : 'ワールドを受信中…'; }, peer => { if (host) post({ type: 'peer-leave', peer }); else { notice('ホストとの接続が終了しました'); close(); } }, notice);
-  try { await session.connect(); status.textContent = host ? 'Host Game · 招待コードを共有してください' : 'ホストと接続しています'; }
-  catch (error) { notice(String(error)); close(); }
- };
- document.querySelector('#session-host')!.addEventListener('click', () => { void connect(true); }, { signal });
- document.querySelector('#session-join')!.addEventListener('click', () => { void connect(false); }, { signal });
- document.querySelector('#session-copy')!.addEventListener('click', () => { void navigator.clipboard.writeText(location.origin + '/#join=' + token.value).then(() => notice('招待リンクをコピーしました')).catch(() => notice('招待コードを選択してコピーしてください')); }, { signal });
- document.querySelector('#session-dedicated')!.addEventListener('click', () => { void (async () => {
-  const endpoint = document.querySelector<HTMLInputElement>('#dedicated-url')!.value;
+ document.querySelector('#session-leave')!.addEventListener('click', () => close(), { signal });
+ const connect = (create: boolean) => {
+  close(false);options?.savedRevision?.(undefined); const operation = generation;
+  if (create) { const bytes = crypto.getRandomValues(new Uint8Array(24)); token.value = [...bytes].map(n => n.toString(16).padStart(2,'0')).join(''); }
   try {
-   const url = new URL(endpoint); if (url.protocol !== 'https:' && url.hostname !== '127.0.0.1') throw new Error('HTTPSのサーバーURLを指定してください');
-   close(); const { Client } = await import('@colyseus/sdk'); const room = await new Client(endpoint).joinOrCreate('survival', { playerToken: dedicatedIdentity(endpoint) }); dedicated = room; guest = true;
-   room.onMessage('welcome', (packet: { save: WorldSave; state: Snapshot }) => receive('server', { type: 'welcome', ...packet }));
-   room.onMessage('edits', (worldEdits: EditOperation[]) => { edits = worldEdits; });
-   room.onMessage('snapshot', (state: Snapshot) => receive('server', { type: 'frame', state, edits }));
-   room.onMessage('notice', (message: string) => notice(message)); status.textContent = 'Dedicated Serverへ接続中';
-  } catch (error) { notice(String(error)); close(); }
+   guest = true;sessionStorage.setItem('voxel-coop-last-room',token.value.trim());
+   session = new CoopClient(token.value.trim(), packet => {
+    if (operation !== generation) return;
+    if (packet.type === 'welcome') { options?.savedRevision?.(packet.persistedRevision);status.dataset.player = packet.playerId;if(packet.session){status.dataset.serverBuild=packet.session.buildId;status.dataset.worldVersion=String(packet.session.worldVersion);status.dataset.worldSeed=String(packet.session.worldSeed);} welcome(packet.save,packet.state,replicaIdentity(packet.epoch,packet.playerId,packet.save)); }
+    else if(packet.type==='persisted-revision'){status.dataset.savedRevision=packet.revision;options?.savedRevision?.(packet.revision);}
+    else if(packet.type==='room-access')updateManagement();else if (packet.type === 'frame') receiveState(packet.state,packet.edits,packet.editBase);else if(packet.type==='ack'){status.dataset.lastAck=JSON.stringify(packet);if(packet.kind==='room-admin'){management.acknowledged();updateManagement();}}else if(packet.type==='export')options?.exported?.(packet.save);
+   }, state => { if(operation===generation)show(state); }, notice);
+   session.connect();
+  } catch(error) { notice(String(error)); close(); }
+ };
+ document.querySelector('#session-host')!.addEventListener('click', () => connect(true), { signal });
+ document.querySelector('#session-join')!.addEventListener('click', () => connect(false), { signal });
+ document.querySelector('#session-copy')!.addEventListener('click', () => { if(!/^[a-f0-9]{48}$/.test(token.value))return; void navigator.clipboard.writeText(location.origin + '/#join=' + token.value).then(()=>notice('招待リンクをコピーしました')).catch(()=>notice('招待コードを選択してコピーしてください')); }, { signal });
+ document.querySelector('#session-dedicated')!.addEventListener('click', () => { void (async () => {
+  try {
+   const endpoint = document.querySelector<HTMLInputElement>('#dedicated-url')!.value, url = new URL(endpoint);
+   if(url.protocol!=='https:' && url.hostname!=='127.0.0.1')throw new Error('HTTPSのサーバーURLを指定してください');
+   close(false);options?.savedRevision?.(undefined); const operation=generation; guest=true; show('connecting');
+   const { Client }=await import('@colyseus/sdk'); const room=await new Client(endpoint).joinOrCreate('survival',{playerToken:dedicatedIdentity(endpoint)});
+   if(operation!==generation || signal.aborted){void room.leave();return;} dedicated=room;
+   room.onMessage('welcome',(packet:{save:WorldSave;state:Snapshot})=>welcome(packet.save,packet.state));
+   room.onMessage('edits',(incoming:EditOperation[])=>{edits=incoming;}); room.onMessage('snapshot',(state:Snapshot)=>receiveState(state,edits)); room.onMessage('notice',(text:string)=>notice(text));
+  }catch(error){notice(String(error));close();}
  })(); }, { signal });
- const invited = location.hash.match(/^#join=([a-f0-9]{48})$/); if (invited) { token.value = invited[1]; panel.hidden = false; }
- signal.addEventListener('abort', close, { once: true });
+ const invited=location.hash.match(/^#join=([a-f0-9]{48})$/);const previous=sessionStorage.getItem('voxel-coop-last-room');if(invited){token.value=invited[1];panel.hidden=false;}else if(previous&&/^[a-f0-9]{48}$/.test(previous))token.value=previous;
+ signal.addEventListener('abort',()=>close(false),{once:true});
+ const submitAction=(message:CoopAction)=>{
+  status.dataset.lastCommand=JSON.stringify(message);
+  if(dedicated){dedicated.send('action',message);status.dataset.lastCommandResult=JSON.stringify({status:'sent',transport:'dedicated'});return;}
+  const result:CoopActionResult=session?.action(message)??{status:'refused',reason:'offline'};
+  status.dataset.lastCommandResult=JSON.stringify(result);
+  // Expose submission separately from the server ACK. Diagnostic observers can
+  // distinguish an unsent click from a command awaiting transport or replay.
+  status.dispatchEvent(new CustomEvent('coop-action-submission',{bubbles:true,detail:{message,result}}));
+ };
  return {
-  get guest() { return guest; },
-  forward(message: ClientMessage): boolean {
-   if (!guest) return false;
-   if (message.type === 'input') { const packet = { type: 'input', input: message.input, sequence: ++sequence }; post({type:'replica-input',input:message.input,sequence}); if (dedicated) dedicated.send('input', packet); else session?.broadcast(packet, true); }
-   else if (message.type === 'action' || message.type === 'game-action') { if (dedicated) dedicated.send('action', message); else session?.broadcast({ type: 'action', message }); }
-   else if (message.type === 'save' || message.type === 'reset-player' || message.type === 'init') notice('ワールドの保存・読込はホストが管理します');
+  get guest(){return guest;},
+  exportWorld(){if(session)session.exportWorld();else notice('この接続では共有書出を使えません。管理者側の保存を利用してください');},
+  forward(message:ClientMessage):boolean{
+   if(!guest)return false;
+   if(message.type==='input'){
+    if(dedicated){const seq=++sequence;dedicated.send('input',{input:message.input,sequence:seq});post({type:'replica-input',input:message.input,sequence:seq});}
+    else {const seq=session?.input(message.input);if(seq!==undefined&&seq!==null)post({type:'replica-input',input:message.input,sequence:seq});}
+   } else if(message.type==='action'||message.type==='game-action')submitAction(message);
+   else if(message.type==='reset-player')submitAction({type:'game-action',action:'return',aim:{x:0,y:0,z:-1}});
+   else if(message.type==='init')notice('共有ワールドの保存はサーバーが管理しています。個人セーブは退出してから読み込んでください');
    return true;
   },
-  receive(message: WorkerMessage): boolean {
-   if (message.type === 'peer-welcome') { session?.send(message.peer, { type: 'welcome', save: message.save, state: message.state }); return true; }
-   if (message.type === 'peer-frame') { session?.send(message.peer, { type: 'frame', state: message.state, editBase:message.editBase, edits: message.edits }, false); return true; }
-   return false;
-  },
+  receive(_message:WorkerMessage):boolean{return false;},
  };
 }

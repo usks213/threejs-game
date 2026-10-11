@@ -1,0 +1,19 @@
+import {expect,it} from 'vitest';
+import {WebSocket} from 'ws';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {startCoopServer} from '../../apps/coop/local-server';
+import {CoopFrameDecoder} from '../../src/networking/coop-frame-decoder';
+import {COOP_PROTOCOL,type CoopServerPacket} from '../../src/networking/coop-protocol';
+const roomId='b'.repeat(48),key='e'.repeat(64);
+async function until(check:()=>boolean){const deadline=performance.now()+10000;while(!check()){if(performance.now()>deadline)throw Error('保存世代の通知を受信できません');await new Promise(resolve=>setTimeout(resolve,20));}}
+async function connect(port:number){const socket=new WebSocket(`ws://127.0.0.1:${port}/coop/${roomId}`),packets:CoopServerPacket[]=[],decoder=new CoopFrameDecoder(token=>socket.send(JSON.stringify({type:'delivery',token})));socket.on('message',data=>packets.push(decoder.accept(JSON.parse(String(data)))));await new Promise<void>((resolve,reject)=>{socket.once('open',resolve);socket.once('error',reject);});socket.send(JSON.stringify({type:'hello',protocol:COOP_PROTOCOL,resumeKey:key}));await until(()=>packets.some(p=>p.type==='welcome'));return {socket,packets,send:(packet:unknown)=>socket.send(JSON.stringify(packet)),async close(){if(socket.readyState===WebSocket.CLOSED)return;socket.close();await new Promise<void>(resolve=>socket.once('close',()=>resolve()));}};}
+const latest=(packets:CoopServerPacket[])=>{const p=packets.filter(p=>p.type==='persisted-revision'||p.type==='welcome').at(-1);return p?.type==='persisted-revision'?p.revision:p?.type==='welcome'?p.persistedRevision:undefined;};
+it('matches welcome and post-commit revision receipts to the actual file and retains a real revision after restart',async()=>{
+ const directory=await mkdtemp(join(tmpdir(),'voxel-save-revision-'));let server=await startCoopServer(0,directory),client:Awaited<ReturnType<typeof connect>>|undefined;
+ try{client=await connect(server.port);const first=JSON.parse(await readFile(join(directory,roomId+'.json'),'utf8')).persistenceRevision;expect(latest(client.packets)).toBe(first);expect(first).toMatch(/^[a-f0-9-]{36}$/);client.send({type:'action',commandId:'seq_1_sneak',message:{type:'game-action',action:'sneak',aim:{x:0,y:0,z:-1}}});await until(()=>client!.packets.some(p=>p.type==='ack'&&p.commandId==='seq_1_sneak'));const stored=JSON.parse(await readFile(join(directory,roomId+'.json'),'utf8'));expect(latest(client.packets)).toBe(stored.persistenceRevision);expect(stored.persistenceRevision).not.toBe(first);const savedIndex=client.packets.findIndex(p=>p.type==='persisted-revision'&&p.revision===stored.persistenceRevision),ackIndex=client.packets.findIndex(p=>p.type==='ack'&&p.commandId==='seq_1_sneak');expect(savedIndex).toBeLessThan(ackIndex);
+ await client.close();client=undefined;await server.close();server=await startCoopServer(0,directory);client=await connect(server.port);const afterRestart=JSON.parse(await readFile(join(directory,roomId+'.json'),'utf8'));expect(latest(client.packets)).toBe(afterRestart.persistenceRevision);
+ }finally{await client?.close();await server.close();await rm(directory,{recursive:true,force:true});}
+},30000);
+it('never reports a persistent generation for a volatile in-memory room',async()=>{const server=await startCoopServer(0);let client:Awaited<ReturnType<typeof connect>>|undefined;try{client=await connect(server.port);expect(latest(client.packets)).toBeUndefined();client.send({type:'action',commandId:'seq_1_sneak',message:{type:'game-action',action:'sneak',aim:{x:0,y:0,z:-1}}});await until(()=>client!.packets.some(p=>p.type==='ack'));expect(client.packets.some(p=>p.type==='persisted-revision')).toBe(false);}finally{await client?.close();await server.close();}},20000);

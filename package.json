@@ -8,12 +8,13 @@
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "typecheck": "tsc --noEmit && tsc -p apps/signaling/tsconfig.json",
+    "typecheck": "tsc --noEmit && tsc -p apps/signaling/tsconfig.json && tsc -p apps/coop/tsconfig.json",
     "test": "vitest run",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "e2e": "playwright test",
-    "server": "tsx apps/dedicated/main.ts"
+    "server": "tsx apps/dedicated/main.ts",
+    "coop:local": "tsx apps/coop/local-server.ts"
   },
   "dependencies": {
     "@colyseus/core": "0.18.18",

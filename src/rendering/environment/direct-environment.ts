@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { captureProbe } from './probe';
 
-/** Direct rendering skips the HDR compositor, but physical materials still need sky light.
+/** Field rendering caches sky capture to bound CPU/GPU work while retaining the HDR compositor.
  * Capture a small, canonical daylight sky once; subsequent day/night/weather changes only
  * scale its radiance and matching SH. This intentionally approximates moving sky reflections.
  */
@@ -12,6 +12,8 @@ export function createDirectEnvironment(renderer: THREE.WebGLRenderer, skyMateri
   const uniforms = sky.material.uniforms;
   uniforms.sunPosition.value.set(0, 1, -.3).normalize().multiplyScalar(450000);
   uniforms.nightAmount.value = 0; uniforms.cloudCover.value = .3;
+  // Display calibration belongs to the direct camera, not incident radiance.
+  uniforms.skyDisplayGain.value = 1;
   uniforms.turbidity.value = 2.5; uniforms.skyTime.value = 0;
   const ground = new THREE.Mesh(
     new THREE.SphereGeometry(200, 12, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),

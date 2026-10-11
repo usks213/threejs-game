@@ -13,7 +13,7 @@ import type { EnemyState } from '../../src/game/types';
 const forward = { x: 0, y: 0, z: -1 };
 function setup(equipment = 'hands') {
  const sim = legacySimulation(), game = sim.adventure;
- game.state.resources = []; game.state.buildings = []; game.state.enemies = []; game.state.equipment = equipment;
+ game.state.resources = []; game.state.buildings = []; game.state.enemies = []; game.state.equipment = equipment;if(equipment!=='hands')game.state.inventory[equipment]=1;
  Object.assign(sim.player, { x: 0, y: 10, z: 0, heading: Math.PI, grounded: true });
  sim.world.density = () => 1;
  vi.spyOn(sim, 'groundAt').mockReturnValue(10);

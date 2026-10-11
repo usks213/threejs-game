@@ -24,6 +24,7 @@ export class WaterMeshingController {
   private active: { epoch: number; revision: number } | null = null;
   private queued: PendingWater | null = null;
   private ready: WaterMeshResult | null = null;
+  private lastSdfCells: Float64Array | undefined;
   private recycledCells: Float64Array | undefined;
   private recycledMesh: WaterBuffers | undefined;
   private epoch = 0;
@@ -33,7 +34,7 @@ export class WaterMeshingController {
     cells: 0, vertices: 0, meshMs: 0, applyMs: 0, packingMs: 0, inputBytes: 0, outputBytes: 0,
     recycledBytes: 0, allocatedBytes: 0, reusedBytes: 0, error: null as string | null };
 
-  constructor(private readonly createWorker: () => WaterMeshingWorker) { this.start(); }
+  constructor(private readonly createWorker: () => WaterMeshingWorker,private readonly sdf=false) { this.start(); }
   get stats(): WaterMeshingStats {
     return { ...this.measurements, epoch: this.epoch, inFlight: Number(!!this.active), queued: Number(!!this.queued),
       ready: Number(!!this.ready), pending: Number(!!this.active) + Number(!!this.ready) + Number(!!this.queued) };
@@ -69,12 +70,12 @@ export class WaterMeshingController {
     this.active = null; this.queued = null; this.ready = null;
     this.recycledCells = undefined; this.recycledMesh = undefined;
     this.measurements.appliedRevision = -1; this.measurements.cells = 0; this.measurements.vertices = 0;
-    this.measurements.error = null;
+    this.measurements.error = null;this.lastSdfCells=undefined;
     this.start();
   }
   dispose(): void {
     if (this.disposed) return;
-    this.disposed = true; this.stopWorker(); this.active = null; this.queued = null; this.ready = null;
+    this.disposed = true; this.lastSdfCells=undefined; this.stopWorker(); this.active = null; this.queued = null; this.ready = null;
     this.recycledCells = undefined; this.recycledMesh = undefined;
   }
   private stopWorker(): void {
@@ -112,13 +113,15 @@ export class WaterMeshingController {
     try {
       const packingStart = performance.now();
       const packed = packWaterCells(cells, this.recycledCells), recycle = this.recycledMesh;
+      if(this.sdf&&this.lastSdfCells?.length===packed.length&&packed.every((value,index)=>value===this.lastSdfCells![index])){this.queued=null;return;}
+      if(this.sdf)this.lastSdfCells=packed.slice();
       this.measurements.packingMs = performance.now() - packingStart;
       this.recycledCells = undefined; this.recycledMesh = undefined; this.queued = null;
       this.active = { epoch: this.epoch, revision };
       this.measurements.submitted++; this.measurements.inputBytes = packed.byteLength;
       const recycled = recycle ? waterBuffersTransferables(recycle) : [];
       this.measurements.recycledBytes = recycled.reduce((total, buffer) => total + buffer.byteLength, 0);
-      this.worker.postMessage({ type: 'mesh', epoch: this.epoch, revision, cells: packed, recycle },
+      this.worker.postMessage({ type: 'mesh', sdf: this.sdf, epoch: this.epoch, revision, cells: packed, recycle },
         [packed.buffer as ArrayBuffer, ...recycled]);
     } catch (error) { this.fail(error instanceof Error ? error.message : String(error)); }
   }

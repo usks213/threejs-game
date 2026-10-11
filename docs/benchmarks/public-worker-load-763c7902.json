@@ -1,0 +1,116 @@
+{
+  "status": "completed",
+  "startedAt": "2026-10-05T23:12:32.790Z",
+  "finishedAt": "2026-10-05T23:13:42.075Z",
+  "scope": "actual existing Cloudflare preview, fresh room, four sockets, gentle movement",
+  "expectedCommit": "763c79024cabd948818b38db502a155b8440f8ec",
+  "healthVerified": true,
+  "protocol": 7,
+  "clients": 4,
+  "requiredMs": 60000,
+  "measuredMs": 60032.718156999996,
+  "warmupMs": 5000,
+  "messages": 7588,
+  "sentBytes": 687237,
+  "receivedBytes": 47108375,
+  "measuredReceivedBytes": 33460971,
+  "measuredReceiveBytesPerSecond": 557378.9098219993,
+  "targetTickHz": 30,
+  "minimumTickHz": 26.83536660437143,
+  "withinTwoPercentOfTarget": false,
+  "performanceAcceptance": "measurement only; collection success is not performance acceptance",
+  "clientsMeasured": [
+    {
+      "client": 1,
+      "frames": 537,
+      "fullBaselines": 1,
+      "tickDelta": 1611,
+      "observedTickHz": 26.83536660437143,
+      "frameGapsMs": {
+        "count": 536,
+        "p50": 102.23404699999992,
+        "p95": 170.59528800000408,
+        "max": 256.00437599999714
+      },
+      "pingRttMs": {
+        "count": 29,
+        "p50": 73.32337700000062,
+        "p95": 148.8196339999995,
+        "max": 245.31512700000167
+      },
+      "receivedBytes": 11956147,
+      "measuredReceivedBytes": 8362202
+    },
+    {
+      "client": 2,
+      "frames": 537,
+      "fullBaselines": 1,
+      "tickDelta": 1611,
+      "observedTickHz": 26.83536660437143,
+      "frameGapsMs": {
+        "count": 536,
+        "p50": 100.55102700000134,
+        "p95": 169.49237800000083,
+        "max": 266.0163140000004
+      },
+      "pingRttMs": {
+        "count": 29,
+        "p50": 75.25665399999707,
+        "p95": 148.82767899999817,
+        "max": 245.2977549999996
+      },
+      "receivedBytes": 11779205,
+      "measuredReceivedBytes": 8289144
+    },
+    {
+      "client": 3,
+      "frames": 538,
+      "fullBaselines": 1,
+      "tickDelta": 1614,
+      "observedTickHz": 26.88533935410024,
+      "frameGapsMs": {
+        "count": 537,
+        "p50": 100.30817099999695,
+        "p95": 177.38392900000326,
+        "max": 265.3566339999961
+      },
+      "pingRttMs": {
+        "count": 29,
+        "p50": 75.31579500000225,
+        "p95": 148.7934150000001,
+        "max": 245.26652599999943
+      },
+      "receivedBytes": 11907850,
+      "measuredReceivedBytes": 8443384
+    },
+    {
+      "client": 4,
+      "frames": 537,
+      "fullBaselines": 1,
+      "tickDelta": 1611,
+      "observedTickHz": 26.83536660437143,
+      "frameGapsMs": {
+        "count": 536,
+        "p50": 102.07177199999569,
+        "p95": 174.51131799999712,
+        "max": 251.72608599999512
+      },
+      "pingRttMs": {
+        "count": 29,
+        "p50": 73.25639099999898,
+        "p95": 148.7434119999998,
+        "max": 245.2685100000017
+      },
+      "receivedBytes": 11465173,
+      "measuredReceivedBytes": 8366241
+    }
+  ],
+  "workerMemoryUsage": "not exposed; no inference from Node client RSS",
+  "limitations": [
+    "fresh room rather than mature saved world",
+    "not browser rendering or real-device FPS",
+    "no forced Worker restart or backend memory counter",
+    "not an unlimited-load or long-term service guarantee"
+  ],
+  "failures": []
+}

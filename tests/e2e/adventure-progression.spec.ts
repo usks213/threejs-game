@@ -1,0 +1,27 @@
+import {test,expect} from '@playwright/test';
+import {GameSimulation} from '../../src/simulation/game-simulation';
+import {newProgression} from '../../src/game/progression-state';
+import {readCommittedRevisionSample,isNewCommittedRevision,type CommittedRevisionSample} from '../helpers/save-revision';
+test.use({deviceScaleFactor:.5,viewport:{width:844,height:390}});
+test('shows tutorial and collection rewards, cancels reset, then preserves the ending before a confirmed new cycle',async({page},info)=>{
+ test.setTimeout(150000);page.setDefaultTimeout(20000);const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/',{waitUntil:'domcontentloaded'});await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
+ await page.locator('#system-menu').click();
+ const beforeRevision=await page.locator('#save-status').getAttribute('data-revision'),revisionSamples:CommittedRevisionSample[]=[];
+ await page.locator('#save').click();
+ // Autosaves stay enabled. Compare one contemporaneous committed-state sample,
+ // not a DOM UUID frozen before a later asynchronous database read.
+ try{await expect.poll(async()=>{const sample=await page.evaluate(readCommittedRevisionSample);revisionSamples.push(sample);return isNewCommittedRevision(sample,beforeRevision);},{timeout:20000}).toBe(true);}
+ finally{await info.attach('committed-save-revision-samples',{body:JSON.stringify({beforeRevision,revisionSamples}),contentType:'application/json'});}
+ await page.locator('#system-close').click();
+ await page.locator('#adventure-menu').click();await page.locator('[data-tab=guide]').click();await expect(page.locator('#adventure-content')).toContainText('操作を練習する（任意）');await expect(page.locator('#adventure-content')).toContainText('三層の記録集 0/9');await page.locator('#adventure-close').click();
+ // Ending fixture exercises UI/persistence; it is not a claim of story completion by play.
+ const sim=new GameSimulation();sim.adventure.state.enemies=[];sim.fluid.restore([]);sim.adventure.state.defeated.push('stormcore');sim.adventure.state.progression={...newProgression(),tutorial:5,records:[856001,856002,856003]};sim.adventure.state.inventory.wood=23;const before=await page.locator('#app').getAttribute('data-world-epoch');
+ await page.locator('#import-file').setInputFiles({name:'ending-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});await expect.poll(()=>page.locator('#app').getAttribute('data-world-epoch')).not.toBe(before);await expect(page.locator('#app')).toHaveAttribute('data-state','running');
+ await page.locator('#system-menu').click();await page.locator('#next-cycle-open').click();await expect(page.locator('#new-world-confirm')).toBeVisible();await expect(page.locator('#new-world-confirm')).toContainText('記録');await page.locator('#new-world-cancel').click();await expect(page.locator('#new-world-confirm')).toBeHidden();
+ await page.locator('#next-cycle-open').click();await page.keyboard.press('Escape');await expect(page.locator('#new-world-confirm')).toBeHidden();await expect(page.locator('#system-panel')).toBeVisible();
+ const epoch=await page.locator('#app').getAttribute('data-world-epoch');await page.locator('#next-cycle-open').click();await page.locator('#new-world-confirmed').click();await expect.poll(()=>page.locator('#app').getAttribute('data-world-epoch')).not.toBe(epoch);await expect(page.locator('#system-panel')).toBeHidden();await expect(page.locator('#app')).toHaveAttribute('data-state','running',{timeout:60000});
+ await page.locator('#adventure-menu').click();await page.locator('[data-tab=guide]').click();await expect(page.locator('#adventure-content')).toContainText('第2航路');await expect(page.locator('[data-game-action=place][data-id=routeBanner]')).toBeVisible();
+ const archived=await page.evaluate(async()=>new Promise<{ended:boolean;wood:number}>((resolve,reject)=>{const request=indexedDB.open('voxel-coop-adventure-v1',3);request.onerror=()=>reject(request.error);request.onsuccess=()=>{const db=request.result,tx=db.transaction('worlds'),store=tx.objectStore('worlds'),keys=store.getAllKeys();keys.onsuccess=()=>{const protectedKeys=keys.result.filter(k=>String(k).startsWith('protected:'));let left=protectedKeys.length,result={ended:false,wood:0};if(!left){db.close();resolve(result);return;}for(const key of protectedKeys){const read=store.get(key);read.onsuccess=()=>{const current=read.result?.current,save=current?.save??current;if(save?.adventure?.defeated?.includes('stormcore'))result={ended:true,wood:save.adventure.inventory.wood};if(--left===0){db.close();resolve(result);}};}};};}));expect(archived).toEqual({ended:true,wood:23});
+ await page.screenshot({path:info.outputPath('next-cycle-journal.png'),scale:'css'});expect(errors).toEqual([]);
+});

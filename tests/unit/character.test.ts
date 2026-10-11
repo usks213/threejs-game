@@ -60,7 +60,7 @@ describe('sampled capsule terrain contacts', () => {
   it('moves out of terrain raised underneath the player', () => {
     const sim = new GameSimulation(); for (let i = 0; i < 30; i++) sim.step(idle);
     const before = sim.player.y;
-    sim.act('add', { x: sim.player.x, y: before, z: sim.player.z });
+    sim.adventure.state.inventory.stone=5;sim.act('add', { x: sim.player.x, y: before, z: sim.player.z });
     for (let i = 0; i < 5; i++) sim.step(idle);
     expect(sim.player.y).toBeGreaterThan(before + 1);
     expect(sim.world.density({ x: sim.player.x, y: sim.player.y + CHARACTER_RADIUS, z: sim.player.z })).toBeGreaterThan(0.25);

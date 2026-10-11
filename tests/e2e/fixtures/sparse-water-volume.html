@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="UTF-8"><title>Sparse water and froxel validation</title></head><body><canvas id="view"></canvas><script type="module">
+import * as THREE from 'three';
+import {captureDefaultPixels} from '/tests/helpers/gpu-readback.ts';
+import {createSparseWaterView} from '/src/rendering/water/sparse-view.ts';
+import {buildSparseWaterField} from '/src/rendering/water/sparse-field.ts';
+import {createPeerRenderProbe} from '/src/rendering/scene/peer-render-probe.ts';
+import {createPipeline} from '/src/rendering/postprocessing/pipeline.ts';
+const renderer=new THREE.WebGLRenderer({canvas:document.querySelector('canvas'),antialias:false,preserveDrawingBuffer:true});renderer.info.autoReset=false;renderer.toneMapping=THREE.ACESFilmicToneMapping;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#9ab8bf');const camera=new THREE.PerspectiveCamera(60,640/360,.05,50);camera.position.set(4,2,7);camera.lookAt(1,.1,0);
+const floor=new THREE.Mesh(new THREE.BoxGeometry(16,.1,16),new THREE.MeshBasicMaterial({color:'#a28e68'}));floor.position.y=-.08;scene.add(floor);
+const peerGroup=new THREE.Group();scene.add(peerGroup);
+for(let i=0;i<7;i++){const rock=new THREE.Mesh(new THREE.BoxGeometry(.2,.7,.2),new THREE.MeshBasicMaterial({color:i%2?'#d89c59':'#314b46'}));rock.position.set(-1+i*.6,.3,.2);if(i===3){peerGroup.position.copy(rock.position);rock.position.set(0,0,0);peerGroup.add(rock);}else scene.add(rock);}
+let cells=[];for(let x=-4;x<8;x++)for(let z=-6;z<6;z++)cells.push({x:x*.5,y:0,z:z*.5,size:.5,volume:.125});
+const water=createSparseWaterView();water.apply(buildSparseWaterField(cells),1);
+const lighting={density:.012,ambient:new THREE.Color('#90a7b4'),direction:new THREE.Vector3(.3,.8,.4).normalize()};
+const peerProbe=createPeerRenderProbe(renderer,scene);peerProbe.observe('fixture-peer',peerGroup,()=>1);
+const pipeline=createPipeline(renderer,scene,camera,{volume:lighting,prepare(){},prepareDirect(){},stats:{}},water,true,peerProbe);pipeline.resize(640,360);
+function draw(n=1,dt=1/60){for(let i=0;i<n;i++)pipeline.render(dt);}
+const surfaceMaterial=water.scene.children[0].material,originalShader=surfaceMaterial.fragmentShader;
+// Controlled diagnostic variants exist only in this fixture; production keeps both features.
+function variant(detail=true,ssr=true){
+ let source=originalShader;const detailMarker='waves.y)*.035*abs(n.y)',ssrMarker='i<=12';
+ if(!source.includes(detailMarker)||!source.includes(ssrMarker))throw Error('Diagnostic shader markers changed');
+ if(!detail)source=source.replace(detailMarker,'waves.y)*0.0*abs(n.y)');if(!ssr)source=source.replace(ssrMarker,'i<=0');
+ surfaceMaterial.fragmentShader=source;surfaceMaterial.needsUpdate=true;draw(1,0);
+}
+function pixels(){return captureDefaultPixels(renderer.getContext(),renderer.domElement.width,renderer.domElement.height);}
+function stats(){const p=pixels();let sum=0,nonBlack=0;for(let i=0;i<p.length;i+=4){const v=p[i]+p[i+1]+p[i+2];sum+=v;if(v>12)nonBlack++;}return {...water.stats,...pipeline.stats,error:renderer.getContext().getError(),mean:sum/(p.length/4)/3,nonBlack,pixels:p.length/4};}
+window.__sparseHarness={draw,stats,async probePeer(occluded=false){
+ const started=performance.now(),blocker=new THREE.Mesh(new THREE.BoxGeometry(20,20,.1),new THREE.MeshBasicMaterial());
+ if(occluded){camera.getWorldDirection(blocker.position).multiplyScalar(2).add(camera.position);blocker.quaternion.copy(camera.quaternion);scene.add(blocker);}
+ try{for(let i=0;i<40;i++){draw(1,0);await new Promise(resolve=>setTimeout(resolve,25));const samples=JSON.parse(renderer.domElement.dataset.renderedPeers??'[]');if(samples.some(p=>p.at>=started&&p.visible===!occluded))return {matched:true,error:renderer.domElement.dataset.peerRenderError??null};}return {matched:false,error:renderer.domElement.dataset.peerRenderError??null};}
+ finally{scene.remove(blocker);blocker.geometry.dispose();blocker.material.dispose();draw(1,0);}
+ },noDetail(){variant(false,true);},noSSR(){variant(true,false);},noDetailOrSSR(){variant(false,false);},async probe(){return pipeline.probeWater();},underwater(){camera.position.set(1,.3,1);camera.lookAt(1,.1,-2);draw(10);},nearplane(){variant();camera.position.set(1,.51,1);camera.lookAt(1,-.3,-2);draw(10);},resize(){camera.aspect=480/270;camera.updateProjectionMatrix();pipeline.resize(480,270);draw();},input(){water.interact(.1,.5,.1,cells);water.interact(.3,.5,.1,cells);draw(20);},dry(){water.apply(buildSparseWaterField([]),2);draw();}};
+draw(20);
+</script></body></html>

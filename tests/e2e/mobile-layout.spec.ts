@@ -3,12 +3,15 @@ import {test,expect,type Page} from '@playwright/test';
 import {GameSimulation} from '../../src/simulation/game-simulation';
 import {meadowPanel} from '../../src/ui/meadows';
 import {itemIcon} from '../../src/ui/icons/item';
+import {BEACONS} from '../../src/content/adventure-world';
+import {journeyGoal} from '../../src/game/journey';
+import {expectJourneyTextFits,expectOpeningJourneyFits} from '../helpers/journey-layout';
 
 // Geometry-only acceptance loads production HTML/CSS and real panel renderers without
 // WebGL, so every responsive mode can be inspected quickly and deterministically.
 const html=readFileSync('index.html','utf8').replace(/<script[^>]*src="\/src\/main.ts"[^>]*><\/script>/,'');
 const css=readFileSync('src/ui/style.css','utf8');
-const widths=[{width:568,height:320},{width:320,height:568},{width:667,height:375},{width:844,height:390},{width:390,height:844}];
+const widths=[{width:750,height:342},{width:568,height:320},{width:320,height:568},{width:667,height:375},{width:844,height:390},{width:390,height:844}];
 const modes=['game','interact','hammer','build','sandbox','bag','craft','build-menu','world','trade','chest','system','system-expanded','session'] as const;
 type Mode=typeof modes[number];
 type Insets={top:number;right:number;bottom:number;left:number};
@@ -33,6 +36,7 @@ async function setup(page:Page,size:{width:number;height:number},mode:Mode,inset
  await page.evaluate(({mode,content,hotbar})=>{
   const app=document.querySelector<HTMLElement>('#app')!;app.dataset.state='running';
   document.querySelector('#hotbar')!.innerHTML=hotbar;
+  document.querySelector('#journey')!.innerHTML='<span class=goal-kicker>JOURNEY</span><strong>落ち枝と石を拾おう</strong><small>木材5・石4 → 石斧。近づいて採集</small>';
   document.querySelector('#adventure-hud')!.innerHTML='<div class=region-line>はじまりの草原 · DAY12 18:45 雷雨</div><div class=vitals><div class="vital health"><span>HP125</span></div><div class="vital stamina"><span>スタミナ120</span></div></div><small>棍棒 · ガード · 食事 · 休息 · 雨除け · 暖かい · 濡れ · 雷鹿の加護</small><div class=food-hud><span>焼き肉</span><span>キノコ</span><span>木の実</span></div>';
   app.dataset.building=String(mode==='build');app.dataset.sandbox=String(mode==='sandbox');
   document.querySelector<HTMLElement>('#build-controls')!.hidden=mode!=='build'&&mode!=='sandbox';
@@ -93,6 +97,7 @@ test('core landscape mobile right controls respect physical safe areas in every 
  const devices=[
   {name:'small-landscape',size:{width:568,height:320},insets:{top:4,right:16,bottom:4,left:24}},
   {name:'small-rotated',size:{width:320,height:568},insets:{top:24,right:4,bottom:16,left:4}},
+  {name:'wide-notched',size:{width:750,height:342},insets:{top:0,right:44,bottom:21,left:44}},
   {name:'home-indicator',size:{width:568,height:320},insets:{top:0,right:44,bottom:21,left:44}},
  ];
  for(const device of devices)for(const mode of modes){
@@ -113,11 +118,53 @@ test('core landscape mobile movement controls keep their place across pressed st
   }
   for(const id of ['adventure-panel','system-panel','session-panel']){
    await page.locator('#'+id).evaluate((el:HTMLElement)=>el.hidden=false);
-   await expect(page.locator('#sprint')).toBeHidden();await expect(page.locator('#sneak')).toBeHidden();
+   await expect(page.locator('#sprint')).toBeHidden();await expect(page.locator('#sneak')).toBeHidden();await expect(page.locator('#journey')).toBeHidden();
    await page.locator('#'+id).evaluate((el:HTMLElement)=>el.hidden=true);
-   await expect(page.locator('#sprint')).toBeVisible();await expect(page.locator('#sneak')).toBeVisible();
+   await expect(page.locator('#sprint')).toBeVisible();await expect(page.locator('#sneak')).toBeVisible();await expect(page.locator('#journey')).toBeVisible();
    expect(await page.locator('.movement-modes').boundingBox()).toEqual(before);
   }
   expect(await problems(page),`${size.width}×${size.height} restored`).toEqual([]);
  }
+});
+test('survival adventure mobile journey keeps its fresh objective complete and long text inside its card across rotation',async({page},info)=>{
+ test.skip(info.project.name!=='android-chromium','Touch journey layout');
+ const fresh=new GameSimulation(),goal=journeyGoal(fresh.adventure.snapshot(),fresh.player);
+ // Include the actual iPhone portrait screenshot dimensions as well as compact phones.
+ for(const size of [...widths,{width:342,height:750},{width:664,height:390},{width:390,height:664}]){
+  await setup(page,size,'game');
+  await page.locator('#journey').evaluate((card,goal)=>{
+   card.querySelector('strong')!.textContent=goal.title;
+   card.querySelector('small')!.textContent=goal.detail;
+  },goal);
+  await expectOpeningJourneyFits(page);
+  expect(await problems(page),`${size.width}×${size.height} full fresh objective`).toEqual([]);
+  for(const long of [false,true]){
+   const title=long?BEACONS.map(beacon=>beacon.name).join('・'):BEACONS[0].name;
+   const detail=long?BEACONS.map(beacon=>beacon.hint).join('。'):BEACONS[0].hint;
+   await page.locator('#journey').evaluate((card,{title,detail})=>{
+    card.querySelector('.goal-kicker')!.textContent='JOURNEY · 12345m';
+    card.querySelector('strong')!.textContent=title;
+    card.querySelector('small')!.textContent=detail;
+   },{title,detail});
+   await expectJourneyTextFits(page);
+   // Ellipsis is presentation only: retain the complete mission text in the DOM.
+   await expect(page.locator('#journey strong')).toHaveText(title);
+   await expect(page.locator('#journey small')).toHaveText(detail);
+   expect(await problems(page),`${size.width}×${size.height} ${long?'long':'original'} objective`).toEqual([]);
+  }
+ }
+});
+
+// Use the real layout at the viewport that previously put a second row over the
+// avatar. All eight buttons remain present and at least 48px wide/high.
+test('voxel adventure quick slots leave one row of action space on a 750px phone',async({page},info)=>{
+ test.skip(info.project.name!=='android-chromium','Touch layout');
+ await setup(page,{width:750,height:342},'game');
+ const slots=await page.locator('#hotbar button').evaluateAll(nodes=>nodes.map(n=>{const b=n.getBoundingClientRect();return {top:b.top,width:b.width,height:b.height};}));
+ expect(slots).toHaveLength(8);expect(new Set(slots.map(s=>s.top)).size).toBe(1);
+ expect(slots.every(s=>s.width>=48&&s.height>=48)).toBe(true);
+ expect(await problems(page)).toEqual([]);
+ await expect(page.locator('#compass')).toBeVisible();
+ await expect(page.locator('#journey small')).toBeVisible();
+ await page.screenshot({path:info.outputPath('playability-layout-750.png')});
 });

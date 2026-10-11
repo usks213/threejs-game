@@ -1,10 +1,10 @@
+import {CHARACTER_RADIUS,CHARACTER_HEIGHT,characterHeight} from './character-shape';
+export {CHARACTER_RADIUS,CHARACTER_HEIGHT,CROUCH_HEIGHT,characterHeight} from './character-shape';
 import type { SdfWorld } from '../world/density';
 import type { Vec3 } from '../world/types';
 
-export const CHARACTER_RADIUS = 0.3;
-export const CHARACTER_HEIGHT = 1.45;
 const SKIN = 0.003, WALKABLE_NORMAL = 0.65, STEP_HEIGHT = 0.3, GROUND_SNAP = 0.18;
-interface CharacterBody extends Vec3 { vy: number; grounded: boolean }
+interface CharacterBody extends Vec3 { crouching?:boolean; vy: number; grounded: boolean }
 
 // A sampled upright capsule, separate from rendering and object rigid-body physics.
 export class CharacterMotor {
@@ -21,9 +21,9 @@ export class CharacterMotor {
     if (density > CHARACTER_RADIUS * 3) return density;
     return this.world.surfaceDistance(this.point, this.normal);
   }
-  private clear(body: Vec3): boolean {
+  private clear(body: CharacterBody): boolean {
     for (let i = 0; i < 5; i++) {
-      const height = CHARACTER_RADIUS + (CHARACTER_HEIGHT - 2 * CHARACTER_RADIUS) * i / 4;
+      const height = CHARACTER_RADIUS + (characterHeight(body) - 2 * CHARACTER_RADIUS) * i / 4;
       if (this.distance(body, height) < CHARACTER_RADIUS - SKIN) return false;
     }
     return true;
@@ -48,7 +48,7 @@ export class CharacterMotor {
     for (let pass = 0; pass < 4; pass++) {
       let corrected = false;
       for (let i = 0; i < 5; i++) {
-        const height = CHARACTER_RADIUS + (CHARACTER_HEIGHT - 2 * CHARACTER_RADIUS) * i / 4;
+        const height = CHARACTER_RADIUS + (characterHeight(body) - 2 * CHARACTER_RADIUS) * i / 4;
         const distance = this.distance(body, height);
         if (distance > CHARACTER_RADIUS + SKIN) continue;
         const n = this.normal, correction = Math.min(0.35, CHARACTER_RADIUS - distance);

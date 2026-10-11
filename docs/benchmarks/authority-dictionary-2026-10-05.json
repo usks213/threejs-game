@@ -1,0 +1,249 @@
+{
+  "note": "The retained-dictionary ordinary-array encoder is the only proposed production change; visitor candidates were equivalent but showed no reliable speedup and are not included.",
+  "paired": {
+    "checks": 360,
+    "before": {
+      "count": 360,
+      "mean": 1.8180465055555608,
+      "p50": 1.6433680000000095,
+      "p95": 3.0773449999996956,
+      "p99": 3.8739489999998113,
+      "max": 6.99194
+    },
+    "after": {
+      "count": 360,
+      "mean": 1.2324064388888705,
+      "p50": 1.0277640000000474,
+      "p95": 2.4473370000000614,
+      "p99": 3.827650999999605,
+      "max": 7.814054999999939
+    },
+    "method": "Pure encoder comparison on the identical real water snapshot arrays, alternating order; exact full deltas compared every time, all cold samples retained"
+  },
+  "profile": {
+    "method": "Real four-player production authority; synchronous transport and 30Hz virtual ingress clock; combined mode includes separate client decode, exact checks, and soak JSON byte accounting; server-only omits all three. Inclusive subphase timers overlap. Node process includes profiling overhead; no persistence/socket/Workers/browser/device claim",
+    "checkpoint": "/workspace/shared/pr5-milestone20-four-player-soak/saves/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.json",
+    "mode": "combined",
+    "sourceHash": "311b193eb56f4986172a09d5a384ba51178e3e8b3560004481a891f8cce772c3",
+    "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d",
+    "exactStateChecks": 8,
+    "ticks": 300,
+    "players": 4,
+    "initializationMs": 1219.918115,
+    "elapsedMs": 15028.112090000002,
+    "cpu": {
+      "user": 18832354,
+      "system": 1361238
+    },
+    "stepsPerMeasuredWorkSecond": 26.80851459226853,
+    "bytes": 22331389,
+    "frames": 400,
+    "accountedBytes": 54485497,
+    "world": {
+      "water": 19827,
+      "resources": 254,
+      "enemies": 31,
+      "edits": 32
+    },
+    "phases": {
+      "simulation": {
+        "count": 300,
+        "mean": 20.842224246666653,
+        "p50": 18.937635000000228,
+        "p95": 37.49103300000024,
+        "p99": 69.36367900000005,
+        "max": 82.93231300000002,
+        "totalMs": 6252.667273999996
+      },
+      "productionRoomStep": {
+        "count": 300,
+        "mean": 37.301581800000065,
+        "p50": 18.94634600000063,
+        "p95": 82.25572600000123,
+        "p99": 150.7391479999999,
+        "max": 238.87045399999988,
+        "totalMs": 11190.47454000002
+      },
+      "waterObstacles": {
+        "count": 101,
+        "mean": 1.4625129207921117,
+        "p50": 1.232876999999462,
+        "p95": 2.5996219999997265,
+        "p99": 5.020494000000099,
+        "max": 5.53076400000009,
+        "totalMs": 147.71380500000328
+      },
+      "waterNearest": {
+        "count": 508,
+        "mean": 2.9693016929133975,
+        "p50": 2.9303670000008424,
+        "p95": 5.046860000000379,
+        "p99": 7.89574000000016,
+        "max": 16.046339999998963,
+        "totalMs": 1508.405260000006
+      },
+      "fluidStep": {
+        "count": 100,
+        "mean": 8.71948761000001,
+        "p50": 7.724033000000418,
+        "p95": 13.918926000000283,
+        "p99": 33.54856300000006,
+        "max": 33.54856300000006,
+        "totalMs": 871.948761000001
+      },
+      "stateView": {
+        "count": 408,
+        "mean": 0.39934546568624807,
+        "p50": 0.32947000000058324,
+        "p95": 0.715349999999944,
+        "p99": 1.6346749999993335,
+        "max": 4.45158900000024,
+        "totalMs": 162.9329499999892
+      },
+      "fluidSnapshot": {
+        "count": 408,
+        "mean": 5.5547112549019175,
+        "p50": 4.97590400000081,
+        "p95": 8.390731999999844,
+        "p99": 15.178937000000133,
+        "max": 54.38854100000026,
+        "totalMs": 2266.3221919999824
+      },
+      "waterDictionary": {
+        "count": 400,
+        "mean": 1.8241564899999816,
+        "p50": 1.677427999999054,
+        "p95": 2.718880000000354,
+        "p99": 4.827664000000141,
+        "max": 6.783649999999852,
+        "totalMs": 729.6625959999926
+      },
+      "stateEncoding": {
+        "count": 400,
+        "mean": 2.2103844324999744,
+        "p50": 2.0093269999997574,
+        "p95": 3.3102689999996073,
+        "p99": 5.707572000000255,
+        "max": 6.877430000000004,
+        "totalMs": 884.1537729999898
+      },
+      "clientDecoding": {
+        "count": 400,
+        "mean": 6.768372910000005,
+        "p50": 5.872846999998728,
+        "p95": 11.692486999999346,
+        "p99": 16.39201600000024,
+        "max": 19.352842000000237,
+        "totalMs": 2707.349164000002
+      },
+      "soakByteAccounting": {
+        "count": 400,
+        "mean": 0.1803708450000056,
+        "p50": 0.147979999999734,
+        "p95": 0.32110400000010486,
+        "p99": 0.5725920000004407,
+        "max": 0.9180419999993319,
+        "totalMs": 72.14833800000224
+      },
+      "exactStateValidation": {
+        "count": 8,
+        "mean": 101.84085762500007,
+        "p50": 101.85459000000083,
+        "p95": 118.52359999999999,
+        "p99": 118.52359999999999,
+        "max": 118.52359999999999,
+        "totalMs": 814.7268610000006
+      }
+    },
+    "gc": {
+      "count": 231,
+      "totalMs": 774.5151300011203,
+      "maxMs": 29.721924000419676,
+      "byKind": {
+        "1": 632.4288560021669,
+        "4": 133.36396599840373,
+        "8": 8.722308000549674
+      }
+    },
+    "nodeMemory": {
+      "explicitGc": true,
+      "beforeFinalGc": {
+        "rss": 475983872,
+        "heapTotal": 365539328,
+        "heapUsed": 210915880,
+        "external": 3892464,
+        "arrayBuffers": 206597
+      },
+      "afterFinalGc": {
+        "rss": 461422592,
+        "heapTotal": 325582848,
+        "heapUsed": 55711688,
+        "external": 3892464,
+        "arrayBuffers": 165622
+      },
+      "rss": {
+        "count": 11,
+        "mean": 421291101.09090906,
+        "p50": 449916928,
+        "p95": 468148224,
+        "p99": 468148224,
+        "max": 468148224
+      },
+      "heapUsed": {
+        "count": 11,
+        "mean": 145164128.72727272,
+        "p50": 142138952,
+        "p95": 241946112,
+        "p99": 241946112,
+        "max": 241946112
+      },
+      "final": {
+        "rss": 461422592,
+        "heapTotal": 325582848,
+        "heapUsed": 56677520,
+        "external": 3892464,
+        "arrayBuffers": 165622
+      }
+    }
+  },
+  "visitor": {
+    "checks": 240,
+    "before": {
+      "count": 240,
+      "mean": 9.891116145833307,
+      "p50": 9.035788000000139,
+      "p95": 14.91708699999981,
+      "p99": 25.23799299999996,
+      "max": 50.82323700000052
+    },
+    "after": {
+      "count": 240,
+      "mean": 9.565663191666678,
+      "p50": 8.777102999999443,
+      "p95": 15.032496000000037,
+      "p99": 21.59647199999995,
+      "max": 33.97134199999982
+    },
+    "method": "Same real checkpoint; paired alternating-order public snapshot+old encoder versus visitor+new encoder after each real water step. All exact deltas matched; no samples discarded."
+  },
+  "scalarVisitor": {
+    "checks": 240,
+    "before": {
+      "count": 240,
+      "mean": 8.035645483333345,
+      "p50": 6.495188999999755,
+      "p95": 19.59467199999972,
+      "p99": 27.678045999999995,
+      "max": 50.055724000000055
+    },
+    "after": {
+      "count": 240,
+      "mean": 8.06384607083332,
+      "p50": 6.252500000000055,
+      "p95": 17.16153000000031,
+      "p99": 38.516405000000304,
+      "max": 73.40041100000053
+    },
+    "method": "Same real checkpoint; paired alternating-order public snapshot+old encoder versus visitor+new encoder after each real water step. All exact deltas matched; no samples discarded."
+  }
+}

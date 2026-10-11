@@ -4,7 +4,7 @@ import { GameSimulation } from '../../src/simulation/game-simulation';
 import { validateSave } from '../../src/save/format';
 /** Rules-level acceptance: no inventory grants. Travel is direct; this is not a device playtest. */
 it('supports the initial gathering, camp, food, gear, boss and offering progression using obtainable items',()=>{
- const sim=new GameSimulation(),g=sim.adventure,s=g.state;
+ const sim=new GameSimulation(undefined,3),g=sim.adventure,s=g.state;
  const gather=(kind:string,count:number)=>{for(const n of s.resources.filter(n=>n.kind===kind&&n.ready<=s.seconds).slice(0,count)){Object.assign(sim.player,{x:n.x,y:n.y,z:n.z});g.action('gather');}};
  gather('branch',18);gather('stone',4);g.action('craft','axe');g.action('craft','hammer');
  Object.assign(sim.player,{x:0,y:sim.groundAt(0,8),z:8});

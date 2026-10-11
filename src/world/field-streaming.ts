@@ -1,3 +1,4 @@
+import { SKY_ISLANDS } from './skybound-terrain';
 import { landscapeHeight, meadowsHeight, terrainHeight } from './density';
 import { BRICK_SIZE, WORLD, brickId, type Brick, type FieldLod, type Vec3, type WorldBounds } from './types';
 
@@ -35,9 +36,9 @@ function boundaryLod(origin: Vec3, step: number, focus: Vec3): FieldLod | undefi
  * columns cover the generator's surface band, plus its elevated legacy islands.
  * This is a bounded visual demand set, never a deletion/filter of saved edits.
  */
-export function directVisibleBricks(position: Vec3, bounds: WorldBounds = WORLD, generator: 1 | 2 | 3 = 3): Map<string, Brick> {
+export function directVisibleBricks(position: Vec3, bounds: WorldBounds = WORLD, generator: 1 | 2 | 3 | 4 = 3): Map<string, Brick> {
   const result = new Map<string, Brick>(), focus = center(position);
-  const height = generator === 3 ? meadowsHeight : generator === 2 ? landscapeHeight : terrainHeight;
+  const height = generator >= 3 ? meadowsHeight : generator === 2 ? landscapeHeight : terrainHeight;
   const radius = DIRECT_FIELD_RANGES.far, distance = Math.ceil(radius / BRICK_SIZE);
   for (let dx = -distance; dx <= distance; dx++) for (let dz = -distance; dz <= distance; dz++) {
     if ((dx * BRICK_SIZE) ** 2 + (dz * BRICK_SIZE) ** 2 > radius ** 2) continue;
@@ -54,8 +55,12 @@ export function directVisibleBricks(position: Vec3, bounds: WorldBounds = WORLD,
     addBand(low, high);
     if (step === .5) addBand(focus.y - DIRECT_FIELD_RANGES.nearVertical, focus.y + DIRECT_FIELD_RANGES.nearVertical);
     // Older generators have genuine suspended SDF terrain, not a height-map-only world.
-    if (generator !== 3 && x <= 20 && x + BRICK_SIZE >= 6 && z <= -11 && z + BRICK_SIZE >= -23) addBand(12, 18);
+    if (generator < 3 && x <= 20 && x + BRICK_SIZE >= 6 && z <= -11 && z + BRICK_SIZE >= -23) addBand(12, 18);
     if (generator === 2 && x < -40 && z + BRICK_SIZE > 40) addBand(12, 24);
+    if(generator===4){
+      if(position.y<2 || step===.5) addBand(-12,-4);
+      for(const island of SKY_ISLANDS)if(x<=island.x+island.radius&&x+BRICK_SIZE>=island.x-island.radius&&z<=island.z+island.radius&&z+BRICK_SIZE>=island.z-island.radius)addBand(island.y-island.depth-1,island.y+1);
+    }
     const fieldLod = boundaryLod({ x, y: 0, z }, step, focus);
     for (const y of ys) {
       const id = brickId(x / BRICK_SIZE, y / BRICK_SIZE, z / BRICK_SIZE);

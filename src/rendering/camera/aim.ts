@@ -1,3 +1,4 @@
+import {enemyRayContact} from '../../game/combat/enemy-contact';
 import type { AdventureSnapshot } from '../../game/types';
 import type { Vec3 } from '../../world/types';
 import type { SphereBody } from '../../physics/sphere';
@@ -21,8 +22,8 @@ export function reticleObjectDistance(state: AdventureSnapshot, origin: Vec3, di
   let nearest = objectOcclusion(state, origin, direction, limit);
   for (const enemy of state.enemies) {
     if (enemy.health <= 0) continue;
-    const hit = sphereDistance(origin, direction, enemy, enemy.boss ? 1.8 : .7, enemy.boss ? 1.7 : .6);
-    if (hit !== null) nearest = Math.min(nearest, hit);
+    const hit = enemyRayContact(enemy, origin, direction, limit);
+    if (hit) nearest = Math.min(nearest, hit.distance);
   }
   for (const body of bodies) {
     const hit = sphereDistance(origin, direction, body.position, body.radius);

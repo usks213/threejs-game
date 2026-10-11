@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { FieldData } from '../../world/field-data';
 import { FIELD_MAX_STEPS, fieldNormal, fieldRayInterval, intersectFieldRay } from './field-raycast';
 import { fieldFragmentShader, fieldVertexShader } from './field-shader';
+import { fieldSurfaceBounds } from './field-bounds';
 
 interface FieldEntry {
   data: FieldData;
@@ -16,8 +17,11 @@ interface FieldEntry {
  */
 export function createFieldTerrain(scene: THREE.Scene) {
   const entries = new Map<string, FieldEntry>(), geometry = new THREE.BoxGeometry(1, 1, 1);
+  const adventure={value:0};
   const sunlight = { value: new THREE.Color(3.2, 3.0, 2.7) };
   const sunDirection = { value: new THREE.Vector3(.5, .8, -.3).normalize() };
+  const pointLights={value:Array.from({length:5},()=>new THREE.Vector4())},pointColors={value:Array.from({length:5},()=>new THREE.Color())},fogColor={value:new THREE.Color()},fogRange={value:new THREE.Vector3()};
+  const lamps:THREE.PointLight[]=[];scene.traverse(object=>{if(object instanceof THREE.PointLight&&lamps.length<5)lamps.push(object);});
   const ambient = { value: new THREE.Color(.20, .25, .31) };
   const sunPosition = new THREE.Vector3(), targetPosition = new THREE.Vector3();
   let sun: THREE.DirectionalLight | undefined, active: ReadonlySet<string> | null = null, disposed = false;
@@ -43,9 +47,9 @@ export function createFieldTerrain(scene: THREE.Scene) {
   return {
     update(data: FieldData, renderer?: THREE.WebGLRenderer) {
       if (disposed) throw new Error('Field terrain is disposed');
-      const started = performance.now(), hasSurface = validate(data);
+      const started = performance.now(), bounds = validate(data) ? fieldSurfaceBounds(data) : null;
       let mesh: FieldEntry['mesh'] = null, texture: THREE.Data3DTexture | null = null;
-      if (hasSurface) {
+      if (bounds) {
         // R16F is linearly filterable in core WebGL2. R32F linear filtering would
         // require OES_texture_float_linear, which is not universal on phones.
         const values = new Uint16Array(data.density.length);
@@ -60,14 +64,17 @@ export function createFieldTerrain(scene: THREE.Scene) {
           vertexShader: fieldVertexShader, fragmentShader: fieldFragmentShader,
           uniforms: {
             fieldDensity: { value: texture }, fieldOrigin: { value: new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z) },
-            fieldStep: { value: data.step }, fieldSize: { value: data.size }, fieldCameraNear: { value: .1 },
-            fieldSunDirection: sunDirection, fieldSunColor: sunlight, fieldAmbient: ambient,
+            fieldBoundsMin: { value: new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.min.z) },
+            fieldBoundsMax: { value: new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.max.z) },
+            fieldAdventure:adventure,fieldStep: { value: data.step }, fieldSize: { value: data.size }, fieldCameraNear: { value: .1 },
+            fieldSunDirection: sunDirection, fieldSunColor: sunlight, fieldAmbient: ambient,fieldPointLights:pointLights,fieldPointColors:pointColors,fieldFogColor:fogColor,fieldFogRange:fogRange,
           },
         });
         mesh = new THREE.Mesh(geometry, material); mesh.name = `density:${data.id}`;
-        const extent = (data.size - 1) * data.step;
-        mesh.position.set(data.origin.x + extent / 2, data.origin.y + extent / 2, data.origin.z + extent / 2);
-        mesh.scale.setScalar(extent); mesh.updateMatrixWorld(true);
+        // The proxy encloses every potentially crossing trilinear cell, not
+        // uniform air/solid slabs. Texture coordinates still use the full brick.
+        mesh.position.set((bounds.min.x + bounds.max.x) / 2, (bounds.min.y + bounds.max.y) / 2, (bounds.min.z + bounds.max.z) / 2);
+        mesh.scale.set(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z); mesh.updateMatrixWorld(true);
         mesh.visible = active === null || active.has(data.id);
         // A normal/depth override material would render the cube instead of the
         // field. This prototype uses the direct beauty path; no proxy shadows.
@@ -97,6 +104,9 @@ export function createFieldTerrain(scene: THREE.Scene) {
     stats, raycastStats,
     ids: () => [...entries.keys()], has: (id: string) => entries.has(id),
     updateDetails(_player: THREE.Vector3, _seconds: number) {
+      adventure.value=scene.userData.generator===4?1:0;
+      for(let i=0;i<5;i++){const lamp=lamps[i];pointLights.value[i].set(lamp?.position.x??0,lamp?.position.y??0,lamp?.position.z??0,lamp&&lamp.intensity>0?lamp.distance:0);pointColors.value[i].copy(lamp?.color??ambient.value).multiplyScalar(lamp?.intensity??0);}
+      if(scene.fog instanceof THREE.Fog){fogColor.value.copy(scene.fog.color);fogRange.value.set(scene.fog.near,scene.fog.far,1);}else fogRange.value.z=0;
       if (!sun) return;
       sun.getWorldPosition(sunPosition); sun.target.getWorldPosition(targetPosition);
       sunDirection.value.copy(sunPosition).sub(targetPosition).normalize();
@@ -117,7 +127,11 @@ export function createFieldTerrain(scene: THREE.Scene) {
         const distance = intersectFieldRay(raycaster.ray, entry.data, interval);
         if (distance === null) continue;
         const point = raycaster.ray.at(distance, new THREE.Vector3()), normal = fieldNormal(entry.data, point);
-        nearest = { distance, point, object: entry.mesh, normal, face: { a: 0, b: 0, c: 0, normal, materialIndex: 0 } };
+        // The reticle transforms face directions through object.matrixWorld.
+        // Counteract the proxy's nonuniform scale; it must not tilt the actual
+        // density normal. The explicit normal remains in world coordinates.
+        const faceNormal = normal.clone().divide(entry.mesh.scale).normalize();
+        nearest = { distance, point, object: entry.mesh, normal, face: { a: 0, b: 0, c: 0, normal: faceNormal, materialIndex: 0 } };
         far = distance;
       }
       return nearest;

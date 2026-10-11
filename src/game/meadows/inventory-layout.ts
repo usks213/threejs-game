@@ -1,10 +1,10 @@
 import type { MeadowState } from './state';
-import { inventorySlots, stackSize } from './inventory';
+import { inventorySlots, stackSize,inventoryLimit } from './inventory';
 export interface ItemSlot { id: string; count: number }
 
 /** Layout never owns items: totals remain authoritative, preventing split/merge duplication. */
 export function reconcileSlots(m: MeadowState, items: Record<string, number>): (ItemSlot | null)[] {
- m.slots = inventorySlots(items, m.slots);
+ m.slots = inventorySlots(items, m.slots,inventoryLimit(m));
  return m.slots;
 }
 export function changeLayout(m: MeadowState, items: Record<string, number>, action: 'split' | 'move', id: string): void {

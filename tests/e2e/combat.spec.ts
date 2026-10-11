@@ -1,0 +1,53 @@
+import { GameSimulation } from '../../src/simulation/game-simulation';
+import { test,expect,type Page } from '@playwright/test';
+test.use({deviceScaleFactor:.5,video:{mode:'on',size:{width:844,height:390}}});
+async function streamReport(page:Page){console.log('STREAMING',await page.locator('#app').getAttribute('data-streaming'));}
+async function ready(page:Page){await page.goto('/');try{await expect(page.locator('#app')).toHaveAttribute('data-state','running');await expect(page.locator('#error')).toBeHidden();}finally{await streamReport(page);}}
+async function ticks(page:Page,n=10){const tick=Number(await page.locator('#app').getAttribute('data-tick'));await expect.poll(async()=>Number(await page.locator('#app').getAttribute('data-tick'))).toBeGreaterThan(tick+n);}
+async function fixture(page:Page,sim:GameSimulation){const epoch=await page.locator('#app').getAttribute('data-world-epoch');await page.locator('#import-file').setInputFiles({name:'core-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(sim.save()))});await expect.poll(()=>page.locator('#app').getAttribute('data-world-epoch')).not.toBe(epoch);try{await expect(page.locator('#app')).toHaveAttribute('data-state','running');await ticks(page,4);}finally{await streamReport(page);}}
+function sparse(){const sim=new GameSimulation();sim.adventure.state.resources=[];sim.adventure.state.enemies=[];sim.adventure.state.buildings=[];sim.fluid.cells.clear();return sim;}
+// Passive diagnosis: preserve input and authority behavior while recording a single tap.
+async function observeAttackInput(page:Page){
+ await page.addInitScript(()=>{
+  type RecordEntry=Record<string,unknown>;
+  const trace:RecordEntry[]=[],observed=new WeakSet<Worker>();
+  let lastSnapshot:{tick:unknown;attack:unknown}|null=null;
+  const push=(entry:RecordEntry)=>{trace.push({time:performance.now(),...entry});if(trace.length>3000)trace.shift();};
+  (window as unknown as {attackInputTrace:RecordEntry[]}).attackInputTrace=trace;
+  for(const type of ['pointerdown','pointerup','pointercancel','lostpointercapture','click','keydown'])document.addEventListener(type,event=>{
+   if(!(event.target instanceof Element)||!event.target.closest('#attack'))return;
+   const input=event as PointerEvent&KeyboardEvent&{sourceCapabilities?:{firesTouchEvents?:boolean}};
+   push({kind:'input',type,isTrusted:event.isTrusted,detail:input.detail,pointerId:input.pointerId,pointerType:input.pointerType,button:input.button,key:input.key,firesTouchEvents:input.sourceCapabilities?.firesTouchEvents});
+  },true);
+  const post=Worker.prototype.postMessage;
+  Worker.prototype.postMessage=function(this:Worker,message:unknown,...args:unknown[]){
+   if(!observed.has(this)){
+    observed.add(this);
+    this.addEventListener('message',({data})=>{
+     if(data.type==='snapshot'){
+      lastSnapshot={tick:data.state?.tick,attack:data.state?.adventure?.attack};
+      push({kind:'snapshot',...lastSnapshot,attackMotion:data.state?.adventure?.attackMotion});
+     }else if(data.type==='notice')push({kind:'notice',message:data.message});
+    });
+   }
+   const action=message as {type?:string;action?:string};
+   if(action?.type==='game-action')push({kind:'send',message,lastSnapshot});
+   return Reflect.apply(post,this,[message,...args]);
+  } as typeof Worker.prototype.postMessage;
+ });
+}
+ test('survival adventure shoulder aim, weapon contact and right-side combat controls',async({page},info)=>{
+  test.skip(info.project.name!=='android-chromium','Phone combat acceptance');test.setTimeout(90000);await page.setViewportSize({width:844,height:390});await observeAttackInput(page);await ready(page);await expect(page.locator('#app')).toHaveAttribute('data-terrain-mode','direct-field');
+  const sim=sparse(),p=sim.player;sim.bodies.length=0;sim.adventure.state.inventory={club:1,shield:1};sim.adventure.state.equipment='club';sim.adventure.state.meadows!.gear.offhand='shield';
+  sim.adventure.state.enemies=[{id:901,definition:'boar',tier:1,x:p.x+.6,y:sim.groundAt(p.x+.6,p.z-1.8),z:p.z-1.8,homeX:p.x+.6,homeZ:p.z-1.8,health:200,cooldown:60,windup:0,slow:0,boss:false,stagger:30}];await fixture(page,sim);
+  const touch=await page.context().newCDPSession(page);await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:430,y:150,id:3}]});await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:430,y:187,id:3}]});await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect.poll(async()=>JSON.parse((await page.locator('#app').getAttribute('data-camera-probe'))??'{}').head?.x??1).toBeLessThan(-.05);await expect(page.locator('.reticle')).toBeVisible();
+  const hp=async()=>Number((await page.locator('#enemy-focus').textContent())?.match(/([\d.]+) HP/)?.[1]??0),before=await hp();expect(before).toBeGreaterThan(0);await page.locator('#attack').tap();await expect.poll(hp).toBeLessThan(before);await page.screenshot({path:info.outputPath('shoulder-melee-contact.png'),scale:'css'});
+  await expect.poll(async()=>JSON.parse((await page.locator('#app').getAttribute('data-combat'))??'{}').attackMotion??null).toBeNull();const attackTrace=await page.evaluate(()=>(window as unknown as {attackInputTrace:unknown[]}).attackInputTrace);await info.attach('ordinary-attack-input-trace.json',{body:JSON.stringify(attackTrace,null,2),contentType:'application/json'});console.log('ORDINARY_ATTACK_INPUT_TRACE',JSON.stringify(attackTrace));
+  const events=attackTrace as {kind:string;type?:string;isTrusted?:boolean;pointerType?:string;message?:string|{action?:string}}[];
+  expect(events.some(event=>event.kind==='input'&&event.type==='pointerdown'&&event.isTrusted&&event.pointerType==='touch')).toBe(true);
+  expect(events.filter(event=>event.kind==='send'&&typeof event.message==='object'&&event.message?.action==='attack')).toHaveLength(1);
+  expect(events.filter(event=>event.kind==='notice').map(event=>event.message)).not.toContain('操作の間隔を空けてください');
+  const guard=await page.locator('#guard').boundingBox();if(!guard)throw Error('Guard missing');await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:guard.x+guard.width/2,y:guard.y+guard.height/2,id:4}]});await expect(page.locator('#guard')).toHaveAttribute('aria-pressed','true');await page.screenshot({path:info.outputPath('shoulder-guard.png'),scale:'css'});await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.locator('#dodge').tap();await expect(page.locator('#notice')).toContainText('回避');
+  const probe=await page.locator('#app').getAttribute('data-camera-probe');console.log('SHOULDER_COMBAT_PROBE',probe);await info.attach('shoulder-combat-probe.json',{body:probe??'{}',contentType:'application/json'});await expect(page.locator('#error')).toBeHidden();
+ });

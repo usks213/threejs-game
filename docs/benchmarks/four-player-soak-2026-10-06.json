@@ -1,0 +1,162 @@
+{
+  "status": "completed",
+  "protocol": 7,
+  "players": 4,
+  "startedAt": "2026-10-06T00:59:09.771Z",
+  "sourceHash": "f7f462c07baf52f1f9e875c5ef80180e8332bea428b2550eb43be3e701d07ea2",
+  "durationMs": 903574.6321500001,
+  "requiredDurationMs": 900000,
+  "notBrowserOrDeviceTest": true,
+  "fixturesReplaced": false,
+  "plannedDisconnects": 1,
+  "restarts": 1,
+  "gaps": 1,
+  "resyncs": 1,
+  "fluidChecks": 338,
+  "snapshotChecks": 338,
+  "saveChecks": 31,
+  "accepted": 85,
+  "rejected": 11,
+  "replays": 7,
+  "frames": 32662,
+  "bytesReceived": 1493165385,
+  "bytesSent": 7270585,
+  "ackLatencyMs": {
+    "count": 96,
+    "mean": 278.0349240520851,
+    "p50": 189.6257259999984,
+    "p95": 810.1453719999408,
+    "p99": 1140.6531650000252,
+    "max": 1140.6531650000252
+  },
+  "serverRss": {
+    "count": 887,
+    "mean": 509929876.05862457,
+    "p50": 504287232,
+    "p95": 551522304,
+    "p99": 565522432,
+    "max": 580431872
+  },
+  "serverHeap": {
+    "count": 887,
+    "mean": 164101338.42615557,
+    "p50": 160265560,
+    "p95": 258654560,
+    "p99": 295699000,
+    "max": 344714616
+  },
+  "serverEpochs": [
+    {
+      "source": "server",
+      "at": 1791248957426,
+      "elapsedMs": 607002.4601639999,
+      "kind": "final",
+      "scheduler": {
+        "steps": 17723,
+        "turns": 15658,
+        "catchUpSteps": 3028,
+        "rebases": 51,
+        "droppedMs": 15948.672793698694,
+        "maxDebtMs": 570.4494389992906
+      },
+      "sentBytes": 1053387773,
+      "sentWaterBytes": 875571756,
+      "sentStateBytes": 162010074,
+      "receivedBytes": 4978972,
+      "frames": 23585,
+      "acks": 66,
+      "rejected": 11,
+      "exceptions": 0,
+      "stepMs": {
+        "count": 17722,
+        "mean": 24.728458867960814,
+        "p50": 6.355823000019882,
+        "p95": 72.52516900002956,
+        "p99": 116.91849399998318,
+        "max": 465.5421889999998
+      },
+      "simulationTickMs": {
+        "count": 17708,
+        "mean": 9.294759284899591,
+        "p50": 6.349415000004228,
+        "p95": 24.372357000000193,
+        "p99": 35.23550599999726,
+        "max": 160.10433799994644
+      },
+      "receiveMs": {
+        "count": 85346,
+        "mean": 0.010138710144568687,
+        "p50": 0.0024869999979273416,
+        "p95": 0.017007000002195127,
+        "p99": 0.051091000001179054,
+        "max": 187.7229529999895
+      },
+      "memory": {
+        "rss": 587198464,
+        "heapTotal": 403173376,
+        "heapUsed": 110352728,
+        "external": 20667287,
+        "arrayBuffers": 16580145
+      }
+    },
+    {
+      "source": "server",
+      "at": 1791249260116,
+      "elapsedMs": 302227.499305,
+      "kind": "final",
+      "scheduler": {
+        "steps": 6836,
+        "turns": 6695,
+        "catchUpSteps": 191,
+        "rebases": 249,
+        "droppedMs": 73921.55919799366,
+        "maxDebtMs": 744.8195736666094
+      },
+      "sentBytes": 439855338,
+      "sentWaterBytes": 369806306,
+      "sentStateBytes": 59025588,
+      "receivedBytes": 2290902,
+      "frames": 9079,
+      "acks": 30,
+      "rejected": 0,
+      "exceptions": 0,
+      "stepMs": {
+        "count": 6834,
+        "mean": 41.713934812994125,
+        "p50": 24.505395000000135,
+        "p95": 94.22028500000306,
+        "p99": 151.64013300000806,
+        "max": 638.9059139999736
+      },
+      "simulationTickMs": {
+        "count": 6826,
+        "mean": 25.49890912408464,
+        "p50": 23.296560999995563,
+        "p95": 46.05648400000064,
+        "p99": 67.13922099999036,
+        "max": 239.03333700000076
+      },
+      "receiveMs": {
+        "count": 39690,
+        "mean": 0.009921022600158313,
+        "p50": 0.002399000004515983,
+        "p95": 0.018110000004526228,
+        "p99": 0.059818000001541805,
+        "max": 21.353088999981992
+      },
+      "memory": {
+        "rss": 528637952,
+        "heapTotal": 382554112,
+        "heapUsed": 242482288,
+        "external": 25991495,
+        "arrayBuffers": 21904353
+      }
+    }
+  ],
+  "failures": [],
+  "notices": [],
+  "localCommit": "3fc3cad22920946b07bf28658aa3015e8cba9a0a",
+  "correspondingRemoteCommit": "14459fe2594b883a1f26956ec71eec6e7cdb1093",
+  "summarySha256": "43fe31ab6973f716d407ec88a603cb81b4212a4f1775c9af04edc4fe0d3e2b0d",
+  "scope": "Immutable exact source4realWebSocket Node functional soak; not Worker memory/cadence or browser/device FPS."
+}

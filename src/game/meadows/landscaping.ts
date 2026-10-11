@@ -10,6 +10,7 @@ export function landscape(game:Adventure,mode:string,target:Vec3):{dirty:string[
  if(sim.world.edits.length>MAX_EDITS-2)throw new Error('地形の保存上限に達しました');
  if(mode==='raise'&&(s.inventory.stone??0)<2)throw new Error('盛土には石が2個必要です');
  const ground=sim.groundAt(target.x,target.z),height=mode==='raise'?ground+.5:mode==='path'?ground:Math.max(ground-.75,Math.min(ground+.75,p.y)),radius=1.5,dirty=new Set<string>();
+ game.gear.prepareUse('hoe');
  if(mode==='raise')s.inventory.stone-=2;s.stamina-=5;s.equipment='hoe';game.meadowRules.wear('hoe');
  for(const kind of ['add','dig'] as const){const position={x:target.x,y:height+(kind==='add'?-radius:radius),z:target.z};for(const id of sim.world.apply({id:sim.world.edits.length+1,kind,position,radius,shape:'cylinder',surface:'soil',material:'stone',tick:sim.tick}))dirty.add(id);}
  for(const body of sim.bodies)body.sleeping=false;game.support();

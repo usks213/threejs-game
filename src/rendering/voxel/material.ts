@@ -1,20 +1,23 @@
 import * as THREE from 'three';
 import { surfaceMaps } from '../materials/pbr';
+import { openingSurfaceShader } from './opening-surface';
 /** World-space triplanar PBR: continuous across edited bricks, with slope-selected soil/rock. */
-export function createTerrainMaterial() {
+export function createTerrainMaterial(adventure={value:0}) {
  const stone=surfaceMaps('stone'), soil=surfaceMaps('earth');
  const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:0});
  material.onBeforeCompile=s=>{
-  Object.assign(s.uniforms,{rockColor:{value:stone.map},soilColor:{value:soil.map},rockNormal:{value:stone.normalMap},rockRoughness:{value:stone.roughnessMap}});
+  Object.assign(s.uniforms,{terrainAdventure:adventure,rockColor:{value:stone.map},soilColor:{value:soil.map},rockNormal:{value:stone.normalMap},rockRoughness:{value:stone.roughnessMap}});
   s.vertexShader='varying vec3 terrainPoint; varying vec3 terrainNormal;\n'+s.vertexShader;
   s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nterrainPoint=(modelMatrix*vec4(position,1.)).xyz;terrainNormal=normalize(mat3(modelMatrix)*normal);');
-  s.fragmentShader=`varying vec3 terrainPoint;varying vec3 terrainNormal;
+  s.fragmentShader=`varying vec3 terrainPoint;varying vec3 terrainNormal;uniform float terrainAdventure;
+   ${openingSurfaceShader}
    uniform sampler2D rockColor,soilColor,rockNormal,rockRoughness;
    vec4 triplanar(sampler2D tex,vec3 p,vec3 w){return texture2D(tex,p.yz)*w.x+texture2D(tex,p.xz)*w.y+texture2D(tex,p.xy)*w.z;}
    `+s.fragmentShader;
   s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
    vec3 terrainWeights=pow(abs(terrainNormal),vec3(4.));terrainWeights/=max(dot(terrainWeights,vec3(1.)),.0001);
-   diffuseColor.rgb*=mix(triplanar(rockColor,terrainPoint*.8,terrainWeights).rgb,triplanar(soilColor,terrainPoint*.8,terrainWeights).rgb,smoothstep(.4,.85,terrainNormal.y));`);
+   diffuseColor.rgb*=mix(triplanar(rockColor,terrainPoint*.8,terrainWeights).rgb,triplanar(soilColor,terrainPoint*.8,terrainWeights).rgb,smoothstep(.4,.85,terrainNormal.y));
+   if(terrainAdventure>.5)diffuseColor.rgb=openingSurface(diffuseColor.rgb,terrainPoint,normalize(terrainNormal));`);
   s.fragmentShader=s.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
    roughnessFactor*=triplanar(rockRoughness,terrainPoint*.8,terrainWeights).g;`);
   // Blend tangent perturbations in world space, then transform into view space.

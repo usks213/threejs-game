@@ -16,12 +16,15 @@ it('runs the Node authority with eight actual Colyseus clients and confirms auth
   for (let i = 0; i < 8; i++) clients.push(await new Client('http://127.0.0.1:' + port).joinOrCreate('survival'));
   const positions = new Map<string, number>(), edits = new Set<string>();
   for (const room of clients) { room.onMessage('welcome', () => {}); room.onMessage('notice', () => {}); room.onMessage('edits', (log: unknown[]) => { if (log.length > 0) edits.add(room.sessionId); }); room.onMessage('snapshot', (state: Snapshot) => { positions.set(room.sessionId, state.player.x); }); }
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // A fixed sleep can finish before all eight first snapshots on a busy runner.
+  const until=async(predicate:()=>boolean)=>{const deadline=Date.now()+6000;while(!predicate()){if(Date.now()>deadline)throw Error('Eight-client authority state did not converge');await new Promise(resolve=>setTimeout(resolve,30));}};
+  await until(()=>positions.size===8&&[...positions.values()].every(Number.isFinite));
   const initial = new Map(positions);
   for (let sequence = 1; sequence <= 20; sequence++) { for (const room of clients) room.send('input', { input: { x: 1, z: 0, jump: false }, sequence }); await new Promise(resolve => setTimeout(resolve, 35)); }
+  await until(()=>clients.every(room=>(positions.get(room.sessionId)??-Infinity)>initial.get(room.sessionId)!+1));
   expect(positions.size).toBe(8); for (const room of clients) expect(positions.get(room.sessionId)!).toBeGreaterThan(initial.get(room.sessionId)! + 1);
-  clients[0].send('action', { type: 'action', tool: 'dig', target: { x: 1, y: 1, z: 5 } });
-  await new Promise(resolve => setTimeout(resolve, 400)); expect(edits.size).toBe(8);
+  clients[0].send('action', { type: 'action', tool: 'dig', target: { x: 4, y: 1, z: 8 } });
+  await until(()=>edits.size===8);expect(edits.size).toBe(8);
  } finally { await Promise.all(clients.map(room => room.leave())); await server.gracefullyShutdown(false); }
 }, 15000);
 

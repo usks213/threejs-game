@@ -1,0 +1,236 @@
+{
+  "decision": "Rejected: copied-object allocation falls, but paired CPU gains were small and unreliable. No runtime or test changes retained.",
+  "date": "2026-10-06",
+  "sourceCommit": "22ce332",
+  "scope": "Exact water snapshot copies shared only inside one synchronous AuthorityRoom broadcast; public snapshot API, physics, dt, budgets, precision, protocol and send sequence unchanged in candidate.",
+  "initialRoomComparison": {
+    "note": "Initial all-field-check variant only; sequential separate Node bundles with profiler. Not reliable standalone performance evidence.",
+    "before": {
+      "method": "Real four-player production authority; synchronous transport and 30Hz virtual ingress clock; combined mode includes separate client decode, exact checks, and soak JSON byte accounting; server-only omits all three. Inclusive subphase timers overlap. Node process includes profiling overhead; no persistence/socket/Workers/browser/device claim",
+      "mode": "combined",
+      "ticks": 300,
+      "players": 4,
+      "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d",
+      "exactStateChecks": 8,
+      "frames": 400,
+      "world": {
+        "water": 19827,
+        "resources": 254,
+        "enemies": 31,
+        "edits": 32
+      },
+      "nodeMemory": {
+        "explicitGc": true,
+        "beforeFinalGc": {
+          "rss": 456785920,
+          "heapTotal": 358711296,
+          "heapUsed": 207931040,
+          "external": 3986187,
+          "arrayBuffers": 299219
+        },
+        "afterFinalGc": {
+          "rss": 440000512,
+          "heapTotal": 300679168,
+          "heapUsed": 55695744,
+          "external": 3986187,
+          "arrayBuffers": 165622
+        },
+        "rss": {
+          "count": 11,
+          "mean": 410257966.54545456,
+          "p50": 433750016,
+          "p95": 459145216,
+          "p99": 459145216,
+          "max": 459145216
+        },
+        "heapUsed": {
+          "count": 11,
+          "mean": 144773665.45454547,
+          "p50": 152061560,
+          "p95": 252329480,
+          "p99": 252329480,
+          "max": 252329480
+        },
+        "final": {
+          "rss": 440000512,
+          "heapTotal": 300679168,
+          "heapUsed": 56671688,
+          "external": 3986187,
+          "arrayBuffers": 165622
+        }
+      },
+      "roomStep": {
+        "count": 300,
+        "mean": 36.24113821,
+        "p50": 17.817109999999957,
+        "p95": 83.57193499999994,
+        "p99": 112.27475400000003,
+        "max": 145.08265500000016,
+        "totalMs": 10872.341463
+      }
+    },
+    "after": {
+      "method": "Real four-player production authority; synchronous transport and 30Hz virtual ingress clock; combined mode includes separate client decode, exact checks, and soak JSON byte accounting; server-only omits all three. Inclusive subphase timers overlap. Node process includes profiling overhead; no persistence/socket/Workers/browser/device claim",
+      "mode": "combined",
+      "ticks": 300,
+      "players": 4,
+      "saveDigest": "d298b62a6e39b247a87a6ff4874a3cf09e45418f67a934c2cbece59b3b0f6a3d",
+      "exactStateChecks": 8,
+      "frames": 400,
+      "world": {
+        "water": 19827,
+        "resources": 254,
+        "enemies": 31,
+        "edits": 32
+      },
+      "nodeMemory": {
+        "explicitGc": true,
+        "beforeFinalGc": {
+          "rss": 443789312,
+          "heapTotal": 357855232,
+          "heapUsed": 191000272,
+          "external": 3875259,
+          "arrayBuffers": 188291
+        },
+        "afterFinalGc": {
+          "rss": 416325632,
+          "heapTotal": 294387712,
+          "heapUsed": 55716304,
+          "external": 3875259,
+          "arrayBuffers": 165686
+        },
+        "rss": {
+          "count": 11,
+          "mean": 399069556.3636364,
+          "p50": 413626368,
+          "p95": 455389184,
+          "p99": 455389184,
+          "max": 455389184
+        },
+        "heapUsed": {
+          "count": 11,
+          "mean": 170942986.1818182,
+          "p50": 173626712,
+          "p95": 302462560,
+          "p99": 302462560,
+          "max": 302462560
+        },
+        "final": {
+          "rss": 416325632,
+          "heapTotal": 294387712,
+          "heapUsed": 56599720,
+          "external": 3875259,
+          "arrayBuffers": 165686
+        }
+      },
+      "roomStep": {
+        "count": 300,
+        "mean": 35.25892561666664,
+        "p50": 17.381671999999526,
+        "p95": 80.86560400000053,
+        "p99": 100.28989899999988,
+        "max": 155.0401670000001,
+        "totalMs": 10577.677684999991
+      }
+    }
+  },
+  "pairedComparisons": [
+    {
+      "method": "Real mature checkpoint, four actor views after each three actual authority steps. Baseline and candidate alternate first, all samples included. Strict JSON snapshot comparison per round; no profiler. This is CPU work, not real time or Workers memory.",
+      "rounds": 120,
+      "before": {
+        "count": 120,
+        "mean": 16.740962991666652,
+        "p50": 13.070411999999124,
+        "p95": 36.54169600000023,
+        "p99": 75.30486400000001,
+        "max": 174.50588199999947
+      },
+      "after": {
+        "count": 120,
+        "mean": 14.474354716666713,
+        "p50": 12.282037999999375,
+        "p95": 28.90848399999959,
+        "p99": 39.876295000001846,
+        "max": 72.87217299999975
+      },
+      "savedObjects": {
+        "count": 120,
+        "mean": 22224.95,
+        "p50": 22220,
+        "p95": 22245,
+        "p99": 22248,
+        "max": 22251
+      },
+      "saveDigest": "d1080053ceacea99f7f4268fc50e2e4e2a3b5e39f9af5e7c14d28e5b964b3da5",
+      "variant": "String-key bounded map plus existing floor revisions, before signed-zero hardening"
+    },
+    {
+      "method": "Real mature checkpoint, four actor views after each three actual authority steps. Baseline and candidate alternate first, all samples included. Strict JSON snapshot comparison per round; no profiler. This is CPU work, not real time or Workers memory.",
+      "rounds": 240,
+      "before": {
+        "count": 240,
+        "mean": 15.916420716666982,
+        "p50": 14.121553999997559,
+        "p95": 26.789121000000705,
+        "p99": 31.742073999999775,
+        "max": 94.53119700000002
+      },
+      "after": {
+        "count": 240,
+        "mean": 15.68602474583319,
+        "p50": 14.163696999999956,
+        "p95": 25.46927399999913,
+        "p99": 36.33905600000071,
+        "max": 39.647164000001794
+      },
+      "savedObjects": {
+        "count": 240,
+        "mean": 22222.416666666668,
+        "p50": 22220,
+        "p95": 22240,
+        "p99": 22247,
+        "max": 22251
+      },
+      "saveDigest": "097eb7d61d1ea1d699442d236a2264cce58cc6e8acf58f9ad4f9cfebec3b749e",
+      "variant": "String-key bounded map plus floor revisions and Object.is for raw number fields"
+    },
+    {
+      "method": "Real mature checkpoint, four actor views after each three actual authority steps. Baseline and candidate alternate first, all samples included. Strict JSON snapshot comparison per round; no profiler. This is CPU work, not real time or Workers memory.",
+      "rounds": 240,
+      "before": {
+        "count": 240,
+        "mean": 14.217866445833355,
+        "p50": 13.043766999995569,
+        "p95": 21.88909099999728,
+        "p99": 34.43423799999982,
+        "max": 85.77431000000001
+      },
+      "after": {
+        "count": 240,
+        "mean": 14.00470027500001,
+        "p50": 12.617329000000609,
+        "p95": 21.924278999999956,
+        "p99": 36.0655110000007,
+        "max": 73.79392299999745
+      },
+      "savedObjects": {
+        "count": 240,
+        "mean": 22222.416666666668,
+        "p50": 22220,
+        "p95": 22240,
+        "p99": 22247,
+        "max": 22251
+      },
+      "saveDigest": "097eb7d61d1ea1d699442d236a2264cce58cc6e8acf58f9ad4f9cfebec3b749e",
+      "variant": "IndexedCell-key bounded map plus floor revisions and Object.is for raw number fields"
+    }
+  ],
+  "candidateValidation": {
+    "orderedSnapshotPairs": 600,
+    "newFluidTestsPassed": 5,
+    "existingFluidAndCodecTestsPassed": 10,
+    "reentrantRoomTestsPassed": 2,
+    "note": "Two new room checks initially failed due to comparing object property insertion order; canonical key sorting corrected the test oracle and both passed. No behavior difference was found. Candidate tests and source are archived outside the active checkout, not part of the release."
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "status": "completed",
+  "protocol": 7,
+  "players": 4,
+  "startedAt": "2026-10-05T23:09:01.178Z",
+  "sourceHash": "ad50e80749162a1ec6a7ded1d26d8f7a1a8e9ca7b818e0601ed197b156792ac9",
+  "durationMs": 903306.7641660001,
+  "requiredDurationMs": 900000,
+  "notBrowserOrDeviceTest": true,
+  "fixturesReplaced": false,
+  "plannedDisconnects": 1,
+  "restarts": 1,
+  "gaps": 1,
+  "resyncs": 1,
+  "fluidChecks": 358,
+  "snapshotChecks": 358,
+  "saveChecks": 31,
+  "accepted": 81,
+  "rejected": 13,
+  "replays": 7,
+  "frames": 35043,
+  "bytesReceived": 1530819810,
+  "bytesSent": 7386024,
+  "ackLatencyMs": {
+    "count": 94,
+    "mean": 270.26225056382407,
+    "p50": 196.26814200001536,
+    "p95": 761.4891699999571,
+    "p99": 936.3626400000066,
+    "max": 936.3626400000066
+  },
+  "serverRss": {
+    "count": 891,
+    "mean": 515782731.8518519,
+    "p50": 521605120,
+    "p95": 558714880,
+    "p99": 561160192,
+    "max": 565739520
+  },
+  "serverHeap": {
+    "count": 891,
+    "mean": 162036541.25252524,
+    "p50": 161592664,
+    "p95": 260784416,
+    "p99": 286652472,
+    "max": 336879208
+  },
+  "serverEpochs": [
+    {
+      "source": "server",
+      "at": 1791242350847,
+      "elapsedMs": 608967.3322879999,
+      "kind": "final",
+      "scheduler": {
+        "steps": 17585,
+        "turns": 14613,
+        "catchUpSteps": 3768,
+        "rebases": 69,
+        "droppedMs": 22501.23746369667,
+        "maxDebtMs": 583.5795220010041
+      },
+      "sentBytes": 1036680576,
+      "sentWaterBytes": 865147774,
+      "sentStateBytes": 155761352,
+      "receivedBytes": 4952030,
+      "frames": 23394,
+      "acks": 63,
+      "rejected": 11,
+      "exceptions": 0,
+      "stepMs": {
+        "count": 17584,
+        "mean": 26.672032316708606,
+        "p50": 7.395392999984324,
+        "p95": 77.06852900004014,
+        "p99": 121.15549900004407,
+        "max": 604.259487000003
+      },
+      "simulationTickMs": {
+        "count": 17564,
+        "mean": 10.242527603279047,
+        "p50": 7.393689000047743,
+        "p95": 25.963442000036594,
+        "p99": 36.84592100000009,
+        "max": 163.7664619999705
+      },
+      "receiveMs": {
+        "count": 84863,
+        "mean": 0.010764881609124486,
+        "p50": 0.002706999992369674,
+        "p95": 0.017506000003777444,
+        "p99": 0.05177399999956833,
+        "max": 239.04380099999253
+      },
+      "memory": {
+        "rss": 571453440,
+        "heapTotal": 399892480,
+        "heapUsed": 109710552,
+        "external": 20476568,
+        "arrayBuffers": 16389426
+      }
+    },
+    {
+      "source": "server",
+      "at": 1791242652836,
+      "elapsedMs": 301502.986866,
+      "kind": "final",
+      "scheduler": {
+        "steps": 8772,
+        "turns": 7048,
+        "catchUpSteps": 2120,
+        "rebases": 26,
+        "droppedMs": 8914.941540324915,
+        "maxDebtMs": 895.513255999831
+      },
+      "sentBytes": 494213969,
+      "sentWaterBytes": 420079334,
+      "sentStateBytes": 62762092,
+      "receivedBytes": 2433283,
+      "frames": 11651,
+      "acks": 31,
+      "rejected": 2,
+      "exceptions": 0,
+      "stepMs": {
+        "count": 8769,
+        "mean": 27.92785889314631,
+        "p50": 8.561868000004324,
+        "p95": 78.86819300000207,
+        "p99": 104.37375999998767,
+        "max": 729.0939979999966
+      },
+      "simulationTickMs": {
+        "count": 8759,
+        "mean": 11.102009946341058,
+        "p50": 8.557281999994302,
+        "p95": 29.602195999992546,
+        "p99": 38.0587719999894,
+        "max": 121.55844599999546
+      },
+      "receiveMs": {
+        "count": 41725,
+        "mean": 0.008293533780688511,
+        "p50": 0.0031869999947957695,
+        "p95": 0.01967099998728372,
+        "p99": 0.05327699999907054,
+        "max": 11.009468999996898
+      },
+      "memory": {
+        "rss": 525291520,
+        "heapTotal": 389693440,
+        "heapUsed": 253373248,
+        "external": 22945403,
+        "arrayBuffers": 18858261
+      }
+    }
+  ],
+  "failures": [],
+  "notices": [],
+  "localCommit": "89d0367151486be18f2fb9ce175395c27908c741",
+  "remoteCommit": "763c79024cabd948818b38db502a155b8440f8ec",
+  "originalSummarySha256": "4dcbeaf7e82afe5da3f56801b205cc3318a084084e49d9aedc40703e58583ef5",
+  "maxRssIncludingShutdown": 571453440
+}

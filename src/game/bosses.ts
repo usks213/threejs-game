@@ -1,6 +1,8 @@
+import {siteBossAttack} from '../content/adventure-sites';
 import type { Vec3 } from '../world/types';
 export interface BossAttack { windup: number; cooldown: number; radius: number; charge: boolean; shots: number; element: string }
 const attacks: Record<string,BossAttack> = {
+ stormcore: {windup:2.1,cooldown:5,radius:5,charge:false,shots:0,element:'lightning'},
  stormstag: {windup:1.5,cooldown:5,radius:4.5,charge:false,shots:0,element:'lightning'},
  root: {windup:1.4,cooldown:4.5,radius:6,charge:false,shots:0,element:'physical'},
  tusk: {windup:1.1,cooldown:3.5,radius:2.5,charge:true,shots:0,element:'physical'},
@@ -9,6 +11,8 @@ const attacks: Record<string,BossAttack> = {
  riftheart: {windup:1.8,cooldown:3.6,radius:7,charge:false,shots:7,element:'magic'},
 };
 export function bossAttack(id:string,enraged=false,kind?:string): BossAttack {
+ const site=siteBossAttack(id);if(site)return {...site,cooldown:site.cooldown*(enraged?.8:1)};
+ if(id==='stormcore'){const base=kind==='prism'?{windup:1.8,cooldown:5,radius:16,charge:false,shots:3,element:'lightning'}:kind==='rush'?{windup:2.3,cooldown:6,radius:3,charge:true,shots:0,element:'physical'}:attacks.stormcore;return {...base,cooldown:base.cooldown*(enraged?.8:1),shots:base.shots+(enraged&&base.shots?2:0)};}
  if(id==='stormstag')return kind==='beam'?{windup:2,cooldown:7,radius:20,charge:false,shots:5,element:'lightning'}:kind==='stomp'?{windup:2.5,cooldown:8,radius:10,charge:false,shots:0,element:'lightning'}:{windup:1.2,cooldown:5,radius:4.5,charge:false,shots:0,element:'physical'};
  const a=attacks[id]; if(!a)throw new Error('Unknown boss');
  return {...a,cooldown:a.cooldown*(enraged?0.7:1),shots:a.shots+(enraged && a.shots?2:0)};

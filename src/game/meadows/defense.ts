@@ -1,3 +1,4 @@
+import {releaseBuildingItems} from '../interaction/drops';
 import type { Adventure } from '../adventure';
 import type { EnemyState } from '../types';
 import { ENEMIES } from '../../content/catalog';
@@ -7,7 +8,7 @@ export function strikeBarrier(game:Adventure,e:EnemyState,target:{x:number;y:num
  const d=Math.hypot(target.x-e.x,target.z-e.z)||1,x=e.x+(target.x-e.x)/d*.65,z=e.z+(target.z-e.z)/d*.65;
  const b=game.state.buildings.find(b=>blockedByBuilding(b,x,e.y,z,.4));if(!b)return false;
  b.health=Math.max(0,(b.health??100)-(ENEMIES.find(n=>n.id===e.definition)?.damage??20));e.cooldown=2;e.attackFlash=.4;
- if(!b.health){game.sim.dropDebris(b,'wood',2);game.state.buildings=game.state.buildings.filter(n=>n!==b);game.support();}return true;
+ if(!b.health){try{releaseBuildingItems(game,b,{});game.sim.dropDebris(b,'wood',2);game.state.buildings=game.state.buildings.filter(n=>n!==b);game.support();}catch{/* Contents remain recoverable when ground-drop space is exhausted. */}}return true;
 }
 export function shamanMagic(game:Adventure,e:EnemyState,dt:number):void{
  if(e.definition!=='greydwarfShaman')return;const s=game.state;e.attackReady??={};
