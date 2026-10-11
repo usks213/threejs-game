@@ -40,8 +40,8 @@ export function startEmberfall(root: HTMLElement) {
     try { const result = saveRun(run, localStorage); element('#save-status').textContent = result.message; return result.ok; }
     catch { element('#save-status').textContent = '保存できません。ブラウザのストレージ設定を確認してください。'; return false; }
   };
-  function start(seed = newSeed()) { run = new Run(seed); started = true; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.enabled = true; controls.clear(); saveClock = 0; persist(); }
-  function resume() { if (!started || run.phase !== 'playing') return; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.clear(); controls.enabled = true; }
+  function start(seed = newSeed()) { run = new Run(seed); started = true; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.enabled = true; controls.clear(); saveClock = 0; persist(); updateHud(); }
+  function resume() { if (!started || run.phase !== 'playing') return; paused = false; overlay.hidden = true; element('.emberfall').classList.remove('in-menu'); controls.clear(); controls.enabled = true; updateHud(); }
   function freeze() { element('.emberfall').classList.add('in-menu'); paused = true; controls.enabled = false; controls.clear(); overlay.hidden = false; }
   function button(text: string, handler: () => void, parent: HTMLElement, className = '') {
     const node = document.createElement('button'); node.textContent = text; node.className = className; node.addEventListener('click', handler); parent.append(node); if (parent.classList.contains('panel') && !parent.querySelector('button[data-initial-focus]')) { node.dataset.initialFocus = 'true'; queueMicrotask(() => { if (node.isConnected && !overlay.hidden) node.focus(); }); } return node;
@@ -117,7 +117,7 @@ export function startEmberfall(root: HTMLElement) {
     element('.notice').textContent = run.notice;
     element('.emberfall').classList.toggle('in-menu', paused);
     element('.spray-button small').textContent = `水 ${Math.floor(run.flask)}`;
-    canvas.dataset.phase = run.phase; canvas.dataset.playerX = p.x.toFixed(2); canvas.dataset.playerY = p.y.toFixed(2); canvas.dataset.fuel = p.fuel.toFixed(2); canvas.dataset.projectiles = String(run.projectiles.length); canvas.dataset.tick = String(run.world.tick);
+    canvas.dataset.inputMove = String(controls.state.move); canvas.dataset.inputClear = controls.lastClearReason; canvas.dataset.phase = run.phase; canvas.dataset.playerX = p.x.toFixed(2); canvas.dataset.playerY = p.y.toFixed(2); canvas.dataset.fuel = p.fuel.toFixed(2); canvas.dataset.projectiles = String(run.projectiles.length); canvas.dataset.tick = String(run.world.tick);
   };
   const resize = () => renderer.resize(); window.addEventListener('resize', resize); renderer.resize(); welcome();
   const loop = (now: number) => {
@@ -126,7 +126,7 @@ export function startEmberfall(root: HTMLElement) {
       accumulator += dt; let steps = 0;
       while (accumulator >= 1 / 60 && steps++ < 5) { run.step(1 / 60, controls.state); controls.state.interact = false; accumulator -= 1 / 60; }
       if (steps > 5) accumulator = 0;
-      saveClock += dt; if (saveClock > 8) { saveClock = 0; persist(); }
+      saveClock += dt; if (saveClock > 8) { saveClock = 0; persist(); updateHud(); }
       if (run.phase !== 'playing') { if (run.phase === 'refuge') openRefuge(); else terminal(); }
     } else accumulator = 0;
     renderer.draw(run, controls.state); hudClock += dt; if (hudClock > 0.1) { updateHud(); hudClock = 0; }

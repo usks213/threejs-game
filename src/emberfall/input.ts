@@ -7,6 +7,7 @@ export class Controls {
   private moveX = 0; private mouseFire = false;
   private abort = new AbortController();
   enabled = false;
+  lastClearReason = 'initial';
   constructor(root: HTMLElement, aim: (x: number, y: number) => { x: number; y: number }, public command: (key: string) => void) {
     const signal = this.abort.signal;
     const listen = (target: EventTarget, name: string, fn: EventListener) => target.addEventListener(name, fn, { signal, passive: false });
@@ -31,7 +32,7 @@ export class Controls {
       this.refresh();
     }) as EventListener);
     for (const name of ['pointerup','pointercancel','lostpointercapture']) listen(root, name, release as EventListener);
-    for (const name of ['blur','resize','orientationchange']) listen(window, name, () => this.clear());
+    for (const name of ['blur','resize','orientationchange']) listen(window, name, () => this.clear(name));
     listen(document, 'visibilitychange', () => { if (document.hidden) { this.clear(); this.command('hidden'); } });
     listen(root, 'contextmenu', e => e.preventDefault());
   }
@@ -41,6 +42,6 @@ export class Controls {
     this.state.fly = this.keys.has('Space') || this.keys.has('KeyW') || this.keys.has('ArrowUp') || values.includes('fly');
     this.state.fire = this.mouseFire || values.includes('aim'); this.state.spray = this.keys.has('KeyF') || values.includes('spray');
   }
-  clear() { this.keys.clear(); this.pointers.clear(); this.mouseFire = false; this.moveX = 0; Object.assign(this.state, idleInput(), { aimX: this.state.aimX, aimY: this.state.aimY }); }
+  clear(reason = 'explicit') { this.lastClearReason = reason; this.keys.clear(); this.pointers.clear(); this.mouseFire = false; this.moveX = 0; Object.assign(this.state, idleInput(), { aimX: this.state.aimX, aimY: this.state.aimY }); }
   dispose() { this.clear(); this.abort.abort(); }
 }

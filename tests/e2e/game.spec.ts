@@ -8,8 +8,10 @@ test('original 2D cave: movement, flight, shooting, equipment and resume', async
   const canvas = page.locator('#cave');
   await expect(canvas).toHaveAttribute('data-phase', 'playing');
   await expect(page.locator('#overlay')).toBeHidden();
+  await expect.poll(async () => Number(await canvas.getAttribute('data-tick'))).toBeGreaterThan(8);
   const startX = Number(await canvas.getAttribute('data-player-x'));
   await page.keyboard.down('KeyD');
+  await expect(canvas).toHaveAttribute('data-input-move', '1');
   await expect.poll(async () => Number(await canvas.getAttribute('data-player-x'))).toBeGreaterThan(startX + 10);
   await page.keyboard.up('KeyD');
   await page.locator('[data-wand="1"]').click();

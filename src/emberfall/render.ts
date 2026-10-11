@@ -32,7 +32,7 @@ export class Renderer {
     const { ctx, width, height, scale } = this;
     const p = run.player, world = run.world;
     this.cameraX = Math.max(0, Math.min(world.width - width, p.x - width * 0.45));
-    this.cameraY = Math.max(0, Math.min(world.height - height, p.y - height * 0.4));
+    this.cameraY = Math.max(-38, Math.min(world.height - height, p.y - height * 0.4));
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     ctx.fillStyle = BIOMES[run.level].background; ctx.fillRect(0, 0, width, height);
     // Original distant architecture and mineral flecks, with two parallax layers.
