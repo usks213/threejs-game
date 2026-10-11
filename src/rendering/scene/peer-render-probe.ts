@@ -8,13 +8,13 @@ type DrawnSample={sample:Omit<PeerRenderSample,'visible'>;camera:THREE.Camera};
 interface Entry {collect:()=>void;query:(camera:THREE.Camera)=>void;dispose:()=>void}
 
 /** Opt-in GPU evidence: a real color draw, then a non-writing visibility query
- * against the completed canvas depth buffer. No game state or pixel is changed. */
+ * against the completed display depth buffer (canvas or HDR composition target). No game state or pixel is changed. */
 export function createPeerRenderProbe(renderer:THREE.WebGLRenderer,scene:THREE.Scene) {
  const gl=renderer.getContext() as WebGL2RenderingContext,samples:PeerRenderSample[]=[],entries=new Map<string,Entry>();
  const publish=()=>{renderer.domElement.dataset.renderedPeers=JSON.stringify(samples);};
  const projected=new THREE.Vector3(),afterScene=scene.onAfterRender;
  const queryMaterial=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,depthTest:true,depthFunc:THREE.LessEqualDepth});
- let disposed=false;
+ let disposed=false,deferred=false;let displayTarget:THREE.WebGLRenderTarget|null=null;
  const supported=typeof gl.createQuery==='function'&&typeof gl.getQueryParameter==='function';
  if(!supported)renderer.domElement.dataset.peerRenderError='WebGL2 occlusion queries unavailable';
  const dispose=()=>{if(disposed)return;disposed=true;for(const entry of entries.values())entry.dispose();entries.clear();samples.length=0;queryMaterial.dispose();scene.onAfterRender=afterScene;delete renderer.domElement.dataset.renderedPeers;delete renderer.domElement.dataset.peerRenderSkipped;renderer.domElement.removeEventListener('webglcontextlost',lost);};
@@ -23,10 +23,18 @@ export function createPeerRenderProbe(renderer:THREE.WebGLRenderer,scene:THREE.S
  scene.onAfterRender=function(...args){
   afterScene.apply(this,args);
   // Offscreen color, shadow, depth and reflection passes are not the display.
-  if(disposed||!supported||renderer.getRenderTarget()!==null||scene.overrideMaterial||gl.isContextLost())return;
+  if(disposed||!supported||deferred||renderer.getRenderTarget()!==null||scene.overrideMaterial||gl.isContextLost())return;
   for(const entry of entries.values()){entry.collect();entry.query(args[2]);}
  };
  return {
+  /** The compositor identifies the genuine scene-color draw. Reflection/depth
+   * overrides remain excluded; the query is delayed until water writes depth. */
+  beginFrame(target:THREE.WebGLRenderTarget){displayTarget=target;deferred=true;},
+  finishFrame(camera:THREE.Camera,target:THREE.WebGLRenderTarget){
+   if(disposed||!supported||!deferred||renderer.getRenderTarget()!==target||scene.overrideMaterial||gl.isContextLost())return;
+   for(const entry of entries.values()){entry.collect();entry.query(camera);}
+   deferred=false;displayTarget=null;
+  },
   observe(id:string,group:THREE.Group,tick:()=>number) {
    if(disposed||!supported||entries.has(id))return;
    // The first avatar mesh is its persistent torso; equipment can be hidden.
@@ -37,7 +45,7 @@ export function createPeerRenderProbe(renderer:THREE.WebGLRenderer,scene:THREE.S
    const pending:{query:WebGLQuery;sample:Omit<PeerRenderSample,'visible'>}[]=[];
    mesh.onAfterRender=function(...args){
     after.apply(this,args);
-    if(renderer.getRenderTarget()!==null||args[1]!==scene||scene.overrideMaterial||gl.isContextLost())return;
+    if(renderer.getRenderTarget()!==displayTarget||args[1]!==scene||scene.overrideMaterial||gl.isContextLost())return;
     mesh.getWorldPosition(projected).project(args[2]);
     drawn={camera:args[2],sample:{id,tick:tick(),at:performance.now(),x:group.position.x,y:group.position.y,z:group.position.z,heading:group.rotation.y,screen:{x:projected.x,y:projected.y,z:projected.z}}};
    };

@@ -11,7 +11,7 @@ function fixture(supported=true){
  const probe=createPeerRenderProbe(renderer,scene);
  const draw=()=>{chest.onAfterRender(renderer,scene,camera,chest.geometry,chest.material,group);scene.onAfterRender(renderer,scene,camera,chest.geometry,chest.material,group);};
  probe.observe('peer',group,()=>17);
- return {probe,renderer,gl,group,draw,render,samples:()=>JSON.parse(renderer.domElement.dataset.renderedPeers??'[]') as PeerRenderSample[],result:(value:boolean)=>{available=true;visible=value;},offscreen:()=>{target={};}};
+ return {probe,renderer,gl,group,draw,render,samples:()=>JSON.parse(renderer.domElement.dataset.renderedPeers??'[]') as PeerRenderSample[],result:(value:boolean)=>{available=true;visible=value;},camera,offscreen:(value:unknown={})=>{target=value;}};
 }
 it('records only completed GPU visibility results with the actual interpolated pose',()=>{
  const f=fixture();expect(f.samples()).toEqual([]);f.draw();expect(f.samples()).toEqual([]);expect(f.gl.beginQuery).toHaveBeenCalledTimes(1);expect(f.gl.endQuery).toHaveBeenCalledTimes(1);expect(f.render.mock.calls[0][3]).toMatchObject({colorWrite:false,depthWrite:false,depthTest:true});
@@ -31,4 +31,13 @@ it('samples brief rendered airborne poses while older GPU queries remain pending
  const f=fixture();f.draw();f.group.position.y=3;f.draw();f.group.position.y=2;for(let i=0;i<10;i++)f.draw();
  expect(f.gl.beginQuery).toHaveBeenCalledTimes(8);expect(f.samples()).toEqual([]);expect(Number(f.renderer.domElement.dataset.peerRenderSkipped)).toBe(4);
  f.result(true);f.draw();expect(f.samples()).toHaveLength(8);expect(f.samples().some(sample=>sample.visible&&sample.y===3)).toBe(true);expect(f.gl.deleteQuery).toHaveBeenCalledTimes(8);f.probe.dispose();expect(f.gl.deleteQuery).toHaveBeenCalledTimes(9);
+});
+
+it('samples the actual HDR beauty pose only after the completed water-depth target, not proxy passes',()=>{
+ const f=fixture(),beauty=new THREE.WebGLRenderTarget(),waterDepth=new THREE.WebGLRenderTarget(),unrelated=new THREE.WebGLRenderTarget();
+ f.probe.beginFrame(beauty);f.offscreen(unrelated);f.draw();f.offscreen(waterDepth);f.probe.finishFrame(f.camera,waterDepth);expect(f.gl.beginQuery).toHaveBeenCalledTimes(0);
+ f.probe.beginFrame(beauty);f.offscreen(beauty);f.draw();expect(f.gl.beginQuery).toHaveBeenCalledTimes(0);f.probe.finishFrame(f.camera,waterDepth);expect(f.gl.beginQuery).toHaveBeenCalledTimes(0);
+ f.offscreen(waterDepth);f.probe.finishFrame(f.camera,waterDepth);expect(f.gl.beginQuery).toHaveBeenCalledTimes(1);expect(f.samples()).toEqual([]);
+ f.result(true);f.probe.beginFrame(beauty);f.offscreen(beauty);f.draw();f.offscreen(waterDepth);f.probe.finishFrame(f.camera,waterDepth);expect(f.samples()).toMatchObject([{id:'peer',tick:17,x:1,y:2,z:-5,heading:.7,visible:true}]);
+ f.probe.dispose();beauty.dispose();waterDepth.dispose();unrelated.dispose();
 });

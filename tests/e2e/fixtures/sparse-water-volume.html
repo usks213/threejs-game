@@ -12,9 +12,17 @@ let cells=[];for(let x=-4;x<8;x++)for(let z=-6;z<6;z++)cells.push({x:x*.5,y:0,z:
 const water=createSparseWaterView();water.apply(buildSparseWaterField(cells),1);
 const lighting={density:.012,ambient:new THREE.Color('#90a7b4'),direction:new THREE.Vector3(.3,.8,.4).normalize()};
 const pipeline=createPipeline(renderer,scene,camera,{volume:lighting,prepare(){},prepareDirect(){},stats:{}},water,true);pipeline.resize(640,360);
-function draw(n=1){for(let i=0;i<n;i++)pipeline.render(1/60);}
+function draw(n=1,dt=1/60){for(let i=0;i<n;i++)pipeline.render(dt);}
+const surfaceMaterial=water.scene.children[0].material,originalShader=surfaceMaterial.fragmentShader;
+// Controlled diagnostic variants exist only in this fixture; production keeps both features.
+function variant(detail=true,ssr=true){
+ let source=originalShader;const detailMarker='waves.y)*.035*abs(n.y)',ssrMarker='i<=12';
+ if(!source.includes(detailMarker)||!source.includes(ssrMarker))throw Error('Diagnostic shader markers changed');
+ if(!detail)source=source.replace(detailMarker,'waves.y)*0.0*abs(n.y)');if(!ssr)source=source.replace(ssrMarker,'i<=0');
+ surfaceMaterial.fragmentShader=source;surfaceMaterial.needsUpdate=true;draw(1,0);
+}
 function pixels(){return captureDefaultPixels(renderer.getContext(),renderer.domElement.width,renderer.domElement.height);}
 function stats(){const p=pixels();let sum=0,nonBlack=0;for(let i=0;i<p.length;i+=4){const v=p[i]+p[i+1]+p[i+2];sum+=v;if(v>12)nonBlack++;}return {...water.stats,...pipeline.stats,error:renderer.getContext().getError(),mean:sum/(p.length/4)/3,nonBlack,pixels:p.length/4};}
-window.__sparseHarness={draw,stats,async probe(){return pipeline.probeWater();},underwater(){camera.position.set(1,.3,1);camera.lookAt(1,.1,-2);draw(10);},nearplane(){camera.position.set(1,.51,1);camera.lookAt(1,-.3,-2);draw(10);},resize(){camera.aspect=480/270;camera.updateProjectionMatrix();pipeline.resize(480,270);draw();},input(){water.interact(.1,.5,.1,cells);water.interact(.3,.5,.1,cells);draw(20);},dry(){water.apply(buildSparseWaterField([]),2);draw();}};
+window.__sparseHarness={draw,stats,noDetail(){variant(false,true);},noSSR(){variant(true,false);},noDetailOrSSR(){variant(false,false);},async probe(){return pipeline.probeWater();},underwater(){camera.position.set(1,.3,1);camera.lookAt(1,.1,-2);draw(10);},nearplane(){variant();camera.position.set(1,.51,1);camera.lookAt(1,-.3,-2);draw(10);},resize(){camera.aspect=480/270;camera.updateProjectionMatrix();pipeline.resize(480,270);draw();},input(){water.interact(.1,.5,.1,cells);water.interact(.3,.5,.1,cells);draw(20);},dry(){water.apply(buildSparseWaterField([]),2);draw();}};
 draw(20);
 </script></body></html>

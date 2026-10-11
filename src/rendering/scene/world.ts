@@ -54,7 +54,7 @@ export function createWorld(renderer:THREE.WebGLRenderer,direct=false) {
   const resetWater = () => { waterTick = -1; waterMesher.reset(); sparseWater.reset(); waterGeometry.setDrawRange(0, 0); };
   return {
     setReducedMotion(value:boolean){scene.userData.reducedMotion=value;feedback.setReducedMotion(value);},
-    scene, player, marker, atmosphere, sparseWater, waterSurface:water, preview:preview.update,faceCamera:entities.faceCamera,
+    scene, player, marker, atmosphere, sparseWater, peerProbe, waterSurface:water, preview:preview.update,faceCamera:entities.faceCamera,
     raycastBuildings: entities.raycast,
     resetWater,selectPart:skybound.select,
     get waterStats() { return {...waterMesher.stats,...sparseWater.stats,error:waterMesher.stats.error||sparseWater.stats.sdfError}; },

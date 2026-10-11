@@ -1,3 +1,4 @@
+import type {createPeerRenderProbe} from '../scene/peer-render-probe';
 import {AdaptiveResolution,type ResolutionMode} from '../resolution';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -10,7 +11,7 @@ import {WaterCompositePass,HybridVolumePass} from './hybrid-pass';
 import type {createSparseWaterView} from '../water/sparse-view';
 import { ExposurePass } from './exposure';
 import type { createAtmosphere } from '../environment/atmosphere';
-export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,camera:THREE.PerspectiveCamera,atmosphere:ReturnType<typeof createAtmosphere>,water:ReturnType<typeof createSparseWaterView>,direct=false){
+export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,camera:THREE.PerspectiveCamera,atmosphere:ReturnType<typeof createAtmosphere>,water:ReturnType<typeof createSparseWaterView>,direct=false,peerProbe:ReturnType<typeof createPeerRenderProbe>|null=null){
  const target=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType}),composer=new EffectComposer(renderer,target);
  const ssr=new SSRPass({renderer,scene,camera,width:1,height:1,selects:[],groundReflector:null});ssr.resolutionScale=.5;ssr.opacity=.45;ssr.maxDistance=18;ssr.thickness=.15;ssr.blur=true;ssr.bouncing=false;
  // Cap steps but stretch their stride to retain the whole reflection ray on mobile.
@@ -18,13 +19,13 @@ export function createPipeline(renderer:THREE.WebGLRenderer,scene:THREE.Scene,ca
  // Three r180's alpha-weighted SSR blur divides by zero where no ray hit exists.
  for(const material of [ssr.blurMaterial,ssr.blurMaterial2])material.fragmentShader=material.fragmentShader.replace(')/a;',')/max(a,0.00001);');
  const points:THREE.PointLight[]=[];scene.traverse(object=>{if(object instanceof THREE.PointLight)points.push(object);});
- const waterPass=new WaterCompositePass(camera,ssr.beautyRenderTarget.depthTexture!,water);
+ const waterPass=new WaterCompositePass(camera,ssr.beautyRenderTarget.depthTexture!,water,peerProbe);
  const lighting={...atmosphere.volume,points,groundHeight:0};
  const volume=new HybridVolumePass(camera,waterPass.target.depthTexture!,lighting),exposure=new ExposurePass(),bloom=new UnrealBloomPass(new THREE.Vector2(1,1),.32,.55,1.05),output=new OutputPass(),fxaa=new ShaderPass(FXAAShader);
  for(const pass of [ssr,waterPass,volume,exposure,bloom,output,fxaa])composer.addPass(pass);
  const inspect=new URLSearchParams(location.search).has('graphicsProbe'),diagnostics={stageSamples:0,reflectionPixels:0,bloomEnergy:0,volumeEnergy:0,invalidPixels:0,beautyEnergy:0};let reading=false,lastRead=0,disposed=false;
  async function measure(target:THREE.WebGLRenderTarget,alpha=false){const data=new Uint16Array(target.width*target.height*4);await renderer.readRenderTargetPixelsAsync(target,0,0,target.width,target.height,data);let sum=0;for(let i=0;i<data.length;i+=4){const v=THREE.DataUtils.fromHalfFloat(data[i+(alpha?3:0)]);if(!Number.isFinite(v)){diagnostics.invalidPixels++;continue;}sum+=alpha?(v>.001?1:0):Math.max(0,v);}return alpha?sum:sum/(data.length/4);}
- const renderSSR=ssr.render.bind(ssr);ssr.render=(r,write,read,delta,mask)=>{if(!direct&&reflections.length){renderSSR(r,write,read,delta,mask);return;}r.setRenderTarget(ssr.beautyRenderTarget);r.clear();r.render(scene,camera);ssr.copyMaterial.uniforms.tDiffuse.value=ssr.beautyRenderTarget.texture;ssr.copyMaterial.blending=THREE.NoBlending;ssr.fsQuad.material=ssr.copyMaterial;r.setRenderTarget(write);ssr.fsQuad.render(r);};
+ const renderSSR=ssr.render.bind(ssr);ssr.render=(r,write,read,delta,mask)=>{peerProbe?.beginFrame(ssr.beautyRenderTarget);if(!direct&&reflections.length){renderSSR(r,write,read,delta,mask);return;}r.setRenderTarget(ssr.beautyRenderTarget);r.clear();r.render(scene,camera);ssr.copyMaterial.uniforms.tDiffuse.value=ssr.beautyRenderTarget.texture;ssr.copyMaterial.blending=THREE.NoBlending;ssr.fsQuad.material=ssr.copyMaterial;r.setRenderTarget(write);ssr.fsQuad.render(r);};
  const wallTimings={atmosphereMs:0,selectionMs:0,composerMs:0};
  let width=1,height=1;const resolution=new AdaptiveResolution();
  function resize(w:number,h:number){width=w;height=h;const ratio=Math.min(window.devicePixelRatio,1,900/Math.max(w,h))*resolution.scale;renderer.setPixelRatio(ratio);renderer.setSize(w,h,false);composer.setPixelRatio(ratio);composer.setSize(w,h);fxaa.uniforms.resolution.value.set(1/(w*ratio),1/(h*ratio));ssr.ssrMaterial.defines.MAX_STEP=128;ssr.ssrMaterial.needsUpdate=true;}

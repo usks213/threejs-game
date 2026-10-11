@@ -79,7 +79,7 @@ export function startGame() {
   const terrain=field?{...field,update:(data:MeshData,r:THREE.WebGLRenderer)=>{if(data.field)field.update(data.field,r);}}:createTerrain(world.scene);
   app.dataset.terrainMode=direct?'direct-field':'surface-mesh';if(direct)renderer.shadowMap.enabled=false;
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, direct?110:80);
-  const pipeline=createPipeline(renderer,world.scene,camera,world.atmosphere,world.sparseWater,direct);
+  const pipeline=createPipeline(renderer,world.scene,camera,world.atmosphere,world.sparseWater,direct,world.peerProbe);
   const readKeyboard = keyboardInput(signal,preferences.boundCode,()=>sendMotion()), touch = touchInput(document.querySelector('#stick')!, document.querySelector('#knob')!, signal), view = cameraInput(canvas, signal);preferences.bindView(view);
   let waterProbeStarted=false;const probeWater=direct&&new URLSearchParams(location.search).has('waterProbe');
   const input: Axis = { x: 0, z: 0 };

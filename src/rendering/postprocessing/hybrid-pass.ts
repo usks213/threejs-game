@@ -1,3 +1,4 @@
+import type {createPeerRenderProbe} from '../scene/peer-render-probe';
 import * as THREE from 'three';
 import {Pass,FullScreenQuad} from 'three/addons/postprocessing/Pass.js';
 import {HybridVolume,type VolumeLighting} from '../volumetrics/hybrid-volume';
@@ -13,9 +14,9 @@ export class WaterCompositePass extends Pass {
  private readonly copy=new THREE.ShaderMaterial({glslVersion:THREE.GLSL3,depthTest:true,depthWrite:true,depthFunc:THREE.AlwaysDepth,uniforms:{color:{value:null as THREE.Texture|null},depth:{value:null as THREE.Texture|null}},vertexShader:'out vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'in vec2 vUv;uniform sampler2D color,depth;out vec4 result;void main(){result=texture(color,vUv);gl_FragDepth=texture(depth,vUv).r;}'});
  private readonly blit=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{color:{value:this.target.texture}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'varying vec2 vUv;uniform sampler2D color;void main(){gl_FragColor=texture2D(color,vUv);}'});
  private readonly quad=new FullScreenQuad(this.copy);
- constructor(private camera:THREE.PerspectiveCamera,private opaqueDepth:THREE.Texture,private water:ReturnType<typeof createSparseWaterView>){super();}
+ constructor(private camera:THREE.PerspectiveCamera,private opaqueDepth:THREE.Texture,private water:ReturnType<typeof createSparseWaterView>,private peerProbe:ReturnType<typeof createPeerRenderProbe>|null=null){super();}
  setSize(w:number,h:number){this.target.setSize(w,h);}
- render(renderer:THREE.WebGLRenderer,write:THREE.WebGLRenderTarget,read:THREE.WebGLRenderTarget,dt:number){this.copy.uniforms.color.value=read.texture;this.copy.uniforms.depth.value=this.opaqueDepth;this.quad.material=this.copy;renderer.setRenderTarget(this.target);renderer.clear();this.quad.render(renderer);this.water.render(renderer,this.camera,read.texture,this.opaqueDepth,this.target,dt);this.quad.material=this.blit;renderer.setRenderTarget(write);this.quad.render(renderer);}
+ render(renderer:THREE.WebGLRenderer,write:THREE.WebGLRenderTarget,read:THREE.WebGLRenderTarget,dt:number){this.copy.uniforms.color.value=read.texture;this.copy.uniforms.depth.value=this.opaqueDepth;this.quad.material=this.copy;renderer.setRenderTarget(this.target);renderer.clear();this.quad.render(renderer);this.water.render(renderer,this.camera,read.texture,this.opaqueDepth,this.target,dt);this.peerProbe?.finishFrame(this.camera,this.target);this.quad.material=this.blit;renderer.setRenderTarget(write);this.quad.render(renderer);}
  dispose(){this.target.dispose();this.copy.dispose();this.blit.dispose();this.quad.dispose();}
 }
 export class HybridVolumePass extends Pass {
