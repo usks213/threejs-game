@@ -229,6 +229,7 @@ export class PlayerControls {
  }
  async retreat(){
   const initial=await motion(this.page),started=Date.now();let last={...initial.position},stalled=0;
+  let waypoint:ReturnType<typeof cryptRetreatWaypoint>|null=null;
   await this.shield(true);
   try{for(let step=0;step<160;step++){
    expect(Date.now()-started,'Retreat retains the existing 60-second recovery budget').toBeLessThan(60000);
@@ -241,8 +242,11 @@ export class PlayerControls {
    // blocked input never counts as an escape and never lowers the shield.
    // Defensive look must remain available below the next offensive cycle's reserve.
    if(enemy&&distance<4){const yaw=Math.atan2(p.position.x-enemy.position.x,p.position.z-enemy.position.z);if(Math.abs(angle(yaw-p.yaw))>.3){await this.moveAxes(0,0);await this.aim({...enemy.position,y:enemy.position.y+1.52},true);}}
-   const now=await motion(this.page),waypoint=cryptRetreatWaypoint(now.position,enemy?.position??{x:0,z:-9});
-   if(waypoint.jump){await this.followCryptWaypoint(waypoint,true);continue;}
+   const now=await motion(this.page);
+   // Finish the chosen leg before replanning: a pursuing enemy crossing the
+   // lane midpoint must not reverse an unfinished retreat back into its reach.
+   if(!waypoint||stalled>0||Math.hypot(now.position.x-waypoint.x,now.position.z-waypoint.z)<.12)waypoint=cryptRetreatWaypoint(now.position,enemy?.position??{x:0,z:-9});
+   if(waypoint.jump){await this.followCryptWaypoint(waypoint,true);waypoint=null;continue;}
    const axes=waypointAxes(now.position,now.yaw,waypoint);
    await this.moveAxes(axes.x,axes.z);
    await expect.poll(async()=>{const after=await motion(this.page);expect(after.hp,'A retreat leg must preserve life').toBeGreaterThan(0);return after.seconds;},{timeout:Math.max(1,60000-(Date.now()-started)),intervals:[50,100]}).toBeGreaterThan(now.seconds+.12);

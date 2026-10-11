@@ -1,3 +1,14 @@
+/** Shared constants keep the shader fade and its CPU regression reference aligned. */
+export const WATER_REFLECTION_LIMITS={errorStart:.02,errorEnd:.15,selfStart:.04,selfEnd:.12,edgeStart:.01,edgeEnd:.08,rangeStart:2.2,rangeEnd:2.88} as const;
+export function waterReflectionConfidence(error:number,travel:number,edge:number){
+ if(!Number.isFinite(error+travel+edge))return 0;
+ const smooth=(a:number,b:number,x:number)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);},p=WATER_REFLECTION_LIMITS;
+ return (1-smooth(p.errorStart,p.errorEnd,Math.abs(error)))*smooth(p.selfStart,p.selfEnd,travel)*smooth(p.edgeStart,p.edgeEnd,edge)*(1-smooth(p.rangeStart,p.rangeEnd,travel));
+}
+const reflectionFade=`
+float reflectionConfidence(float error,float travel,float edge){
+ return (1.-smoothstep(${WATER_REFLECTION_LIMITS.errorStart},${WATER_REFLECTION_LIMITS.errorEnd},abs(error)))*smoothstep(${WATER_REFLECTION_LIMITS.selfStart},${WATER_REFLECTION_LIMITS.selfEnd},travel)*smoothstep(${WATER_REFLECTION_LIMITS.edgeStart},${WATER_REFLECTION_LIMITS.edgeEnd},edge)*(1.-smoothstep(${WATER_REFLECTION_LIMITS.rangeStart.toFixed(1)},${WATER_REFLECTION_LIMITS.rangeEnd},travel));
+}`;
 /** Bounded surface-brick sphere tracing, not a full-screen water color filter. */
 export const waterVolumeVertex=`
 flat out vec3 brickMin;
@@ -40,6 +51,17 @@ float baseDistance(vec3 p){vec3 uv=((p-fieldOrigin)/fieldSpacing+.5)/fieldDimens
 float ripple(vec3 p){vec2 uv=(p.xz-basinMin.xz)/basinSize.xz;return (texture(ripples,uv).r*2.-1.)*rippleAmplitude;}
 float distanceAt(vec3 p){return baseDistance(p-vec3(0.,ripple(p),0.));}
 vec3 surfaceNormal(vec3 p){vec3 e=fieldSpacing*.45;vec3 gradient=vec3(distanceAt(p+vec3(e.x,0,0))-distanceAt(p-vec3(e.x,0,0)),distanceAt(p+vec3(0,e.y,0))-distanceAt(p-vec3(0,e.y,0)),distanceAt(p+vec3(0,0,e.z))-distanceAt(p-vec3(0,0,e.z)))/e;return dot(gradient,gradient)>.000001?normalize(gradient):vec3(0.,1.,0.);}
+${reflectionFade}
+// Camera-distance gap is linear in metres along a projected camera ray. Reject
+// invalid projections before division/sampling and never bracket through sky.
+bool reflectionSample(vec3 q,out vec2 uv,out float gap){
+ vec4 projected=viewProjection*vec4(q,1.);uv=vec2(.5);gap=0.;
+ if(projected.w<=.00001)return false;
+ uv=projected.xy/projected.w*.5+.5;
+ if(any(lessThanEqual(uv,vec2(.01)))||any(greaterThanEqual(uv,vec2(.99))))return false;
+ float depth=texture(opaqueDepth,uv).r;if(depth>=.999999)return false;
+ gap=length(q-eye)-length(worldAt(uv,depth)-eye);return true;
+}
 void main(){
  if(buffersReady<.5)discard;
  vec2 uv=gl_FragCoord.xy/viewport;
@@ -105,8 +127,32 @@ void main(){
  vec3 body=ground*absorption+vec3(.022,.14,.17)*(1.-absorption);
  float fresnel=.0204+.9796*pow(1.-max(0.,dot(n,-rd)),5.);
  vec3 reflected=reflect(rd,n);vec3 sky=mix(vec3(.10,.16,.19),vec3(.42,.58,.66),clamp(reflected.y*.6+.4,0.,1.));
- // Bounded screen-space reflection with depth intersection and sky fallback.
- for(int i=1;i<=12;i++){vec3 q=p+reflected*(float(i)*.24);vec4 projected=viewProjection*vec4(q,1.);if(projected.w<=0.)break;vec3 ndc=projected.xyz/projected.w;vec2 suv=ndc.xy*.5+.5;if(any(lessThan(suv,vec2(.01)))||any(greaterThan(suv,vec2(.99))))break;float depth=texture(opaqueDepth,suv).r;vec3 surface=worldAt(suv,depth);if(ndc.z*.5+.5>depth&&length(surface-q)<.3){sky=texture(opaqueColor,suv).rgb;break;}}
+ // SSR remains bounded: twelve coarse samples, five depth bisections and one
+ // secant correction. Confidence smoothly returns to sky at every budget/edge.
+ float previousTravel=.025,previousGap=0.;vec2 firstUv;
+ bool previousValid=reflectionSample(p+reflected*previousTravel,firstUv,previousGap);
+ for(int i=1;i<=12;i++){
+  float travel=float(i)*.24,gap;vec2 suv;
+  bool validSample=reflectionSample(p+reflected*travel,suv,gap);
+  if(validSample&&previousValid&&gap>0.&&previousGap<=0.){
+   float low=previousTravel,high=travel,lowGap=previousGap,highGap=gap;bool valid=true;
+   for(int refine=0;refine<5;refine++){
+    float mid=(low+high)*.5,midGap;vec2 midUv;
+    if(!reflectionSample(p+reflected*mid,midUv,midGap)){valid=false;break;}
+    if(midGap>0.){high=mid;highGap=midGap;}else{low=mid;lowGap=midGap;}
+   }
+   // Interpolate the final bracket to avoid quantized distance-fade rings even
+   // after bisection. Reproject/resample the corrected hit, never its coarse tap.
+   float hitTravel=mix(low,high,clamp(-lowGap/max(.000001,highGap-lowGap),0.,1.)),hitGap;vec2 hitUv;
+   if(valid&&reflectionSample(p+reflected*hitTravel,hitUv,hitGap)){
+    float edge=min(min(hitUv.x,hitUv.y),min(1.-hitUv.x,1.-hitUv.y));
+    float confidence=reflectionConfidence(hitGap,hitTravel,edge);
+    sky=mix(sky,texture(opaqueColor,hitUv).rgb,confidence);
+   }
+   break;
+  }
+  previousTravel=travel;previousGap=gap;previousValid=validSample;
+ }
  // A calm shore or a thin film is not automatically white foam. The old
  // positive sine half-waves painted periodic bands across the whole basin.
  // Confine disturbed foam to the immediate coast, with filtered irregular detail.
