@@ -164,7 +164,9 @@ export class Renderer {
     const began = performance.now(), { ctx, width, height, scale } = this;
     const p = run.player, world = run.world, survival = isSurvival(run);
     this.cameraX = Math.round(Math.max(0, Math.min(Math.max(0, world.width - width), p.x - width * 0.45)));
-    this.cameraY = Math.round(Math.max(-38, Math.min(world.height - height, p.y - height * 0.4)));
+    // Portrait survival keeps the character below its taller workshop HUD, even at the surface.
+    const topMargin = survival && width < height ? -Math.ceil(height * 0.4) : -38;
+    this.cameraY = Math.round(Math.max(topMargin, Math.min(world.height - height, p.y - height * 0.4)));
     ctx.setTransform(scale, 0, 0, scale, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     this.background(run); this.uploadTerrain(run);
     ctx.drawImage(this.terrain, this.terrainWindow.x - this.cameraX, this.terrainWindow.y - this.cameraY);

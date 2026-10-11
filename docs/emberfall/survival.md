@@ -5,12 +5,12 @@ The main URL is now a survival-crafting world, following the updated direction o
 ## Ordinary play loop
 
 1. Use the pick to cut actual wood, rock, sand and ore cells. Removed cells produce counted resources; empty cells never do. The tool acts on the first reachable surface, with limited range and cooldown.
-2. Pause with **工作 / II** and spend resources on torches, a workbench and a campfire. Workbench proximity enables finite spell-card editing, pick improvement and limited-ammunition crafting.
+2. Open the **メニュー** and its **工作** tab and spend resources on torches, a workbench and a campfire. Workbench proximity enables finite spell-card editing, pick improvement and limited-ammunition crafting.
 3. Select the crafted item in the tool selector and aim toward a clear supported floor. A camp establishes the respawn location. Wood and stone blocks consume nine matching resources and become actual material cells; sand falls under gravity.
 4. Build from dry edges around the shallow reservoir. Mining its walls releases its finite water. Wood walls can burn; stone stays nonflammable and blocks flowing cells. Lighting is useful when exploring the connected deeper cave.
 5. Death returns the player near camp or the entrance. The edited world, resources, finite card ownership, surviving structures and enemies remain. Equipment whose support was destroyed is returned to inventory by the same rule used during ordinary play. Save/title/reload continues this same world rather than generating a new run.
 
-Desktop: A/D, Space, mouse use, F water, 1/2 wands, Tab/Escape workshop/pause. Touch: left movement pad, right aim/use pad, flight and water buttons. Select a tool before using it. UI pauses do not advance hazards. All controls release on cancellation, resize or blur.
+Desktop: A/D, Space, mouse use, F water, 1/2 wands, Tab/Escape workshop/pause. Touch: left movement pad, right aim-only pad or screen aim, a separate use button, flight and water buttons. Sliding the movement pad upward also levitates. Select a tool before using it. UI pauses do not advance hazards. All controls release on cancellation, resize or blur.
 
 ## Physics and persistence boundaries
 
@@ -18,7 +18,7 @@ Desktop: A/D, Space, mouse use, F water, 1/2 wands, Tab/Escape workshop/pause. T
 - Mining and placed-cell resources are conserved. Crafting checks full cost before mutation. Placement rejects occupied actor/structure cells and does not silently delete liquids; build a dam from a dry edge.
 - Camp recovery searches a bounded nearby safe floor. A completely buried/flooded camp needs a tiny emergency air shelter with unmineable flooring. Cleared recovery cells grant no resources. This exception is disclosed rather than claiming literal preservation of every death-site cell.
 - Equipment needs the same center-cell support required at placement. Mining that support, an explosion, falling sand or burning wood returns one finished item exactly once; pointing the pick at equipment uses the same recovery transaction. Recovery of the active camp selects the newest remaining supported camp, or the entrance. There is no recipe-material refund. At the exceptional 100,000-item inventory cap, manual recovery is refused and automatic overflow is lost with a notice. Equipment does not simulate rigid-body falling, durability or extinguishing.
-- Existing survival saves retain their format. Removed equipment leaves monotonic ID gaps; the reader accepts bounded gaps and reconciles formerly floating equipment in memory without rewriting the original save merely by loading it.
+- Existing survival saves migrate in memory to the expanded world; the original bytes are archived on the first successful v2 save. Removed equipment leaves monotonic ID gaps; the reader accepts bounded gaps and reconciles formerly floating equipment in memory without rewriting the original save merely by loading it.
 - Survival saves use separate `emberfall-survival-save-v1` and backup keys. The legacy expedition keys are not read, migrated or overwritten by this mode. Save envelopes validate bounded resources, structures, ids, camp/spawn, tool, full inherited world/RNG/cards/ammo/enemies and checksums. Backup recovery and storage failures are handled visibly.
 
 ## Lighting and visual architecture
@@ -27,11 +27,11 @@ Original pixel art at a bounded logical resolution, stratified terrain and dista
 
 ## Scope and acceptance
 
-This is one finite seeded 256×384-cell world with a small workshop clearing and connected caves. It does not provide Terraria's world size, item/recipe/boss progression or Noita's full material/spell/physics catalogue. Broad biome variation, structural collapse/durability, mixed flasks, electricity/freezing, audio, multiplayer, controller/remapping and real-device performance remain missing or unverified. Existing coverage-ledger gaps still apply where relevant.
+The current candidate expands survival to one finite seeded 1536×768-cell world with six connected regions, a surface and underground galleries. Up to 49 nearby 32-cell chunks simulate; distant matter/actors pause. See [open-world.md](open-world.md) for exact boundaries and migration. It does not provide Terraria's world size, item/recipe/boss progression or Noita's full material/spell/physics catalogue. Deeper regional progression, structural collapse/durability, mixed flasks, electricity/freezing, audio, multiplayer, controller/remapping and real-device performance remain missing or unverified. Existing coverage-ledger gaps still apply where relevant.
 
 Required candidate acceptance: strict types, all unit suites, PC/Android-profile actual input from mining through crafting/placing camp and torch, lethal self-damage with persistent recovery, save/reload with old-save protection, inspected lit-world images and bounded renderer work/frame progress. Source/unit tests alone do not establish visual quality, phone FPS or a satisfying long-term game.
 
-## Accepted candidate
+## Previously accepted survival candidate
 
 `7c38b622` passed CI38144445126 with 129 unit tests and eight applicable browser cases. Both PC and Android-profile ordinary-input survival flows reached crafting/placement, actual explosion death, persistent camp recovery and reload. Lit-world and respawn images were inspected; old save isolation and edited-terrain samples passed. The accepted loop is a small initial survival slice, not long-term balance or device-FPS proof. See [release-review.md](release-review.md).
 

@@ -65,3 +65,16 @@ it('supports quality/effect A/B options and keeps gameplay rendering when option
   expect(renderer.metrics.fallback).toBe('canvas'); expect(terrain.putImageData).toHaveBeenCalledTimes(1); expect(main.drawImage).toHaveBeenCalled();
   expect(renderer.pixels.width*renderer.pixels.height).toBeLessThan(256*384);
 });
+
+
+it('keeps the surface character below the portrait survival HUD without changing expedition framing', () => {
+  const main = context(), contexts = [context(),context(),context()];
+  vi.stubGlobal('document',{createElement:()=>{const ctx=contexts.shift();return{getContext:()=>ctx};}});
+  const renderer = new Renderer({getContext:()=>main} as unknown as HTMLCanvasElement);
+  renderer.width=160; renderer.height=347;
+  const run=Object.assign(new Run(3397),{mode:'survival',structures:[]});
+  renderer.draw(run,idleInput());
+  expect((run.player.y-renderer.cameraY)/renderer.height).toBeCloseTo(0.4,2);
+  expect((run.player.y-renderer.cameraY)*851/347).toBeGreaterThan(220);
+  renderer.draw(new Run(3397),idleInput()); expect(renderer.cameraY).toBe(-38);
+});
