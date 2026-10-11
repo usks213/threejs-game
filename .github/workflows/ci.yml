@@ -5,6 +5,9 @@ on:
     branches: [main]
 permissions:
   contents: read
+concurrency:
+  group: emberfall-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -39,6 +42,13 @@ jobs:
             test-results/
           retention-days: 7
 
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: emberfall-images
+          path: test-results/**/*.png
+          retention-days: 7
+
   verify-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: verify
@@ -69,4 +79,3 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
-

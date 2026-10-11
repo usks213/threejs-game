@@ -486,3 +486,7 @@ button.primary:hover{
 .fly-button,.spray-button{
   right:calc(16px + env(safe-area-inset-right))}
 }
+/* Mouse users aim across the entire cave; touch pads must not intercept shots. */
+@media (hover:hover) and (pointer:fine){
+  .move-pad,.aim-pad,.fly-button,.spray-button{display:none}
+}

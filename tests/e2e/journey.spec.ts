@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { random } from '../../src/emberfall/generation';
+test.describe.configure({ retries: 0 });
 interface Observation { phase: string; seed: number; level: number; x: number; y: number; hp: number; kills: number; gold: number; cameraX: number; cameraY: number; width: number; height: number; enemies: { x: number; y: number }[] }
 function route(seed: number, level: number) {
   const rng = random(seed + level * 1879), nodes = [];
@@ -15,6 +16,7 @@ test('ordinary desktop controls traverse all caves, shop, perks and final guardi
   const canvas = page.locator('#cave');
   await expect.poll(async () => Number(await canvas.getAttribute('data-tick'))).toBeGreaterThan(10);
   let node = 0, currentLevel = 0, keys = new Set<string>(), mouseDown = false;
+  let lastPosition = { x: 40, y: 27 }, stuckSince = Date.now(), recoverUntil = 0;
   const receipt: Observation[] = [];
   const setKeys = async (next: Set<string>) => { for (const key of keys) if (!next.has(key)) await page.keyboard.up(key); for (const key of next) if (!keys.has(key)) await page.keyboard.down(key); keys = next; };
   const release = async () => { await setKeys(new Set()); if (mouseDown) { await page.mouse.up(); mouseDown = false; } };
@@ -39,15 +41,19 @@ test('ordinary desktop controls traverse all caves, shop, perks and final guardi
         await card.getByRole('button', { name: 'この構成を適用' }).click();
       }
       await page.getByRole('button', { name: '次の地層へ' }).click();
-      currentLevel = state.level + 1; node = 0;
+      currentLevel = state.level + 1; node = 0; lastPosition = { x: 40, y: 27 }; stuckSince = Date.now(); recoverUntil = 0;
       await expect.poll(async () => (JSON.parse((await canvas.getAttribute('data-observation'))!) as Observation).level).toBe(currentLevel);
       continue;
     }
     const nodes = route(state.seed, currentLevel), target = nodes[node];
     if (Math.abs(state.x - target.x) < 10 && state.y >= target.y - 4 && node < nodes.length - 1) node++;
     const next = nodes[node], desired = new Set<string>();
+    if (Math.hypot(state.x - lastPosition.x, state.y - lastPosition.y) > 2) { lastPosition = {x:state.x,y:state.y}; stuckSince = Date.now(); }
+    // A real player uses levitation to climb a local ledge even when the next
+    // distant room is lower. Recover through ordinary input, never teleport.
+    if (Math.abs(next.x - state.x) > 5 && Date.now() - stuckSince > 650) { recoverUntil = Date.now() + 700; stuckSince = Date.now() + 700; }
     if (Math.abs(next.x - state.x) > 2) desired.add(next.x > state.x ? 'KeyD' : 'KeyA');
-    if (state.y > next.y + 6) desired.add('Space');
+    if (state.y > next.y + 6 || Date.now() < recoverUntil) desired.add('Space');
     await setKeys(desired);
     const nearest = state.enemies.sort((a,b) => Math.hypot(a.x - state.x,a.y - state.y) - Math.hypot(b.x - state.x,b.y - state.y))[0];
     if (nearest) {
@@ -60,6 +66,7 @@ test('ordinary desktop controls traverse all caves, shop, perks and final guardi
     await page.waitForTimeout(80);
   }
   await release();
+  await info.attach('final-observation.json',{ body: (await canvas.getAttribute('data-observation')) ?? '{}', contentType:'application/json' });
   await expect(canvas).toHaveAttribute('data-phase','won');
   await expect(page.getByRole('heading', { name: '種を持ち帰った' })).toBeVisible();
   await page.screenshot({ path: info.outputPath('victory.png') });
