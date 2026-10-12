@@ -7,7 +7,7 @@ export type ControlLayout = 'one-hand' | 'two-hand';
 export type ControlHand = 'right' | 'left';
 export interface ControlPreferences { layout: ControlLayout; hand: ControlHand }
 export interface ControlVector { x: number; y: number }
-interface Contact { kind: SurvivalControl; vector: ControlVector; mouseUse: boolean; dwell: number; used: boolean }
+interface Contact { kind: SurvivalControl; vector: ControlVector; mouseUse: boolean; dwell: number; used: boolean; workStartedAt: number | null }
 export const THUMB_RADIUS = 48;
 export const THUMB_WORK_DEADZONE = 0.28;
 export const THUMB_WORK_DWELL = 0.22;
@@ -45,6 +45,7 @@ export class SoftThumbStick {
 
 /** DOM-free input composition. Work requires a new displaced thumb and a short dwell. */
 export class SurvivalInputModel {
+  constructor(private readonly clock?: () => number) {}
   readonly state: Input = idleInput();
   private readonly keys = new Set<string>();
   private readonly contacts = new Map<number, Contact>();
@@ -73,7 +74,7 @@ export class SurvivalInputModel {
     this.refresh();
   }
   press(id: number, kind: SurvivalControl, vector: ControlVector = { x: 0, y: 0 }, mouseUse = false): void {
-    this.contacts.set(id, { kind, vector: validVector(vector) ? vector : { x: 0, y: 0 }, mouseUse, dwell: 0, used: false });
+    this.contacts.set(id, { kind, vector: validVector(vector) ? vector : { x: 0, y: 0 }, mouseUse, dwell: 0, used: false, workStartedAt: null });
     if (kind === 'aim') this.aim(vector);
     if ((kind === 'use' || mouseUse) && !this.pendingUse) this.pendingUse = { id, released: false, aim: { ...this.aimDirection } };
     this.refresh();
@@ -84,8 +85,10 @@ export class SurvivalInputModel {
     contact.vector = vector;
     if (contact.kind === 'aim') this.aim(vector);
     if (contact.kind === 'thumb' && this.mode === 'work') {
-      if (Math.hypot(vector.x, vector.y) > THUMB_WORK_DEADZONE) this.aim(vector);
-      else { contact.dwell = 0; contact.used = false; }
+      if (Math.hypot(vector.x, vector.y) > THUMB_WORK_DEADZONE) {
+        this.aim(vector);
+        if (contact.workStartedAt === null && this.clock) contact.workStartedAt = this.clock();
+      } else { contact.dwell = 0; contact.used = false; contact.workStartedAt = null; }
     }
     this.refresh();
   }
@@ -94,8 +97,14 @@ export class SurvivalInputModel {
     for (const contact of this.contacts.values()) {
       if (contact.kind !== 'thumb' || this.mode !== 'work') continue;
       if (Math.hypot(contact.vector.x, contact.vector.y) > THUMB_WORK_DEADZONE) {
-        this.aim(contact.vector); contact.dwell += Math.min(dt, 0.1);
-      } else { contact.dwell = 0; contact.used = false; }
+        this.aim(contact.vector);
+        // Browser contacts start their grace at the actual displacement event,
+        // never at the beginning of a potentially long preceding render frame.
+        if (this.clock) {
+          const now = this.clock(); contact.workStartedAt ??= now;
+          contact.dwell = Math.max(0, now - contact.workStartedAt);
+        } else contact.dwell += Math.min(dt, 0.1);
+      } else { contact.dwell = 0; contact.used = false; contact.workStartedAt = null; }
     }
     this.refresh();
   }
@@ -136,7 +145,7 @@ export class SurvivalInputModel {
 
 /** Survival-specific pointer adapter. The expedition controls remain unchanged. */
 export class SurvivalControls {
-  private readonly model = new SurvivalInputModel();
+  private readonly model = new SurvivalInputModel(() => performance.now() / 1000);
   readonly state = this.model.state;
   private readonly targets = new Map<number, HTMLElement>();
   private readonly thumbs = new Map<number, SoftThumbStick>();

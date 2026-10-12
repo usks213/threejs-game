@@ -62,6 +62,26 @@ const dwell = (input: SurvivalInputModel, seconds = THUMB_WORK_DWELL + 0.02) => 
 };
 
 describe('one-thumb travel and work', () => {
+  it('measures browser work grace from displacement, not the preceding slow frame', () => {
+    let now = 10; const input = new SurvivalInputModel(() => now); input.setThumbMode('work');
+    input.press(1, 'thumb'); now = 11; input.update(1);
+    input.move(1, { x: 0.8, y: 0 }); input.update(0.1);
+    expect(input.state.fire).toBe(false);
+    now += 0.219; input.update(0.1); expect(input.state.fire).toBe(false);
+    now += 0.002; input.update(0.001); expect(input.state.fire).toBe(true);
+    input.move(1, { x: 0, y: 0 }); now += 3; input.update(3);
+    input.move(1, { x: 0.8, y: 0 }); input.update(0.1); expect(input.state.fire).toBe(false);
+    input.release(1, true); now += 5; input.update(5); expect(input.state.fire).toBe(false);
+  });
+  it('discards the clock origin across lifecycle clear, new pointers and mode changes', () => {
+    let now = 1; const input = new SurvivalInputModel(() => now); input.setThumbMode('work');
+    input.press(1, 'thumb'); input.move(1, { x: 1, y: 0 }); now += 0.1; input.update(0.1);
+    input.clear(); now += 100; input.move(1, { x: 1, y: 0 }); input.update(100);
+    expect(input.state.fire).toBe(false);
+    input.press(2, 'thumb'); input.move(2, { x: 1, y: 0 }); input.update(100); expect(input.state.fire).toBe(false);
+    input.setThumbMode('travel'); input.setThumbMode('work'); now += 10; input.update(10);
+    expect(input.state.fire).toBe(false);
+  });
   it('uses one relative drag for proportional movement and upward levitation', () => {
     const input = new SurvivalInputModel();
     input.press(1, 'thumb'); expect(input.state.move).toBe(0);

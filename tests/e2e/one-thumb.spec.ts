@@ -21,7 +21,15 @@ test('one thumb mines, crafts, builds and controls water with safe handed input'
   const craft=async(id:string)=>{await menu();await page.locator('[data-tab="craft"]').tap();await expect(page.locator(`[data-recipe="${id}"]`)).toBeEnabled();await page.locator(`[data-recipe="${id}"]`).tap();await resume();};
   // A tap/deadzone contact must never start a tool. One finger, no second pad.
   await mode('work');const p=await drag(0,0);await page.waitForTimeout(500);expect((await read()).resources.wood).toBe(0);await expect(cave).toHaveAttribute('data-input-fire','false');
-  await touch('touchMove',{x:p.x+36,y:p.y});await page.waitForTimeout(100);await touch('touchCancel');await page.waitForTimeout(300);expect((await read()).resources.wood).toBe(0);await expect(cave).toHaveAttribute('data-input-fire','false');
+  // Observe actual browser delivery, not a Node wait plus variable CDP latency.
+  await pad.evaluate(element=>{const events:{type:string;at:number}[]=[],abort=new AbortController();for(const type of ['pointermove','pointercancel'])element.addEventListener(type,()=>{events.push({type,at:performance.now()});(element as HTMLElement).dataset.cancelEvents=JSON.stringify(events.slice(-8));if(type==='pointercancel')abort.abort();},{signal:abort.signal});});
+  await Promise.all([touch('touchMove',{x:p.x+36,y:p.y}),touch('touchCancel')]);pressed=false;
+  const cancelEvents=JSON.parse((await pad.getAttribute('data-cancel-events'))!) as {type:string;at:number}[];
+  const displaced=cancelEvents.find(event=>event.type==='pointermove')!,canceled=cancelEvents.find(event=>event.type==='pointercancel')!;
+  expect(cancelEvents.map(event=>event.type)).toEqual(['pointermove','pointercancel']);
+  expect(canceled.at-displaced.at).toBeGreaterThanOrEqual(0);expect(canceled.at-displaced.at).toBeLessThan(220);
+  await info.attach('short-cancel-timing.json',{body:JSON.stringify(cancelEvents),contentType:'application/json'});
+  await page.waitForTimeout(300);expect((await read()).resources.wood).toBe(0);await expect(cave).toHaveAttribute('data-input-fire','false');
   for(let pass=0;pass<3;pass++)for(const y of [24,28,32,26,30,21])await aim(55,y,370);
   await expect.poll(async()=>(await read()).resources.wood).toBeGreaterThanOrEqual(34);
   for(const x of [49,52,55])await aim(x,34,400);
