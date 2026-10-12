@@ -78,3 +78,25 @@ it('keeps the surface character below the portrait survival HUD without changing
   expect((run.player.y-renderer.cameraY)*851/347).toBeGreaterThan(220);
   renderer.draw(new Run(3397),idleInput()); expect(renderer.cameraY).toBe(-38);
 });
+
+it('keeps world point conversion fixed while art backing follows quality and performance fallback', () => {
+  const main = context(), contexts = [context(), context(), context()];
+  vi.stubGlobal('document', { createElement: () => { const ctx = contexts.shift(); return { getContext: () => ctx }; } });
+  const canvas = { width: 0, height: 0, getContext: () => main, getBoundingClientRect: () => ({ left: 20, top: 40, width: 960, height: 540 }) };
+  const renderer = new Renderer(canvas as unknown as HTMLCanvasElement), run = new Run(3397);
+  renderer.resize(); renderer.draw(run, idleInput());
+  const point = renderer.point(500, 310);
+  expect(canvas.width).toBe(480); expect(canvas.height).toBe(270);
+  expect(renderer.metrics).toMatchObject({ canvasWidth: 240, canvasHeight: 135, backingWidth: 480, backingHeight: 270, artScale: 2 });
+  renderer.setQuality('low'); renderer.draw(run, idleInput());
+  expect(canvas.width).toBe(240); expect(canvas.height).toBe(135);
+  expect(renderer.point(500, 310)).toEqual(point);
+  expect(main.setTransform).toHaveBeenLastCalledWith(1, 0, 0, 1, 0, 0);
+  renderer.setQuality('high'); renderer.draw(run, idleInput());
+  expect(canvas.width).toBe(480);
+  const update = renderer.lighting.update.bind(renderer.lighting);
+  vi.spyOn(renderer.lighting, 'update').mockImplementation((...args) => { update(...args); renderer.lighting.metrics.lightingMs = 20; });
+  for (let i = 0; i < 13; i++) { run.time += 0.2; renderer.draw(run, idleInput()); }
+  expect(renderer.metrics).toMatchObject({ quality: 'high', effectiveQuality: 'low', artScale: 1, backingWidth: 240, backingHeight: 135, fallback: 'performance' });
+  expect(renderer.point(500, 310)).toEqual(point);
+});

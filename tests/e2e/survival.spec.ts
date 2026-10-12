@@ -1,3 +1,4 @@
+import {selectTwoHandControls} from './control-preferences';
 import { test, expect } from '@playwright/test';
 interface State { x:number;y:number;hp:number;deaths:number;cameraX:number;cameraY:number;width:number;height:number;resources:Record<string,number>;structures:{id:number;type:string;x:number;y:number}[];camp:{x:number;y:number}|null;tool:string;time:number }
 test('persistent survival: mine, craft, build a lit camp, recover after death and reload',async({page,context},info)=>{
@@ -9,7 +10,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   await page.goto('/?seed=3397');
   const activate=async(name:string)=>{const b=page.getByRole('button',{name,exact:true});if(mobile)await b.tap();else await b.click();};
   await page.screenshot({path:info.outputPath('survival-title.png')});
-  await activate('新しい世界を作る');const cave=page.locator('#cave');
+  await activate('新しい世界を作る');if(mobile)await selectTwoHandControls(page);const cave=page.locator('#cave');
   const read=async()=>JSON.parse((await cave.getAttribute('data-survival'))!) as State;
   await expect.poll(async()=>Number(await cave.getAttribute('data-tick'))).toBeGreaterThan(10);
   const cdp=mobile?await context.newCDPSession(page):null;
@@ -22,7 +23,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
     await page.waitForTimeout(120);
   };
   const select=async(tool:string)=>{await page.locator('#tool').selectOption(tool);};
-  const craft=async(id:string)=>{if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();await expect(page.locator(`[data-recipe="${id}"]`)).toBeEnabled();if(mobile)await page.locator(`[data-recipe="${id}"]`).tap();else await page.locator(`[data-recipe="${id}"]`).click();await activate('世界に戻る');};
+  const craft=async(id:string)=>{if(mobile)await page.locator('#menu-button').tap();else await page.locator('#menu-button').click();await page.locator('[data-tab="craft"]').click();await expect(page.locator(`[data-recipe="${id}"]`)).toBeEnabled();if(mobile)await page.locator(`[data-recipe="${id}"]`).tap();else await page.locator(`[data-recipe="${id}"]`).click();await activate('世界に戻る');};
   // Swing at actual trunk surfaces. Every earned unit comes from removed cells.
   for(let pass=0;pass<3;pass++)for(const y of [24,28,32,26,30,21])await aim(55,y,370);
   await expect.poll(async()=>(await read()).resources.wood).toBeGreaterThanOrEqual(34);

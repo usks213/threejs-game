@@ -1,8 +1,10 @@
+import {selectTwoHandControls} from './control-preferences';
 import {test,expect} from '@playwright/test';
 test('portrait survival separates aim from use and releases simultaneous work controls',async({page,context},info)=>{
   test.skip(info.project.name!=='android-chromium','Trusted touch lifecycle is covered on the phone profile');
   await page.addInitScript(()=>{if(!localStorage.getItem('emberfall-survival-ui-v1'))localStorage.setItem('emberfall-survival-ui-v1','{broken');});
   await page.setViewportSize({width:393,height:851});await page.goto('/?seed=3397');await page.getByRole('button',{name:'新しい世界を作る',exact:true}).tap();
+  await selectTwoHandControls(page);
   const cave=page.locator('#cave'),cdp=await context.newCDPSession(page);await expect.poll(async()=>Number(await cave.getAttribute('data-tick'))).toBeGreaterThan(10);
   const read=async()=>JSON.parse((await cave.getAttribute('data-survival'))!) as {x:number;y:number;cameraX:number;cameraY:number;width:number;height:number;resources:Record<string,number>};
   const box=(await cave.boundingBox())!,s=await read();const aim={x:box.x+(55-s.cameraX)/s.width*box.width,y:box.y+(24-s.cameraY)/s.height*box.height,id:7};

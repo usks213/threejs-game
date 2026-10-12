@@ -1,3 +1,4 @@
+import {selectTwoHandControls} from './control-preferences';
 import { test, expect } from '@playwright/test';
 interface State { x:number;y:number;cameraX:number;cameraY:number;width:number;height:number;resources:Record<string,number>;deaths:number }
 test('ordinary controls build a stone dam, release the reservoir and reopen downstream flow',async({page,context},info)=>{
@@ -5,7 +6,7 @@ test('ordinary controls build a stone dam, release the reservoir and reopen down
   const mobile=info.project.name==='android-chromium',errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.setViewportSize(mobile?{width:393,height:851}:{width:1280,height:720});await page.goto('/?seed=3397');
   const button=async(name:string)=>{const b=page.getByRole('button',{name,exact:true});if(mobile)await b.tap();else await b.click();};
-  await button('新しい世界を作る');const cave=page.locator('#cave'),cdp=mobile?await context.newCDPSession(page):null;
+  await button('新しい世界を作る');if(mobile)await selectTwoHandControls(page);const cave=page.locator('#cave'),cdp=mobile?await context.newCDPSession(page):null;
   const read=async()=>JSON.parse((await cave.getAttribute('data-survival'))!) as State;
   await expect.poll(async()=>Number(await cave.getAttribute('data-tick'))).toBeGreaterThan(10);
   const aim=async(x:number,y:number,ms=450)=>{const s=await read(),b=(await cave.boundingBox())!;const p={x:b.x+(x-s.cameraX)/s.width*b.width,y:b.y+(y-s.cameraY)/s.height*b.height,id:7};

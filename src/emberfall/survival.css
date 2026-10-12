@@ -137,3 +137,117 @@
 }
 @media(max-width:700px) and (max-height:500px) and (min-width:551px){.survival .toolbelt{bottom:calc(112px + var(--safe-bottom));left:48%}.survival .tool-status{bottom:calc(174px + var(--safe-bottom));left:48%;font-size:8px}.survival .pickup-button{bottom:210px}.survival .vitals{max-width:190px}.survival .notice{top:110px;left:24%;max-width:40%}}
 @media(prefers-reduced-motion:reduce){.survival button,.survival .meter i{transition:none}}
+/* One-thumb play: travel/work are explicit; the contact origin is always local. */
+.survival .thumb-pad,.survival .thumb-actions{display:none}
+.survival[data-control-layout="one-hand"] .controls>.move-pad,
+.survival[data-control-layout="one-hand"] .controls>.aim-pad,
+.survival[data-control-layout="one-hand"] .controls>.use-button,
+.survival[data-control-layout="one-hand"] .controls>.fly-button,
+.survival[data-control-layout="one-hand"] .controls>.spray-button{display:none}
+.survival[data-control-layout="one-hand"] .thumb-pad{display:block;position:absolute;right:calc(14px + var(--safe-right));bottom:calc(14px + var(--safe-bottom));width:160px;height:158px;touch-action:none;user-select:none;-webkit-user-select:none;border:1px solid #b0c4a75e;border-radius:42% 42% 37% 37%;background:radial-gradient(ellipse at 50% 44%,#52715d33,#17334077 70%);box-shadow:inset 0 0 25px #b4d6ac09;overflow:visible;--anchor-x:50%;--anchor-y:44%;--thumb-x:50%;--thumb-y:44%;--thumb-stretch:0px;--thumb-angle:0rad}
+.survival .thumb-anchor,.survival .thumb-knob,.survival .thumb-tether{position:absolute;display:block;pointer-events:none}
+.survival .thumb-anchor{left:var(--anchor-x);top:var(--anchor-y);width:96px;height:96px;transform:translate(-50%,-50%);border:1px dashed #c4d5ab70;border-radius:50%;background:#c4d8b30b}
+.survival .thumb-knob{left:var(--thumb-x);top:var(--thumb-y);width:46px;height:46px;transform:translate(-50%,-50%);border-radius:48%;border:2px solid #d5dec49c;background:#7c99874d;box-shadow:0 3px 12px #07182033}
+.survival .thumb-tether{left:var(--anchor-x);top:var(--anchor-y);height:8px;width:var(--thumb-stretch);transform:rotate(var(--thumb-angle));transform-origin:0 50%;border-radius:6px;background:#c2d6b125;margin-top:-4px}
+.survival .thumb-pad:not(.pressed) .thumb-anchor{left:50%;top:44%}.survival .thumb-pad:not(.pressed) .thumb-knob{left:50%;top:44%;background:#a9c4a31c}.survival .thumb-pad:not(.pressed) .thumb-tether{display:none}
+.survival .thumb-pad .thumb-symbol{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);font-size:23px;color:#dce6c899;pointer-events:none}
+.survival .thumb-pad.pressed .thumb-symbol{opacity:0}
+.survival .thumb-pad>small{position:absolute;bottom:12px;left:0;width:100%;text-align:center;font-size:9px;color:#c7d2ba;pointer-events:none;white-space:nowrap}
+.survival .thumb-pad[data-phase="aiming"] .thumb-knob{border-color:#e6c58a;background:#93794e66}
+.survival .thumb-pad[data-phase="using"] .thumb-knob{border-color:#ffe1a2;background:#c2a75b8c;box-shadow:0 0 16px #e6c17240}
+.survival[data-control-layout="one-hand"] .thumb-actions{position:absolute;display:grid;grid-template-columns:repeat(2,62px);gap:6px;right:calc(184px + var(--safe-right));bottom:calc(30px + var(--safe-bottom));width:130px;background:none;border:0;box-shadow:none;pointer-events:none}
+.survival .thumb-actions button{pointer-events:auto;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;min-height:54px;height:54px;min-width:48px;padding:3px;border-radius:13px;background:#1e3740dc;border-color:#b8c9a950}
+.survival .thumb-actions button>span{font-size:20px;line-height:24px}.survival .thumb-actions button>small{font-size:10px;line-height:16px}
+.survival .thumb-actions button[aria-pressed="true"]{background:#5c6e4fe8;border-color:#ecd69b;box-shadow:inset 0 -2px #d5bc7b}
+.survival[data-thumb-mode="work"] .thumb-pad{border-color:#c0aa745e;background:radial-gradient(ellipse at 50% 44%,#87734e33,#24353b77 70%)}
+.survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-pad{right:auto;left:calc(14px + var(--safe-left))}
+.survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(184px + var(--safe-left))}
+@media(max-width:550px){
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(182px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(254px + var(--safe-bottom))}
+}
+@media(max-width:370px){
+  .survival[data-control-layout="one-hand"] .thumb-pad{width:142px;height:150px;right:calc(12px + var(--safe-right))}
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(164px + var(--safe-right));bottom:calc(27px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-pad{right:auto;left:calc(12px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(164px + var(--safe-left))}
+  .survival .thumb-pad>small{font-size:8px}
+}
+@media(max-height:500px) and (min-width:551px) and (hover:none){
+  .survival[data-control-layout="one-hand"] .toolbelt{left:auto;right:calc(14px + var(--safe-right));transform:none;bottom:calc(180px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{left:auto;right:calc(14px + var(--safe-right));transform:none;bottom:calc(244px + var(--safe-bottom));max-width:330px;font-size:8px;line-height:1.25;padding:3px 8px}
+  .survival[data-control-layout="one-hand"] .pickup-button{left:24%;bottom:24px}
+  .survival[data-control-layout="one-hand"] .resource-strip{display:none}
+  .survival[data-control-layout="one-hand"] #save-status{top:auto;bottom:8px;left:14px;max-width:40%}
+  .survival[data-control-layout="one-hand"] .notice{left:22%;top:120px;max-width:36%}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .notice{left:78%}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] #save-status{left:auto;right:14px;text-align:right}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .pickup-button{left:76%}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .toolbelt,
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .tool-status{right:auto;left:calc(14px + var(--safe-left))}
+}
+@media(hover:hover) and (pointer:fine){
+  .survival[data-control-layout="one-hand"] .controls>.thumb-pad,
+  .survival[data-control-layout="one-hand"] .controls>.thumb-actions{display:none}
+}
+/* In portrait the whole action cluster sits above the gripping thumb, so no
+   frequent action requires reaching across the screen. Short landscape keeps
+   the side-by-side arrangement to preserve the playable middle of the world. */
+@media(hover:none) and (min-height:501px){
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(29px + var(--safe-right));left:auto;bottom:calc(184px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(304px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(374px + var(--safe-bottom));left:auto;right:calc(14px + var(--safe-right));transform:none;max-width:78%;text-align:right}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:calc(414px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(29px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .tool-status{right:auto;left:calc(14px + var(--safe-left));text-align:left}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .tool-picker{order:-1}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .toolbelt{grid-template-columns:minmax(90px,1.7fr) repeat(4,minmax(48px,1fr))}
+}
+@media(hover:none) and (min-height:501px) and (max-width:370px){
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(18px + var(--safe-right))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(18px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .toolbelt{grid-template-columns:minmax(80px,1fr) repeat(4,48px)}
+}
+/* Compact portrait preserves the hero's 40%-height playfield on 320×568.
+   Frequent mode switches stay beside the gripping thumb in a single row;
+   status/pickup use the otherwise empty space next to the lower pad. */
+@media(hover:none) and (min-height:501px) and (max-height:680px) and (max-width:550px){
+  .survival[data-control-layout="one-hand"] .thumb-pad{right:calc(12px + var(--safe-right));left:auto;bottom:calc(10px + var(--safe-bottom));width:142px;height:132px}
+  .survival[data-control-layout="one-hand"] .thumb-pad>small{font-size:8px;bottom:9px}
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(12px + var(--safe-right));left:auto;bottom:calc(150px + var(--safe-bottom));width:204px;grid-template-columns:repeat(4,48px);gap:4px}
+  .survival[data-control-layout="one-hand"] .thumb-actions button{height:50px;min-height:50px;border-radius:11px}
+  .survival[data-control-layout="one-hand"] .thumb-actions [data-thumb-mode="travel"]{order:3}
+  .survival[data-control-layout="one-hand"] .thumb-actions [data-thumb-mode="work"]{order:4}
+  .survival[data-control-layout="one-hand"] .thumb-actions #thumb-menu{order:2}
+  .survival[data-control-layout="one-hand"] .thumb-actions .thumb-water{order:1}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(208px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(86px + var(--safe-bottom));left:calc(12px + var(--safe-left));right:auto;transform:none;max-width:calc(100% - 178px - var(--safe-left) - var(--safe-right));font-size:9px;line-height:1.4;padding:5px 7px;text-align:left}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:calc(26px + var(--safe-bottom));left:calc(12px + var(--safe-left));right:auto;transform:none;min-width:48px;width:calc(100% - 178px - var(--safe-left) - var(--safe-right));max-width:180px;min-height:48px}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-pad{right:auto;left:calc(12px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(12px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions [data-thumb-mode="travel"]{order:1}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions [data-thumb-mode="work"]{order:2}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions #thumb-menu{order:3}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions .thumb-water{order:4}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .tool-status,
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .pickup-button{left:auto;right:calc(12px + var(--safe-right));text-align:right}
+}
+/* One-handed portrait workshop: only the middle content scrolls. Navigation,
+   save/title, and the preferred-side return button remain within lower reach. */
+@media(hover:none) and (orientation:portrait){
+  .survival[data-control-layout="one-hand"] .overlay:has(.workshop){align-items:flex-end;padding:max(12px,env(safe-area-inset-top)) max(10px,var(--safe-right)) max(14px,var(--safe-bottom)) max(10px,var(--safe-left))}
+  .survival[data-control-layout="one-hand"] .workshop{display:flex;flex-direction:column;height:min(82dvh,720px);max-height:calc(100dvh - 26px - env(safe-area-inset-top) - var(--safe-bottom));min-height:0;overflow:hidden;padding:12px 12px 8px;border-radius:18px 18px 10px 10px}
+  .survival[data-control-layout="one-hand"] .workshop>.eyebrow{order:0;flex:none;margin:0 0 4px;font-size:8px;line-height:12px}
+  .survival[data-control-layout="one-hand"] .workshop>h1{order:1;flex:none;font-size:20px;line-height:26px;letter-spacing:2px;margin:0 0 8px}
+  .survival[data-control-layout="one-hand"] .workshop-content{order:2;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:0 2px 12px;scroll-padding-block:8px}
+  .survival[data-control-layout="one-hand"] .workshop-tabs{order:3;flex:none;position:static;top:auto;z-index:auto;gap:4px;padding:6px 0;border-top:1px solid #abc29e30;border-bottom:0;background:#19313a}
+  .survival[data-control-layout="one-hand"] .workshop-tabs button{min-height:48px;padding:7px 3px;font-size:11px}
+  .survival[data-control-layout="one-hand"] .workshop-footer{order:4;flex:none;min-height:48px;margin:0;padding:0;border-top:0;justify-content:flex-end;background:#19313a}
+  .survival[data-control-layout="one-hand"] .workshop-footer button{min-height:48px;padding:8px 10px;font-size:10px}
+  .survival[data-control-layout="one-hand"] .workshop-header{order:5;flex:none;position:static;top:auto;z-index:auto;flex-direction:row-reverse;align-items:center;gap:10px;min-height:55px;margin:0;padding:6px 0 0;border-top:1px solid #abc29e30;background:#19313a}
+  .survival[data-control-layout="one-hand"] .workshop-header .primary{min-width:112px;min-height:48px;max-width:none;padding:8px 10px;font-size:11px}
+  .survival[data-control-layout="one-hand"] .workshop-header .inventory-summary{display:block;flex:1;min-width:0;max-width:none;font-size:9px!important;line-height:1.5;text-align:left}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .workshop-header{flex-direction:row}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .workshop-header .inventory-summary{text-align:right}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .workshop-footer{justify-content:flex-start}
+}
