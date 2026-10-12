@@ -28,6 +28,8 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   for(let pass=0;pass<3;pass++)for(const y of [24,28,32,26,30,21])await aim(55,y,370);
   await expect.poll(async()=>(await read()).resources.wood).toBeGreaterThanOrEqual(34);
   for(const x of [49,52,55])await aim(x,34,400);
+  // If the first shaft is exhausted, collect a separate reachable floor patch.
+  for(const x of [45,47])if((await read()).resources.stone<21)await aim(x,34,450);
   await expect.poll(async()=>(await read()).resources.stone).toBeGreaterThanOrEqual(21);
   await craft('camp');await select('camp');await page.waitForTimeout(250);await aim(25.5,34.5,100);
   await expect.poll(async()=>(await read()).structures.filter(s=>s.type==='camp').length).toBe(1);

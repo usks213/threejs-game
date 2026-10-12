@@ -5,7 +5,7 @@ import { Material } from '../../src/emberfall/materials';
 function context() {
   return { createImageData: (w: number,h: number) => ({ width:w,height:h,data:new Uint8ClampedArray(w*h*4) }), putImageData:vi.fn(), setTransform:vi.fn(), fillRect:vi.fn(), drawImage:vi.fn(), save:vi.fn(), restore:vi.fn(), translate:vi.fn(), strokeRect:vi.fn(), beginPath:vi.fn(), moveTo:vi.fn(), lineTo:vi.fn(), stroke:vi.fn(), fillText:vi.fn(), createRadialGradient:() => ({ addColorStop:vi.fn() }) };
 }
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 it('uploads startup terrain once, then only the retained dirty union', () => {
   const main = context(), terrain = context(), light = context(), bloom = context();
   const contexts = [terrain,light,bloom];
@@ -99,4 +99,18 @@ it('keeps world point conversion fixed while art backing follows quality and per
   for (let i = 0; i < 13; i++) { run.time += 0.2; renderer.draw(run, idleInput()); }
   expect(renderer.metrics).toMatchObject({ quality: 'high', effectiveQuality: 'low', artScale: 1, backingWidth: 240, backingHeight: 135, fallback: 'performance' });
   expect(renderer.point(500, 310)).toEqual(point);
+});
+
+
+it('lowers backing detail when total canvas draws are slow even with cheap lighting', () => {
+  const main=context(), contexts=[context(),context(),context()];
+  vi.stubGlobal('document',{createElement:()=>{const ctx=contexts.shift();return{getContext:()=>ctx};}});
+  let clock=0;vi.spyOn(performance,'now').mockImplementation(()=>clock);
+  main.drawImage.mockImplementation(()=>{clock+=30;});
+  const canvas={width:0,height:0,getContext:()=>main,dataset:{}};
+  const renderer=new Renderer(canvas as unknown as HTMLCanvasElement),run=new Run(3397);renderer.setQuality('high');
+  for(let n=0;n<13;n++){run.time+=.2;renderer.draw(run,idleInput());}
+  expect(renderer.metrics.lightingMs).toBe(0);
+  expect(renderer.metrics).toMatchObject({quality:'high',effectiveQuality:'low',artScale:1,fallback:'performance'});
+  expect(renderer.metrics.renderMs).toBeGreaterThan(24);
 });

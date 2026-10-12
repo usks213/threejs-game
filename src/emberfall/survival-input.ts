@@ -48,6 +48,10 @@ export class SurvivalInputModel {
   readonly state: Input = idleInput();
   private readonly keys = new Set<string>();
   private readonly contacts = new Map<number, Contact>();
+  private aimDirection: ControlVector = { x: 1, y: 0 };
+  // One bounded direct-use edge survives a complete click between physics ticks.
+  // Thumb work still requires its dwell and never enters this buffer.
+  private pendingUse: { id: number; released: boolean; aim: ControlVector } | null = null;
   private mode: ThumbMode = 'travel';
   private singleUse = false;
   get thumbMode(): ThumbMode { return this.mode; }
@@ -59,7 +63,8 @@ export class SurvivalInputModel {
   setThumbMode(mode: ThumbMode): void { this.clear(); this.mode = mode; }
   setSingleUse(value: boolean): void { if (value !== this.singleUse) this.clear(); this.singleUse = value; }
   consumeUse(): void {
-    if (!this.singleUse) return;
+    this.pendingUse = null;
+    if (!this.singleUse) { this.refresh(); return; }
     for (const contact of this.contacts.values()) if (contact.kind === 'thumb' && contact.dwell >= THUMB_WORK_DWELL) contact.used = true;
     this.refresh();
   }
@@ -70,6 +75,7 @@ export class SurvivalInputModel {
   press(id: number, kind: SurvivalControl, vector: ControlVector = { x: 0, y: 0 }, mouseUse = false): void {
     this.contacts.set(id, { kind, vector: validVector(vector) ? vector : { x: 0, y: 0 }, mouseUse, dwell: 0, used: false });
     if (kind === 'aim') this.aim(vector);
+    if ((kind === 'use' || mouseUse) && !this.pendingUse) this.pendingUse = { id, released: false, aim: { ...this.aimDirection } };
     this.refresh();
   }
   move(id: number, vector: ControlVector): void {
@@ -95,16 +101,23 @@ export class SurvivalInputModel {
   }
   aim(vector: ControlVector): void {
     if (!validVector(vector) || Math.hypot(vector.x, vector.y) < 0.001) return;
-    this.state.aimX = vector.x; this.state.aimY = vector.y;
+    this.aimDirection = { ...vector }; this.refresh();
   }
-  release(id: number): void { this.contacts.delete(id); this.refresh(); }
+  release(id: number, canceled = false): void {
+    if (this.contacts.has(id) && this.pendingUse?.id === id && !this.pendingUse.released) {
+      if (canceled) this.pendingUse = null;
+      else { this.pendingUse.released = true; this.pendingUse.aim = { ...this.aimDirection }; }
+    }
+    this.contacts.delete(id); this.refresh();
+  }
   clear(): void {
-    this.keys.clear(); this.contacts.clear();
-    const { aimX, aimY } = this.state;
-    Object.assign(this.state, idleInput(), { aimX, aimY });
+    this.keys.clear(); this.contacts.clear(); this.pendingUse = null;
+    Object.assign(this.state, idleInput(), { aimX: this.aimDirection.x, aimY: this.aimDirection.y });
   }
   private refresh(): void {
-    let move = 0, fly = false, use = false, spray = false;
+    let move = 0, fly = false, use = this.pendingUse !== null, spray = false;
+    const aim = this.pendingUse?.released ? this.pendingUse.aim : this.aimDirection;
+    this.state.aimX = aim.x; this.state.aimY = aim.y;
     for (const contact of this.contacts.values()) {
       if (contact.kind === 'move' || contact.kind === 'thumb' && this.mode === 'travel') {
         move = Math.abs(contact.vector.x) > 0.14 ? clamp(contact.vector.x) : 0;
@@ -188,7 +201,7 @@ export class SurvivalControls {
     }) as EventListener);
     const release = (event: PointerEvent) => {
       const target = this.targets.get(event.pointerId);
-      this.targets.delete(event.pointerId); this.thumbs.delete(event.pointerId); this.model.release(event.pointerId);
+      this.targets.delete(event.pointerId); this.thumbs.delete(event.pointerId); this.model.release(event.pointerId, event.type !== 'pointerup');
       if (target && ![...this.targets.values()].includes(target)) { target.classList.remove('pressed'); target.dataset.phase = 'idle'; }
       if (target?.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId);
     };

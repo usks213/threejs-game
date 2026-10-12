@@ -73,14 +73,15 @@ test('ordinary desktop controls traverse all caves, shop, perks and final guardi
     if (Math.abs(next.x - state.x) > 2) desired.add(next.x > state.x ? 'KeyD' : 'KeyA');
     if (state.y > next.y + 6 || Date.now() < recoverUntil) desired.add('Space');
     const nearest = state.enemies.sort((a,b) => Math.hypot(a.x - state.x,a.y - state.y) - Math.hypot(b.x - state.x,b.y - state.y))[0];
-    // The final gate remains locked while the guardian lives. Do not stand
-    // motionless in its projectile stream: approach a firing distance and
-    // levitate above intervening ledges using the same controls as a player.
-    if (currentLevel === 2 && node === nodes.length - 1 && nearest && Math.hypot(nearest.x-state.x,nearest.y-state.y)<70) {
+    // Fight from a distance throughout the final approach, before reaching the
+    // locked gate. Charging through the preceding room can pin the player
+    // against a ledge within an enemy's contact range before gate combat starts.
+    // Back away and levitate into a clear shot with the same ordinary controls.
+    if (currentLevel === 2 && node >= nodes.length - 3 && nearest && Math.hypot(nearest.x-state.x,nearest.y-state.y)<70) {
       desired.delete('KeyA');desired.delete('KeyD');
-      const side=state.x>=nearest.x?1:-1, firingX=nearest.x+side*22;
+      const side=state.x>=nearest.x?1:-1, firingX=nearest.x+side*32;
       if(Math.abs(firingX-state.x)>3)desired.add(firingX>state.x?'KeyD':'KeyA');
-      if(state.y>nearest.y-6)desired.add('Space');
+      if(state.y>nearest.y-10)desired.add('Space');
     }
     await setKeys(desired);
     if (nearest) {

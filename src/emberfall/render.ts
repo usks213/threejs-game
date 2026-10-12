@@ -205,5 +205,9 @@ export class Renderer {
       const gx = Math.max(12, Math.min(width - 12, gate.x - this.cameraX)), gy = Math.max(22, Math.min(height - 23, gate.y - this.cameraY)); ctx.fillStyle = '#82c7cb'; ctx.font = '5px monospace'; ctx.textAlign = 'center'; ctx.fillText('◇', gx, gy);
     }
     this.renderMs = performance.now() - began;
+    if (this.qualityGovernor.observeDraw(this.renderMs)) {
+      this.lastLightTime = -Infinity;
+      if (this.canvas.dataset) this.canvas.dataset.lighting = JSON.stringify(this.metrics);
+    }
   }
 }

@@ -11,7 +11,7 @@ describe('portrait survival input composition', () => {
     input.release(1);
     expect(input.state.aimX).toBe(0.4); expect(input.state.aimY).toBe(0.9);
     expect(input.state.fire).toBe(true);
-    input.release(2); expect(input.state.fire).toBe(false);
+    input.consumeUse(); input.release(2); expect(input.state.fire).toBe(false);
   });
   it('supports simultaneous walking, thumb-slide flight, aim and tool use', () => {
     const input = new SurvivalInputModel();
@@ -21,12 +21,12 @@ describe('portrait survival input composition', () => {
     input.move(1, { x: -2, y: 0 });
     expect(input.state.move).toBe(-1); expect(input.state.fly).toBe(false);
     input.release(1); expect(input.state.move).toBe(0); expect(input.state.fire).toBe(true);
-    input.release(3); expect(input.state.fire).toBe(false);
+    input.consumeUse(); input.release(3); expect(input.state.fire).toBe(false);
   });
   it('keeps independent flight/water/button fingers active when another is canceled', () => {
     const input = new SurvivalInputModel();
     input.press(1, 'move', { x: 1, y: 0 }); input.press(2, 'fly'); input.press(3, 'spray'); input.press(4, 'use');
-    input.release(4);
+    input.release(4, true);
     expect(input.state).toMatchObject({ move: 1, fly: true, fire: false, spray: true });
     input.release(2); expect(input.state.fly).toBe(false); expect(input.state.spray).toBe(true);
   });
@@ -41,7 +41,7 @@ describe('portrait survival input composition', () => {
   it('supports desktop mouse-use and keyboard aiming without treating touch aim as use', () => {
     const input = new SurvivalInputModel();
     input.press(1, 'aim', { x: 20, y: -4 }, true); expect(input.state.fire).toBe(true);
-    input.release(1); expect(input.state.fire).toBe(false);
+    input.consumeUse(); input.release(1); expect(input.state.fire).toBe(false);
     input.press(2, 'aim', { x: -20, y: 4 }); expect(input.state.fire).toBe(false);
     input.key('KeyX', true); expect(input.state.fire).toBe(true);
     input.key('KeyX', false); expect(input.state.fire).toBe(false);
@@ -102,7 +102,7 @@ describe('one-thumb travel and work', () => {
     input.move(1, { x: 0.8, y: 0 }); dwell(input); input.consumeUse(); expect(input.state.fire).toBe(true);
     input.clear(); input.setSingleUse(true); input.key('KeyX', true); input.consumeUse(); expect(input.state.fire).toBe(true);
     input.key('KeyX', false); input.press(2, 'use'); input.consumeUse(); expect(input.state.fire).toBe(true);
-    input.release(2); expect(input.state.fire).toBe(false);
+    input.consumeUse(); input.release(2); expect(input.state.fire).toBe(false);
   });
   it('clears held keys and contacts across mode changes and ignores the former pointer', () => {
     const input = new SurvivalInputModel(); input.key('Space', true); input.press(1, 'thumb', { x: 1, y: -1 });
@@ -152,5 +152,32 @@ describe('backward-compatible UI preferences', () => {
   it('restores either hand and the optional two-hand layout independently', () => {
     expect(readControlPreferences({ version: 1, layout: 'two-hand', hand: 'left' })).toEqual({ layout: 'two-hand', hand: 'left' });
     expect(readControlPreferences({ version: 1, layout: 'one-hand', hand: 'left' })).toEqual({ layout: 'one-hand', hand: 'left' });
+  });
+});
+
+
+describe('bounded direct-use tap buffering', () => {
+  it('delivers a complete short mouse click once, with its release aim despite later hover', () => {
+    const input = new SurvivalInputModel();
+    input.press(1, 'aim', {x: 4,y: 2}, true); input.move(1,{x: 5,y: 3}); input.release(1);
+    input.aim({x:-3,y:-9}); expect(input.state).toMatchObject({fire:true,aimX:5,aimY:3});
+    input.consumeUse(); expect(input.state).toMatchObject({fire:false,aimX:-3,aimY:-9});
+    input.consumeUse(); expect(input.state.fire).toBe(false);
+  });
+  it('does not refire a previously consumed hold on release or lost capture', () => {
+    const input = new SurvivalInputModel(); input.press(1,'use'); input.consumeUse();
+    expect(input.state.fire).toBe(true); input.release(1); input.release(1,true);
+    expect(input.state.fire).toBe(false);
+  });
+  it('coalesces taps into one bounded edge and ignores lost capture after normal completion', () => {
+    const input = new SurvivalInputModel();
+    for(let n=0;n<100;n++){input.press(n,'use');input.release(n);input.release(n,true);}
+    expect(input.state.fire).toBe(true); input.consumeUse(); expect(input.state.fire).toBe(false);
+  });
+  it('discards canceled contacts, menus and tool/mode changes without queuing thumb taps', () => {
+    const input = new SurvivalInputModel(); input.press(1,'use'); input.release(1,true); expect(input.state.fire).toBe(false);
+    input.press(2,'use');input.release(2);input.clear();expect(input.state.fire).toBe(false);
+    input.press(3,'use');input.release(3);input.setThumbMode('work');expect(input.state.fire).toBe(false);
+    input.press(4,'thumb',{x:1,y:0});input.update(.1);input.release(4);input.consumeUse();expect(input.state.fire).toBe(false);
   });
 });

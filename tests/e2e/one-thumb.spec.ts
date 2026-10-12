@@ -46,9 +46,11 @@ test('one thumb mines, crafts, builds and controls water with safe handed input'
   const count=(w:{width:number;values:number[]},material:number,x0:number,x1:number,y0:number,y1:number)=>{let n=0;for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(w.values[y*w.width+x]===material)n++;return n;};
   const dry=await cells();expect(count(dry,1,98,105,25,33)).toBe(27);
   await flyRight(108);await standNear(117);await expect.poll(async()=>(await read()).y).toBeGreaterThan(29);await select('pick');
-  await aim(111,31,450);await page.waitForTimeout(1800);const held=await cells();expect(count(held,5,106,111,27,33)).toBeGreaterThan(5);expect(count(held,5,94,97,27,33)).toBe(0);
+  await aim(111,31,450);await page.waitForTimeout(1800);const held=await cells();expect(count(held,5,106,111,27,33)).toBeGreaterThan(5);expect(count(held,5,94,97,27,33)).toBe(0);expect(count(held,5,94,100,27,60)).toBe(0);
   await page.screenshot({path:info.outputPath('one-thumb-water-held.png')});
-  await aim(105,31,1000);await page.waitForTimeout(2400);const released=await cells();expect(count(released,5,94,100,27,36)).toBeGreaterThan(0);expect(count(released,1,98,105,25,33)).toBeLessThan(27);
+  // The harvested floor can send released water directly down onto the lower
+  // slope. Verify the same previously-dry downstream column, including the fall.
+  await aim(105,31,1000);await page.waitForTimeout(2400);const released=await cells();expect(count(released,5,94,100,27,60)).toBeGreaterThan(0);expect(count(released,1,98,105,25,33)).toBeLessThan(27);
   await page.screenshot({path:info.outputPath('one-thumb-water-released.png')});
   // The same thumb reaches handedness and quality without touching the other side.
   await menu();await page.locator('[data-tab="settings"]').tap();await page.locator('#control-hand').selectOption('left');await resume();await expect(cave).toHaveAttribute('data-control-hand','left');
@@ -58,5 +60,5 @@ test('one thumb mines, crafts, builds and controls water with safe handed input'
   await mode('travel');await drag(36,0);await page.setViewportSize({width:851,height:393});await expect(cave).toHaveAttribute('data-input-move','0');await touch('touchCancel');await page.setViewportSize({width:393,height:851});
   await menu();await page.getByRole('button',{name:'保存してタイトルへ',exact:true}).tap();await page.reload();await page.getByRole('button',{name:'この世界を続ける',exact:true}).tap();await expect(cave).toHaveAttribute('data-control-hand','left');expect((await read()).deaths).toBe(0);
   const tick=Number(await cave.getAttribute('data-tick'));await page.waitForTimeout(1000);expect(Number(await cave.getAttribute('data-tick'))-tick).toBeGreaterThan(12);
-  expect(maxPointers).toBe(1);expect(errors).toEqual([]);await info.attach('one-thumb-receipt.json',{body:JSON.stringify({maxPointers,dryStone:count(dry,1,98,105,25,33),heldWater:count(held,5,106,111,27,33),releasedWater:count(released,5,94,100,27,36),state:await read()}),contentType:'application/json'});
+  expect(maxPointers).toBe(1);expect(errors).toEqual([]);await info.attach('one-thumb-receipt.json',{body:JSON.stringify({maxPointers,dryStone:count(dry,1,98,105,25,33),heldWater:count(held,5,106,111,27,33),releasedWater:count(released,5,94,100,27,60),state:await read()}),contentType:'application/json'});
 });
