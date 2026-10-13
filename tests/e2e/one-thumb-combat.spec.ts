@@ -135,6 +135,15 @@ for (const profile of [{ width: 393, height: 851, hand: 'right' }, { width: 320,
       }
       await expect.poll(async () => (await combat()).enemies.some(enemy => enemy.id === 0 && enemy.onScreen && enemy.lineOfSight), { timeout: 6000 }).toBe(true);
       expect((await world()).resources.stone).toBeGreaterThan(0);
+      // Stop on the actual ledge or cave floor before choosing manual aim.
+      // LOS can open during a fall; do not keep mining after it opens or assume
+      // one fixed altitude, since the shaft lip may still support the player.
+      let settled = false;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const y = (await world()).y; await gameWait(.2);
+        if (Math.abs((await world()).y - y) < .5) { settled = true; break; }
+      }
+      expect(settled).toBe(true);
       combatActionStart = thumb.actions.length;
       const beforeManual = await capture('visible-seeded-moth');
       const enemy = beforeManual.combat.enemies.find(enemy => enemy.id === 0)!;
