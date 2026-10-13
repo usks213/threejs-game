@@ -1,0 +1,498 @@
+:root{
+  font-family:ui-sans-serif,system-ui,-apple-system,"Noto Sans JP",sans-serif;
+  color:#f2dfbd;
+  background:#0b111c;
+  font-synthesis:none}
+*{
+  box-sizing:border-box}
+body{
+  margin:0;
+  overflow:hidden}
+button,select{
+  font:inherit;
+  color:inherit}
+button{
+  border:1px solid #67716b66;
+  background:#172931e8;
+  border-radius:5px;
+  min-height:48px;
+  padding:10px 15px;
+  cursor:pointer;
+  touch-action:manipulation}
+button:hover{
+  background:#2c4149}
+button:focus-visible,select:focus-visible{
+  outline:2px solid #edcb83;
+  outline-offset:3px}
+button:disabled{
+  opacity:.48;
+  cursor:default}
+button.primary{
+  background:#d6ad6d;
+  color:#18242b;
+  border-color:#e4c98f;
+  font-weight:700}
+button.primary:hover{
+  background:#e5c388}
+.emberfall{
+  width:100%;
+  height:100dvh;
+  position:relative;
+  overflow:hidden;
+  touch-action:none;
+  background:#111725}
+#cave{
+  display:block;
+  width:100%;
+  height:100%;
+  image-rendering:pixelated}
+.hud{
+  position:absolute;
+  inset:max(12px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) auto max(14px,env(safe-area-inset-left));
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  pointer-events:none}
+.hud button{
+  pointer-events:auto;
+  font-size:12px;
+  min-width:68px}
+.eyebrow{
+  font-family:ui-monospace,monospace;
+  font-size:10px;
+  letter-spacing:2.2px;
+  color:#a7b8ac;
+  display:block;
+  margin-bottom:12px}
+.vitals{
+  width:190px;
+  text-shadow:0 1px 4px #000}
+.vitals .eyebrow{
+  font-size:9px;
+  letter-spacing:1.3px;
+  margin:0 0 8px}
+.meter{
+  position:relative;
+  margin:5px 0;
+  height:12px;
+  background:#121c26d9;
+  border:1px solid #94a7a222;
+  border-radius:2px;
+  overflow:hidden}
+.meter i{
+  display:block;
+  height:100%;
+  background:#bd726e;
+  max-width:100%;
+  transition:width .12s}
+.meter.mana i{
+  background:#719fae}
+.meter.fuel i{
+  background:#baa273}
+.meter span,.meter b{
+  position:absolute;
+  z-index:1;
+  font-size:8px;
+  top:0;
+  line-height:10px}
+.meter span{
+  left:5px}
+.meter b{
+  right:4px;
+  font-weight:400}
+.location{
+  text-align:center;
+  font-size:13px;
+  text-shadow:0 2px 5px #000}
+.location small{
+  display:block;
+  color:#9aafa8;
+  margin-top:4px;
+  font-size:10px}
+.notice{
+  position:absolute;
+  top:102px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:11px;
+  line-height:1.6;
+  max-width:400px;
+  width:60%;
+  text-align:center;
+  color:#dfd2b8;
+  pointer-events:none;
+  text-shadow:0 2px 5px #000;
+  opacity:.85}
+.wandbar{
+  position:absolute;
+  bottom:max(23px,env(safe-area-inset-bottom));
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:6px;
+  align-items:center}
+.wandbar button{
+  min-height:48px;
+  font-size:11px;
+  padding:8px 10px;
+  background:#17242ce0;
+  white-space:nowrap}
+.wandbar button.selected{
+  border-color:#d4b77a;
+  box-shadow:inset 0 -2px #d4b77a}
+.wandbar span{
+  font-size:12px;
+  white-space:nowrap;
+  padding:8px;
+  color:#e9c687}
+.controls{
+  position:absolute;
+  inset:0;
+  pointer-events:none}
+.controls>*{
+  pointer-events:auto;
+  position:absolute;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:none}
+.move-pad{
+  bottom:max(28px,env(safe-area-inset-bottom));
+  left:max(22px,env(safe-area-inset-left));
+  width:126px;
+  height:82px;
+  background:#21323d66;
+  border:1px solid #c7dec333;
+  border-radius:45px;
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  color:#d0d9cb88}
+.move-pad small{
+  position:absolute;
+  bottom:12px;
+  font-size:9px}
+.aim-pad{
+  right:calc(96px + env(safe-area-inset-right));
+  bottom:max(30px,env(safe-area-inset-bottom));
+  width:90px;
+  height:90px;
+  border:1px solid #c7dec344;
+  border-radius:50%;
+  background:#253b4566;
+  text-align:center;
+  font-size:32px;
+  display:flex;
+  align-items:center;
+  justify-content:center}
+.aim-pad small{
+  position:absolute;
+  font-size:9px;
+  bottom:12px;
+  color:#d3dcca99}
+.fly-button{
+  right:calc(24px + env(safe-area-inset-right));
+  bottom:104px;
+  width:59px;
+  height:59px;
+  border-radius:50%;
+  font-size:24px;
+  background:#334750aa;
+  padding:3px}
+.controls button small{
+  display:block;
+  font-size:9px}
+.spray-button{
+  right:calc(24px + env(safe-area-inset-right));
+  bottom:max(30px,env(safe-area-inset-bottom));
+  width:59px;
+  height:59px;
+  border-radius:50%;
+  font-size:21px;
+  background:#253844aa;
+  padding:3px}
+.interact-button{
+  bottom:110px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#3b696bea}
+.desktop-help{
+  position:absolute;
+  bottom:6px;
+  width:100%;
+  text-align:center;
+  font-size:9px;
+  color:#a9b9ad88;
+  pointer-events:none}
+.overlay{
+  position:absolute;
+  inset:0;
+  background:#09121ba8;
+  backdrop-filter:blur(3px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  touch-action:pan-y}
+.overlay[hidden]{
+  display:none}
+.panel{
+  max-height:calc(100dvh - 40px);
+  width:min(680px,100%);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:30px 35px;
+  border:1px solid #a8b3a833;
+  border-radius:9px;
+  background:linear-gradient(135deg,#1b2c32f5,#111c2afa);
+  box-shadow:0 20px 100px #0007;
+  touch-action:pan-y}
+.panel h1{
+  font-family:Georgia,"Yu Mincho",serif;
+  font-size:32px;
+  font-weight:400;
+  letter-spacing:5px;
+  margin:0 0 14px}
+.panel p{
+  font-size:12px;
+  line-height:1.9;
+  color:#c0c7bb}
+.panel small{
+  font-size:10px;
+  color:#94a69f}
+.panel h2{
+  font-size:15px;
+  margin-top:28px;
+  font-weight:500}
+.panel button{
+  margin:5px 7px 5px 0;
+  font-size:12px}
+.welcome{
+  max-width:460px;
+  padding:38px 40px;
+  border-top:2px solid #b49e6d}
+.welcome h1{
+  font-size:56px;
+  letter-spacing:12px;
+  margin-top:12px;
+  margin-bottom:12px;
+  color:#e8cba0}
+.welcome .intro{
+  font-size:15px;
+  color:#e9d4ad;
+  letter-spacing:1px;
+  margin-bottom:20px}
+.welcome button{
+  display:block;
+  width:100%;
+  margin-top:18px}
+.welcome .muted{
+  margin-top:20px}
+.wand-card{
+  border:1px solid #9db7a528;
+  padding:14px;
+  margin:12px 0;
+  border-radius:5px;
+  background:#14232b}
+.wand-card h3{
+  margin:0 0 8px;
+  font-size:14px}
+.spell-slots{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:12px}
+.spell-slots select{
+  width:calc(33.33% - 4px);
+  min-height:48px;
+  border-radius:4px;
+  background:#263740;
+  border:1px solid #71897b66;
+  font-size:11px;
+  padding:4px}
+.spell-guide{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px 15px}
+.spell-guide p{
+  font-size:10px;
+  margin:4px 0}
+.perk-list,.shop{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap}
+.perk-list button{
+  flex:1;
+  min-width:140px;
+  white-space:pre-line;
+  line-height:1.8;
+  text-align:left}
+.perk-list .chosen{
+  border-color:#dbc086;
+  opacity:1;
+  background:#455747}
+.shop button{
+  font-size:10px}
+.in-menu .hud,.in-menu .controls,.in-menu .wandbar,.in-menu .notice,.in-menu .desktop-help{
+  visibility:hidden}
+#save-status{
+  position:absolute;
+  top:82px;
+  left:14px;
+  font-size:9px;
+  color:#9cad9f;
+  pointer-events:none;
+  max-width:190px}
+.in-menu #save-status{
+  top:auto;
+  bottom:4px;
+  left:8px;
+  max-width:80%;
+  font-size:8px}
+@media (hover:hover) and (pointer:fine){
+  .move-pad,.aim-pad,.fly-button,.spray-button{
+  opacity:.24}
+.controls>*:hover{
+  opacity:.75}
+}
+@media(max-height:450px){
+  .hud{
+  top:8px}
+.vitals{
+  width:150px}
+.meter{
+  height:10px;
+  margin:3px 0}
+.vitals .eyebrow{
+  margin-bottom:4px}
+.notice{
+  top:72px;
+  font-size:10px}
+.panel{
+  padding:20px 25px}
+.welcome h1{
+  font-size:36px;
+  margin:4px 0}
+.welcome .intro{
+  margin:5px 0}
+.welcome p{
+  margin:8px 0}
+.welcome button{
+  margin:8px 0}
+.welcome .eyebrow{
+  margin-bottom:4px}
+.welcome .muted{
+  margin-top:8px}
+#save-status{
+  top:65px}
+.move-pad{
+  width:110px;
+  height:70px;
+  bottom:22px;
+  left:18px}
+.aim-pad{
+  width:76px;
+  height:76px;
+  right:86px;
+  bottom:22px}
+.spray-button{
+  right:18px;
+  bottom:22px}
+.fly-button{
+  right:18px;
+  bottom:93px}
+.wandbar{
+  bottom:24px}
+.wandbar span{
+  position:absolute;
+  bottom:48px;
+  left:50%;
+  transform:translateX(-50%)}
+.desktop-help{
+  display:none}
+}
+@media(max-width:550px){
+  .hud{
+  gap:6px}
+.location{
+  font-size:11px}
+.vitals{
+  width:132px}
+.vitals .eyebrow{
+  font-size:7px;
+  letter-spacing:.6px}
+.hud button{
+  padding:8px;
+  min-width:53px;
+  font-size:10px}
+.notice{
+  top:95px;
+  width:84%;
+  font-size:10px}
+.wandbar{
+  bottom:132px}
+.wandbar button{
+  font-size:10px}
+.wandbar span{
+  font-size:10px}
+.interact-button{
+  bottom:190px}
+.desktop-help{
+  display:none}
+.panel{
+  padding:25px 22px}
+.welcome h1{
+  font-size:46px}
+.move-pad{
+  left:15px;
+  width:108px}
+.aim-pad{
+  right:86px;
+  width:80px;
+  height:80px}
+.fly-button,.spray-button{
+  right:16px}
+.spell-guide{
+  grid-template-columns:1fr}
+.spell-slots select{
+  width:calc(50% - 3px)}
+}
+
+
+.emberfall.in-menu{
+  touch-action:pan-y}
+
+@media(max-height:450px){
+  .hud{
+  top:max(8px,env(safe-area-inset-top))}
+.move-pad{
+  left:max(18px,env(safe-area-inset-left));
+  bottom:max(22px,env(safe-area-inset-bottom))}
+.aim-pad{
+  right:calc(86px + env(safe-area-inset-right));
+  bottom:max(22px,env(safe-area-inset-bottom))}
+.spray-button{
+  right:calc(18px + env(safe-area-inset-right));
+  bottom:max(22px,env(safe-area-inset-bottom))}
+.fly-button{
+  right:calc(18px + env(safe-area-inset-right))}
+}
+
+@media(max-width:550px){
+  .move-pad{
+  left:max(15px,env(safe-area-inset-left))}
+.aim-pad{
+  right:calc(86px + env(safe-area-inset-right))}
+.fly-button,.spray-button{
+  right:calc(16px + env(safe-area-inset-right))}
+}
+/* Mouse users aim across the entire cave; touch pads must not intercept shots. */
+@media (hover:hover) and (pointer:fine){
+  .move-pad,.aim-pad,.fly-button,.spray-button{display:none}
+}
+
+/* A separate pickup action never obscures the gate action or touch aiming. */
+.pickup-button{bottom:168px;left:50%;transform:translateX(-50%);background:#594e72ed;min-width:140px}
+.edit-feedback{color:#ffc1a3!important}
+@media(max-width:550px){.pickup-button{bottom:246px}.panel{max-width:100%;overflow-x:hidden}.panel button{max-width:100%}}
+@media(max-height:450px){.pickup-button{bottom:162px}}

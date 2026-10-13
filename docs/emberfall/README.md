@@ -1,0 +1,45 @@
+# 燐の底 / Emberfall
+
+**Current direction: persistent 2D survival crafting with cellular physics and local lighting.** The main URL starts this mode. See [one-thumb-art.md](one-thumb-art.md) for the one-thumb controls and original pixel-art increment. Read [survival.md](survival.md) for mining, crafting, building, camp recovery, save isolation and current limits. The finite expedition described below remains available only at `?mode=expedition` for existing saves and compatibility.
+
+## Earlier expedition and shared engine
+
+Original-content falling-sand magic roguelike, isolated from PR #4/#5 and based on verified main `fe54d7da0379cfd07b0a349c8d8f514dcf9a8e1a`.
+
+## Current playable scope
+
+Three seeded descending caves, 13 material IDs (including air), ten spell definitions, two carried wand slots plus a reachable shuffled-wand cache per cave, three ordinary enemy behaviors plus one final guardian, six selectable perks, gold mining and enemy loot, two safe refuges, finite spell-card shops and wand editing, water spray, status hazards, death/restart and final-gate victory. All names, text, map generation and pixel drawing are original. The app is Canvas 2D, not a texture pretending to be a cellular world. No Noita assets, audio, maps or wiki prose are copied.
+
+This is a limited implementation, **not a complete Noita reproduction**. Catalog breadth, world breadth and many interactions remain missing. All ten defined spells are obtainable through finite refuge shops; the shuffled entrance cache introduces impact payloads and pebble. Cards are individually counted, but limited bomb ammunition is shared across all copies, rather than tracked per card. See [finite-inventory.md](finite-inventory.md) for ownership and old-save migration. See [coverage.md](coverage.md).
+
+## Play
+
+- Desktop: A/D or arrows move; W/Space levitates; mouse aims and held primary pointer fires; 1/2 select wand; F sprays water; E inspects a nearby wand cache or enters a nearby gate; Tab opens equipment; Escape pauses/resumes.
+- Touch: left pad moves; right circle aims and fires simultaneously; ↑ uses flight fuel; water button sprays. Multiple Pointer Events are captured independently. Pointer cancellation, rotation, blur and hidden-page events release input.
+- The blue outlined gate is at the bottom right of each cave. Water extinguishes the player and fills the bottle; oil, poison, lava, enemies and the player's own explosions are dangerous. Touching dry ground restores flight fuel.
+- The violet entrance cache lets you exchange either carried wand, leaving the old wand with its cards in place. A refuge restores health, ammo and bottle. Choose one free perk, spend collected gold, and arrange spells left-to-right before descending. The last gate is blocked while the guardian lives.
+- Every eight seconds and on pause/transition, save the full mutable world and run. Death is saved as death. A validated backup can recover from a corrupt primary record. Storage failures are displayed; the live run stays available when 'save and title' fails.
+
+## Architecture
+
+- `materials.ts`: seeded cellular arrays, in-place swaps, density, reactions and 16×16 dirty render chunks; no DOM.
+- `generation.ts`: seeded connected caves, material pockets, enemies and portal locations; no DOM.
+- `wands.ts`: bounded deterministic deck evaluation, mana, cast delay, recharge, modifiers, multicast, nested impact payload and limited charges; no DOM.
+- `simulation.ts`: fixed-dt actor collision, combat, material hazards, pickups, shop/perks and run transitions; no DOM.
+- `inventory.ts`: finite loose/equipped card exchange, fixed prices/stock, shared limited ammunition and seeded wand caches.
+- `save.ts`: v1-to-v2 migration, bounded schema/checksum, RLE cell/lifetime arrays, last-valid backup and failure reporting; no DOM.
+- `input.ts`, `render.ts`, `app.ts`: pointer/keyboard mapping, original pixel art Canvas 2D, lifecycle and responsive Japanese UI.
+
+Fixed 60Hz actor steps and 30Hz material steps, maximum five catch-up steps. Full finite 256×384 cell map remains simulated (no offscreen deletion). Color computation updates dirty 16×16 chunks, followed by one dirty-union image upload. Rendering uses a logical 160-cell portrait or 240-cell landscape viewport, with one backing pixel per cell in low quality and two in balanced/high, nearest-neighbor CSS scaling and a crisp DOM HUD; paused scenes are not redrawn continuously. Projectiles and visual particles have explicit caps (128 and 180); this is a finite scoped implementation, not an unbounded world. DPR ≤1.5. No network, accounts or new hosting resources are part of the game.
+
+## Verification
+
+Run `npm run typecheck`, `npm run test`, `npm run build`, `npm run e2e`. Browser tests produce title, cave, equipment and touch screenshots. Unit tests separately verify materials, wands, run gates/perks and saves; map-clearance checks are not proof of combat playability. Earlier local browser execution lacked its matching executable; the current workspace can run the official Playwright Chromium package. The exact game candidate 6035598b passed CI38140465815: four applicable browser cases, with two profile-inapplicable skips. PC and Android-profile movement/flight/fire/pause/save/resume, trusted three-finger touch/release/rotation, and the complete desktop three-layer/shop/perk/guardian journey passed. Title, equipment, portrait, landscape, refuge and victory PNGs were inspected. Android emulation is not a real phone/FPS measurement.
+
+On this cloud CPU, the materials-only 256×384 test measured ~1.79 ms/tick for a cavern with 7,800 active particles and ~17.05 ms/tick for an entirely water-filled stress map. These are narrow CPU measurements, not phone FPS or whole-game frame time.
+
+A deterministic input-only headless route (seed 3397) completed all three caves, both refuge decisions and the guardian in 70.22 simulated seconds: 22 kills, 270 gold, 63.225/125 HP. It never teleports or mutates health/world state. Five seeds reached the first refuge. This is rule-level automated play, not browser/phone acceptance. Reproduce with `EMBERFALL_ROUTE_TRACE=1 npm run test -- tests/unit/emberfall-route.test.ts --reporter=verbose --disableConsoleIntercept`.
+
+## Release review
+
+See [release-review.md](release-review.md) for the exact accepted candidate, previous failures and resolved fixes. PR #6 remains a draft. Its upload job targets a version alias of the existing `threejs-game` Worker and verifies that production deployments do not change. It never merges main or updates PR #4/#5.

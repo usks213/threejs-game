@@ -1,0 +1,305 @@
+/* Survival has its own quiet, portrait-first HUD; the expedition keeps style.css. */
+.survival{--glass:#122630e6;--edge:#a4c8b43d;--gold:#e7c187;--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px)}
+.survival [hidden]{display:none!important}
+.survival button,.survival select{min-height:48px;min-width:48px}
+.survival button{border-radius:9px;transition:background .12s,border-color .12s}
+.survival button:active,.survival .pressed{background:#527262e8;border-color:#f1d6a8}
+.survival #cave:focus{outline:none}
+.survival .hud{inset:max(12px,env(safe-area-inset-top)) max(16px,var(--safe-right)) auto max(16px,var(--safe-left));display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,270px) auto;gap:12px;align-items:start}
+.survival .world-heading{min-width:0;text-shadow:0 2px 6px #08101b}
+.survival .world-heading .eyebrow{font-size:10px;letter-spacing:2px;color:#d9c396;margin:0 0 5px}
+.survival .world-heading .eyebrow span{font-family:serif;font-size:10px;letter-spacing:1px;margin-left:8px}
+.survival .location{text-align:left;letter-spacing:.3px;font-size:12px;line-height:1.45}
+.survival .location strong{font-weight:500;color:#d2dfce}
+.survival .location small{display:inline;margin:0 0 0 12px;font:10px ui-monospace,monospace;color:#acbdb0}
+.survival .vitals{display:flex;gap:7px;width:auto;margin-top:5px}
+.survival .meter{flex:1;height:18px;margin:0;background:#0b1722cc;border-color:#aec6ae3d;border-radius:4px}
+.survival .meter span,.survival .meter b{font-size:9px;line-height:16px}
+.survival .meter i{opacity:.78}
+.survival #menu-button{height:48px;padding:8px 13px;border-color:#ddc18b6b;background:#283e43ed;box-shadow:0 3px 15px #07101944;font-size:12px}
+.survival #menu-button span{font-size:17px;margin-right:4px}
+.survival .resource-strip{position:absolute;top:72px;left:max(16px,var(--safe-left));border:1px solid var(--edge);background:#122630ce;border-radius:7px;padding:6px 10px;font-size:11px;line-height:1.5;white-space:nowrap;color:#e1d9ba;pointer-events:none;letter-spacing:.2px}
+.survival #save-status{top:109px;left:max(17px,var(--safe-left));font-size:9px;max-width:290px;color:#adbea8;text-shadow:0 1px 4px #000}
+.survival #save-status[data-state="error"]{color:#ffcaac;max-width:80%;padding:5px 8px;border-radius:5px;background:#341e25e8}
+.survival .notice{top:145px;bottom:auto;width:max-content;max-width:min(85%,480px);padding:6px 12px;border:1px solid #9db29830;border-radius:8px;background:#12242de3;color:#f0e4c8;font-size:11px;line-height:1.6;text-shadow:none;opacity:1}
+.survival .toolbelt{position:absolute;left:50%;bottom:max(28px,var(--safe-bottom));transform:translateX(-50%);display:grid;grid-template-columns:repeat(4,56px) 110px;gap:6px;align-items:stretch;padding:6px;border:1px solid var(--edge);border-radius:14px;background:#10242ce3;box-shadow:0 4px 18px #07101855}
+.survival .toolbelt button{position:relative;min-height:54px;min-width:0;padding:4px 6px;background:#21343deb;border-color:#a3b09a26;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.1}
+.survival .toolbelt button>span{font-size:22px;height:24px;color:#d4d8bf}
+.survival .toolbelt small{font-size:9px;white-space:nowrap;color:#cbd5c3}
+.survival .toolbelt button b{position:absolute;top:3px;right:4px;font:9px ui-monospace,monospace;color:#eed3a0}
+.survival .toolbelt [aria-pressed="true"]{border-color:#e1c28c;background:#5b6750bb;box-shadow:inset 0 -2px #dabb81}
+.survival .tool-picker{position:relative;min-width:0;display:flex;align-items:stretch}
+.survival .tool-picker>span{position:absolute;left:9px;top:4px;font-size:8px;color:#bbcaaf;pointer-events:none}
+.survival .tool-picker select{min-width:0;width:100%;min-height:54px;border:1px solid #c4b6814d;border-radius:9px;background:#233b41;color:#e7d6b6;font-size:10px;padding:16px 3px 3px 7px}
+.survival .tool-status{position:absolute;bottom:106px;left:50%;transform:translateX(-50%);max-width:min(86%,530px);width:max-content;border-radius:7px;padding:5px 10px;background:#0e222dcc;color:#d6d9ba;text-align:center;font-size:10px;line-height:1.55;pointer-events:none;border:1px solid #819b872c}
+.survival .tool-status[data-valid="true"]{color:#c5e5b0;border-color:#bfd7a265}
+.survival .tool-status[data-valid="false"]{color:#ebbfac;border-color:#dca38b4d}
+.survival .controls>*{border-color:#bad3b745;background:#213c46b8;box-shadow:0 3px 14px #05111b2c;color:#e1ddbf}
+.survival .move-pad{left:max(16px,var(--safe-left));bottom:calc(28px + var(--safe-bottom));width:128px;height:96px;border-radius:34px;font-size:19px;align-items:center}
+.survival .move-pad small{bottom:10px;font-size:9px;color:#ccd6c0}
+.survival .move-pad i{position:absolute;top:8px;font-style:normal;color:#bfd6c366;font-size:16px}
+.survival .aim-pad{right:calc(92px + var(--safe-right));bottom:calc(70px + var(--safe-bottom));width:96px;height:96px;border-radius:50%;font-size:34px;color:#cfe1cc;background:#183a446e}
+.survival .aim-pad::before,.survival .aim-pad::after{content:'';position:absolute;background:#b7d0b420}
+.survival .aim-pad::before{height:1px;width:70%;top:50%}.survival .aim-pad::after{height:70%;width:1px;left:50%}
+.survival .aim-pad small{bottom:10px;font-size:9px;color:#b8ceb8}
+.survival .use-button{right:calc(16px + var(--safe-right));bottom:calc(14px + var(--safe-bottom));width:64px;height:64px;padding:4px;border-radius:23px;background:#8e7845db;border-color:#e8c6839c;font-size:25px}
+.survival .fly-button{right:calc(18px + var(--safe-right));bottom:calc(92px + var(--safe-bottom));width:60px;height:60px;padding:3px;border-radius:23px;font-size:25px}
+.survival .spray-button{right:calc(94px + var(--safe-right));bottom:calc(8px + var(--safe-bottom));width:52px;height:52px;padding:3px;border-radius:18px;font-size:23px}
+.survival .controls button small{font-size:9px;line-height:1.4}
+.survival .pickup-button{bottom:160px;left:50%;transform:translateX(-50%);max-width:70%;background:#3c535ce8;border-color:#b5d1b275;font-size:11px;min-height:48px;box-shadow:0 2px 9px #07141b99}
+.survival .desktop-help{bottom:7px;font-size:9px;color:#afc0ac99}
+.survival.in-menu .toolbelt,.survival.in-menu .resource-strip,.survival.in-menu .tool-status{visibility:hidden}
+.survival.in-menu #save-status{top:auto;bottom:max(5px,var(--safe-bottom));left:max(10px,var(--safe-left));font-size:8px;color:#bed0ba;max-width:90%}
+.survival .overlay{padding:max(20px,env(safe-area-inset-top)) max(20px,var(--safe-right)) max(24px,var(--safe-bottom)) max(20px,var(--safe-left));background:#07141ba8;backdrop-filter:blur(3px)}
+.survival .panel{width:min(760px,100%);border-radius:16px;padding:24px 28px;max-height:calc(100dvh - 48px - env(safe-area-inset-top) - var(--safe-bottom));border-color:#afc5a744;background:linear-gradient(135deg,#1d343cfa,#0f222ffa);box-shadow:0 18px 100px #030c14aa}
+.survival .panel .eyebrow{font-size:9px;margin:0 0 9px;letter-spacing:1.6px;color:#bacaaf}
+.survival .panel h1{font-size:28px;letter-spacing:3px;margin:0 0 14px;color:#f0d4a5}
+.survival .panel h2{font-size:14px;margin:15px 0 10px;color:#e3d1ab}
+.survival .panel p{font-size:12px;line-height:1.8;color:#c5d0bf}
+.survival .panel button{font-size:12px;margin:0;padding:10px 12px}
+.survival .panel>.primary,.survival .panel>button{margin:6px 6px 6px 0}
+.survival .panel .muted{font-size:11px;color:#a8bba9}
+.survival .welcome{max-width:500px;border-top:2px solid #dbbb7f;padding:30px 34px}
+.survival .welcome h1{font-size:48px;letter-spacing:12px;margin:14px 0}
+.survival .welcome .intro{font-size:16px;line-height:1.6;color:#efdab4;margin-bottom:16px}
+.survival .welcome>button{width:100%;display:block;margin:12px 0 0}
+.survival .welcome .muted{margin:12px 0}
+.survival .welcome-steps{padding:14px 14px 14px 35px;border:1px solid #a8c09a33;border-radius:10px;background:#142832bd;font-size:11px;line-height:2;color:#d9dfc6}
+.survival .welcome .load-message{font-size:10px;color:#c3b887;line-height:1.6}
+.survival .legacy-link{background:transparent;border-color:#a4beae26;font-size:10px!important;color:#aebdaf}
+.survival .workshop-header{position:sticky;top:-24px;z-index:3;background:#19313afc;padding:8px 0;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
+.survival .workshop-header .primary{flex-shrink:0}
+.survival .inventory-summary{font-size:11px!important;line-height:1.7;margin:0;text-align:right;color:#dfcea5!important}
+.survival .workshop-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;position:sticky;top:40px;z-index:2;padding:8px 0 10px;background:#19313af5;border-bottom:1px solid #abc29e30}
+.survival .workshop-tabs button{font-size:12px;padding:8px 4px;border-color:#a1b59433}
+.survival .workshop-tabs button[aria-current="true"]{background:#dac28a;color:#1c3239;border-color:#edd7a4;font-weight:700}
+.survival .workshop-content{padding-top:2px}
+.survival .station-status{color:#a9d0ae!important;border-radius:7px;background:#12262da6;padding:9px 10px;font-size:11px!important;margin:10px 0}
+.survival .recipes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.survival .recipe{padding:14px;border:1px solid #99b28f36;border-radius:11px;background:#17303a;display:flex;flex-direction:column;gap:8px}
+.survival .recipe[data-ready="true"]{border-color:#c8cb9166}
+.survival .recipe h3{font-size:14px;line-height:1.4;margin:0;color:#e9d7ad;font-weight:600}
+.survival .recipe p{font-size:11px;line-height:1.55;margin:0}
+.survival .recipe-cost{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto}
+.survival .recipe-cost span{padding:5px 6px;border-radius:4px;font-size:10px;background:#0e232db8;color:#ddc08e;white-space:nowrap}
+.survival .recipe-cost [data-enough="false"]{color:#ecb7a1;background:#36292ec2}
+.survival .recipe-requirement{min-height:17px;color:#abc29e!important;font-size:10px!important}
+.survival .recipe button{width:100%;margin-top:2px;background:#345442;border-color:#a3c5a452;font-size:11px}
+.survival .recipe button:disabled{background:#253842;color:#a2b0a4;opacity:.68}
+.survival .craft-feedback{color:#e8d19b!important;font-size:11px!important}
+.survival .craft-feedback:empty{display:none}
+.survival .inventory-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding-top:12px}
+.survival .inventory-item{padding:12px;border:1px solid #9eb48e36;border-radius:10px;background:#16303a}
+.survival .inventory-item h3{font-size:12px;font-weight:500;margin:0 0 8px;color:#c3d1bd}
+.survival .inventory-item strong{display:block;font:26px ui-monospace,monospace;color:#f0d29a;margin-bottom:12px}
+.survival .inventory-item button{width:100%;font-size:11px}
+.survival .inventory-item p{font-size:10px;margin:0}
+.survival .wand-card{padding:14px;border-radius:10px;background:#17303a;border-color:#9cb99236}
+.survival .wand-card h3{font-size:13px;color:#e6d5b0;line-height:1.5}
+.survival .wand-card p{font-size:11px;margin:8px 0}
+.survival .wand-card button{margin-top:8px}
+.survival .spell-slots{gap:6px}
+.survival .spell-slots select{min-height:48px;background:#213d45;border-radius:7px;font-size:11px;width:calc(33.333% - 4px)}
+.survival .setting-row{min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px solid #a5bc9b2b;padding:6px 0;touch-action:manipulation;cursor:pointer}
+.survival .setting-row select{background:#27434a;border:1px solid #bdc99a4f;border-radius:7px;min-width:130px;padding:10px;font-size:12px}
+.survival .setting-row input{width:48px;height:48px;margin:0;accent-color:#d8bd82;cursor:pointer}
+.survival .settings-feedback{font-size:10px!important;color:#b4c19e!important}
+.survival .workshop-footer{display:flex;justify-content:flex-end;border-top:1px solid #adc0a32f;padding-top:14px;margin-top:20px}
+.survival .workshop-footer button{font-size:11px}
+@media(hover:hover) and (pointer:fine){.survival .controls>*:not(.pickup-button){display:none}.survival .touch-guide{display:none}}
+@media(max-width:550px){
+  .survival .hud{grid-template-columns:minmax(0,1fr) 66px;grid-template-rows:auto auto;gap:8px 12px;inset:max(12px,env(safe-area-inset-top)) max(14px,var(--safe-right)) auto max(14px,var(--safe-left))}
+  .survival .world-heading{grid-column:1;grid-row:1}.survival .world-heading .eyebrow{font-size:9px;letter-spacing:1.5px;margin-bottom:4px}.survival .world-heading .eyebrow span{font-size:9px;margin-left:5px}
+  .survival .location{font-size:10px;line-height:1.4}.survival .location small{font-size:9px;margin-left:8px}
+  .survival .vitals{grid-column:1;grid-row:2;gap:6px;margin:0;width:100%}.survival .meter{height:16px}.survival .meter span,.survival .meter b{font-size:8px;line-height:14px}
+  .survival #menu-button{grid-column:2;grid-row:1/3;align-self:start;min-width:0;padding:6px;height:56px;font-size:10px}.survival #menu-button span{display:block;font-size:19px;margin:0 0 2px}
+  .survival .resource-strip{top:calc(88px + env(safe-area-inset-top));left:max(14px,var(--safe-left));font-size:10px;padding:5px 8px}.survival #save-status{top:calc(122px + env(safe-area-inset-top));left:max(15px,var(--safe-left));font-size:8px;max-width:270px}
+  .survival .notice{top:calc(149px + env(safe-area-inset-top));max-width:85%;font-size:10px;padding:5px 9px}
+  .survival .toolbelt{bottom:calc(182px + var(--safe-bottom));grid-template-columns:repeat(4,minmax(48px,1fr)) minmax(90px,1.7fr);gap:5px;width:calc(100% - 28px - var(--safe-left) - var(--safe-right));max-width:390px;padding:5px;border-radius:12px}
+  .survival .toolbelt button,.survival .tool-picker select{min-height:52px}.survival .toolbelt button{padding:4px}.survival .toolbelt button>span{font-size:21px}.survival .toolbelt small{font-size:8px}.survival .tool-picker select{font-size:10px}
+  .survival .tool-status{bottom:calc(254px + var(--safe-bottom));max-width:88%;font-size:9px;line-height:1.5;padding:5px 9px}
+  .survival .move-pad{width:122px;height:94px;bottom:calc(26px + var(--safe-bottom));left:max(14px,var(--safe-left))}.survival .aim-pad{right:calc(90px + var(--safe-right));bottom:calc(72px + var(--safe-bottom))}
+  .survival .pickup-button{bottom:calc(292px + var(--safe-bottom));font-size:10px;min-width:140px}.survival .desktop-help{display:none}
+  .survival .overlay{padding:max(12px,env(safe-area-inset-top)) max(12px,var(--safe-right)) max(25px,var(--safe-bottom)) max(12px,var(--safe-left))}
+  .survival .panel{padding:20px 18px;max-height:calc(100dvh - 39px - env(safe-area-inset-top) - var(--safe-bottom));border-radius:13px}.survival .panel h1{font-size:26px}.survival .panel p{font-size:11px}
+  .survival .welcome{padding:24px}.survival .welcome h1{font-size:43px;letter-spacing:10px}.survival .welcome .intro{font-size:15px}.survival .welcome-steps{font-size:10px;padding-left:30px}
+  .survival .workshop-header{top:-20px;gap:10px;align-items:stretch}.survival .workshop-header .primary{font-size:11px;max-width:45%;padding:8px 10px}.survival .inventory-summary{font-size:10px!important;display:flex;align-items:center;max-width:55%}
+  .survival .workshop-tabs{top:44px;gap:5px;padding-top:6px}.survival .workshop-tabs button{font-size:11px}.survival .recipes{grid-template-columns:1fr}.survival .recipe{padding:12px;gap:7px}
+  .survival .inventory-grid{grid-template-columns:repeat(2,1fr)}.survival .spell-slots select{width:calc(50% - 3px)}.survival .setting-row{font-size:11px}.survival .setting-row select{min-width:115px}
+}
+@media(max-width:370px){.survival .toolbelt{width:calc(100% - 16px - var(--safe-left) - var(--safe-right));gap:3px;grid-template-columns:repeat(4,48px) minmax(80px,1fr)}.survival .move-pad{width:108px;left:max(10px,var(--safe-left))}.survival .aim-pad{width:86px;height:86px;right:calc(85px + var(--safe-right))}.survival .use-button{right:calc(12px + var(--safe-right))}.survival .fly-button{right:calc(14px + var(--safe-right))}.survival .spray-button{right:calc(88px + var(--safe-right))}.survival .location small{font-size:8px;margin-left:4px}}
+@media(max-height:500px) and (min-width:551px){
+  .survival .hud{top:max(8px,env(safe-area-inset-top));gap:8px}.survival .world-heading .eyebrow{font-size:8px}.survival .location{font-size:10px}.survival .resource-strip{top:60px;font-size:9px}.survival #save-status{top:91px;font-size:8px}.survival .notice{top:112px;font-size:9px}
+  .survival .toolbelt{bottom:calc(10px + var(--safe-bottom));grid-template-columns:repeat(4,48px) 95px;gap:4px;padding:4px}.survival .toolbelt button,.survival .tool-picker select{min-height:48px}.survival .toolbelt small{font-size:8px}.survival .toolbelt button>span{font-size:19px;height:21px}
+  .survival .tool-status{bottom:calc(75px + var(--safe-bottom));font-size:9px}.survival .move-pad{width:115px;height:86px;bottom:calc(12px + var(--safe-bottom))}.survival .aim-pad{width:82px;height:82px;right:calc(82px + var(--safe-right));bottom:calc(66px + var(--safe-bottom))}
+  .survival .use-button{width:58px;height:58px;bottom:calc(6px + var(--safe-bottom));right:calc(12px + var(--safe-right))}.survival .fly-button{width:54px;height:54px;bottom:calc(81px + var(--safe-bottom));right:calc(14px + var(--safe-right))}.survival .spray-button{width:48px;height:48px;bottom:calc(8px + var(--safe-bottom));right:calc(82px + var(--safe-right))}
+  .survival .pickup-button{bottom:114px;min-height:48px;font-size:10px}.survival .desktop-help{display:none}.survival .panel{max-height:calc(100dvh - 36px);padding:18px 24px}.survival .workshop-header{top:-18px}.survival .workshop-tabs{top:46px}.survival .welcome h1{font-size:36px}.survival .welcome .intro{font-size:13px}
+}
+@media(max-width:700px) and (max-height:500px) and (min-width:551px){.survival .toolbelt{bottom:calc(112px + var(--safe-bottom));left:48%}.survival .tool-status{bottom:calc(174px + var(--safe-bottom));left:48%;font-size:8px}.survival .pickup-button{bottom:210px}.survival .vitals{max-width:190px}.survival .notice{top:110px;left:24%;max-width:40%}}
+@media(prefers-reduced-motion:reduce){.survival button,.survival .meter i{transition:none}}
+/* One-thumb play: travel/work are explicit; the contact origin is always local. */
+.survival .thumb-pad,.survival .thumb-actions{display:none}
+.survival[data-control-layout="one-hand"] .controls>.move-pad,
+.survival[data-control-layout="one-hand"] .controls>.aim-pad,
+.survival[data-control-layout="one-hand"] .controls>.use-button,
+.survival[data-control-layout="one-hand"] .controls>.fly-button,
+.survival[data-control-layout="one-hand"] .controls>.spray-button{display:none}
+.survival[data-control-layout="one-hand"] .thumb-pad{display:block;position:absolute;right:calc(14px + var(--safe-right));bottom:calc(14px + var(--safe-bottom));width:160px;height:158px;touch-action:none;user-select:none;-webkit-user-select:none;border:1px solid #b0c4a75e;border-radius:42% 42% 37% 37%;background:radial-gradient(ellipse at 50% 44%,#52715d33,#17334077 70%);box-shadow:inset 0 0 25px #b4d6ac09;overflow:visible;--anchor-x:50%;--anchor-y:44%;--thumb-x:50%;--thumb-y:44%;--thumb-stretch:0px;--thumb-angle:0rad}
+.survival .thumb-anchor,.survival .thumb-knob,.survival .thumb-tether{position:absolute;display:block;pointer-events:none}
+.survival .thumb-anchor{left:var(--anchor-x);top:var(--anchor-y);width:96px;height:96px;transform:translate(-50%,-50%);border:1px dashed #c4d5ab70;border-radius:50%;background:#c4d8b30b}
+.survival .thumb-knob{left:var(--thumb-x);top:var(--thumb-y);width:46px;height:46px;transform:translate(-50%,-50%);border-radius:48%;border:2px solid #d5dec49c;background:#7c99874d;box-shadow:0 3px 12px #07182033}
+.survival .thumb-tether{left:var(--anchor-x);top:var(--anchor-y);height:8px;width:var(--thumb-stretch);transform:rotate(var(--thumb-angle));transform-origin:0 50%;border-radius:6px;background:#c2d6b125;margin-top:-4px}
+.survival .thumb-pad:not(.pressed) .thumb-anchor{left:50%;top:44%}.survival .thumb-pad:not(.pressed) .thumb-knob{left:50%;top:44%;background:#a9c4a31c}.survival .thumb-pad:not(.pressed) .thumb-tether{display:none}
+.survival .thumb-pad .thumb-symbol{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);font-size:23px;color:#dce6c899;pointer-events:none}
+.survival .thumb-pad.pressed .thumb-symbol{opacity:0}
+.survival .thumb-pad>small{position:absolute;bottom:12px;left:0;width:100%;text-align:center;font-size:9px;color:#c7d2ba;pointer-events:none;white-space:nowrap}
+.survival .thumb-pad[data-phase="aiming"] .thumb-knob{border-color:#e6c58a;background:#93794e66}
+.survival .thumb-pad[data-phase="using"] .thumb-knob{border-color:#ffe1a2;background:#c2a75b8c;box-shadow:0 0 16px #e6c17240}
+.survival[data-control-layout="one-hand"] .thumb-actions{position:absolute;display:grid;grid-template-columns:repeat(2,62px);gap:6px;right:calc(184px + var(--safe-right));bottom:calc(30px + var(--safe-bottom));width:130px;background:none;border:0;box-shadow:none;pointer-events:none}
+.survival .thumb-actions button{pointer-events:auto;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;min-height:54px;height:54px;min-width:48px;padding:3px;border-radius:13px;background:#1e3740dc;border-color:#b8c9a950}
+.survival .thumb-actions button>span{font-size:20px;line-height:24px}.survival .thumb-actions button>small{font-size:10px;line-height:16px}
+.survival .thumb-actions button[aria-pressed="true"]{background:#5c6e4fe8;border-color:#ecd69b;box-shadow:inset 0 -2px #d5bc7b}
+.survival[data-thumb-mode="work"] .thumb-pad{border-color:#c0aa745e;background:radial-gradient(ellipse at 50% 44%,#87734e33,#24353b77 70%)}
+.survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-pad{right:auto;left:calc(14px + var(--safe-left))}
+.survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(184px + var(--safe-left))}
+@media(max-width:550px){
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(182px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(254px + var(--safe-bottom))}
+}
+@media(max-width:370px){
+  .survival[data-control-layout="one-hand"] .thumb-pad{width:142px;height:150px;right:calc(12px + var(--safe-right))}
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(164px + var(--safe-right));bottom:calc(27px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-pad{right:auto;left:calc(12px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(164px + var(--safe-left))}
+  .survival .thumb-pad>small{font-size:8px}
+}
+@media(max-height:500px) and (min-width:551px) and (hover:none){
+  .survival[data-control-layout="one-hand"] .toolbelt{left:auto;right:calc(14px + var(--safe-right));transform:none;bottom:calc(180px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{left:auto;right:calc(14px + var(--safe-right));transform:none;bottom:calc(244px + var(--safe-bottom));max-width:330px;font-size:8px;line-height:1.25;padding:3px 8px}
+  .survival[data-control-layout="one-hand"] .pickup-button{left:24%;bottom:24px}
+  .survival[data-control-layout="one-hand"] .resource-strip{display:none}
+  .survival[data-control-layout="one-hand"] #save-status{top:auto;bottom:8px;left:14px;max-width:40%}
+  .survival[data-control-layout="one-hand"] .notice{left:22%;top:120px;max-width:36%}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .notice{left:78%}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] #save-status{left:auto;right:14px;text-align:right}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .pickup-button{left:76%}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .toolbelt,
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .tool-status{right:auto;left:calc(14px + var(--safe-left))}
+}
+@media(hover:hover) and (pointer:fine){
+  .survival[data-control-layout="one-hand"] .controls>.thumb-pad,
+  .survival[data-control-layout="one-hand"] .controls>.thumb-actions{display:none}
+}
+/* In portrait the whole action cluster sits above the gripping thumb, so no
+   frequent action requires reaching across the screen. Short landscape keeps
+   the side-by-side arrangement to preserve the playable middle of the world. */
+@media(hover:none) and (min-height:501px){
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(29px + var(--safe-right));left:auto;bottom:calc(184px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(304px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(374px + var(--safe-bottom));left:auto;right:calc(14px + var(--safe-right));transform:none;max-width:78%;text-align:right}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:calc(414px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(29px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .tool-status{right:auto;left:calc(14px + var(--safe-left));text-align:left}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .tool-picker{order:-1}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .toolbelt{grid-template-columns:minmax(90px,1.7fr) repeat(4,minmax(48px,1fr))}
+}
+@media(hover:none) and (min-height:501px) and (max-width:370px){
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(18px + var(--safe-right))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(18px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .toolbelt{grid-template-columns:minmax(80px,1fr) repeat(4,48px)}
+}
+/* Compact portrait preserves the hero's 40%-height playfield on 320×568.
+   Frequent mode switches stay beside the gripping thumb in a single row;
+   status/pickup use the otherwise empty space next to the lower pad. */
+@media(hover:none) and (min-height:501px) and (max-height:680px) and (max-width:550px){
+  .survival[data-control-layout="one-hand"] .thumb-pad{right:calc(12px + var(--safe-right));left:auto;bottom:calc(10px + var(--safe-bottom));width:142px;height:132px}
+  .survival[data-control-layout="one-hand"] .thumb-pad>small{font-size:8px;bottom:9px}
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(12px + var(--safe-right));left:auto;bottom:calc(150px + var(--safe-bottom));width:204px;grid-template-columns:repeat(4,48px);gap:4px}
+  .survival[data-control-layout="one-hand"] .thumb-actions button{height:50px;min-height:50px;border-radius:11px}
+  .survival[data-control-layout="one-hand"] .thumb-actions [data-thumb-mode="travel"]{order:3}
+  .survival[data-control-layout="one-hand"] .thumb-actions [data-thumb-mode="work"]{order:4}
+  .survival[data-control-layout="one-hand"] .thumb-actions #thumb-menu{order:2}
+  .survival[data-control-layout="one-hand"] .thumb-actions .thumb-water{order:1}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(208px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(86px + var(--safe-bottom));left:calc(12px + var(--safe-left));right:auto;transform:none;max-width:calc(100% - 178px - var(--safe-left) - var(--safe-right));font-size:9px;line-height:1.4;padding:5px 7px;text-align:left}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:calc(26px + var(--safe-bottom));left:calc(12px + var(--safe-left));right:auto;transform:none;min-width:48px;width:calc(100% - 178px - var(--safe-left) - var(--safe-right));max-width:180px;min-height:48px}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-pad{right:auto;left:calc(12px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(12px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions [data-thumb-mode="travel"]{order:1}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions [data-thumb-mode="work"]{order:2}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions #thumb-menu{order:3}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions .thumb-water{order:4}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .tool-status,
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .pickup-button{left:auto;right:calc(12px + var(--safe-right));text-align:right}
+}
+/* One-handed portrait workshop: only the middle content scrolls. Navigation,
+   save/title, and the preferred-side return button remain within lower reach. */
+@media(hover:none) and (orientation:portrait){
+  .survival[data-control-layout="one-hand"] .overlay:has(.workshop){align-items:flex-end;padding:max(12px,env(safe-area-inset-top)) max(10px,var(--safe-right)) max(14px,var(--safe-bottom)) max(10px,var(--safe-left))}
+  .survival[data-control-layout="one-hand"] .workshop{display:flex;flex-direction:column;height:min(82dvh,720px);max-height:calc(100dvh - 26px - env(safe-area-inset-top) - var(--safe-bottom));min-height:0;overflow:hidden;padding:12px 12px 8px;border-radius:18px 18px 10px 10px}
+  .survival[data-control-layout="one-hand"] .workshop>.eyebrow{order:0;flex:none;margin:0 0 4px;font-size:8px;line-height:12px}
+  .survival[data-control-layout="one-hand"] .workshop>h1{order:1;flex:none;font-size:20px;line-height:26px;letter-spacing:2px;margin:0 0 8px}
+  .survival[data-control-layout="one-hand"] .workshop-content{order:2;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:0 2px 12px;scroll-padding-block:8px}
+  .survival[data-control-layout="one-hand"] .workshop-tabs{order:3;flex:none;position:static;top:auto;z-index:auto;gap:4px;padding:6px 0;border-top:1px solid #abc29e30;border-bottom:0;background:#19313a}
+  .survival[data-control-layout="one-hand"] .workshop-tabs button{min-height:48px;padding:7px 3px;font-size:11px}
+  .survival[data-control-layout="one-hand"] .workshop-footer{order:4;flex:none;min-height:48px;margin:0;padding:0;border-top:0;justify-content:flex-end;background:#19313a}
+  .survival[data-control-layout="one-hand"] .workshop-footer button{min-height:48px;padding:8px 10px;font-size:10px}
+  .survival[data-control-layout="one-hand"] .workshop-header{order:5;flex:none;position:static;top:auto;z-index:auto;flex-direction:row-reverse;align-items:center;gap:10px;min-height:55px;margin:0;padding:6px 0 0;border-top:1px solid #abc29e30;background:#19313a}
+  .survival[data-control-layout="one-hand"] .workshop-header .primary{min-width:112px;min-height:48px;max-width:none;padding:8px 10px;font-size:11px}
+  .survival[data-control-layout="one-hand"] .workshop-header .inventory-summary{display:block;flex:1;min-width:0;max-width:none;font-size:9px!important;line-height:1.5;text-align:left}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .workshop-header{flex-direction:row}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .workshop-header .inventory-summary{text-align:right}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .workshop-footer{justify-content:flex-start}
+}
+/* Combat belongs beside the gripping thumb. Each slot is explicit: tap equips,
+   dragging the same slot aims/fires; the main pad is immediately travel again. */
+.survival .thumb-weapons{display:none}
+.survival #combat-target{position:absolute;width:24px;height:24px;transform:translate(-50%,-50%);border:1px solid #fff0b6;border-radius:50%;box-shadow:0 0 0 3px #142d3580;pointer-events:none;z-index:2}
+.survival #combat-target span{position:absolute;top:-15px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:8px;color:#fff0b6;text-shadow:0 1px 3px #000}
+@media(hover:none){
+  .survival[data-control-layout="one-hand"] .thumb-pad{width:160px;height:132px;right:calc(14px + var(--safe-right));left:auto;bottom:calc(14px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .thumb-pad>small{font-size:8px;white-space:normal;line-height:12px;padding:0 4px;bottom:7px}
+  .survival[data-control-layout="one-hand"] .thumb-weapons{display:grid;position:absolute;right:calc(14px + var(--safe-right));left:auto;bottom:calc(154px + var(--safe-bottom));width:160px;grid-template-columns:repeat(3,minmax(48px,1fr));gap:4px;border:0;background:none;box-shadow:none;z-index:5}
+  .survival .thumb-weapons button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;min-height:52px;height:52px;padding:3px 1px;border-radius:12px;border-color:#b7c9ad70;background:#213c43f0;touch-action:none;user-select:none;-webkit-user-select:none}
+  .survival .thumb-weapons button>span{font-size:18px;line-height:23px}.survival .thumb-weapons button>small{font-size:8px;line-height:15px;white-space:nowrap}
+  .survival .thumb-weapons [aria-pressed="true"]{background:#5a6d4fea;border-color:#f0d69b;box-shadow:inset 0 -2px #e8c784}
+  .survival .thumb-weapons .pressed{background:#786b43f2;border-color:#ffdda0}
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(14px + var(--safe-right));left:auto;bottom:calc(214px + var(--safe-bottom));width:204px;grid-template-columns:repeat(4,48px);gap:4px}
+  .survival[data-control-layout="one-hand"] .thumb-actions button{height:50px;min-height:50px}
+  .survival[data-control-layout="one-hand"] .thumb-actions [data-thumb-mode="travel"]{order:3}
+  .survival[data-control-layout="one-hand"] .thumb-actions [data-thumb-mode="work"]{order:4}
+  .survival[data-control-layout="one-hand"] .thumb-actions #thumb-menu{order:2}
+  .survival[data-control-layout="one-hand"] .thumb-actions .thumb-water{order:1}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(272px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .toolbelt [data-tool="pick"],
+  .survival[data-control-layout="one-hand"] .toolbelt #wand-select{display:none}
+  .survival[data-control-layout="one-hand"] .toolbelt{left:auto;right:calc(14px + var(--safe-right));transform:none;width:240px;max-width:calc(100% - 28px - var(--safe-left) - var(--safe-right));grid-template-columns:52px 52px minmax(80px,1fr)}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(342px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:calc(382px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-pad,
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-weapons,
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(14px + var(--safe-left))}
+  .survival[data-control-hand="left"] .thumb-weapons{direction:rtl}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .toolbelt{right:auto;left:calc(14px + var(--safe-left));grid-template-columns:minmax(80px,1fr) 52px 52px}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions [data-thumb-mode="travel"]{order:1}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions [data-thumb-mode="work"]{order:2}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions #thumb-menu{order:3}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions .thumb-water{order:4}
+}
+@media(hover:none) and (max-height:680px) and (orientation:portrait){
+  .survival[data-control-layout="one-hand"] .thumb-pad{bottom:calc(10px + var(--safe-bottom));height:124px;width:160px}
+  .survival[data-control-layout="one-hand"] .thumb-weapons{bottom:calc(142px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .thumb-actions{bottom:calc(198px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(252px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(80px + var(--safe-bottom));max-width:calc(100% - 192px - var(--safe-left) - var(--safe-right))}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:calc(24px + var(--safe-bottom));max-width:calc(100% - 192px - var(--safe-left) - var(--safe-right))}
+}
+@media(hover:none) and (orientation:landscape){
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(184px + var(--safe-right));bottom:calc(30px + var(--safe-bottom));width:100px;grid-template-columns:repeat(2,48px)}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(184px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(214px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(278px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:24px}
+}
+
+@media(hover:none){.survival[data-control-layout="one-hand"] .thumb-actions #combat-toggle{order:4}.survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions #combat-toggle{order:2}}
