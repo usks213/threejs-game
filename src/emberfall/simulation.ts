@@ -48,6 +48,8 @@ export class Run {
   seed: number;
   time = 0;
   kills = 0;
+  /** Transient input receipt, excluded from saves; one increment per successful cast. */
+  castSequence = 0;
   cause = '';
   notice = '下層の青い門を目指そう。左で移動、右で照準と射撃。';
   flask = 180;
@@ -241,6 +243,7 @@ export class Run {
     const wand = this.wands[this.selected];
     wand.charges = { ...this.ammo };
     const shots = castWand(wand);
+    if (shots.length > 0) this.castSequence++;
     this.ammo = { ...wand.charges }; this.syncAmmo();
     return shots;
   }

@@ -68,7 +68,8 @@ describe('original pixel terrain treatment', () => {
     expect(window.pixels.byteLength).toBe(bytes);
     expect(window.width * window.height).toBeLessThanOrEqual(208 * 400);
     expect(window.cellsWritten).toBeLessThanOrEqual(208 * 400);
-    expect(world.cells).toEqual(before);
+    expect(world.cells.length).toBe(before.length);
+    expect(world.cells.every((cell, index) => cell === before[index])).toBe(true);
   });
 });
 

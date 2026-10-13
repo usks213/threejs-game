@@ -3,6 +3,8 @@ import type { Resource, RecipeId, SurvivalTool } from './survival';
 import { saveSurvival, loadSurvival } from './survival-save';
 import { SurvivalControls, readControlPreferences } from './survival-input';
 import type { ControlPreferences, ThumbMode } from './survival-input';
+import { allowsAssistedFire, findCombatTarget, readCombatAssist, readCombatSnapshot } from './combat-assist';
+import type { CombatTarget } from './combat-assist';
 import { Renderer } from './render';
 import { getRegionName, OPEN_CHUNK_SIZE } from './open-world';
 import { SPELLS } from './wands';
@@ -37,7 +39,13 @@ export function startSurvival(root: HTMLElement) {
       <label class="tool-picker"><span>道具一覧</span><select id="tool" aria-label="使う道具"></select></label>
     </div>
     <div id="tool-status" class="tool-status" aria-live="off"></div>
+    <div id="combat-target" hidden aria-hidden="true"><span>照準補助</span></div>
     <div class="controls">
+      <div class="thumb-weapons" role="group" aria-label="親指の武器切替。押すと装備、引くと狙って撃つ">
+        <button data-control="weapon" data-wand-slot="0" aria-label="杖1を装備。ここから引いて手動射撃"><span>✧ 1</span><small>移動射撃</small></button>
+        <button data-control="weapon" data-wand-slot="1" aria-label="杖2を装備。ここから引いて手動射撃"><span>✹ 2</span><small>手動・爆破</small></button>
+        <button data-quick-tool="pick" aria-label="つるはしへ持ち替える"><span>⛏</span><small>採掘</small></button>
+      </div>
       <div id="thumb-pad" class="thumb-pad" data-control="thumb" data-phase="idle" role="group" aria-label="片手パッド。触れた位置から引いて移動、上へ引いて浮遊">
         <span class="thumb-anchor" aria-hidden="true"></span><span class="thumb-tether" aria-hidden="true"></span><span class="thumb-knob" aria-hidden="true"></span>
         <span class="thumb-symbol" aria-hidden="true">↑</span><small id="thumb-help">引いて移動 · 上へ浮遊</small>
@@ -45,6 +53,7 @@ export function startSurvival(root: HTMLElement) {
       <div class="thumb-actions" role="group" aria-label="親指の操作モード">
         <button data-thumb-mode="travel" aria-pressed="true"><span aria-hidden="true">↔</span><small>移動</small></button>
         <button data-thumb-mode="work" aria-pressed="false"><span id="thumb-tool-icon" aria-hidden="true">⛏</span><small id="thumb-work-label">掘る</small></button>
+        <button id="combat-toggle" hidden aria-pressed="false" aria-label="通常弾の移動射撃を切り替える"><span aria-hidden="true">◎</span><small>射撃補助 OFF</small></button>
         <button id="thumb-menu" aria-label="工作と持ち物を開く"><span aria-hidden="true">▤</span><small>工作</small></button>
         <button class="thumb-water" data-control="spray" aria-label="水瓶を使う"><span aria-hidden="true">≈</span><small>水</small></button>
       </div>
@@ -64,12 +73,13 @@ export function startSurvival(root: HTMLElement) {
   let frame = 0, last = 0, accumulator = 0, saveClock = 0, renderClock = 0, hudClock = 0, drawRequested = true;
   let lastNotice = '', noticeUntil = 0, menuTab: MenuTab = 'craft';
   let renderer: Renderer;
+  let combatTarget: CombatTarget | null = null;
   try { renderer = new Renderer(canvas); } catch (error) { root.textContent = String(error); return () => {}; }
   overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', '世界と工作');
   const controls = new SurvivalControls(root, (x, y) => {
     const point = renderer.point(x, y); return { x: point.x - run.player.x, y: point.y - (run.player.y - 1) };
   }, key => {
-    if (key === 'Digit1' || key === 'Digit2') { run.selected = key === 'Digit1' ? 0 : 1; chooseTool('wand'); }
+    if (key === 'Digit1' || key === 'Digit2' || key === 'Wand0' || key === 'Wand1') { run.selected = key === 'Digit1' || key === 'Wand0' ? 0 : 1; chooseTool('wand'); }
     else if (key === 'Digit3' || key === 'Digit4' || key === 'Digit5') chooseTool(key === 'Digit3' ? 'pick' : key === 'Digit4' ? 'stone' : 'torch');
     else if (key === 'KeyQ') { run.selected = 1 - run.selected; chooseTool('wand'); }
     else if (key === 'KeyE') { if (run.nearbyWand()) pickup(); else menu(); }
@@ -80,9 +90,15 @@ export function startSurvival(root: HTMLElement) {
   for (const [id, name] of Object.entries(TOOLS)) tool.add(new Option(name, id));
   tool.addEventListener('change', () => { chooseTool(tool.value as SurvivalTool); tool.blur(); });
   root.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach(button => button.addEventListener('click', () => chooseTool(button.dataset.tool as SurvivalTool)));
-  element('#wand-select').addEventListener('click', () => { run.selected = 1 - run.selected; chooseTool('wand'); });
+  element('#wand-select').addEventListener('click', () => { if (run.tool === 'wand') run.selected = 1 - run.selected; chooseTool('wand'); });
+  element('[data-quick-tool="pick"]').addEventListener('click', () => chooseTool('pick'));
   element('#menu-button').addEventListener('click', () => menu());
   element('#thumb-menu').addEventListener('click', () => menu());
+  element('#combat-toggle').addEventListener('click', () => {
+    if (!allowsAssistedFire(run.wands[run.selected])) return;
+    combatAssist = !combatAssist; controls.clear('assist-change'); updateControlMode(); updateHud();
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 1, ...graphics, ...controlPreferences, combatAssist })); } catch { /* optional UI preference only */ }
+  });
   root.querySelectorAll<HTMLButtonElement>('[data-thumb-mode]').forEach(button => button.addEventListener('click', () => {
     controls.setThumbMode(button.dataset.thumbMode as ThumbMode); updateControlMode(); canvas.focus({ preventScroll: true }); updateHud();
   }));
@@ -98,14 +114,20 @@ export function startSurvival(root: HTMLElement) {
   // Settings use a new key; existing world/expedition records are never rewritten.
   let graphics: GraphicsSettings = { quality: 'balanced', pbr: true, volumetric: true, bloom: true };
   let controlPreferences: ControlPreferences = { layout: 'one-hand', hand: 'right' };
+  let combatAssist = false;
   try {
     const value: unknown = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null');
     controlPreferences = readControlPreferences(value);
+    combatAssist = readCombatAssist(value);
     if (value && typeof value === 'object' && 'version' in value && value.version === 1 && 'quality' in value && 'pbr' in value && 'volumetric' in value && 'bloom' in value &&
       ['low', 'balanced', 'high'].includes(String(value.quality)) && typeof value.pbr === 'boolean' && typeof value.volumetric === 'boolean' && typeof value.bloom === 'boolean') {
       graphics = { quality: value.quality as Quality, pbr: value.pbr, volumetric: value.volumetric, bloom: value.bloom };
     }
   } catch { /* Storage is optional; safe defaults keep the game playable. */ }
+  // Explicit read-only, detached diagnostics. No DOM attribute churn during
+  // ordinary play; observing a snapshot cannot mutate the world or inventory.
+  Object.defineProperty(canvas, 'combatSnapshot', { get: () => readCombatSnapshot(run,
+    { x: renderer.cameraX, y: renderer.cameraY, width: renderer.width, height: renderer.height }, combatAssist, combatTarget) });
   function applyGraphics() {
     renderer.setQuality(graphics.quality);
     renderer.setEffects({ pbr: graphics.pbr, volumetric: graphics.volumetric, bloom: graphics.bloom });
@@ -113,10 +135,16 @@ export function startSurvival(root: HTMLElement) {
   }
   function updateControlMode() {
     const work = controls.thumbMode === 'work';
+    const combat = run.tool === 'wand' && !work;
+    const assist = combat && combatAssist && allowsAssistedFire(run.wands[run.selected]);
+    element('button[data-thumb-mode="work"]').hidden = run.tool === 'wand';
+    const toggle = element<HTMLButtonElement>('#combat-toggle'); toggle.hidden = run.tool !== 'wand'; toggle.disabled = !allowsAssistedFire(run.wands[run.selected]);
+    toggle.setAttribute('aria-pressed', String(combatAssist && !toggle.disabled));
+    toggle.querySelector('small')!.textContent = toggle.disabled ? '手動専用' : `補助 ${combatAssist ? 'ON' : 'OFF'}`;
     game.dataset.thumbMode = controls.thumbMode;
     root.querySelectorAll<HTMLElement>('[data-thumb-mode]').forEach(button => { if (button.tagName === 'BUTTON') button.setAttribute('aria-pressed', String(button.dataset.thumbMode === controls.thumbMode)); });
-    element('#thumb-help').textContent = work ? run.tool === 'pick' || run.tool === 'wand' ? '引いて狙う · 0.22秒後に使う' : '引いて1個設置 · 離して次へ' : '引いて移動 · 上へ浮遊';
-    element('#thumb-pad').setAttribute('aria-label', work ? '片手パッド。引いた方向を狙い、0.22秒後から道具を使用。戻すか離すと停止' : '片手パッド。触れた位置から引いて移動、上へ引いて浮遊');
+    element('#thumb-help').textContent = work ? run.tool === 'pick' || run.tool === 'wand' ? '引いて狙う · 0.22秒後に使う' : '引いて1個設置 · 離して次へ' : assist ? '移動＋敵を狙って射撃 · 上へ浮遊' : combat ? '引いて移動 · 杖から引いて射撃' : '引いて移動 · 上へ浮遊';
+    element('#thumb-pad').setAttribute('aria-label', work ? '片手パッド。引いた方向を狙い、0.22秒後から道具を使用。戻すか離すと停止' : assist ? '引いて移動、上へ浮遊。見える敵だけを照準補助して射撃。離すと止まる' : '片手パッド。触れた位置から引いて移動、上へ引いて浮遊');
     element('.thumb-symbol').textContent = work ? '✧' : '↑';
   }
   function applyControls() {
@@ -124,9 +152,12 @@ export function startSurvival(root: HTMLElement) {
   }
   applyGraphics(); applyControls();
   function chooseTool(value: SurvivalTool) {
-    run.tool = value; controls.clear('tool-change'); controls.setSingleUse(value !== 'pick' && value !== 'wand');
-    if (controlPreferences.layout === 'one-hand') controls.setThumbMode('work');
+    run.tool = value; controls.clear('tool-change'); controls.setSingleUse(singleGestureTool());
+    if (controlPreferences.layout === 'one-hand') controls.setThumbMode(value === 'wand' ? 'travel' : 'work');
     updateControlMode(); if (!paused) canvas.focus({ preventScroll: true }); updateHud();
+  }
+  function singleGestureTool() {
+    return run.tool !== 'pick' && run.tool !== 'wand' || controlPreferences.layout === 'one-hand' && run.tool === 'wand' && !allowsAssistedFire(run.wands[run.selected]);
   }
   function persist() {
     const status = element('#save-status');
@@ -157,7 +188,7 @@ export function startSurvival(root: HTMLElement) {
   }
   function resume() {
     if (!started) return;
-    paused = false; overlay.hidden = true; controls.clear(); controls.setSingleUse(run.tool !== 'pick' && run.tool !== 'wand'); controls.enabled = true; drawRequested = true; updateControlMode();
+    paused = false; overlay.hidden = true; controls.clear(); controls.setSingleUse(singleGestureTool()); controls.enabled = true; drawRequested = true; updateControlMode();
     game.classList.remove('in-menu'); canvas.focus({ preventScroll: true }); updateHud();
   }
   function start() { run = new SurvivalRun(seed()); started = true; saveClock = 0; lastNotice = ''; persist(); resume(); }
@@ -177,7 +208,7 @@ export function startSurvival(root: HTMLElement) {
     const guide = document.createElement('ol'); guide.className = 'welcome-steps';
     for (const text of ['「移動」で引くと歩く。上へ引くと浮遊', '「掘る」で引いて狙う。少し待つと採掘', '工作で道具を作り、緑の照準で設置']) { const item = document.createElement('li'); item.textContent = text; guide.append(item); }
     panelElement.append(guide);
-    paragraph(panelElement, '親指ひとつで遊べます。パッドは触れた位置から柔らかく追従。道具を選ぶと作業モードへ、離すと使用は止まります。工作→設定で左利き・両手操作にも切り替えられます。', 'muted touch-guide');
+    paragraph(panelElement, 'パッド横の杖1/2で持ち替え。そのボタンから引くと狙って撃ち、離すと移動へ戻ります。通常弾は「補助ON」で、パッドを引く間だけ見える敵へ移動射撃。爆発・採掘・炎の杖は手動で1回ずつ。工作→設定で左利き・両手操作へ切り替えられます。', 'muted touch-guide');
     paragraph(panelElement, '倒れても地形・素材・建物は残り、拠点から再開します。世界は有限です。', 'muted');
     if (saved.message) paragraph(panelElement, saved.message, 'load-message');
     button('旧・旅の保存を開く', () => { location.search = '?mode=expedition'; }, panelElement, 'legacy-link');
@@ -260,7 +291,7 @@ export function startSurvival(root: HTMLElement) {
     const feedback = paragraph(parent, '変更はその場で反映されます。', 'settings-feedback'); feedback.setAttribute('role', 'status');
     const saveSettings = () => {
       applyGraphics();
-      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 1, ...graphics, ...controlPreferences })); feedback.textContent = '設定を保存しました。'; }
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ version: 1, ...graphics, ...controlPreferences, combatAssist })); feedback.textContent = '設定を保存しました。'; }
       catch { feedback.textContent = '設定を変更しました。保存はできませんでした。'; }
     };
     quality.addEventListener('change', () => { graphics.quality = quality.value as Quality; saveSettings(); });
@@ -280,7 +311,11 @@ export function startSurvival(root: HTMLElement) {
     hand.add(new Option('右手', 'right')); hand.add(new Option('左手', 'left')); hand.value = controlPreferences.hand; handRow.append(hand); parent.append(handRow);
     layout.addEventListener('change', () => { controlPreferences.layout = layout.value === 'two-hand' ? 'two-hand' : 'one-hand'; applyControls(); saveSettings(); });
     hand.addEventListener('change', () => { controlPreferences.hand = hand.value === 'left' ? 'left' : 'right'; applyControls(); saveSettings(); });
-    paragraph(parent, '片手：「移動」で親指を左右へ引くと歩き、上へ引くと浮遊。道具を選び、同じパッドを引いて狙い、少し待つと掘る・撃つ。設置は1回のドラッグで1個だけ。置けないときは理由を確認し、離してから引き直してください。中央へ戻すか離すと停止し、次の操作ができます。移動へ戻るには「移動」を押してください。');
+    const assistRow = document.createElement('label'); assistRow.className = 'setting-row'; assistRow.textContent = '片手・通常弾の移動射撃';
+    const assistCheckbox = document.createElement('input'); assistCheckbox.type = 'checkbox'; assistCheckbox.id = 'combat-assist'; assistCheckbox.checked = combatAssist;
+    assistCheckbox.addEventListener('change', () => { combatAssist = assistCheckbox.checked; controls.clear('assist-change'); updateControlMode(); saveSettings(); }); assistRow.append(assistCheckbox); parent.append(assistRow);
+    paragraph(parent, '片手：パッド隣の杖1/2を押して装備。そのボタンから引くと手動で狙い、0.12秒後から射撃。離すと移動パッドへ戻れます。通常弾の移動射撃をONにすると、移動・浮遊中に画面内の近い敵だけを狙います。壁越し・画面外・敵なしでは撃ちません。爆発・炎・採掘を含む杖は手動で1ドラッグ1詠唱だけ。次の弾は指を戻すか離して、引き直してください。次のカード名は道具欄に表示します。');
+    paragraph(parent, '採掘・設置は道具を選んで作業パッドを引き、0.22秒後から使用。設置は1ドラッグ1個だけ。中央へ戻すか離すと停止します。置けないときは理由を確認し、離してから引き直してください。作業から歩行へは「移動」を押します。');
     paragraph(parent, '両手：移動パッドを上へ引くと移動しながら浮遊。照準パッドや世界を触って狙い、「使う」を押し続けます。どちらの操作でも、指を離した照準の方向は残ります。');
     paragraph(parent, 'PC：A/Dで移動、Spaceで浮遊、マウスで狙って左クリックまたはXで使用。1/2で杖、3でつるはし、4で石の壁、5でたいまつ。Tabで工作、Escで戻ります。');
     const world = document.createElement('h2'); world.textContent = 'この世界'; parent.append(world);
@@ -322,6 +357,13 @@ export function startSurvival(root: HTMLElement) {
     tool.value = run.tool;
     root.querySelectorAll<HTMLElement>('[data-tool]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.tool === run.tool)));
     element('#wand-select').setAttribute('aria-pressed', String(run.tool === 'wand')); element('#wand-select small').textContent = `杖 ${run.selected + 1}`;
+    root.querySelectorAll<HTMLElement>('[data-wand-slot]').forEach(button => {
+      const slot = Number(button.dataset.wandSlot), safe = allowsAssistedFire(run.wands[slot]);
+      button.setAttribute('aria-pressed', String(run.tool === 'wand' && run.selected === slot));
+      button.querySelector('small')!.textContent = safe && combatAssist ? '移動射撃' : safe ? '手動射撃' : '1回ずつ';
+      button.title = `${run.wands[slot].name} · ${safe && combatAssist ? 'パッドで移動射撃、ここから引いて手動射撃' : safe ? 'ここから引いて手動射撃。移動射撃は設定でOFF' : 'ここから引いて手動で1詠唱。指を戻すか離して次のカードへ'}`;
+    });
+    element('[data-quick-tool="pick"]').setAttribute('aria-pressed', String(run.tool === 'pick'));
     for (const resource of ['stone', 'torch'] as const) element(`[data-count="${resource}"]`).textContent = String(resource === 'stone' ? Math.floor(run.resources.stone / 9) : run.resources.torch);
     element('#pickup').hidden = paused || !run.nearbyWand(); element('.spray-button small').textContent = `水 ${Math.floor(run.flask)}`;
     const action = run.tool === 'pick' ? '掘る' : run.tool === 'wand' ? '撃つ' : '置く';
@@ -329,24 +371,44 @@ export function startSurvival(root: HTMLElement) {
     element('#thumb-tool-icon').textContent = ICONS[run.tool]; element('#thumb-work-label').textContent = action;
     element('.thumb-water small').textContent = `水 ${Math.floor(run.flask)}`;
     const target = run.targetFromAim(controls.state.aimX, controls.state.aimY), status = element('#tool-status');
-    if (run.tool === 'pick' || run.tool === 'wand') { status.textContent = `${TOOLS[run.tool]} · ${run.tool === 'pick' ? controlPreferences.layout === 'one-hand' ? '「掘る」で引いて狙う' : '狙って「掘る」' : `鉱山の実 ${run.ammo.bomb}発`}`; status.dataset.valid = 'neutral'; }
+    if (run.tool === 'pick' || run.tool === 'wand') {
+      const card = wand.deck[wand.cursor] ?? wand.spells[0];
+      const next = wand.shuffle && wand.cursor >= wand.deck.length ? '再抽選' : card ? SPELLS[card].name : '空';
+      const firing = combatAssist && allowsAssistedFire(wand) ? 'パッドで移動射撃' : allowsAssistedFire(wand) ? '杖から引いて手動射撃' : `手動1回 · 次：${next}`;
+      status.textContent = `${TOOLS[run.tool]} · ${run.tool === 'pick' ? controlPreferences.layout === 'one-hand' ? '「掘る」で引いて狙う' : '狙って「掘る」' : controlPreferences.layout === 'one-hand' ? firing : `鉱山の実 ${run.ammo.bomb}発`}`; status.dataset.valid = 'neutral';
+    }
     else { const placement = run.placementStatus(run.tool, target.x, target.y); status.textContent = `${TOOLS[run.tool]} · ${placement.message}${controlPreferences.layout === 'one-hand' ? ' · 離して次へ' : ''}`; status.dataset.valid = placement.ok ? 'true' : 'false'; }
     canvas.dataset.survival = JSON.stringify({ seed: run.seed, x: player.x, y: player.y, hp: player.hp, tool: run.tool, resources: run.resources, structures: run.structures, camp: run.camp, spawn: run.spawn, deaths: run.deaths, pickaxeLevel: run.pickaxeLevel, canEdit: run.canEditWands(), cameraX: renderer.cameraX, cameraY: renderer.cameraY, width: renderer.width, height: renderer.height, worldWidth: run.world.width, worldHeight: run.world.height, chunkX: Math.floor(player.x / OPEN_CHUNK_SIZE), chunkY: Math.floor(player.y / OPEN_CHUNK_SIZE), region: getRegionName(player.x, player.y), activeRegion: run.world.activeRegion, lastStepCells: run.world.lastStepCells, target, time: run.time });
     canvas.dataset.tick = String(run.world.tick); canvas.dataset.playerX = player.x.toFixed(2); canvas.dataset.playerY = player.y.toFixed(2); canvas.dataset.fuel = player.fuel.toFixed(2); canvas.dataset.phase = run.phase;
     canvas.dataset.inputMove = String(controls.state.move); canvas.dataset.inputFire = String(controls.state.fire); canvas.dataset.inputFly = String(controls.state.fly); canvas.dataset.inputAimX = String(controls.state.aimX); canvas.dataset.inputAimY = String(controls.state.aimY); canvas.dataset.lastInputClear = controls.lastClearReason;
     canvas.dataset.paused = String(paused);
     canvas.dataset.controlLayout = controlPreferences.layout; canvas.dataset.controlHand = controlPreferences.hand; canvas.dataset.thumbMode = controls.thumbMode; canvas.dataset.thumbPhase = controls.thumbPhase;
+    const marker = element('#combat-target'); marker.hidden = paused || !combatTarget || controls.thumbMode !== 'travel' || controls.weaponGestureActive;
+    if (combatTarget) { marker.style.left = `${(combatTarget.x-renderer.cameraX)/renderer.width*100}%`; marker.style.top = `${(combatTarget.y-renderer.cameraY)/renderer.height*100}%`; }
     const qualityFeedback = root.querySelector<HTMLElement>('#quality-status');
     if (qualityFeedback) qualityFeedback.textContent = qualityStatus();
   }
   const resize = () => { renderer.resize(); drawRequested = true; }; window.addEventListener('resize', resize); renderer.resize(); welcome();
+  function refreshCombatAim() {
+    const assist = combatAssist && !controls.weaponGestureActive && controlPreferences.layout === 'one-hand' && run.tool === 'wand' && allowsAssistedFire(run.wands[run.selected]);
+    // Keep assisted shots in the visible play area, above the phone's controls.
+    combatTarget = assist ? findCombatTarget(run, { x: renderer.cameraX, y: renderer.cameraY, width: renderer.width, height: renderer.height * (renderer.width < renderer.height ? 0.65 : 1) }) : null;
+    controls.setCombatAim(combatTarget ? { x: combatTarget.aimX, y: combatTarget.aimY } : null, Boolean(combatTarget));
+  }
   const loop = (now: number) => {
     if (disposed) return;
     const dt = Math.min(0.1, (now - (last || now)) / 1000); last = now;
     if (started && !paused) {
+      refreshCombatAim();
       controls.update(dt);
+      if (game.dataset.thumbMode !== controls.thumbMode) updateControlMode();
       accumulator += dt; let steps = 0;
-      while (accumulator >= 1 / 60 && steps++ < 5) { run.step(1 / 60, controls.state); controls.consumeUse(); controls.state.interact = false; accumulator -= 1 / 60; }
+      while (accumulator >= 1 / 60 && steps++ < 5) {
+        refreshCombatAim(); const castBefore = run.castSequence;
+        run.step(1 / 60, controls.state);
+        controls.consumeUse(run.tool !== 'wand' || run.castSequence > castBefore);
+        controls.state.interact = false; accumulator -= 1 / 60;
+      }
       if (steps > 5) accumulator = 0;
       saveClock += dt; if (saveClock > 5) { saveClock = 0; persist(); }
     } else accumulator = 0;

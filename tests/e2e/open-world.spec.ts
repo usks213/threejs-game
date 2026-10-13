@@ -18,16 +18,57 @@ test('connected-world journey preserves mined cells across distant travel and re
   const material=(raw:string,x:number,y:number)=>{const world=JSON.parse(JSON.parse(raw).data.run).data.world as {width:number;cells:number[]};let offset=0;const index=y*world.width+x;for(let n=0;n<world.cells.length;n+=2){offset+=world.cells[n+1];if(index<offset)return world.cells[n];}throw Error('Invalid saved world');};
   const initial=await snapshot(),edit=material(initial,52,24);expect(edit).toBe(0);
   let touching=false;
-  const travel=async(goal:number,flyAcross=false)=>{let last=(await read()).x,stuck=0;const started=Date.now();let key='',charging=false,backoffUntil=0;
-    while(Date.now()-started<35000){const s=await read();if(Math.abs(s.x-goal)<10)break;let right=s.x<goal;stuck=Math.abs(s.x-last)<1?stuck+1:0;last=s.x;const obstacles=[55,120,147,...Array.from({length:13},(_,i)=>340+i*96),...Array.from({length:6},(_,i)=>300+i*236)];const fuel=Number(await cave.getAttribute('data-fuel'));const aboveShaft=Array.from({length:6},(_,i)=>300+i*236).some(x=>Math.abs(x-s.x)<16);if(!flyAcross&&fuel<28&&!aboveShaft)charging=true;if(fuel>=90)charging=false;// Back away from a canopy underside before rising, instead of pushing
-      // into its trunk indefinitely. This is ordinary movement/flight only.
-      if(!charging&&stuck>6&&Date.now()>=backoffUntil){backoffUntil=Date.now()+550;stuck=0;}
-      const backing=Date.now()<backoffUntil;if(backing)right=!right;
-      const fly=backing||flyAcross||!charging&&(stuck>3||obstacles.some(x=>Math.abs(x-s.x)<28)||s.y>surfaceAt(s.x)+8);
-      if(cdp){const m=(await page.locator('.move-pad').boundingBox())!,f=(await page.locator('.fly-button').boundingBox())!;const points=[...(!charging?[{x:m.x+m.width*(right?.8:.2),y:m.y+m.height/2,id:1}]:[]),...(fly?[{x:f.x+f.width/2,y:f.y+f.height/2,id:2}]:[])];if(touching)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});touching=points.length>0;if(points.length)await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:points});}
-      else{const next=charging?'':right?'KeyD':'KeyA';if(key&&key!==next)await page.keyboard.up(key);if(next)await page.keyboard.down(next);key=next;if(fly)await page.keyboard.down('Space');else await page.keyboard.up('Space');}
-      await page.waitForTimeout(100);
-    }if(cdp){if(touching)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});touching=false;}else{if(key)await page.keyboard.up(key);await page.keyboard.up('Space');}await page.waitForTimeout(300);expect(Math.abs((await read()).x-goal)).toBeLessThan(18);};
+  const travel=async(goal:number,flyAcross=false)=>{
+    // Walk the clear ground to recharge, then rise only enough to clear each
+    // visible canopy/wall. Holding flight through every wide obstacle radius
+    // wastes fuel against the ceiling and forces long stationary refills.
+    const barriers=[{left:52,right:65,top:19},{left:110,right:140,top:27},{left:142,right:156,top:19},
+      ...Array.from({length:13},(_,i)=>340+i*96).filter(x=>x<512||x>=768).map(x=>({left:x-4,right:x+7,top:surfaceAt(x)-14}))];
+    const shafts=Array.from({length:6},(_,i)=>300+i*236),started=Date.now();
+    const initial=await read();
+    let keys=new Set<string>(),last={x:initial.x,y:initial.y},stuck=0,backoffUntil=0,charging=false;
+    if(cdp&&touching){await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});touching=false;}
+    while(Date.now()-started<35000){
+      const s=await read();if(Math.abs(s.x-goal)<10)break;
+      const direction=Math.sign(goal-s.x),fuel=Number(await cave.getAttribute('data-fuel'));
+      const nearby=barriers.filter(b=>direction>0?s.x>=b.left-28&&s.x<=b.right+3:s.x<=b.right+28&&s.x>=b.left-3);
+      const barrier=nearby.length?{left:Math.min(...nearby.map(b=>b.left)),right:Math.max(...nearby.map(b=>b.right)),top:Math.min(...nearby.map(b=>b.top))}:undefined;
+      const aboveShaft=shafts.some(x=>Math.abs(x-s.x)<17);
+      stuck=Math.hypot(s.x-last.x,s.y-last.y)<1?stuck+1:0;last={x:s.x,y:s.y};
+      if(!flyAcross&&fuel<18&&!aboveShaft)charging=true;if(fuel>=65)charging=false;
+      if(!charging&&stuck>6&&Date.now()>=backoffUntil){backoffUntil=Date.now()+450;stuck=0;}
+      const backing=Date.now()<backoffUntil;
+      // Keep mobile flight held for the short obstacle crossing. Repeatedly
+      // lifting/re-pressing its second finger at a one-cell altitude boundary
+      // introduces braking between otherwise continuous movement contacts.
+      const fly=!charging&&(flyAcross||backing||(barrier&&(cdp||s.y>barrier.top-6))||aboveShaft&&s.y>surfaceAt(s.x)-10||s.y>surfaceAt(s.x)+8);
+      // When close to the trunk, finish rising before moving beneath its
+      // canopy. This avoids the old charge/backoff loop at the home trees.
+      const rising=barrier&&s.y>barrier.top-4.5&&(direction>0?s.x>=barrier.left-9&&s.x<barrier.left:s.x<=barrier.right+9&&s.x>barrier.right);
+      const desired=new Set<string>();
+      if(!charging&&(!rising||backing))desired.add((backing?-direction:direction)>0?'KeyD':'KeyA');
+      if(fly)desired.add('Space');
+      if(cdp){
+        // Keep the real touches held while the requested controls stay the
+        // same. Restarting them on every observation repeatedly brakes the
+        // player and spends travel time delivering redundant CDP events.
+        const changed=keys.size!==desired.size||[...desired].some(key=>!keys.has(key));
+        if(changed){
+          if(touching)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+          const m=(await page.locator('.move-pad').boundingBox())!,f=(await page.locator('.fly-button').boundingBox())!;
+          const points=[...(desired.has('KeyD')||desired.has('KeyA')?[{x:m.x+m.width*(desired.has('KeyD')?.8:.2),y:m.y+m.height/2,id:1}]:[]),...(desired.has('Space')?[{x:f.x+f.width/2,y:f.y+f.height/2,id:2}]:[])];
+          touching=points.length>0;if(touching)await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:points});
+        }
+      }else{
+        for(const key of keys)if(!desired.has(key))await page.keyboard.up(key);
+        for(const key of desired)if(!keys.has(key))await page.keyboard.down(key);
+      }
+      keys=desired;await page.waitForTimeout(100);
+    }
+    if(cdp){if(touching)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});touching=false;}
+    else{for(const key of keys)await page.keyboard.up(key);await page.keyboard.up('Space');}
+    await page.waitForTimeout(300);expect(Math.abs((await read()).x-goal)).toBeLessThan(18);
+  };
   await travel(550);const distant=await read();expect(distant.x).toBeGreaterThan(512);expect(distant.resources.wood).toBe(mined.resources.wood);expect(distant.deaths).toBe(0);
   await page.screenshot({path:info.outputPath(mobile?'open-world-distant-portrait.png':'open-world-distant-desktop.png')});
   await menu();await activate('保存してタイトルへ');await page.reload();await activate('この世界を続ける');expect((await read()).x).toBeGreaterThan(512);

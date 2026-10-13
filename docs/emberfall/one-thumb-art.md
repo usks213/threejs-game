@@ -1,5 +1,7 @@
 # One-thumb controls and original pixel art
 
+Historical record of the October 12 increment. Real-user feedback on October 13 found its weapon/attack flow insufficient. The revised controls are documented in [thumb-combat.md](thumb-combat.md); the earlier single-pointer crafting route did not establish comfortable combat.
+
 This increment answers the 2026-10-12 request for one-handed phone play and stronger pixel graphics. The public release remains the previously verified build until this candidate passes input, image, performance and independent review gates.
 
 ## Controls

@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 test('one-thumb portrait reach, clear hero and quality budgets at three phone sizes',async({page,context},info)=>{
+  test.setTimeout(60000); // Three sizes, workshop gestures and three quality checks; frame-progress limits are unchanged.
   test.skip(info.project.name!=='android-chromium','Phone-only reach and quality check');
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/?seed=3397');await page.getByRole('button',{name:'新しい世界を作る',exact:true}).tap();

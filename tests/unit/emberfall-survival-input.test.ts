@@ -55,13 +55,20 @@ describe('portrait survival input composition', () => {
   });
 });
 
-import { readControlPreferences, SoftThumbStick, THUMB_RADIUS, THUMB_WORK_DWELL } from '../../src/emberfall/survival-input';
+import { readControlPreferences, SoftThumbStick, THUMB_RADIUS, THUMB_COMBAT_GRACE, THUMB_WORK_DWELL } from '../../src/emberfall/survival-input';
 
 const dwell = (input: SurvivalInputModel, seconds = THUMB_WORK_DWELL + 0.02) => {
   for (let time = 0; time < seconds; time += 0.01) input.update(0.01);
 };
 
 describe('one-thumb travel and work', () => {
+  it('keeps a single weapon gesture armed through cooldown or mana wait until a successful cast', () => {
+    const input = new SurvivalInputModel(); input.setSingleUse(true);
+    input.press(1, 'weapon'); input.move(1, { x: 1, y: 0 }); dwell(input);
+    for (let i = 0; i < 90; i++) { input.consumeUse(false); input.update(1 / 60); expect(input.state.fire).toBe(true); }
+    input.consumeUse(true); expect(input.state.fire).toBe(false); dwell(input, 1); expect(input.state.fire).toBe(false);
+    input.release(1, true); input.press(2, 'weapon'); input.move(2, { x: 1, y: 0 }); dwell(input); expect(input.state.fire).toBe(true);
+  });
   it('measures browser work grace from displacement, not the preceding slow frame', () => {
     let now = 10; const input = new SurvivalInputModel(() => now); input.setThumbMode('work');
     input.press(1, 'thumb'); now = 11; input.update(1);
@@ -199,5 +206,96 @@ describe('bounded direct-use tap buffering', () => {
     input.press(2,'use');input.release(2);input.clear();expect(input.state.fire).toBe(false);
     input.press(3,'use');input.release(3);input.setThumbMode('work');expect(input.state.fire).toBe(false);
     input.press(4,'thumb',{x:1,y:0});input.update(.1);input.release(4);input.consumeUse();expect(input.state.fire).toBe(false);
+  });
+});
+
+describe('contextual one-thumb combat', () => {
+  it('moves and levitates while aiming at an eligible target after a deliberate combat grace', () => {
+    const input = new SurvivalInputModel();
+    input.setCombatAim({ x: -4, y: -2 }, true); input.press(1, 'thumb'); dwell(input, 1);
+    expect(input.state.fire).toBe(false);
+    input.move(1, { x: 0.7, y: -0.7 }); input.update(0.1);
+    expect(input.state).toMatchObject({ move: 0.7, fly: true, fire: false });
+    input.update(THUMB_COMBAT_GRACE - 0.1 + 0.001);
+    expect(input.state).toMatchObject({ move: 0.7, fly: true, fire: true, aimX: -4, aimY: -2 });
+    input.consumeUse(); expect(input.state.fire).toBe(true);
+    input.setCombatAim(null); expect(input.state).toMatchObject({ move: 0.7, fly: true, fire: false });
+  });
+  it('requires an explicit safe-fire permission and a finite nonzero target', () => {
+    const input = new SurvivalInputModel(); input.press(1, 'thumb'); input.move(1, { x: 0.8, y: 0 }); dwell(input);
+    input.setCombatAim({ x: 2, y: 3 }); expect(input.state).toMatchObject({ fire: false, aimX: 2, aimY: 3 });
+    input.setCombatAim({ x: 2, y: 3 }, true); expect(input.state.fire).toBe(true);
+    for (const target of [null, { x: 0, y: 0 }, { x: NaN, y: 2 }, { x: 1, y: Infinity }]) {
+      input.setCombatAim(target, true); expect(input.state.fire).toBe(false);
+    }
+    input.setCombatAim({ x: 2, y: 3 }, false); expect(input.state.fire).toBe(false);
+  });
+  it('starts the browser combat grace at displacement and rearms after recenter', () => {
+    let now = 10; const input = new SurvivalInputModel(() => now);
+    input.setCombatAim({ x: 3, y: 1 }, true); input.press(1, 'thumb'); now = 20; input.update(10);
+    input.move(1, { x: 0.8, y: -0.6 }); input.update(0.1); expect(input.state.fire).toBe(false);
+    now += THUMB_COMBAT_GRACE - 0.001; input.update(0.1); expect(input.state.fire).toBe(false);
+    now += 0.002; input.update(0.001); expect(input.state.fire).toBe(true);
+    input.move(1, { x: 0.1, y: 0 }); expect(input.state.fire).toBe(false);
+    now += 50; input.move(1, { x: 0.8, y: 0 }); input.update(1); expect(input.state.fire).toBe(false);
+    input.release(1); expect(input.state.fire).toBe(false); input.update(100); expect(input.state.fire).toBe(false);
+  });
+  it('clears target permission and held combat across tool/mode/lifecycle changes', () => {
+    const input = new SurvivalInputModel(); input.setCombatAim({ x: 1, y: 0 }, true);
+    input.press(1, 'thumb'); input.move(1, { x: 1, y: 0 }); dwell(input); expect(input.state.fire).toBe(true);
+    input.clear(); input.move(1, { x: 1, y: 0 }); dwell(input); expect(input.state.fire).toBe(false);
+    input.press(2, 'thumb'); input.move(2, { x: 1, y: 0 }); dwell(input); expect(input.state.fire).toBe(false);
+    input.setCombatAim({ x: 1, y: 0 }, true); expect(input.state.fire).toBe(true);
+    input.setThumbMode('work'); input.setThumbMode('travel'); dwell(input); expect(input.state.fire).toBe(false);
+  });
+  it('keeps manual mouse/two-hand and keyboard use ahead of assisted aiming', () => {
+    const input = new SurvivalInputModel(); input.setCombatAim({ x: 5, y: 6 }, true);
+    input.press(1, 'thumb'); input.move(1, { x: 1, y: 0 }); dwell(input);
+    input.press(2, 'aim', { x: -5, y: -6 }); expect(input.state).toMatchObject({ aimX: -5, aimY: -6, fire: false });
+    input.press(3, 'use'); expect(input.state).toMatchObject({ aimX: -5, aimY: -6, fire: true });
+    input.consumeUse(); input.release(3); input.release(2);
+    input.aim({ x: -2, y: -3 }); input.key('KeyX', true);
+    expect(input.state).toMatchObject({ aimX: -2, aimY: -3, fire: true });
+  });
+  it('uses temporary manual weapon aim without movement, buffering or work-mode timing changes', () => {
+    const input = new SurvivalInputModel(); input.setCombatAim({ x: -8, y: 8 }, true);
+    input.press(1, 'weapon'); input.move(1, { x: 0.75, y: -0.5 }); input.update(0.1);
+    expect(input.state).toMatchObject({ aimX: 0.75, aimY: -0.5, move: 0, fly: false, fire: false });
+    input.update(0.021); expect(input.state.fire).toBe(true); expect(input.thumbMode).toBe('travel');
+    input.consumeUse(); expect(input.state.fire).toBe(true);
+    input.move(1, { x: 0, y: 0 }); expect(input.state.fire).toBe(false);
+    input.move(1, { x: 1, y: 0 }); input.update(0.1); expect(input.state.fire).toBe(false);
+    input.release(1); dwell(input); expect(input.state.fire).toBe(false);
+    input.setThumbMode('work'); input.press(2, 'thumb'); input.move(2, { x: 1, y: 0 });
+    input.update(0.1); input.update(0.1); expect(input.state.fire).toBe(false);
+    input.update(0.021); expect(input.state.fire).toBe(true);
+  });
+  it('limits a marked weapon to one cast per drag and rearms only after a fresh deliberate displacement', () => {
+    const input = new SurvivalInputModel(); input.setSingleUse(true);
+    input.press(1, 'weapon'); input.move(1, { x: 0.8, y: 0 }); input.update(0.1);
+    input.consumeUse(); expect(input.state.fire).toBe(false);
+    input.update(0.021); expect(input.state.fire).toBe(true);
+    input.consumeUse(); expect(input.state.fire).toBe(false);
+    input.move(1, { x: 0.5, y: -0.5 }); dwell(input, 10); expect(input.state.fire).toBe(false);
+    input.consumeUse(); expect(input.state.fire).toBe(false);
+    input.move(1, { x: 0, y: 0 }); input.move(1, { x: -0.8, y: 0 }); input.update(0.1);
+    expect(input.state.fire).toBe(false); input.update(0.021); expect(input.state.fire).toBe(true);
+    input.consumeUse(); input.release(1); input.press(2, 'weapon'); input.move(2, { x: 0.8, y: 0 });
+    input.update(0.1); expect(input.state.fire).toBe(false); input.update(0.021); expect(input.state.fire).toBe(true);
+  });
+  it('discards a canceled single-cast drag without a shot or buffered retry', () => {
+    const input = new SurvivalInputModel(); input.setSingleUse(true);
+    input.press(1, 'weapon'); input.move(1, { x: 0.8, y: 0 }); input.update(0.1);
+    input.release(1, true); dwell(input, 10); input.consumeUse(); expect(input.state.fire).toBe(false);
+    input.press(2, 'weapon'); input.move(2, { x: 0.8, y: 0 }); dwell(input);
+    expect(input.state.fire).toBe(true); input.release(2, true); expect(input.state.fire).toBe(false);
+    input.consumeUse(); input.update(1); expect(input.state.fire).toBe(false);
+  });
+  it('leaves ordinary weapon drags repeating and direct desktop/two-hand holds unchanged', () => {
+    const input = new SurvivalInputModel(); input.press(1, 'weapon'); input.move(1, { x: 0.8, y: 0 }); dwell(input);
+    for (let cast = 0; cast < 5; cast++) { expect(input.state.fire).toBe(true); input.consumeUse(); dwell(input); }
+    input.setSingleUse(true); input.press(2, 'use'); input.consumeUse(); expect(input.state.fire).toBe(true);
+    input.release(2); input.press(3, 'aim', { x: 1, y: 0 }, true); input.consumeUse(); expect(input.state.fire).toBe(true);
+    input.release(3); input.key('KeyX', true); input.consumeUse(); expect(input.state.fire).toBe(true);
   });
 });

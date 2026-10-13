@@ -17,7 +17,7 @@ test('one thumb mines, crafts, builds and controls water with safe handed input'
   const aim=async(x:number,y:number,ms=450)=>{await mode('work');const s=await read(),dx=x-s.x,dy=y-(s.y-1),length=Math.hypot(dx,dy);await drag(dx/length*36,dy/length*36);await page.waitForTimeout(ms+260);await release();await page.waitForTimeout(160);};
   const menu=async()=>{await release();await page.locator('#thumb-menu').tap();};
   const resume=async()=>{await page.getByRole('button',{name:'世界に戻る',exact:true}).tap();};
-  const select=async(tool:string)=>{await release();if(['pick','stone','torch'].includes(tool)){await page.locator(`button[data-tool="${tool}"]`).tap();return;}await menu();if(tool==='wand'){await page.locator('[data-tab="equipment"]').tap();await page.getByRole('button',{name:'この杖を持つ',exact:true}).first().tap();return;}await page.locator('[data-tab="inventory"]').tap();const label=tool==='camp'?'焚き火の拠点':'作業台';await page.locator('article.inventory-item').filter({has:page.getByRole('heading',{name:label,exact:true})}).getByRole('button',{name:'手に持つ',exact:true}).tap();};
+  const select=async(tool:string)=>{await release();if(tool==='pick'){await page.locator('[data-quick-tool="pick"]').tap();return;}if(['stone','torch'].includes(tool)){await page.locator(`button[data-tool="${tool}"]`).tap();return;}if(tool==='wand'){await page.locator('[data-wand-slot="0"]').tap();return;}await menu();await page.locator('[data-tab="inventory"]').tap();const label=tool==='camp'?'焚き火の拠点':'作業台';await page.locator('article.inventory-item').filter({has:page.getByRole('heading',{name:label,exact:true})}).getByRole('button',{name:'手に持つ',exact:true}).tap();};
   const craft=async(id:string)=>{await menu();await page.locator('[data-tab="craft"]').tap();await expect(page.locator(`[data-recipe="${id}"]`)).toBeEnabled();await page.locator(`[data-recipe="${id}"]`).tap();await resume();};
   // A tap/deadzone contact must never start a tool. One finger, no second pad.
   await mode('work');const p=await drag(0,0);await page.waitForTimeout(500);expect((await read()).resources.wood).toBe(0);await expect(cave).toHaveAttribute('data-input-fire','false');
@@ -33,6 +33,12 @@ test('one thumb mines, crafts, builds and controls water with safe handed input'
   for(let pass=0;pass<3;pass++)for(const y of [24,28,32,26,30,21])await aim(55,y,370);
   await expect.poll(async()=>(await read()).resources.wood).toBeGreaterThanOrEqual(34);
   for(const x of [49,52,55])await aim(x,34,400);
+  // Follow actual collection, re-aiming at fresh floor faces rather than
+  // assuming three fixed-duration holds always remove the full recipe cost.
+  const collecting=Date.now();
+  for(let pass=0;pass<3&&Date.now()-collecting<12000;pass++)for(const x of [44,48,52,56]){
+    if((await read()).resources.stone>=21)break;await aim(x,34,550);
+  }
   await expect.poll(async()=>(await read()).resources.stone).toBeGreaterThanOrEqual(21);
   await craft('camp');await select('camp');await aim(25.5,34.5,550);
   expect((await read()).structures.filter(s=>s.type==='camp')).toHaveLength(1);
@@ -45,7 +51,8 @@ test('one thumb mines, crafts, builds and controls water with safe handed input'
   for(const x of [84,88,86])await aim(x,34,1000);
   // The earlier base consumed 21 stone. Take a fresh reachable floor patch,
   // rather than repeatedly aiming through the already-empty left-hand shaft.
-  for(const x of [97,99])if((await read()).resources.stone<27)await aim(x,34,650);
+  const damCollecting=Date.now();
+  for(let pass=0;pass<3&&Date.now()-damCollecting<10000;pass++)for(const x of [97,99,96])if((await read()).resources.stone<27)await aim(x,34,650);
   await expect.poll(async()=>(await read()).resources.stone).toBeGreaterThanOrEqual(27);
   await select('stone');const before=(await read()).resources.stone;
   for(const y of [34.5,31.05,28.05])await aim(104,y,550);
@@ -64,7 +71,7 @@ test('one thumb mines, crafts, builds and controls water with safe handed input'
   await menu();await page.locator('[data-tab="settings"]').tap();await page.locator('#control-hand').selectOption('left');await resume();await expect(cave).toHaveAttribute('data-control-hand','left');
   const left=(await pad.boundingBox())!;expect(left.x+left.width/2).toBeLessThan(393/2);
   await mode('travel');const x=(await read()).x;await drag(-36,-36);await page.waitForTimeout(350);await release();expect((await read()).x).toBeLessThan(x);await page.screenshot({path:info.outputPath('one-thumb-left-handed.png')});
-  await select('wand');await mode('work');await expect(page.locator('.mana')).toBeVisible();await page.waitForTimeout(150);const manaBefore=Number(await page.locator('.mana b').textContent());await drag(36,-18);await expect(cave).toHaveAttribute('data-input-fire','true');await expect.poll(async()=>Number(await page.locator('.mana b').textContent())).toBeLessThan(manaBefore);await release();await expect(cave).toHaveAttribute('data-input-fire','false');
+  await select('wand');await expect(page.locator('.mana')).toBeVisible();await page.waitForTimeout(150);const manaBefore=Number(await page.locator('.mana b').textContent());const wb=(await page.locator('[data-wand-slot="0"]').boundingBox())!,wp={x:wb.x+wb.width/2,y:wb.y+wb.height/2};await touch('touchStart',wp);await touch('touchMove',{x:wp.x+36,y:wp.y-18});await expect(cave).toHaveAttribute('data-input-fire','true');await expect.poll(async()=>Number(await page.locator('.mana b').textContent())).toBeLessThan(manaBefore);await release();await expect(cave).toHaveAttribute('data-input-fire','false');
   await mode('travel');await drag(36,0);await page.setViewportSize({width:851,height:393});await expect(cave).toHaveAttribute('data-input-move','0');await touch('touchCancel');await page.setViewportSize({width:393,height:851});
   await menu();await page.getByRole('button',{name:'保存してタイトルへ',exact:true}).tap();await page.reload();await page.getByRole('button',{name:'この世界を続ける',exact:true}).tap();await expect(cave).toHaveAttribute('data-control-hand','left');expect((await read()).deaths).toBe(0);
   const tick=Number(await cave.getAttribute('data-tick'));await page.waitForTimeout(1000);expect(Number(await cave.getAttribute('data-tick'))-tick).toBeGreaterThan(12);

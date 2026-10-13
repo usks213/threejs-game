@@ -30,6 +30,12 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   for(const x of [49,52,55])await aim(x,34,400);
   // If the first shaft is exhausted, collect a separate reachable floor patch.
   for(const x of [45,47])if((await read()).resources.stone<21)await aim(x,34,450);
+  // Repeated strikes can exhaust one surface while nearby rock remains.
+  // Sweep fresh, reachable floor faces and stop when the same recipe cost is
+  // actually owned; never mine beneath the camp/workbench or grant materials.
+  if(!mobile){const started=Date.now();for(let pass=0;pass<3&&Date.now()-started<12000;pass++)for(const x of [44,48,52,56]){
+    if((await read()).resources.stone>=21)break;await aim(x,34,550);
+  }}
   await expect.poll(async()=>(await read()).resources.stone).toBeGreaterThanOrEqual(21);
   await craft('camp');await select('camp');await page.waitForTimeout(250);await aim(25.5,34.5,100);
   await expect.poll(async()=>(await read()).structures.filter(s=>s.type==='camp').length).toBe(1);
@@ -70,7 +76,7 @@ test('persistent survival: mine, craft, build a lit camp, recover after death an
   const ownership=(s:State)=>Object.fromEntries(Object.entries(s.resources).map(([key,value])=>[key,value+s.structures.filter(item=>item.type===key).length]));
   // Face the hard ceiling and levitate while firing the actual explosive wand.
   // This produces lethal self-damage; no health/state injection or respawn API.
-  if(mobile)await page.locator('#wand-select').tap();else await page.keyboard.press('Digit2');
+  if(mobile){await page.locator('#wand-select').tap();if((await cave.evaluate(element => (element as HTMLCanvasElement & { readonly combatSnapshot: { selected: number } }).combatSnapshot.selected))!==1)await page.locator('#wand-select').tap();}else await page.keyboard.press('Digit2');
   if(cdp){const a=(await page.locator('.aim-pad').boundingBox())!,f=(await page.locator('.fly-button').boundingBox())!,u=(await page.locator('#use-button').boundingBox())!;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:a.x+a.width/2,y:a.y+a.height*.15,id:3},{x:f.x+f.width/2,y:f.y+f.height/2,id:4},{x:u.x+u.width/2,y:u.y+u.height/2,id:5}]});}
   else{const s=await read(),box=(await cave.boundingBox())!;await page.mouse.move((s.x-s.cameraX)/s.width*box.width,4);await page.keyboard.down('Space');await page.mouse.down();}
   await expect.poll(async()=>(await read()).deaths,{timeout:18000}).toBeGreaterThan(0);

@@ -251,3 +251,55 @@
   .survival[data-control-layout="one-hand"][data-control-hand="left"] .workshop-header .inventory-summary{text-align:right}
   .survival[data-control-layout="one-hand"][data-control-hand="left"] .workshop-footer{justify-content:flex-start}
 }
+/* Combat belongs beside the gripping thumb. Each slot is explicit: tap equips,
+   dragging the same slot aims/fires; the main pad is immediately travel again. */
+.survival .thumb-weapons{display:none}
+.survival #combat-target{position:absolute;width:24px;height:24px;transform:translate(-50%,-50%);border:1px solid #fff0b6;border-radius:50%;box-shadow:0 0 0 3px #142d3580;pointer-events:none;z-index:2}
+.survival #combat-target span{position:absolute;top:-15px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:8px;color:#fff0b6;text-shadow:0 1px 3px #000}
+@media(hover:none){
+  .survival[data-control-layout="one-hand"] .thumb-pad{width:160px;height:132px;right:calc(14px + var(--safe-right));left:auto;bottom:calc(14px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .thumb-pad>small{font-size:8px;white-space:normal;line-height:12px;padding:0 4px;bottom:7px}
+  .survival[data-control-layout="one-hand"] .thumb-weapons{display:grid;position:absolute;right:calc(14px + var(--safe-right));left:auto;bottom:calc(154px + var(--safe-bottom));width:160px;grid-template-columns:repeat(3,minmax(48px,1fr));gap:4px;border:0;background:none;box-shadow:none;z-index:5}
+  .survival .thumb-weapons button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;min-height:52px;height:52px;padding:3px 1px;border-radius:12px;border-color:#b7c9ad70;background:#213c43f0;touch-action:none;user-select:none;-webkit-user-select:none}
+  .survival .thumb-weapons button>span{font-size:18px;line-height:23px}.survival .thumb-weapons button>small{font-size:8px;line-height:15px;white-space:nowrap}
+  .survival .thumb-weapons [aria-pressed="true"]{background:#5a6d4fea;border-color:#f0d69b;box-shadow:inset 0 -2px #e8c784}
+  .survival .thumb-weapons .pressed{background:#786b43f2;border-color:#ffdda0}
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(14px + var(--safe-right));left:auto;bottom:calc(214px + var(--safe-bottom));width:204px;grid-template-columns:repeat(4,48px);gap:4px}
+  .survival[data-control-layout="one-hand"] .thumb-actions button{height:50px;min-height:50px}
+  .survival[data-control-layout="one-hand"] .thumb-actions [data-thumb-mode="travel"]{order:3}
+  .survival[data-control-layout="one-hand"] .thumb-actions [data-thumb-mode="work"]{order:4}
+  .survival[data-control-layout="one-hand"] .thumb-actions #thumb-menu{order:2}
+  .survival[data-control-layout="one-hand"] .thumb-actions .thumb-water{order:1}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(272px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .toolbelt [data-tool="pick"],
+  .survival[data-control-layout="one-hand"] .toolbelt #wand-select{display:none}
+  .survival[data-control-layout="one-hand"] .toolbelt{left:auto;right:calc(14px + var(--safe-right));transform:none;width:240px;max-width:calc(100% - 28px - var(--safe-left) - var(--safe-right));grid-template-columns:52px 52px minmax(80px,1fr)}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(342px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:calc(382px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-pad,
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-weapons,
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(14px + var(--safe-left))}
+  .survival[data-control-hand="left"] .thumb-weapons{direction:rtl}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .toolbelt{right:auto;left:calc(14px + var(--safe-left));grid-template-columns:minmax(80px,1fr) 52px 52px}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions [data-thumb-mode="travel"]{order:1}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions [data-thumb-mode="work"]{order:2}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions #thumb-menu{order:3}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions .thumb-water{order:4}
+}
+@media(hover:none) and (max-height:680px) and (orientation:portrait){
+  .survival[data-control-layout="one-hand"] .thumb-pad{bottom:calc(10px + var(--safe-bottom));height:124px;width:160px}
+  .survival[data-control-layout="one-hand"] .thumb-weapons{bottom:calc(142px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .thumb-actions{bottom:calc(198px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(252px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(80px + var(--safe-bottom));max-width:calc(100% - 192px - var(--safe-left) - var(--safe-right))}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:calc(24px + var(--safe-bottom));max-width:calc(100% - 192px - var(--safe-left) - var(--safe-right))}
+}
+@media(hover:none) and (orientation:landscape){
+  .survival[data-control-layout="one-hand"] .thumb-actions{right:calc(184px + var(--safe-right));bottom:calc(30px + var(--safe-bottom));width:100px;grid-template-columns:repeat(2,48px)}
+  .survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions{right:auto;left:calc(184px + var(--safe-left))}
+  .survival[data-control-layout="one-hand"] .toolbelt{bottom:calc(214px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .tool-status{bottom:calc(278px + var(--safe-bottom))}
+  .survival[data-control-layout="one-hand"] .pickup-button{bottom:24px}
+}
+
+@media(hover:none){.survival[data-control-layout="one-hand"] .thumb-actions #combat-toggle{order:4}.survival[data-control-layout="one-hand"][data-control-hand="left"] .thumb-actions #combat-toggle{order:2}}
