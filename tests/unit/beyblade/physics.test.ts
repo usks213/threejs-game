@@ -100,8 +100,10 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     const p=profileFor(defaultBuild),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
     const state=createBattle([p,cpu],[{power:.6,angle:15*Math.PI/180,tilt:20*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]),events:(typeof state.events)=[];
     let energy=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);
-    for(let i=0;i<240*15&&!state.result;i++){stepBattle(state);events.push(...state.events.filter(e=>e.tick>state.tick-1));const next=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);expect(next).toBeLessThanOrEqual(energy+1e-9);energy=next;}
-    expect(state.result).not.toBe(null);expect(events.some(e=>e.kind==='rail-engage')).toBe(true);expect(events.some(e=>e.kind==='dash')).toBe(true);
+    // Observed closure: Node 22.23.3 = 17.875 s, Node 24.22.1 = 12.804 s.
+    // Floating-point geometry/contact trajectories are deterministic within a runtime, not bitwise across V8 versions.
+    for(let i=0;i<240*30&&!state.result;i++){stepBattle(state);events.push(...state.events.filter(e=>e.tick>state.tick-1));const next=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);expect(next).toBeLessThanOrEqual(energy+1e-9);energy=next;}
+    expect(state.result,JSON.stringify({runtime:process.version,tick:state.tick,simulatedSeconds:state.tick*STEP,result:state.result})).not.toBe(null);expect(events.some(e=>e.kind==='rail-engage')).toBe(true);expect(events.some(e=>e.kind==='dash')).toBe(true);
     // Mass calibration changes whether this trajectory intersects the opponent. Separate rail-bank and Burst fixtures assert real contact.
   },20000);
   it('the previous 80% / +15 degree / upright preset stays finite and closes without energy injection',()=>{
