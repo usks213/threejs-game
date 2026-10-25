@@ -36,7 +36,7 @@ export interface Vec3 { x:number; y:number; z:number }
 export interface SymmetricTensor {xx:number;yy:number;zz:number;xy:number;xz:number;yz:number}
 export interface MassComponent {component:BurstComponent;mass:number;center:Vec3;inertia:SymmetricTensor}
 export interface Quaternion { x:number; y:number; z:number; w:number }
-export interface RailState { engaged:boolean; travel:number; contactPoint:Vec3|null; tangent:Vec3|null; lastContactTick:number; lastReleaseTick:number; dashCount:number; speedBefore:number; spinBefore:number; energyBefore:number }
+export interface RailState { translationWork?:number;rotationWork?:number; engaged:boolean; travel:number; contactPoint:Vec3|null; tangent:Vec3|null; lastContactTick:number; lastReleaseTick:number; dashCount:number; speedBefore:number; spinBefore:number; energyBefore:number }
 export interface Top {
   x:number; y:number; z:number; vx:number; vy:number; vz:number;
   orientation:Quaternion; angularMomentum:Vec3; angularVelocity:Vec3; bodyInertia:Vec3;bodyInertiaTensor?:SymmetricTensor;
@@ -48,7 +48,7 @@ export interface Top {
   lock:number; railCooldown:number; profile:Profile; eliminated:Finish|null;
 }
 export type Finish = 'spin' | 'over' | 'burst' | 'xtreme';
-export interface BattleEvent { tick: number; kind: 'collision' | 'rail' | 'rail-engage' | 'rail-release' | 'dash' | 'finish' | 'burst-split'; top?: number; intensity?: number; finish?: Finish; position?:Vec3; velocity?:Vec3; energyBefore?:number; energyAfter?:number; spinBefore?:number; spinAfter?:number; velocityBefore?:Vec3; velocityAfter?:Vec3; travel?:number }
+export interface BattleEvent { translationWork?:number;rotationWork?:number; tick: number; kind: 'collision' | 'rail' | 'rail-engage' | 'rail-release' | 'dash' | 'finish' | 'burst-split'; top?: number; intensity?: number; finish?: Finish; position?:Vec3; velocity?:Vec3; energyBefore?:number; energyAfter?:number; spinBefore?:number; spinAfter?:number; velocityBefore?:Vec3; velocityAfter?:Vec3; travel?:number }
 export interface BattleResult { winner: 0 | 1 | null; finish: Finish | 'draw'; points: number }
 export type BurstComponent='blade'|'ratchet'|'bit';
 export interface BurstFragment extends Top {

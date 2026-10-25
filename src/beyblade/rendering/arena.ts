@@ -1,7 +1,54 @@
 import * as THREE from 'three';
 import type { Battle, Profile } from '../core/types';
 import { buildTopComponents, setComponentPose } from './top-mesh';
-import { STADIUM, bowlHeightAt, comHeight, getRailPath, pocketFloorAt } from '../core/physics';
+import { STADIUM, bowlHeightAt, comHeight, getRailPath, getBankSampleRadii } from '../core/physics';
+
+/** Visual finish-zone tint follows the existing continuous channel blend; never changes collision geometry. */
+function floorTint(color: THREE.Color, x: number, z: number) {
+  color.setHex(0xe8edf5);
+  let best = 0, finish: 'over' | 'xtreme' = 'over';
+  for (const pocket of STADIUM.pockets) {
+    const along = x * Math.cos(pocket.angle) + z * Math.sin(pocket.angle);
+    const across = -x * Math.sin(pocket.angle) + z * Math.cos(pocket.angle);
+    const width = STADIUM.radius * Math.sin(pocket.halfWidth);
+    const a = THREE.MathUtils.clamp((along - STADIUM.pocketEntryRadius) / STADIUM.pocketRampLength, 0, 1);
+    const c = THREE.MathUtils.clamp((Math.abs(across) - (width - .012)) / .016, 0, 1);
+    const blend = a * a * (3 - 2 * a) * (1 - c * c * (3 - 2 * c));
+    if (blend > best) { best = blend; finish = pocket.finish; }
+  }
+  return color.lerp(finish === 'xtreme' ? xtremeFloorColor : overFloorColor, best);
+}
+const xtremeFloorColor = new THREE.Color(0xff795c), overFloorColor = new THREE.Color(0x8da4bf);
+
+export function buildStadiumSurfaceGeometry() {
+  const positions: number[] = [], indices: number[] = [], colors: number[] = [], color = new THREE.Color();
+  // Preserve the physical rail's notch vertices and explicitly resolve each narrow bank transition.
+  const railAngles = getRailPath().map(point => (Math.atan2(point.z, point.x) + Math.PI * 2) % (Math.PI * 2));
+  const notchAngles = [-1, 1].flatMap(side => [.35, 1].flatMap(factor => Array.from({ length: 41 }, (_, i) => Math.PI * 1.5 + side * STADIUM.railNotchHalfAngle * factor + (i - 20) * .001)));
+  const angles = [...Array.from({ length: 769 }, (_, i) => i / 768 * Math.PI * 2), ...railAngles, ...notchAngles]
+    .sort((a, b) => a - b).filter((angle, i, all) => i === 0 || angle - all[i - 1] > 1e-8);
+  let levels = 0;
+  for (const angle of angles) {
+    const bank = getBankSampleRadii(angle), railRadius = bank[0], bankEnd = bank[bank.length - 1];
+    const outerBank = getBankSampleRadii(angle, [0, .0015, .003, .0045, .006].map(offset => STADIUM.bankOuterSlopeStart + offset));
+    const radii = [
+      ...Array.from({ length: 9 }, (_, i) => railRadius * i / 8),
+      ...bank.slice(1),
+      ...Array.from({ length: 32 }, (_, i) => bankEnd + (STADIUM.coverRadius - bankEnd) * (i + 1) / 32),
+      ...outerBank.map(radius => Math.min(radius, STADIUM.coverRadius)),
+    ].sort((a, b) => a - b);
+    levels = radii.length;
+    for (const radius of radii) {
+      const x = radius * Math.cos(angle), z = radius * Math.sin(angle);
+      positions.push(x, bowlHeightAt(x, z), z); floorTint(color, x, z); colors.push(color.r, color.g, color.b);
+    }
+  }
+  for (let column = 0; column < angles.length - 1; column++) for (let ring = 0; ring < levels - 1; ring++) {
+    const a = column * levels + ring, b = a + levels;
+    indices.push(a, b + 1, a + 1, a, b, b + 1);
+  }
+  const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
+}
 
 /** Render the solver's geometry and pose. No invented wobble, rail boost or burst motion. */
 export function createArena(canvas: HTMLCanvasElement, onError: (message: string) => void) {
@@ -30,45 +77,13 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
       }
     });
   }
-  function surfaceGeometry(radius: number, rings = 28, segments = 144) {
-    const positions: number[] = [], indices: number[] = [];
-    const radii = [...Array.from({ length: rings + 1 }, (_, i) => radius * i / rings), STADIUM.radius, STADIUM.pocketEntryRadius].filter(r => r <= radius).sort((a, b) => a - b).filter((r, i, all) => i === 0 || Math.abs(r - all[i - 1]) > 1e-8);
-    const angles = [...Array.from({ length: segments + 1 }, (_, i) => i / segments * Math.PI * 2), ...STADIUM.pockets.flatMap(p => [p.angle - p.halfWidth, p.angle + p.halfWidth])].sort((a, b) => a - b).filter((a, i, all) => i === 0 || Math.abs(a - all[i - 1]) > 1e-8);
-    for (const r of radii) for (const angle of angles) {
-      const x = r * Math.cos(angle), z = r * Math.sin(angle);
-      positions.push(x, pocketFloorAt(x, z) === null ? bowlHeightAt(x, z) : STADIUM.bowlDepth, z);
-    }
-    for (let ring = 0; ring < radii.length - 1; ring++) for (let i = 0; i < angles.length - 1; i++) {
-      const r = (radii[ring] + radii[ring + 1]) / 2, angle = (angles[i] + angles[i + 1]) / 2;
-      if (pocketFloorAt(Math.cos(angle) * r, Math.sin(angle) * r) !== null) continue;
-      const a = ring * angles.length + i, b = a + angles.length;
-      indices.push(a, b + 1, b, a, a + 1, b + 1);
-    }
-    const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
-  }
   const trayShape = new THREE.Shape();
   const extent = STADIUM.pocketOuterRadius + .006, corner = .07;
   trayShape.moveTo(-extent + corner, -extent); trayShape.lineTo(extent - corner, -extent); trayShape.lineTo(extent, -extent + corner); trayShape.lineTo(extent, extent - corner); trayShape.lineTo(extent - corner, extent); trayShape.lineTo(-extent + corner, extent); trayShape.lineTo(-extent, extent - corner); trayShape.lineTo(-extent, -extent + corner); trayShape.closePath();
   const tray = mesh(new THREE.ExtrudeGeometry(trayShape, { depth: .025, bevelEnabled: true, bevelSegments: 1, bevelSize: .006, bevelThickness: .005, steps: 1 }), 0x27364f, .55, .25);
   tray.rotation.x = Math.PI / 2; tray.position.y = -.018; scene.add(tray);
-  scene.add(mesh(surfaceGeometry(STADIUM.radius), 0xe8edf5, .48, .1));
-  // Flat apron with exact straight-channel cutouts, not an angular-sector approximation.
-  const apron = new THREE.Shape(); let started = false;
-  function apronPoint(x: number, z: number) { if (!started) { apron.moveTo(x, -z); started = true; } else apron.lineTo(x, -z); }
-  const pocketMouths = STADIUM.pockets.map(p => ({ angle: p.angle, half: STADIUM.radius * Math.sin(p.halfWidth) + .004 })).sort((a, b) => a.angle - b.angle);
-  let cursor = 0;
-  for (const mouth of pocketMouths) {
-    const halfAngle = Math.asin(mouth.half / STADIUM.coverRadius), begin = mouth.angle - halfAngle, end = mouth.angle + halfAngle;
-    for (let angle = cursor; angle < begin; angle += Math.PI / 96) apronPoint(Math.cos(angle) * STADIUM.coverRadius, Math.sin(angle) * STADIUM.coverRadius);
-    apronPoint(Math.cos(begin) * STADIUM.coverRadius, Math.sin(begin) * STADIUM.coverRadius);
-    const nx = Math.cos(mouth.angle), nz = Math.sin(mouth.angle), tx = -nz, tz = nx;
-    apronPoint(nx * Math.max(STADIUM.pocketEntryRadius, STADIUM.radius + .0001) - tx * mouth.half, nz * Math.max(STADIUM.pocketEntryRadius, STADIUM.radius + .0001) - tz * mouth.half);
-    apronPoint(nx * Math.max(STADIUM.pocketEntryRadius, STADIUM.radius + .0001) + tx * mouth.half, nz * Math.max(STADIUM.pocketEntryRadius, STADIUM.radius + .0001) + tz * mouth.half);
-    apronPoint(Math.cos(end) * STADIUM.coverRadius, Math.sin(end) * STADIUM.coverRadius); cursor = end;
-  }
-  for (let angle = cursor; angle <= Math.PI * 2; angle += Math.PI / 96) apronPoint(Math.cos(angle) * STADIUM.coverRadius, Math.sin(angle) * STADIUM.coverRadius);
-  apron.closePath(); const apronHole = new THREE.Path(); apronHole.absarc(0, 0, STADIUM.radius, 0, Math.PI * 2, true); apron.holes.push(apronHole);
-  const apronGeometry = new THREE.ShapeGeometry(apron, 96); apronGeometry.rotateX(-Math.PI / 2); apronGeometry.translate(0, STADIUM.bowlDepth, 0); scene.add(mesh(apronGeometry, 0xe8edf5, .48, .1));
+  // One continuous shared bowl/bank/apron/ramp surface; no free-standing decorative backing.
+  const floorSurface = mesh(buildStadiumSurfaceGeometry(), 0xffffff, .48, .1); floorSurface.material.vertexColors = true; scene.add(floorSurface);
   const pocketAt = (angle: number) => STADIUM.pockets.find(p => Math.cos(angle - p.angle) > 0 && Math.abs(Math.sin(angle - p.angle) * STADIUM.coverRadius) < STADIUM.radius * Math.sin(p.halfWidth) + .004);
   // Wall panels omit exactly the solver's pocket angular openings.
   const wallHeight = 'wallHeight' in STADIUM && typeof STADIUM.wallHeight === 'number' ? STADIUM.wallHeight : .034;
@@ -111,18 +126,21 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
   }); scene.add(teeth);
   for (const pocket of STADIUM.pockets) {
     const nx = Math.cos(pocket.angle), nz = Math.sin(pocket.angle), tx = -nz, tz = nx;
-    const half = STADIUM.radius * Math.sin(pocket.halfWidth), depth = STADIUM.pocketOuterRadius - STADIUM.pocketEntryRadius;
+    const half = STADIUM.radius * Math.sin(pocket.halfWidth);
     const color = pocket.finish === 'xtreme' ? 0xff795c : 0x8da4bf;
-    const floorPositions: number[] = [], floorIndices: number[] = [], acrossSegments = 16;
+    const floorPositions: number[] = [], floorIndices: number[] = [], floorColors: number[] = [], tint = new THREE.Color(), acrossSegments = 16;
     for (let i = 0; i <= 32; i++) {
-      const along = STADIUM.pocketEntryRadius + depth * i / 32;
       for (let j = 0; j <= acrossSegments; j++) {
-        const side = (half + .004) * (2 * j / acrossSegments - 1), x = nx * along + tx * side, z = nz * along + tz * side;
-        floorPositions.push(x, bowlHeightAt(x, z), z);
+        const side = (half + .004) * (2 * j / acrossSegments - 1);
+        // The shared floor already covers the circle; continue exactly from its boundary.
+        const start = Math.sqrt(STADIUM.coverRadius ** 2 - side ** 2);
+        const along = start + (STADIUM.pocketOuterRadius - start) * i / 32;
+        const x = nx * along + tx * side, z = nz * along + tz * side;
+        floorPositions.push(x, bowlHeightAt(x, z), z); floorTint(tint, x, z); floorColors.push(tint.r, tint.g, tint.b);
       }
       if (i < 32) for (let j = 0; j < acrossSegments; j++) { const a = i * (acrossSegments + 1) + j, b = a + acrossSegments + 1; floorIndices.push(a, b + 1, b, a, a + 1, b + 1); }
     }
-    const floorGeometry = new THREE.BufferGeometry(); floorGeometry.setAttribute('position', new THREE.Float32BufferAttribute(floorPositions, 3)); floorGeometry.setIndex(floorIndices); floorGeometry.computeVertexNormals(); scene.add(mesh(floorGeometry, color));
+    const floorGeometry = new THREE.BufferGeometry(); floorGeometry.setAttribute('position', new THREE.Float32BufferAttribute(floorPositions, 3)); floorGeometry.setAttribute('color', new THREE.Float32BufferAttribute(floorColors, 3)); floorGeometry.setIndex(floorIndices); floorGeometry.computeVertexNormals(); const pocketFloor = mesh(floorGeometry, 0xffffff); pocketFloor.material.vertexColors = true; scene.add(pocketFloor);
     const back = mesh(new THREE.BoxGeometry(.006, wallHeight, half * 2 + .012), color, .5, .15); back.position.set(nx * (STADIUM.pocketOuterRadius + .003), STADIUM.pocketFloorHeight + wallHeight / 2, nz * (STADIUM.pocketOuterRadius + .003)); back.rotation.y = -pocket.angle; back.material.transparent = true; back.material.opacity = .28; back.material.depthWrite = false; scene.add(back);
     const sideStart = STADIUM.radius - .006, sideLength = STADIUM.pocketOuterRadius - sideStart, sideCenter = (sideStart + STADIUM.pocketOuterRadius) / 2;
     for (const sign of [-1, 1]) {

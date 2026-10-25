@@ -11,7 +11,7 @@ const G=9.81;
 export const STADIUM={
   radius:.22, coverRadius:.245, launchOpeningRadius:.155, coverRoofHeight:.16, bowlDepth:.012, bowlStiffness:2*G*.012/(.22*.22), wallHeight:.12,
   railRadius:.201,railHeightMin:.002,railHeightMax:.013,railMaxTilt:.65,
-  railNotchDepth:.037,railNotchHalfAngle:.24,pocketOuterRadius:.325,pocketEntryRadius:.22,pocketRampLength:.03,pocketFloorHeight:-.006,
+  railNotchDepth:.037,railNotchHalfAngle:.24,bankTransitionWidth:.006,bankHeight:.007,bankSlope:.25,bankOuterSlopeStart:.028,pocketOuterRadius:.325,pocketEntryRadius:.22,pocketRampLength:.03,pocketFloorHeight:-.006,
   pockets:[
     {angle:Math.PI/2,halfWidth:.24,finish:'xtreme' as const},
     {angle:Math.PI*.17,halfWidth:.22,finish:'over' as const},
@@ -46,7 +46,16 @@ export const LAUNCH_REFERENCE={mass:.035,axialInertia:.55*.035*.024**2};
 export function launchEnergyAt(power:number){const p=clamp(finite(power,.75),.05,1);return{rotational:.5*LAUNCH_REFERENCE.axialInertia*(170+440*p)**2,translational:.5*LAUNCH_REFERENCE.mass*((.45+1.45*p)**2+.12**2)};}
 interface SurfaceSample{height:number;dx:number;dz:number;inPocket:boolean}
 function floorSurface(x:number,z:number):SurfaceSample{
-  const r2=x*x+z*z,R=STADIUM.radius,inside=r2<R*R,base=STADIUM.bowlDepth*Math.min(r2/(R*R),1),slope=inside?2*STADIUM.bowlDepth/(R*R):0;
+  const r2=x*x+z*z,R=STADIUM.radius,inside=r2<R*R,slope=inside?2*STADIUM.bowlDepth/(R*R):0;
+  let base=STADIUM.bowlDepth*Math.min(r2/(R*R),1),baseX=slope*x,baseZ=slope*z;
+  // Molded backing shoulder: a continuous surface behind, not a free-standing rail above a flat lane.
+  if(r2>(STADIUM.railRadius-STADIUM.railNotchDepth)**2&&Math.sqrt(r2)>getRailRadiusAt(Math.atan2(z,x))){
+    const c=nearestRailPlanar(x,z),d=-c.signedDistance;
+    if(d>0){const u=clamp(d/STADIUM.bankTransitionWidth,0,1),blend=u*u*(3-2*u),derivative=6*u*(1-u)/STADIUM.bankTransitionWidth;
+      const outer=Math.max(0,d-STADIUM.bankOuterSlopeStart),outerU=clamp(outer/STADIUM.bankTransitionWidth,0,1),outerBlend=outerU*outerU*(3-2*outerU),outerDerivative=6*outerU*(1-outerU)/STADIUM.bankTransitionWidth;
+      const rise=blend*STADIUM.bankHeight+STADIUM.bankSlope*outer*outerBlend,gradient=derivative*STADIUM.bankHeight+STADIUM.bankSlope*(outerBlend+outer*outerDerivative);
+      base+=rise;baseX-=c.normal.x*gradient;baseZ-=c.normal.z*gradient;}
+  }
   let blend=0,blendX=0,blendZ=0;
   for(const p of STADIUM.pockets){
     const nx=Math.cos(p.angle),nz=Math.sin(p.angle),along=x*nx+z*nz,across=-x*nz+z*nx,width=R*Math.sin(p.halfWidth);
@@ -58,7 +67,7 @@ function floorSurface(x:number,z:number):SurfaceSample{
     }
   }
   const difference=STADIUM.pocketFloorHeight-base;
-  return{height:base+difference*blend,dx:slope*x*(1-blend)+difference*blendX,dz:slope*z*(1-blend)+difference*blendZ,inPocket:blend>0};
+  return{height:base+difference*blend,dx:baseX*(1-blend)+difference*blendX,dz:baseZ*(1-blend)+difference*blendZ,inPocket:blend>0};
 }
 /** Continuous estimated lip/ramp surface: return motion meets a physical inclined normal, never an 18mm height teleport. */
 export function pocketFloorAt(x:number,z:number):number|null{const sample=floorSurface(x,z);return sample.inPocket?sample.height:null;}
@@ -74,10 +83,10 @@ export function getRailPath(samples=128):Vec3[]{
     const d=Math.abs(angleDifference(a,rear));
     const notch=d>=h?0:d<=h*.35?1:(h-d)/(h*.65);
     const r=STADIUM.railRadius-STADIUM.railNotchDepth*notch,x=Math.cos(a)*r,z=Math.sin(a)*r;
-    return V(x,bowlHeightAt(x,z)+.007,z);
+    return V(x,STADIUM.bowlDepth*Math.min((x*x+z*z)/(STADIUM.radius**2),1)+.007,z);
   });
 }
-const RAIL=getRailPath();
+const RAIL=getRailPath(),RAIL_ANGLES=RAIL.map(p=>Math.atan2(p.z,p.x));
 
 export const bodyTensor=(t:Top):SymmetricTensor=>t.bodyInertiaTensor??diagonalTensor(t.bodyInertia.x,t.bodyInertia.y,t.bodyInertia.z);
 export function inverseInertia(t:Top,v:Vec3,q=t.orientation):Vec3{return rotate(q,multiplyTensor(inverseTensor(bodyTensor(t)),inverseRotate(q,v)));}
@@ -109,7 +118,7 @@ export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]
     const yaw=i*Math.PI,tiltAxis=V(Math.sin(direction),0,-Math.cos(direction));
     const q=multiply(rotationVector(scale(tiltAxis,tilt)),rotationVector(V(0,yaw,0)));
     const center=comHeight(p),tip=p.tipRadius??.0015,transverse=p.transverseInertia??(.5*p.inertia+p.mass*(p.height*.35)**2/12);
-    const t:PhysicsTop={profile:{...p},x:side*.105,y:0,z:side*.053,vx:Math.cos(direction)*speed,vy:-.12*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass),vz:Math.sin(direction)*speed,orientation:q,angularMomentum:V(),angularVelocity:V(),bodyInertia:V(p.inertiaTensor?.xx??transverse,p.inertiaTensor?.yy??p.inertia,p.inertiaTensor?.zz??transverse),bodyInertiaTensor:p.inertiaTensor?{...p.inertiaTensor}:undefined,centerOfMassHeight:center,tipRadius:tip,omega:p.spin*angularSpeed,phase:yaw,tilt,tiltVelocity:0,lock:0,railCooldown:0,eliminated:null,rail:{engaged:false,travel:0,contactPoint:null,tangent:null,lastContactTick:-1,lastReleaseTick:-1,dashCount:0,speedBefore:0,spinBefore:0,energyBefore:0}};
+    const t:PhysicsTop={profile:{...p},x:side*.105,y:0,z:side*.053,vx:Math.cos(direction)*speed,vy:-.12*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass),vz:Math.sin(direction)*speed,orientation:q,angularMomentum:V(),angularVelocity:V(),bodyInertia:V(p.inertiaTensor?.xx??transverse,p.inertiaTensor?.yy??p.inertia,p.inertiaTensor?.zz??transverse),bodyInertiaTensor:p.inertiaTensor?{...p.inertiaTensor}:undefined,centerOfMassHeight:center,tipRadius:tip,omega:p.spin*angularSpeed,phase:yaw,tilt,tiltVelocity:0,lock:0,railCooldown:0,eliminated:null,rail:{engaged:false,travel:0,translationWork:0,rotationWork:0,contactPoint:null,tangent:null,lastContactTick:-1,lastReleaseTick:-1,dashCount:0,speedBefore:0,spinBefore:0,energyBefore:0}};
     const tipR=rotate(q,geometryToCOM(p,V(0,tip,0)));t.y=bowlHeightAt(t.x+tipR.x,t.z+tipR.z)-tipR.y+tip+.001;
     t.angularMomentum=inertia(t,scale(bodyAxis(t),t.omega));syncDerived(t);return t;
   }) as [PhysicsTop,PhysicsTop];
@@ -143,7 +152,8 @@ export function integrateFree(t:Top,dt:number,gravity=true,drag=true):void{
 function floorContact(t:Top,local:Vec3,sphereRadius:number,patchRadius:number,mu:number):number{
   let r=rotate(t.orientation,local),world=add(position(t),r),normal=bowlNormalAt(world.x,world.z);
   r=sub(r,scale(normal,sphereRadius));world=add(position(t),r);
-  const penetration=bowlHeightAt(world.x,world.z)-world.y;
+  // Height-field vertical gap becomes signed normal distance on the local tangent plane.
+  const penetration=(bowlHeightAt(world.x,world.z)-world.y)*normal.y;
   if(penetration<-.00008)return 0;
   if(penetration>0){const correction=Math.min(penetration,.004);t.x+=normal.x*correction;t.y+=normal.y*correction;t.z+=normal.z*correction;}
   const vn=dot(pointVelocity(t,r),normal);if(vn>=0)return 0;
@@ -166,7 +176,7 @@ export function resolveFloor(t:Top):number{
     impulse+=floorContact(t,geometryToCOM(p,V(0,0,0)),0,tip*.3,mu);
   }else impulse+=floorContact(t,geometryToCOM(p,V(0,tip,0)),tip,tip*(shape==='needle'?.15:shape==='ball'?.12:.45),mu);
   // The metal body can scrape the floor when tilted. Contact torque causes wobble/fall naturally.
-  if(t.tilt>.22){const vertices=getBladeVertices(p,12);for(const vertex of vertices)impulse+=floorContact(t,vertex,0,.0005,.28);
+  if(t.tilt>.22||Math.hypot(t.x,t.z)+p.radius*(1+p.contactLobeDepth)>STADIUM.railRadius-STADIUM.railNotchDepth){const vertices=getBladeVertices(p,12);for(const vertex of vertices)impulse+=floorContact(t,vertex,0,.0005,.28);
     const ratchet=getRatchetGeometry(p);for(const point of getRatchetOutline(p,8))impulse+=floorContact(t,geometryToCOM(p,V(point.x,ratchet.centerHeight-ratchet.halfThickness,point.z)),0,.0003,.25);
     const bit=getBitGeometry(p);if(bit.discRadius>0)for(let i=0;i<8;i++){const a=i*Math.PI/4;impulse+=floorContact(t,geometryToCOM(p,V(bit.discRadius*Math.cos(a),bit.discHeight-bit.discHalfThickness,bit.discRadius*Math.sin(a))),0,.0004,p.tipFriction??p.grip);}
     impulse+=floorContact(t,geometryToCOM(p,V(0,p.height*.82+bitHeightOffset(p)+.01,0)),0,.0005,.28);
@@ -232,22 +242,49 @@ export function resolveContact(a:Top,b:Top,loadLocks=true):number{
 }
 
 interface RailContact{point:Vec3;normal:Vec3;tangent:Vec3;distance:number;signedDistance:number;gearCenter:Vec3}
+function railSegmentAt(angle:number):number{
+  const a=Math.atan2(Math.sin(angle),Math.cos(angle));let lo=0,hi=RAIL_ANGLES.length;
+  while(lo<hi){const m=(lo+hi)>>>1;if(RAIL_ANGLES[m]<=a)lo=m+1;else hi=m;}
+  return(lo-1+RAIL.length)%RAIL.length;
+}
+/** Exact radial intersection of the star-shaped polygonal tooth line, with logarithmic lookup. */
+export function getRailRadiusAt(angle:number):number{
+  const i=railSegmentAt(angle),a=RAIL[i],b=RAIL[(i+1)%RAIL.length],x=Math.cos(angle),z=Math.sin(angle),dx=b.x-a.x,dz=b.z-a.z;
+  return(a.x*dz-a.z*dx)/(x*dz-z*dx);
+}
+export function getBankSampleRadii(angle:number,offsets=[0,.0015,.003,.0045,.006]):number[]{
+  const at=getRailRadiusAt(angle),radii:number[]=[];
+  for(const target of offsets){if(target===0){radii.push(at);continue;}let lo=at,hi=STADIUM.coverRadius;for(let i=0;i<20;i++){const mid=(lo+hi)/2,gap=-nearestRailPlanar(Math.cos(angle)*mid,Math.sin(angle)*mid).signedDistance;if(gap<target)lo=mid;else hi=mid;}radii.push((lo+hi)/2);}
+  return radii;
+}
+function nearestRailPlanar(x:number,z:number):Omit<RailContact,'gearCenter'>{
+  const angle=Math.atan2(z,x),outside=Math.hypot(x,z)>getRailRadiusAt(angle),simple=outside&&Math.abs(angleDifference(angle,-Math.PI/2))>STADIUM.railNotchHalfAngle;
+  let bestIndex=0,bestU=0,distance2=Infinity;const start=simple?railSegmentAt(angle):0,end=simple?start+1:RAIL.length;
+  for(let i=start;i<end;i++){const a=RAIL[i],b=RAIL[(i+1)%RAIL.length],dx=b.x-a.x,dz=b.z-a.z,u=clamp(((x-a.x)*dx+(z-a.z)*dz)/(dx*dx+dz*dz),0,1),ex=x-a.x-dx*u,ez=z-a.z-dz*u,d=ex*ex+ez*ez;if(d<distance2){distance2=d;bestIndex=i;bestU=u;}}
+  const a=RAIL[bestIndex],b=RAIL[(bestIndex+1)%RAIL.length],point=V(a.x+(b.x-a.x)*bestU,a.y+(b.y-a.y)*bestU,a.z+(b.z-a.z)*bestU),tangent=unit(V(b.x-a.x,0,b.z-a.z)),distance=Math.sqrt(distance2);
+  // The path is star-shaped; ray intersection disambiguates concave segment endpoints.
+  const sign=outside?-1:1;
+  const normal=distance>1e-10?scale(V(x-point.x,0,z-point.z),sign/distance):V(-tangent.z,0,tangent.x);
+  return{point,normal,tangent,distance,signedDistance:sign*distance};
+}
 function nearestRail(t:Top):RailContact{
   const gearCenter=add(position(t),rotate(t.orientation,geometryToCOM(t.profile,V(0,gearHeightAt(t.profile),0))));
-  let best:RailContact={point:RAIL[0],normal:V(1,0,0),tangent:V(0,0,1),distance:Infinity,signedDistance:Infinity,gearCenter};
-  for(let i=0;i<RAIL.length;i++){
-    const a=RAIL[i],b=RAIL[(i+1)%RAIL.length],dx=b.x-a.x,dz=b.z-a.z,u=clamp(((gearCenter.x-a.x)*dx+(gearCenter.z-a.z)*dz)/(dx*dx+dz*dz),0,1);
-    const point=V(a.x+dx*u,a.y+(b.y-a.y)*u,a.z+dz*u),diff=V(gearCenter.x-point.x,0,gearCenter.z-point.z),distance=norm(diff);
-    if(distance<best.distance){const tangent=unit(V(dx,0,dz)),inward=V(-tangent.z,0,tangent.x);best={point,normal:inward,tangent,distance,signedDistance:dot(diff,inward),gearCenter};}
-  }
-  return best;
+  return{...nearestRailPlanar(gearCenter.x,gearCenter.z),gearCenter};
+}
+interface GearManifold {rail:RailContact;point:Vec3;normal:Vec3;gap:number;side:boolean;localY:number;r:Vec3;normalSpeed:number}
+function gearManifold(t:Top,c=nearestRail(t)):GearManifold{
+  const half=t.profile.gearEngagementBand??.0045,point=V(c.point.x,clamp(c.gearCenter.y,c.point.y-.001,c.point.y+.001),c.point.z);
+  const local=inverseRotate(t.orientation,sub(point,c.gearCenter)),radial=Math.hypot(local.x,local.z),radialGap=radial-t.profile.gearRadius,axialGap=Math.abs(local.y)-half,side=radialGap>=axialGap;
+  const localNormal=side?V(-local.x/Math.max(radial,1e-12),0,-local.z/Math.max(radial,1e-12)):V(0,-Math.sign(local.y||1),0),normal=rotate(t.orientation,localNormal),r=sub(point,position(t));
+  return{rail:c,point,normal,gap:Math.max(radialGap,axialGap),side,localY:local.y,r,normalSpeed:dot(pointVelocity(t,r),normal)};
 }
 function eligibleAt(t:Top,c:RailContact):boolean{
-  const p=t.profile,axis=bodyAxis(t);
-  return p.railEligible&&Math.acos(clamp(axis.y,-1,1))<=STADIUM.railMaxTilt&&Math.abs(c.gearCenter.y-c.point.y)<(p.gearEngagementBand??.0045)
-    &&c.signedDistance<=p.gearRadius+.0005&&c.signedDistance>=-.0015&&Math.abs(t.omega)>30;
+  const p=t.profile,m=gearManifold(t,c);
+  return p.railEligible&&t.tilt<=STADIUM.railMaxTilt&&Math.abs(t.omega)>30&&c.signedDistance>=0
+    &&m.side&&Math.abs(m.localY)<=(p.gearEngagementBand??.0045)&&m.gap<=.00005&&m.normalSpeed<=.00001;
 }
 export function railEligible(t:Top):boolean{if(Math.hypot(t.x,t.z)<.14)return false;return eligibleAt(t,nearestRail(t));}
+export function getRailContactState(t:Top){const m=gearManifold(t);return{point:m.point,normal:m.normal,gap:m.gap,side:m.side,inside:m.rail.signedDistance>=0,normalSpeed:m.normalSpeed,meshEligible:eligibleAt(t,m.rail)};}
 /** Energy-dissipating gear constraint at the actual transformed bit pitch contact. */
 export function engageRail(t:Top,nx:number,nz:number):number{
   const normal=unit(V(nx,0,nz)),gearOffset=rotate(t.orientation,geometryToCOM(t.profile,V(0,gearHeightAt(t.profile),0)));
@@ -259,36 +296,49 @@ export function engageRail(t:Top,nx:number,nz:number):number{
  * Closest rail-strip point is tested against the transformed finite gear cylinder.
  * The cylinder's nearest exit face handles top/bottom re-entry without a sideways snap.
  */
+function applyRailContact(t:Top,m:GearManifold,meshRequested:boolean):{mesh:boolean;gearImpulse:number;translationWork:number;rotationWork:number}{
+  if(m.gap>.00005)return{mesh:false,gearImpulse:0,translationWork:0,rotationWork:0};
+  if(m.gap<0){t.x-=m.normal.x*m.gap;t.y-=m.normal.y*m.gap;t.z-=m.normal.z*m.gap;}
+  const n=m.normal,r=m.r,v=pointVelocity(t,r),vn=dot(v,n),knn=contactMass(t,r,n);let jn=Math.max(0,-vn/knn),jt=0;
+  const tangent=unit(sub(m.rail.tangent,scale(n,dot(m.rail.tangent,n))));
+  if(meshRequested){
+    // Projected 2×2 contact solve. Tangential gearing and normal support share the SAME contact arm.
+    // The compensating normal impulse is never tensile; reducing jt preserves unilateral contact.
+    const knt=dot(n,cross(inverseInertia(t,cross(r,tangent)),r))+dot(n,tangent)/t.profile.mass;
+    const ktt=contactMass(t,r,tangent),effective=ktt-knt*knt/knn,vt=dot(v,tangent)+knt*jn;
+    jt=-vt/effective*clamp(t.profile.railGrip,0,1);
+    let normalCorrection=-knt*jt/knn;
+    if(jn+normalCorrection<0){const fraction=jn/(-normalCorrection);jt*=fraction;normalCorrection=-jn;}
+    const translationBefore=.5*t.profile.mass*dot(velocity(t),velocity(t)),rotationBefore=kineticEnergy(t)-translationBefore;
+    jn+=normalCorrection;applyImpulse(t,add(scale(n,jn),scale(tangent,jt)),r);
+    const translationAfter=.5*t.profile.mass*dot(velocity(t),velocity(t)),rotationAfter=kineticEnergy(t)-translationAfter;
+    // Geometric rolling contact persists even when matched velocity needs zero impulse.
+    return{mesh:true,gearImpulse:Math.abs(jt),translationWork:translationAfter-translationBefore,rotationWork:rotationAfter-rotationBefore};
+  }
+  if(jn>0){applyImpulse(t,scale(n,jn),r);const after=pointVelocity(t,r),vt=sub(after,scale(n,dot(after,n))),speed=norm(vt);if(speed>1e-9){const direction=scale(vt,1/speed),friction=Math.min(speed/contactMass(t,r,direction),.25*jn);applyImpulse(t,scale(direction,-friction),r);}}
+  return{mesh:false,gearImpulse:0,translationWork:0,rotationWork:0};
+}
 export function resolveRailSolid(t:Top):boolean{
-  const c=nearestRail(t),half=t.profile.gearEngagementBand??.0045;
-  const nearest=V(c.point.x,clamp(c.gearCenter.y,c.point.y-.001,c.point.y+.001),c.point.z);
-  const local=inverseRotate(t.orientation,sub(nearest,c.gearCenter)),radial=Math.hypot(local.x,local.z);
-  const radialPenetration=t.profile.gearRadius-radial,axialPenetration=half-Math.abs(local.y);
-  if(radialPenetration<=0||axialPenetration<=0)return false;
-  const radialFace=radialPenetration<axialPenetration;
-  const localNormal=radialFace?V(-local.x/Math.max(radial,1e-12),0,-local.z/Math.max(radial,1e-12)):V(0,-Math.sign(local.y||1),0);
-  const normal=rotate(t.orientation,localNormal),penetration=radialFace?radialPenetration:axialPenetration;
-  const r=sub(nearest,position(t));
-  t.x+=normal.x*penetration;t.y+=normal.y*penetration;t.z+=normal.z*penetration;
-  const vn=dot(pointVelocity(t,r),normal);if(vn<0)applyImpulse(t,scale(normal,-vn/contactMass(t,r,normal)),r);
-  return true;
+  const m=gearManifold(t);if(m.gap>=0)return false;applyRailContact(t,m,false);return true;
 }
 function resolveRail(t:Top,battle:Battle,index:number,eventTick:number,dt:number,meshAllowed=true):void{
   if(Math.hypot(t.x,t.z)<.14&&!t.rail.engaged)return;
   const before=totalEnergy(t),spinBefore=t.omega,velocityBefore=velocity(t),speedBefore=Math.hypot(t.vx,t.vz);
-  resolveRailSolid(t);
-  const c=nearestRail(t),eligible=meshAllowed&&eligibleAt(t,c);
-  if(eligible){
-    const outward=scale(c.normal,-1);
-    const j=engageRail(t,outward.x,outward.z);
-    if(!t.rail.engaged){t.rail.engaged=true;t.rail.travel=0;t.rail.speedBefore=speedBefore;t.rail.spinBefore=spinBefore;t.rail.energyBefore=before;battle.events.push({tick:eventTick,kind:'rail-engage',top:index,intensity:j,position:position(t),energyBefore:before,energyAfter:totalEnergy(t),spinBefore,spinAfter:t.omega,velocityBefore,velocityAfter:velocity(t)});}
+  const c=nearestRail(t),manifold=gearManifold(t,c),eligible=meshAllowed&&eligibleAt(t,c),contact=applyRailContact(t,manifold,eligible);
+  if(contact.mesh){
+    const j=contact.gearImpulse;
+    if(!t.rail.engaged){t.rail.engaged=true;t.rail.travel=0;t.rail.translationWork=0;t.rail.rotationWork=0;t.rail.speedBefore=speedBefore;t.rail.spinBefore=spinBefore;t.rail.energyBefore=before;battle.events.push({tick:eventTick,kind:'rail-engage',top:index,intensity:j,position:position(t),energyBefore:before,energyAfter:totalEnergy(t),spinBefore,spinAfter:t.omega,velocityBefore,velocityAfter:velocity(t)});}
+    t.rail.translationWork=(t.rail.translationWork??0)+contact.translationWork;t.rail.rotationWork=(t.rail.rotationWork??0)+contact.rotationWork;
     t.rail.travel+=Math.hypot(t.vx,t.vz)*dt;t.rail.lastContactTick=eventTick;t.rail.contactPoint=c.point;t.rail.tangent=c.tangent;
-  }else if(t.rail.engaged && (!meshAllowed || (eventTick-t.rail.lastContactTick)*STEP>.006)){
+  }else if(t.rail.engaged){
     t.rail.engaged=false;t.rail.lastReleaseTick=eventTick;t.railCooldown=0;
-    battle.events.push({tick:eventTick,kind:'rail-release',top:index,position:position(t),velocity:velocity(t),energyBefore:t.rail.energyBefore,energyAfter:totalEnergy(t),spinBefore:t.rail.spinBefore,spinAfter:t.omega,travel:t.rail.travel});
+    battle.events.push({tick:eventTick,kind:'rail-release',top:index,position:position(t),velocity:velocity(t),energyBefore:t.rail.energyBefore,energyAfter:totalEnergy(t),spinBefore:t.rail.spinBefore,spinAfter:t.omega,travel:t.rail.travel,translationWork:t.rail.translationWork,rotationWork:t.rail.rotationWork});
     const radial=(t.x*t.vx+t.z*t.vz)/Math.max(.001,Math.hypot(t.x,t.z));
     const pathMiss=Math.abs(t.x*t.vz-t.z*t.vx)/Math.max(.001,Math.hypot(t.vx,t.vz));
-    if(t.rail.travel>.03&&radial<-.8&&pathMiss<.12&&Math.hypot(t.vx,t.vz)>Math.max(.8,t.rail.speedBefore+.15)&&Math.abs(t.omega)<Math.abs(t.rail.spinBefore)){t.rail.dashCount++;battle.events.push({tick:eventTick,kind:'dash',top:index,intensity:Math.hypot(t.vx,t.vz),position:position(t),velocity:velocity(t),travel:t.rail.travel,spinBefore:t.rail.spinBefore,spinAfter:t.omega});}
+    // One tooth pitch is a documented event proxy, not a tooth-phase simulation. Signed NET work
+    // must show rotation→translation transfer; inward deflection alone never manufactures a dash.
+    const pitch=2*Math.PI*t.profile.gearRadius/(t.profile.gearTeeth??12);
+    if(t.rail.travel>=pitch&&radial<-.8&&pathMiss<.12&&Math.hypot(t.vx,t.vz)>.8&&(t.rail.translationWork??0)>1e-6&&(t.rail.rotationWork??0)<-1e-6){t.rail.dashCount++;battle.events.push({tick:eventTick,kind:'dash',top:index,intensity:Math.hypot(t.vx,t.vz),position:position(t),velocity:velocity(t),travel:t.rail.travel,spinBefore:t.rail.spinBefore,spinAfter:t.omega,translationWork:t.rail.translationWork,rotationWork:t.rail.rotationWork});}
   }
 }
 

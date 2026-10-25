@@ -164,3 +164,19 @@ test('ratchet-only swaps change modeled COM and inertia, with an exact-scale ins
   await expect(page.locator('#inspect-error')).toBeHidden();
   await page.locator('#inspect-mass').click();await expect(page.locator('#mass-reference-legend')).toBeHidden();
 });
+
+test('the reported Sword Needle launch no longer leaves the CPU fenced behind the rail',async({page})=>{
+  await page.goto('/beyblade/');
+  await page.locator('select[data-part="blade"]').selectOption({label:'ドランソード'});
+  await page.locator('select[data-part="ratchet"]').selectOption('ratchet:3-60');
+  await page.locator('select[data-part="bit"]').selectOption('bit:N');
+  await page.locator('#power').fill('80');await page.locator('#angle').fill('0');await page.locator('#tilt').fill('8');
+  await expect(page.locator('#other-name')).toHaveText('ドランソード');
+  // The core regression separately verifies inward return and absence of the old exterior pin.
+  // This actual UI fixture previously remained 0–0 beyond26 simulated seconds.
+  await page.locator('#launch').click();
+  await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:20000});
+  const total=Number(await page.locator('#score-you').innerText())+Number(await page.locator('#score-other').innerText());
+  expect(total).toBeGreaterThan(0);await expect(page.locator('#launch')).toBeEnabled();
+  await page.locator('#reset-match').click();await expect(page.locator('#phase')).toContainText('READY');
+});

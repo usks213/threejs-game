@@ -1,0 +1,49 @@
+import {describe,it,expect} from 'vitest';
+import {createBattle,stepBattle,STEP,STADIUM,bowlHeightAt,bowlNormalAt,getRailContactState,getCanonicalRatchetVertices,getCanonicalBladeVertices,getRailRadiusAt,getBankSampleRadii,setOrientation,setAngularVelocity} from '../../../src/beyblade/core/physics';
+import {parts,buildForBlade,profileFor,defaultBuild} from '../../../src/beyblade/data/catalog';
+const id=(name:string,category:string)=>parts.find(p=>p.canonicalId===name&&p.category===category&&p.release==='released')!.id;
+const stock=(bit:string)=>({...buildForBlade(id('ドランソード','blade')),ratchet:id('3-60','ratchet'),bit:id(bit,'bit')});
+const cpu=()=>profileFor(buildForBlade(id('ドランソード','blade')));
+const state=(bit:string)=>createBattle([profileFor(stock(bit)),cpu()],[{power:.8,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]);
+describe('unilateral gear contact and molded backing bank',()=>{
+  it('rejects separating, axial and back-side tooth engagement',()=>{
+    const t=state('F').tops[0],p=t.profile;setOrientation(t,{x:0,y:0,z:0,w:1});setAngularVelocity(t,{x:0,y:400,z:0});
+    t.x=STADIUM.railRadius-p.gearRadius;t.z=0;t.y=STADIUM.bowlDepth*(STADIUM.railRadius/STADIUM.radius)**2+.007-p.gearHeight+t.centerOfMassHeight;t.vx=1;t.vy=t.vz=0;
+    expect(getRailContactState(t).meshEligible).toBe(true);
+    t.vx=-1;expect(getRailContactState(t).normalSpeed).toBeGreaterThan(0);expect(getRailContactState(t).meshEligible).toBe(false);
+    t.vx=0;t.x=STADIUM.railRadius+p.gearRadius;expect(getRailContactState(t).inside).toBe(false);expect(getRailContactState(t).meshEligible).toBe(false);
+    t.x=STADIUM.railRadius;t.y+=.0054;expect(getRailContactState(t).side).toBe(false);expect(getRailContactState(t).meshEligible).toBe(false);
+  });
+  it('has continuous bank height and analytic normals across the notched geometry',()=>{
+    for(const angle of [0,.4,Math.PI/2,-Math.PI/2-.2,-Math.PI/2+.12]){
+      const radii=getBankSampleRadii(angle);expect(radii[0]).toBeCloseTo(getRailRadiusAt(angle),10);
+      for(const r of radii){const x=Math.cos(angle)*r,z=Math.sin(angle)*r,e=1e-7;expect(Math.abs(bowlHeightAt(x+e,z)-bowlHeightAt(x-e,z))).toBeLessThan(1e-6);
+        const normal=bowlNormalAt(x,z),dx=(bowlHeightAt(x+e,z)-bowlHeightAt(x-e,z))/(2*e),dz=(bowlHeightAt(x,z+e)-bowlHeightAt(x,z-e))/(2*e);
+        expect(-normal.x/normal.y).toBeCloseTo(dx,2);expect(-normal.z/normal.y).toBeCloseTo(dz,2);
+      }
+    }
+  });
+  it('leaves ordinary upright ratchet and blade clearance at valid inner gear contact',()=>{
+    for(const bit of ['F','R','GF','N']){const p=profileFor(stock(bit)),x=STADIUM.railRadius-p.gearRadius,y=bowlHeightAt(x,0);
+      for(const v of [...getCanonicalBladeVertices(p),...getCanonicalRatchetVertices(p)])expect(y+v.y-bowlHeightAt(x+v.x,v.z)).toBeGreaterThan(0);
+    }
+  });
+  it('the exact published Sword/N trap returns inward instead of remaining in the exterior lane',()=>{
+    const b=state('N');let engaged=false,minAfter=Infinity,slowExterior=0,longest=0;
+    for(let i=0;i<240*15&&!b.result;i++){stepBattle(b);const t=b.tops[1];engaged ||= b.events.some(e=>e.kind==='rail-engage'&&e.top===1);if(engaged)minAfter=Math.min(minAfter,Math.hypot(t.x,t.z));const c=getRailContactState(t);slowExterior=!c.inside&&Math.hypot(t.vx,t.vz)<.12&&Math.abs(t.omega)>30?slowExterior+STEP:0;longest=Math.max(longest,slowExterior);}
+    expect(engaged).toBe(true);expect(minAfter).toBeLessThan(.12);expect(longest).toBeLessThan(.5);expect(b.result).not.toBe(null);
+  },20000);
+  it.each(['F','R','GF'])('%s transfers rotation into translation and subsequently returns inward',bit=>{
+    const b=state(bit),events:typeof b.events=[];let contactSeen=false,minAfter=Infinity;
+    for(let i=0;i<240*15&&!b.result;i++){stepBattle(b);events.push(...b.events.filter(e=>e.tick>b.tick-1));contactSeen ||= b.events.some(e=>e.kind==='rail-engage'&&e.top===0);if(contactSeen)minAfter=Math.min(minAfter,Math.hypot(b.tops[0].x,b.tops[0].z));}
+    const powered=events.some(e=>e.kind==='rail-engage'&&e.top===0&&Math.hypot(e.velocityAfter!.x,e.velocityAfter!.z)>Math.hypot(e.velocityBefore!.x,e.velocityBefore!.z)+.1&&Math.abs(e.spinAfter!)<Math.abs(e.spinBefore!));expect(powered).toBe(true);expect(minAfter).toBeLessThan(.14);
+    for(const e of events.filter(e=>e.kind==='dash')){expect(e.translationWork).toBeGreaterThan(1e-6);expect(e.rotationWork).toBeLessThan(-1e-6);expect(e.translationWork!+e.rotationWork!).toBeLessThanOrEqual(1e-9);}
+    expect(b.result).not.toBe(null);
+  },20000);
+  it('does not label an inward deflection as a dash without net gear-energy transfer',()=>{
+    const b=state('F'),t=b.tops[0];t.x=0;t.z=.1;t.vx=0;t.vz=-2;t.rail={...t.rail,engaged:true,travel:1,spinBefore:1000,speedBefore:0,translationWork:0,rotationWork:0};stepBattle(b);expect(b.events.some(e=>e.kind==='dash'&&e.top===0)).toBe(false);
+  });
+  it('serializes signed gear work deterministically without changing the result lifecycle',()=>{
+    const a=state('R');for(let i=0;i<52&&!a.result;i++)stepBattle(a);const b=JSON.parse(JSON.stringify(a));for(let i=0;i<240*5&&!a.result;i++){stepBattle(a);stepBattle(b);}expect(a).toEqual(b);for(const t of a.tops)expect([t.rail.translationWork,t.rail.rotationWork].every(Number.isFinite)).toBe(true);
+  },20000);
+});
