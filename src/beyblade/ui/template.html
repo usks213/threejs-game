@@ -101,11 +101,13 @@
 <span class="micro">SERVER AUTHORITATIVE</span>
 </div>
 <p class="note">同じサーバーのプレイヤーとマッチング。サーバーが軌道と得点を判定します。</p>
-<label for="server-url">対戦サーバー URL</label>
+<details><summary>開発用の接続設定</summary>
+<label for="server-url">開発用サーバー URL</label>
 <input id="server-url" placeholder="同一オリジン /api/beyblade" aria-label="対戦サーバーURL">
+</details>
 <button class="dark" id="queue">対戦相手を探す</button>
 <button class="ghost" id="cancel-queue">キャンセル / 退出</button>
-<p class="note" id="connection">未接続。プレビューに対戦サーバーが必要です。</p>
+<p class="note" id="connection">オンライン対戦の公開状態を確認します。</p>
 </section>
 <section class="panel">
 <div class="section-heading">

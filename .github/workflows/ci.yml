@@ -77,8 +77,11 @@ jobs:
             test-results/
           retention-days: 7
 
+  # Held after account subscriptions HTTP403 (run40173718018).
+  # Do not retry denied billing reads until new free-plan evidence/authorization resolves it.
+  # Only this PR7 dedicated publication is paused; static Git-linked previews remain unchanged.
   publish-beyblade-preview:
-    if: github.event_name == 'pull_request' && github.event.number == 7 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/beyblade-x-arena'
+    if: false && github.event_name == 'pull_request' && github.event.number == 7 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/beyblade-x-arena'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 15

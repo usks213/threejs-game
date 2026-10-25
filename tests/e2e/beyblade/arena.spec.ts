@@ -55,3 +55,15 @@ test('CX and integrated customization is legal, persistent and source-transparen
   await expect(page.locator('#product-body')).toContainText('発売予定');
   const response=await page.request.get('/beyblade-data/parts.json');expect(response.ok()).toBe(true);const rows=await response.json();expect(rows.length).toBeGreaterThan(250);expect(Number((await page.locator('#catalog-count').innerText()).match(/\d+/)?.[0])).toBe(rows.length);expect(rows.every((r:{physical_parameters:unknown})=>r.physical_parameters===null)).toBe(true);
 });
+test('static or denied backend is explicitly unavailable without a pretend online match',async({page})=>{
+  for(const mock of [{status:403,contentType:'text/plain',body:'Forbidden'},{status:404,contentType:'text/html',body:'<html>static not found</html>'},{status:200,contentType:'application/json',body:'{"service":"not-an-arena","online":true}'}]){
+    await page.route('**/api/beyblade/health',route=>route.fulfill(mock));
+    await page.goto('/beyblade/');await page.getByRole('tab',{name:'オンライン'}).click();
+    await expect(page.locator('#connection')).toContainText('この公開版ではオンライン対戦はまだ利用できません。CPU戦を利用できます。');
+    await expect(page.locator('#queue')).toBeDisabled();await expect(page.locator('#score-you')).toHaveText('0');
+    await page.getByText('開発用の接続設定',{exact:true}).click();await page.locator('#server-url').fill('invalid endpoint');await page.locator('#queue').click();
+    await expect(page.locator('#connection')).toContainText('有効な ws://');
+    await page.getByRole('tab',{name:'ひとりで練習'}).click();await expect(page.locator('#launch')).toBeEnabled();
+    await page.unroute('**/api/beyblade/health');
+  }
+});
