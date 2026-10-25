@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "three": "0.180.0",
-    "ws": "8.18.3"
+    "ws": "8.21.0"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
@@ -28,8 +28,13 @@
     "@types/ws": "8.18.1",
     "tsx": "4.20.6",
     "typescript": "5.9.2",
-    "vite": "7.3.6",
-    "vitest": "4.1.11",
+    "vite": "7.3.7",
+    "vitest": "4.1.12",
     "wrangler": "4.152.0"
+  },
+  "overrides": {
+    "miniflare": {
+      "undici": "7.30.1"
+    }
   }
 }

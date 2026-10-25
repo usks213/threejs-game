@@ -50,8 +50,8 @@ test('CX and integrated customization is legal, persistent and source-transparen
   await expect(page.locator('#build-error')).toHaveText('');
   await page.reload();
   await expect(page.locator('#build-name')).toHaveText('バレットグリフォン');
-  await expect(page.locator('#catalog-count')).toContainText('271');
+  expect(Number((await page.locator('#catalog-count').innerText()).match(/\d+/)?.[0])).toBeGreaterThan(250);
   await page.locator('#product-count').click();
   await expect(page.locator('#product-body')).toContainText('発売予定');
-  const response=await page.request.get('/beyblade-data/parts.json');expect(response.ok()).toBe(true);const rows=await response.json();expect(rows.length).toBeGreaterThan(250);expect(rows.every((r:{physical_parameters:unknown})=>r.physical_parameters===null)).toBe(true);
+  const response=await page.request.get('/beyblade-data/parts.json');expect(response.ok()).toBe(true);const rows=await response.json();expect(rows.length).toBeGreaterThan(250);expect(Number((await page.locator('#catalog-count').innerText()).match(/\d+/)?.[0])).toBe(rows.length);expect(rows.every((r:{physical_parameters:unknown})=>r.physical_parameters===null)).toBe(true);
 });

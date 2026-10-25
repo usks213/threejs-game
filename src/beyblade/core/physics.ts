@@ -22,6 +22,7 @@ export interface PhysicsTop extends Top {
   pocketEnteredTick?: number;
   pocketRestTime?: number;
   stoppedTime?: number;
+  rotationStopped?: boolean;
   finishTick?: number;
 }
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -131,6 +132,7 @@ function eliminated(top: PhysicsTop, finish: Finish, tick: number) {
 
 function integrate(top: PhysicsTop, dt: number) {
   const p=top.profile, radius=Math.hypot(top.x,top.z);
+  if(top.omega*p.spin<=0) top.rotationStopped=true;
   top.railCooldown=Math.max(0,top.railCooldown-dt);
   top.lock=Math.max(0,top.lock-dt*.0025);
   if(radius<STADIUM.radius) {
@@ -143,6 +145,7 @@ function integrate(top: PhysicsTop, dt: number) {
   const absSpin=Math.abs(top.omega);
   const loss=(Math.max(0,p.drag)*absSpin+Math.sqrt(absSpin)+2.5+12*top.tilt)*dt;
   top.omega=Math.sign(top.omega)*Math.max(0,absSpin-loss);
+  if(top.omega*p.spin<=0) top.rotationStopped=true;
   const gyroStability=Math.abs(top.omega)/150;
   const tiltTarget=clamp(.015+.018/(gyroStability*gyroStability+.025),0,1.6);
   top.tiltVelocity+=(8*(tiltTarget-top.tilt)-5*top.tiltVelocity)*dt;
@@ -234,8 +237,9 @@ function simulateSubstep(battle: Battle, dt: number, eventTick: number) {
     if(top.lock>=top.profile.burstThreshold) eliminated(top,'burst',eventTick);
     if(!top.eliminated) stadium(top,battle,i,dt,eventTick);
     if(!top.eliminated) {
-      top.stoppedTime=top.omega*top.profile.spin<5 || top.tilt>1.5 ? (top.stoppedTime??0)+dt : 0;
-      if((top.stoppedTime??0)>.08) eliminated(top,top.pendingFinish??'spin',top.pocketEnteredTick??eventTick);
+      // Official Spin Finish is loss of the original rotation, not a low-RPM or tilt threshold.
+      // Remember a stop within this substep even if a subsequent contact could restart motion.
+      if(top.rotationStopped || top.omega*top.profile.spin<=0) eliminated(top,top.pendingFinish??'spin',top.pocketEnteredTick??eventTick);
     }
     if(top.eliminated) battle.events.push({tick:eventTick,kind:'finish',top:i,finish:top.eliminated});
   }

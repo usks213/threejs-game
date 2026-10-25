@@ -828,5 +828,104 @@
     "accessed_date": "2026-10-25",
     "verification": "official_manual_or_image_visually_verified",
     "ratings_status": "see_parts_catalog_no_inference"
+  },
+  {
+    "product_key": "ux16",
+    "variant_number": 1,
+    "stock_combination": "クロックミラージュ9-65B",
+    "visible_primary_color": "green",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-16_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
+  },
+  {
+    "product_key": "ux16",
+    "variant_number": 2,
+    "stock_combination": "クロックミラージュ9-65B",
+    "visible_primary_color": "black",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-16_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
+  },
+  {
+    "product_key": "ux16",
+    "variant_number": 3,
+    "stock_combination": "クロックミラージュ9-65B",
+    "visible_primary_color": "pink",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-16_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
+  },
+  {
+    "product_key": "cx18",
+    "variant_number": 1,
+    "stock_combination": "ブラキオウィップOW5-70Nr",
+    "visible_primary_color": "purple",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-18_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
+  },
+  {
+    "product_key": "cx18",
+    "variant_number": 2,
+    "stock_combination": "ブラキオウィップOW5-70Nr",
+    "visible_primary_color": "yellow",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-18_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
+  },
+  {
+    "product_key": "cx18",
+    "variant_number": 3,
+    "stock_combination": "ブラキオウィップOW5-70Nr",
+    "visible_primary_color": "black",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-18_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
+  },
+  {
+    "product_key": "cx19",
+    "variant_number": 1,
+    "stock_combination": "クロコトレッドTQ5-50GN",
+    "visible_primary_color": "orange",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-19_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
+  },
+  {
+    "product_key": "cx19",
+    "variant_number": 2,
+    "stock_combination": "クロコトレッドTQ5-50GN",
+    "visible_primary_color": "red",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-19_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
+  },
+  {
+    "product_key": "cx19",
+    "variant_number": 3,
+    "stock_combination": "クロコトレッドTQ5-50GN",
+    "visible_primary_color": "black",
+    "color_note": "画像上の主色の記述でありメーカー正式色名ではない",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-19_manual.pdf",
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_visually_verified"
   }
 ]

@@ -6,6 +6,17 @@ const profile: Profile={name:'test',type:'balance',spin:1,mass:.035,radius:.024,
 const launch={power:.8,angle:.2,tilt:.1};
 const battle=()=>createBattle([profile,profile],[launch,{...launch,angle:-.2,power:.78}]);
 describe('deterministic spin/contact physics',()=>{
+  it('does not call slow positive rotation or tilt alone a Spin Finish',()=>{
+    for(const [omega,tilt] of [[4,.02],[1000,1.55]]){
+      const state=battle();const top=state.tops[0];top.x=-.15;top.z=0;top.vx=top.vz=0;top.omega=omega;top.tilt=tilt;state.tops[1].x=.15;state.tops[1].z=0;state.tops[1].vx=state.tops[1].vz=0;
+      for(let n=0;n<24;n++)stepBattle(state);
+      expect(top.omega).toBeGreaterThan(0);expect(top.eliminated).toBeNull();
+    }
+  });
+  it('latches an actual original-direction stop even if contact could restart rotation',()=>{
+    const state=battle();state.tops[0].omega=0;state.tops[0].vx=.5;state.tops[0].x=-.15;state.tops[1].x=.15;
+    stepBattle(state);expect(state.tops[0].eliminated).toBe('spin');expect(state.result?.winner).toBe(1);
+  });
   it('replays byte-identically with serializable state',()=>{
     const a=battle(),b=JSON.parse(JSON.stringify(a));
     for(let i=0;i<3000;i++){stepBattle(a);stepBattle(b);}

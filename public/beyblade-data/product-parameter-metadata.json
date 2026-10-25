@@ -1,0 +1,1757 @@
+[
+  {
+    "product_key": "bx01",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx01.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx02",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx02.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx03",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx03.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx04",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx04.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx05",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx05.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx06",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx06.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx07",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx07.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx08",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx08.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx09",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx09.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx10",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx10.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx11",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx11.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx12",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx12.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-es",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-es.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-ds",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx13",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx13.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx14",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx14.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-hc",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-hc.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx15",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx15.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx16",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx16.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx17",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx17.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx18",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx18.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx19",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx19.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx20",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx20.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx21",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx21.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx22",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx22.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx23",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx23.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx24",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx24.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx25",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx25.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx26",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx26.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx27",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx27.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-lc",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-lc.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-se",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_blue_bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-se.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx28",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx28.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx29",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx29.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx30",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx30.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux01",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux01.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux02",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux02.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux03",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux03.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux04",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "ux"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux04.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-drs",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drs.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx31",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx31.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-hch",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-hch.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux05",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "ux"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux05.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-cg",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cg.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx33",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx33.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx32",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx32.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx34",
+    "official_stock_type": "attack",
+    "spin": "left",
+    "icon_classes": [
+      "bx",
+      "atackL"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx34.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx35",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx35.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-st01",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-st01.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-st02",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-st02.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-st03",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-st03.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-bit01",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-bit01.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-dd",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_blue_bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-dd.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-ds3",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds3.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux06",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux06.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux07",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "ux"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux07.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-cd",
+    "official_stock_type": "attack",
+    "spin": "left",
+    "icon_classes": [
+      "b4_bx",
+      "atackL"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cd.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-ld",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ld.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx36",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx36.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux08",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux08.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx37",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx37.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx38",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx38.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux09",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux09.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux10",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "ux"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux10.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bxa02",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_ux"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-cdr",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cdr.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-cc",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_ux",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cc.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-mt",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mt.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux11",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux11.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux12",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "ux"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux12.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-drsh",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drsh.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux00-db_bc",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_blue_ux",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-db_bc.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux00-hs_bc",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_blue_ux",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-hs_bc.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux13",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux13.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx39",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx39.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-pw",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-pw.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-25set",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-25set.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx40",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx40.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx41",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx41.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx42",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx42.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx43",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx43.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx01",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "cx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx02",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "cx",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx03",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "cx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx04",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "cx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx04.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-xc",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-xc.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx05",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "cx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-mit",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_blue_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mit.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-msv",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_blue_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-msv.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-sld",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_blue_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sld.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-smm",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_blue_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-smm.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux14",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux14.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-tom",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tom.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-tos",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tos.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx06",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "cx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx44",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx44.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux00-nm",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "b4_ux",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-nm.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx07",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "cx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx08",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "cx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-jtm",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_blue_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jtm.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-jsq",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_blue_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jsq.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-rl",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-rl.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-pb",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_cx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-pb.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-wa",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "b4_cx",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-wa.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx45",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx45.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux15",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "ux"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx09",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "cx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx46",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx46.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx47",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx47.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux16",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "ux",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux16.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx10",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "cx",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx11",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "cx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-bit_silver_white",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-bit_silver_white.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-emb",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-emb.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux17",
+    "official_stock_type": "attack",
+    "spin": "left",
+    "icon_classes": [
+      "ux",
+      "atackL"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux17.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux18",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "ux"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux18.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-drgs",
+    "official_stock_type": "attack",
+    "spin": "left",
+    "icon_classes": [
+      "bx",
+      "atackL"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drgs.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx12",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "cx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx48",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx48.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux00-ap_red",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_ux",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ap_red.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-ds_black",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds_black.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-cd_white",
+    "official_stock_type": "attack",
+    "spin": "left",
+    "icon_classes": [
+      "b4_bx",
+      "atackL"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cd_white.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx13",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "cx_expand",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx14",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "cx_expand",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx15",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "cx_expand",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx16",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "cx_expand"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx16.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-sl",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_blue_bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sl.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-ss",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ss.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux19",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "ux_expand",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux19.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux00-ss",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_ux",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ss.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx17",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "cx_expand"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx49",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "bx_expand",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx49.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-db",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_cx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-db.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux00-samurai",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_blue_ux",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-samurai.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx51",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx51.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx18",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "cx_expand",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-ba",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "b4_cx",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-ba.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-kw",
+    "official_stock_type": "stamina",
+    "spin": "right",
+    "icon_classes": [
+      "b4_cx",
+      "stamina"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-kw.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-hf",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_cx",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-hf.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-drb",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_cx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-drb.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-sp",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "bx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sp.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx50",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx_expand"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx50.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux20",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "ux_expand",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux20.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx00-ds_v2",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_blue_bx_v2",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds_v2.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx57",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx57.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "ux21",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "ux_expand",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-eva",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "b4_cx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-tiga",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "b4_blue_cx_expand",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-tiga.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx19",
+    "official_stock_type": "defense",
+    "spin": "right",
+    "icon_classes": [
+      "cx_expand",
+      "defence"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx52",
+    "official_stock_type": "attack",
+    "spin": "left",
+    "icon_classes": [
+      "bx_expand",
+      "atackL"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx52.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx53",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "bx"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx53.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx56",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx56.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx00-vv",
+    "official_stock_type": "attack",
+    "spin": "right",
+    "icon_classes": [
+      "b4_cx",
+      "atack"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-vv.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "bx54",
+    "official_stock_type": "balance",
+    "spin": "right",
+    "icon_classes": [
+      "bx_expand",
+      "balance"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx54.html",
+    "accessed_date": "2026-10-25"
+  },
+  {
+    "product_key": "cx20",
+    "official_stock_type": null,
+    "spin": null,
+    "icon_classes": [
+      "cx_expand"
+    ],
+    "scope": "product_stock_combination_not_each_individual_component",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx20.html",
+    "accessed_date": "2026-10-25"
+  }
+]

@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {parts,officialParts,officialProducts,defaultBuild,buildForBlade,requiredBuildKeys,selectableParts,validateBuild,validateDeck,ratingsFor,profileFor} from '../../../src/beyblade/data/catalog';
+import {parts,officialParts,officialProducts,defaultBuild,buildForBlade,requiredBuildKeys,selectableParts,validateBuild,validateDeck,ratingsFor,profileFor,isPlayablePart} from '../../../src/beyblade/data/catalog';
 import type {Part} from '../../../src/beyblade/core/types';
 const find=(name:string,category='blade')=>parts.find(p=>p.canonicalId===name&&p.category===category)!;
 describe('source-backed parts catalog and safe assemblies',()=>{
@@ -9,11 +9,17 @@ describe('source-backed parts catalog and safe assemblies',()=>{
     expect(officialParts.every(p=>p.physical_parameters===null)).toBe(true);
     expect(officialProducts.length).toBeGreaterThan(150);
     expect(officialProducts.some(p=>p.date_status==='upcoming')).toBe(true);
-    for(const p of parts)expect(p.source).toMatch(/^https:\/\/beyblade\.takaratomy\.co\.jp\//);
+    for(const p of parts)expect(p.source).toMatch(/^https:\/\/(?:beyblade|www)\.takaratomy\.co\.jp\//);
+  });
+  it('archives unresolved CX assemblies without creating invented component presets',()=>{
+    const unresolved=parts.find(p=>p.name==='ドランブレイブS メタルコート:ブラック')!;
+    expect(unresolved).toBeDefined();expect(isPlayablePart(unresolved)).toBe(false);
+    expect(selectableParts('blade',defaultBuild).some(p=>p.id===unresolved.id)).toBe(false);
+    expect(validateBuild(buildForBlade(unresolved.id)).length).toBeGreaterThan(0);
   });
   it('has a valid default and every released blade has a valid supported preset',()=>{
     expect(validateBuild(defaultBuild)).toEqual([]);
-    for(const p of parts.filter(p=>p.category==='blade'&&p.release==='released'))expect(validateBuild(buildForBlade(p.id)),p.name).toEqual([]);
+    for(const p of parts.filter(p=>p.category==='blade'&&isPlayablePart(p)))expect(validateBuild(buildForBlade(p.id)),p.name).toEqual([]);
   });
   it('keeps published CX assembly values separate from unknown component values',()=>{
     const blade=find('ドランブレイブS');expect(blade.ratings?.attack).toBe(60);
@@ -58,7 +64,7 @@ describe('source-backed parts catalog and safe assemblies',()=>{
     const a=find('コバルトドラグーン');const b=parts.find(p=>p.canonicalId===a.canonicalId&&p.id!==a.id)!;expect(a.canonicalId).toBe(b.canonicalId);
   });
   it('limits model parameters to finite values for all playable presets',()=>{
-    for(const p of parts.filter(p=>p.category==='blade'&&p.release==='released')){
+    for(const p of parts.filter(p=>p.category==='blade'&&isPlayablePart(p))){
       const model=profileFor(buildForBlade(p.id));
       for(const value of Object.values(model))if(typeof value==='number')expect(Number.isFinite(value),p.name).toBe(true);
       expect(model.inertia).toBeGreaterThan(0);expect(model.burstThreshold).toBeGreaterThan(0);

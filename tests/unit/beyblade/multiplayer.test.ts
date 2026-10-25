@@ -12,7 +12,7 @@ async function peer(url:string):Promise<Peer>{const socket=new WebSocket(url);co
 const cleanup:Array<()=>Promise<void>>=[];
 afterEach(async()=>{for(const close of cleanup.splice(0))await close();});
 async function fixture(){let now=1000;const app=await createArenaServer({port:0,now:()=>now,countdownMs:0,graceMs:100});cleanup.push(app.close);const address=app.address;if(!address||typeof address==='string')throw new Error('No TCP address');const url=`ws://127.0.0.1:${address.port}/api/beyblade`;return{...app,url,advance:(ms:number)=>{now+=ms;app.manager.tick();}};}
-async function pair(f:Awaited<ReturnType<typeof fixture>>){const a=await peer(f.url),b=await peer(f.url);a.send({type:'queue',build:defaultBuild});b.send({type:'queue',build:defaultBuild});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');return [a,b] as const;}
+async function pair(f:Awaited<ReturnType<typeof fixture>>){const a=await peer(f.url),b=await peer(f.url);a.send({type:'queue',build:defaultBuild});await until(()=>a.state()?.phase==='queued');b.send({type:'queue',build:defaultBuild});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');return [a,b] as const;}
 describe('authoritative network with real WebSocket clients',()=>{
   it('matches two independent clients and simulates/scorers the full match identically',async()=>{
     const f=await fixture();const [a,b]=await pair(f);expect(a.state()?.roomId).toBe(b.state()?.roomId);expect(a.state()?.player).toBe(0);expect(b.state()?.player).toBe(1);
@@ -39,6 +39,11 @@ describe('authoritative network with real WebSocket clients',()=>{
   });
   it('resumes the same authenticated session and forfeits after disconnect grace',async()=>{
     const f=await fixture();const [a,b]=await pair(f);const token=a.token();const room=a.state()?.roomId;a.socket.terminate();await until(()=>b.state()?.phase==='opponent-disconnected');const resumed=await peer(`${f.url}?resume=${encodeURIComponent(token)}`);await until(()=>b.state()?.phase==='ready');expect(resumed.state()?.roomId).toBe(room);expect(resumed.state()?.player).toBe(0);resumed.socket.terminate();await until(()=>b.state()?.phase==='opponent-disconnected');f.advance(101);await until(()=>b.state()?.phase==='match-end');expect(b.state()?.match?.winner).toBe(1);expect(b.state()?.reason).toBe('disconnect-forfeit');expect(b.state()?.match?.scores).toEqual([0,0]);
+  });
+  it('preserves server-assigned seats when queue arrival is reversed',async()=>{
+    const f=await fixture();const a=await peer(f.url),b=await peer(f.url);b.send({type:'queue',build:defaultBuild});await until(()=>b.state()?.phase==='queued');a.send({type:'queue',build:defaultBuild});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');
+    expect(a.state()?.player).toBe(1);expect(b.state()?.player).toBe(0);const token=a.token(),room=a.state()?.roomId;a.socket.terminate();await until(()=>b.state()?.phase==='opponent-disconnected');const resumed=await peer(`${f.url}?resume=${encodeURIComponent(token)}`);await until(()=>resumed.state()?.phase==='ready'&&b.state()?.phase==='ready');expect(resumed.state()?.player).toBe(1);expect(resumed.state()?.roomId).toBe(room);
+    resumed.send({type:'cancel'});await until(()=>b.state()?.phase==='match-end');expect(b.state()?.match?.winner).toBe(0);expect(b.state()?.reason).toBe('opponent-left');expect(b.state()?.match?.scores).toEqual([0,0]);
   });
   it('rejects cross-origin websocket upgrades',async()=>{
     const f=await fixture();const rejected=new WebSocket(f.url,{origin:'https://attacker.invalid'});const status=await new Promise<number>(resolve=>{rejected.on('unexpected-response',(_request,response)=>{resolve(response.statusCode??0);rejected.terminate();});rejected.on('error',()=>{});});expect(status).toBe(403);

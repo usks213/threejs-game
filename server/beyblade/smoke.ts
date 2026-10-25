@@ -39,9 +39,9 @@ try{
   assert.equal(a.state?.phase,'match-end');const result={rounds,scores:a.state?.match?.scores,winner:a.state?.match?.winner};
   send(a,{type:'cancel'});send(b,{type:'cancel'});await wait(()=>a.state?.phase==='idle'&&b.state?.phase==='idle');
   send(a,{type:'queue',build:defaultBuild});send(b,{type:'queue',build:defaultBuild});await wait(()=>a.state?.phase==='ready'&&b.state?.phase==='ready');
-  const roomId=a.state!.roomId;const token=a.token;if(a.heartbeat)clearInterval(a.heartbeat);a.socket.close();await wait(()=>b.state?.phase==='opponent-disconnected');
-  const resumed=await connect(token);await wait(()=>resumed.state?.phase==='ready'&&b.state?.phase==='ready');assert.equal(resumed.state?.roomId,roomId);assert.equal(resumed.state?.player,0);
-  send(resumed,{type:'cancel'});await wait(()=>b.state?.phase==='match-end');assert.equal(b.state?.reason,'opponent-left');assert.equal(b.state?.match?.winner,1);send(b,{type:'cancel'});await wait(()=>resumed.state?.phase==='idle'&&b.state?.phase==='idle');
+  const roomId=a.state!.roomId;const originalSeat=a.state!.player;const opponentSeat=b.state!.player;assert.notEqual(originalSeat,opponentSeat);const token=a.token;if(a.heartbeat)clearInterval(a.heartbeat);a.socket.close();await wait(()=>b.state?.phase==='opponent-disconnected');
+  const resumed=await connect(token);await wait(()=>resumed.state?.phase==='ready'&&b.state?.phase==='ready');assert.equal(resumed.state?.roomId,roomId);assert.equal(resumed.state?.player,originalSeat);
+  send(resumed,{type:'cancel'});await wait(()=>b.state?.phase==='match-end');assert.equal(b.state?.reason,'opponent-left');assert.equal(b.state?.match?.winner,opponentSeat);send(b,{type:'cancel'});await wait(()=>resumed.state?.phase==='idle'&&b.state?.phase==='idle');
   if(process.env.BEYBLADE_RESTART_CHECKPOINT){send(resumed,{type:'queue',build:defaultBuild});send(b,{type:'queue',build:defaultBuild});await wait(()=>resumed.state?.phase==='ready'&&b.state?.phase==='ready');await writeFile(process.env.BEYBLADE_RESTART_CHECKPOINT,JSON.stringify({tokens:[resumed.token,b.token],roomId:resumed.state?.roomId}),{mode:0o600});}
   console.info(JSON.stringify({ok:true,clients:2,authority:'server',reconnect:true,forfeit:true,...result}));
   }

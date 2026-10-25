@@ -1,17 +1,13 @@
 {
   "as_of": "2026-10-25",
-  "edition": "v1-audited-partial",
-  "scope": "Japan Takara Tomy official lineup plus app-list supplement; not all worldwide releases or live sale inventory",
-  "product_rows": 156,
-  "dated_on_or_before_cutoff": 153,
-  "upcoming": 3,
-  "part_or_assembly_or_mode_rows": 271,
+  "edition": "v3-official-source-audited-partial",
+  "part_or_assembly_or_mode_rows": 311,
   "categories": {
-    "blade": 84,
+    "blade": 117,
     "ratchet": 37,
     "bit": 51,
     "ratchet_integrated_blade": 5,
-    "assembled_blade": 26,
+    "assembled_blade": 33,
     "lock_chip": 21,
     "main_blade": 15,
     "assist_blade": 18,
@@ -19,9 +15,21 @@
     "metal_blade": 6,
     "over_blade": 6
   },
-  "rows_with_numeric_rating": 195,
-  "fully_null_rating_rows": 76,
-  "random_stock_combination_rows": 83,
+  "parameter_status_counts": {
+    "verified_numeric_ratings": 197,
+    "source_image_404": 9,
+    "no_individual_ratings_in_reviewed_official_detail_image": 66,
+    "verified_mode_values": 6,
+    "no_assembled_ratings_in_reviewed_official_detail_image": 2,
+    "published_numeric_source_not_yet_verified": 29,
+    "source_image_http200_empty_body": 2
+  },
+  "random_stock_observations": 92,
+  "set_stock_observations": 18,
+  "literal_title_stock_observations": 69,
+  "product_rows": 156,
   "supplemental_app_products": 8,
-  "complete": false
+  "complete": false,
+  "unresolved_or_unpublished_rows": 108,
+  "additional_source_audit_records": 18
 }

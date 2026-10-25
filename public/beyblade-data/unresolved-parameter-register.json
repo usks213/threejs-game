@@ -1,0 +1,2012 @@
+[
+  {
+    "id": "blade:60a6ee564e98",
+    "name_ja": "ナイトメイル メタルコート:ネイビー",
+    "category": "blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2025072315306.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810919124_UX-00%20%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%20%E3%83%8A%E3%82%A4%E3%83%88%E3%83%A1%E3%82%A4%E3%83%AB3-85BS%20%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%E3%83%8D%E3%82%A4%E3%83%93%E3%83%BC.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-nm.html"
+    ],
+    "additional_source_audits": [
+      {
+        "category": "blade",
+        "name_ja": "ナイトメイル メタルコート:ネイビー",
+        "family": "UX",
+        "official_ratings": {
+          "attack": null,
+          "defense": null,
+          "stamina": null
+        },
+        "source_urls": [
+          "https://www.takaratomy.co.jp/support/manual/beyblade/2025072315306.html",
+          "https://www.takaratomy.co.jp/support/manual/items/4904810919124_UX-00%20%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%20%E3%83%8A%E3%82%A4%E3%83%88%E3%83%A1%E3%82%A4%E3%83%AB3-85BS%20%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%E3%83%8D%E3%82%A4%E3%83%93%E3%83%BC.pdf"
+        ],
+        "accessed_date": "2026-10-25",
+        "verification": "official_manual_entire_single_page_visually_checked_no_numeric_ratings",
+        "parameter_status": "unresolved_numeric_ratings_not_in_manual",
+        "physical_parameters": null,
+        "availability_evidence": {
+          "status": "official_sale_ended_relaunch_unknown",
+          "ended_at": "2025-12-15T13:00:00+09:00",
+          "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/news/news251114_2.html",
+          "scope": "rare_bey_ticket_sales",
+          "note": "販売一旦終了告知。市場在庫や以後の再開を断言しない。"
+        }
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:aaae1cd47dce",
+    "name_ja": "エアロペガサス レッドVer.",
+    "category": "blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026030515753.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810096528_%EF%BC%B5%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%82%A8%E3%82%A2%E3%83%AD%E3%83%9A%E3%82%AC%E3%82%B5%E3%82%B9%EF%BC%93%E3%83%BC%EF%BC%97%EF%BC%90%EF%BC%A1%E3%80%80%E3%83%AC%E3%83%83%E3%83%89%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ap_red.html"
+    ],
+    "additional_source_audits": [
+      {
+        "category": "blade",
+        "name_ja": "エアロペガサス レッドVer.",
+        "family": "UX",
+        "official_ratings": {
+          "attack": null,
+          "defense": null,
+          "stamina": null
+        },
+        "source_urls": [
+          "https://www.takaratomy.co.jp/support/manual/beyblade/2026030515753.html",
+          "https://www.takaratomy.co.jp/support/manual/items/4904810096528_%EF%BC%B5%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%82%A8%E3%82%A2%E3%83%AD%E3%83%9A%E3%82%AC%E3%82%B5%E3%82%B9%EF%BC%93%E3%83%BC%EF%BC%97%EF%BC%90%EF%BC%A1%E3%80%80%E3%83%AC%E3%83%83%E3%83%89%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf"
+        ],
+        "accessed_date": "2026-10-25",
+        "verification": "official_manual_entire_single_page_visually_checked_no_numeric_ratings",
+        "parameter_status": "unresolved_numeric_ratings_not_in_manual",
+        "physical_parameters": null
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:0a104c98333f",
+    "name_ja": "ドラン",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX01.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_d.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:b1411ef24ae3",
+    "name_ja": "ブレイブ",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX01.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_d.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:8de0b3c47f11",
+    "name_ja": "S",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX01.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_d.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:3095a08e221b",
+    "name_ja": "ウィザード",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX02.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG43.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:afc84a44731e",
+    "name_ja": "アーク",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX02.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:8c2574892063",
+    "name_ja": "R",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX02.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG43.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "BX-00 ブースター ドラグーンストーム4-60RA(JANコード:4904810099468)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf",
+        "local_key": "2026010715620",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:f1f5c8e6062e",
+    "name_ja": "ペルセウス",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX03.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_p.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:33935e9c0d7a",
+    "name_ja": "ダーク",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX03.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_p.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:df7e70e50215",
+    "name_ja": "B",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX03.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_p.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_02.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "BX-00 スターター ストームスプリガン2-70M(JANコード:4904810997351)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+        "local_key": "2026040315832",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      },
+      {
+        "name": "BX-00 ブースター ドラグーンストーム4-60RA(JANコード:4904810099468)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf",
+        "local_key": "2026010715620",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:f2c579e3397f",
+    "name_ja": "ヘルズ",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:c269d9f8cc23",
+    "name_ja": "リーパー",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:e632b7095b0b",
+    "name_ja": "T",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG70.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_03.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assembled_blade:16e9ca768210",
+    "name_ja": "ライノリーパーC",
+    "category": "assembled_blade",
+    "parameter_status": "no_assembled_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像にこの完成ブレードの数値なし。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:60c9df2be738",
+    "name_ja": "ライノ",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:6b23c0d5f35d",
+    "name_ja": "C",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:b48ee5f7dd37",
+    "name_ja": "フォックス",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX06.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:722ceb1b9cb6",
+    "name_ja": "ブラッシュ",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX06.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:6da43b944e49",
+    "name_ja": "J",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX06.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "BX-00 スターター ストームスプリガン2-70M(JANコード:4904810997351)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+        "local_key": "2026040315832",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      },
+      {
+        "name": "BX-00 ブースター ドラグーンストーム4-60RA(JANコード:4904810099468)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf",
+        "local_key": "2026010715620",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:e280e610eab8",
+    "name_ja": "ペガサス",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX07.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:4999dbca1002",
+    "name_ja": "ブラスト メタルコート:グリーン",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX07.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:559aead08264",
+    "name_ja": "A",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX07.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_01.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "BX-00 スターター ストームスプリガン2-70M(JANコード:4904810997351)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+        "local_key": "2026040315832",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      },
+      {
+        "name": "BX-00 ブースター ドラグーンストーム4-60RA(JANコード:4904810099468)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf",
+        "local_key": "2026010715620",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:d273a025bdcf",
+    "name_ja": "ケルベロス",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:9c89b8caa34b",
+    "name_ja": "フレイム",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:fcb5f40df9be",
+    "name_ja": "W",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX18.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assembled_blade:3dfd9c62cce5",
+    "name_ja": "ホエールフレイムM",
+    "category": "assembled_blade",
+    "parameter_status": "no_assembled_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像にこの完成ブレードの数値なし。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:ec892ef39471",
+    "name_ja": "ホエール",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:08f271887ce9",
+    "name_ja": "M",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "BX-00 スターター ストームスプリガン2-70M(JANコード:4904810997351)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+        "local_key": "2026040315832",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:6a68a6272603",
+    "name_ja": "ソル",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX09.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:48dc17188e6e",
+    "name_ja": "エクリプス",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX09.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:3f39d5c348e5",
+    "name_ja": "D",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX09.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:da659befa47d",
+    "name_ja": "エンペラー（メタルロックチップ）",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:55270999c135",
+    "name_ja": "マイト メタルコート:ブラック",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:44bd7ae60f47",
+    "name_ja": "H",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:9c36935cab82",
+    "name_ja": "フェニックス",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX12.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:539f33b95d30",
+    "name_ja": "フレア メタルコート:レッド",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX12.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:bbeebd879e1d",
+    "name_ja": "Z",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX12.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:afe8738cae94",
+    "name_ja": "バハムート",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX13.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX16.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "metal_blade:a937bc86b04f",
+    "name_ja": "ブリッツ",
+    "category": "metal_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX13.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX16.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "over_blade:df7e70e50215",
+    "name_ja": "B",
+    "category": "over_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX13.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX16.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "BX-00 スターター ストームスプリガン2-70M(JANコード:4904810997351)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+        "local_key": "2026040315832",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      },
+      {
+        "name": "BX-00 ブースター ドラグーンストーム4-60RA(JANコード:4904810099468)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf",
+        "local_key": "2026010715620",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:86be9a55762d",
+    "name_ja": "K",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX13.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX16.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:b82156eaa631",
+    "name_ja": "ナイト",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX14.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "metal_blade:773ca3853c51",
+    "name_ja": "フォートレス",
+    "category": "metal_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX14.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "over_blade:333e0a1e2781",
+    "name_ja": "G",
+    "category": "over_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX14.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:de5a6f78116e",
+    "name_ja": "V",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX14.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:40a2dc6df32e",
+    "name_ja": "ラグナ",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX15.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "metal_blade:96a45240dd8a",
+    "name_ja": "レイジ",
+    "category": "metal_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX15.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG70.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "over_blade:f67ab10ad4e4",
+    "name_ja": "F",
+    "category": "over_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX15.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG70.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:a9f51566bd67",
+    "name_ja": "E",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX15.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:28b90b526c94",
+    "name_ja": "ユニコーン",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX17.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "metal_blade:5c296b7a6fb5",
+    "name_ja": "デルタ",
+    "category": "metal_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX17.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "over_blade:5c62e091b8c0",
+    "name_ja": "P",
+    "category": "over_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX17.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:c4694f2e93d5",
+    "name_ja": "O",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX17.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:e3704f43ad70",
+    "name_ja": "ブラキオ",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX18.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "metal_blade:a8efb3f99c60",
+    "name_ja": "ウィップ",
+    "category": "metal_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX18.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "over_blade:c4694f2e93d5",
+    "name_ja": "O",
+    "category": "over_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX18.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:d70bd9ae4981",
+    "name_ja": "クロコ",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX19.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "metal_blade:192792da47b4",
+    "name_ja": "トレッド",
+    "category": "metal_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX19.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "over_blade:e632b7095b0b",
+    "name_ja": "T",
+    "category": "over_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX19.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:4ae81572f06e",
+    "name_ja": "Q",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX19.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:d8f0a3f3b1e1",
+    "name_ja": "ウルフ",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX10.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:4387114ab3c3",
+    "name_ja": "ハント",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX10.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assist_blade:f67ab10ad4e4",
+    "name_ja": "F",
+    "category": "assist_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX10.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:4ff9d9d12245",
+    "name_ja": "アーク メタルコート:ブラック",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-wa.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG43.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:1b834e0ef138",
+    "name_ja": "ティガ",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-tiga.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG70.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "lock_chip:716790f2c5ed",
+    "name_ja": "エヴァ",
+    "category": "lock_chip",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_01.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_02.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_03.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:3a974ff6dcc8",
+    "name_ja": "ブレイブ メタルコート:バイオレット",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_01.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:8984c884977d",
+    "name_ja": "アーク メタルコート:オレンジ",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_02.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "main_blade:322408d3af3f",
+    "name_ja": "ブラッシュ メタルコート:レッド",
+    "category": "main_blade",
+    "parameter_status": "no_individual_ratings_in_reviewed_official_detail_image",
+    "missing_parameter_reason": "レビュー済み公式画像は完成ブレード値のみ。構成部品への配賦不可。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_03.png"
+    ],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:2a4e9c7886c8",
+    "name_ja": "フェニックスウイング",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx23.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:bcaae06d4533",
+    "name_ja": "アイアンマン",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mit.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:bdfb70df3e48",
+    "name_ja": "サノス",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mit.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:a74b65b97e86",
+    "name_ja": "スパイダーマン",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-msv.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:5f203ab27ca0",
+    "name_ja": "ヴェノム",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-msv.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:1e11cf62b78d",
+    "name_ja": "ルーク・スカイウォーカー",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sld.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:551fd474cc5b",
+    "name_ja": "ダース・ベイダー",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sld.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:8910d2dfb26d",
+    "name_ja": "マンダロリアン",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-smm.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:975d63b58389",
+    "name_ja": "モフ・ギデオン",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-smm.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:31310d65910a",
+    "name_ja": "オプティマスプライム",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tom.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:9d0d674dacc8",
+    "name_ja": "メガトロン",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tom.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:23088f6d86b5",
+    "name_ja": "オプティマスプライマル",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tos.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:f1d99b3b0c7e",
+    "name_ja": "スタースクリーム",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tos.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:50733e7c4914",
+    "name_ja": "ドラグーンストーム",
+    "category": "blade",
+    "parameter_status": "source_image_http200_empty_body",
+    "missing_parameter_reason": "製品指定画像HTTP200だが0バイト。別資料取説にも数値なし。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drgs.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "name": "BX-00 ブースター ドラグーンストーム4-60RA(JANコード:4904810099468)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf",
+        "local_key": "2026010715620",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:b304f6919730",
+    "name_ja": "ストームスプリガン",
+    "category": "blade",
+    "parameter_status": "source_image_http200_empty_body",
+    "missing_parameter_reason": "製品指定画像HTTP200だが0バイト。別資料取説にも数値なし。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ss.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "name": "BX-00 スターター ストームスプリガン2-70M(JANコード:4904810997351)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+        "local_key": "2026040315832",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:96ca2e6dbc9e",
+    "name_ja": "フェニックスフェザー",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-12_manual.pdf",
+      "https://shogakukan-comic.jp/news/47160"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "name": "フェニックスフェザー",
+        "source_url": "https://shogakukan-comic.jp/news/47160",
+        "image_url": "https://shogakukan-comic.jp/wp-content/uploads/2024/12/3ffb456a093d7f79f7634de68c880f4c.jpg",
+        "status": "publisher_article_and_image_checked_no_numeric_chart",
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:b45f389a0f0c",
+    "name_ja": "コバルトドレイク クリアVer.",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cdr.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2024111314738.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810953708_%EF%BC%A2%EF%BC%B8%EF%BC%A7%EF%BC%8D%EF%BC%92%EF%BC%93%E3%80%80%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B3%E3%83%90%E3%83%AB%E3%83%88%E3%83%89%E3%83%AC%E3%82%A4%E3%82%AF%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%A6%E3%80%80%E3%82%AF%E3%83%AA%E3%82%A2%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "name": "BXG-23 BX-00 コバルトドレイク4-60F クリアVer.(JANコード:4904810953708)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2024111314738.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810953708_%EF%BC%A2%EF%BC%B8%EF%BC%A7%EF%BC%8D%EF%BC%92%EF%BC%93%E3%80%80%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B3%E3%83%90%E3%83%AB%E3%83%88%E3%83%89%E3%83%AC%E3%82%A4%E3%82%AF%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%A6%E3%80%80%E3%82%AF%E3%83%AA%E3%82%A2%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf",
+        "local_key": "2024111314738",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:90f0da4568b4",
+    "name_ja": "コバルトドラグーン メタルコート:ブラック",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cd.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:3a946efa3d4f",
+    "name_ja": "ヘルズチェイン メタルコート:ブラック",
+    "category": "blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-hch.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2024052214274.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810939979_%EF%BC%A2%EF%BC%B8%EF%BC%A7%EF%BC%8D%EF%BC%90%EF%BC%98%E3%80%80%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%98%E3%83%AB%E3%82%BA%E3%83%81%E3%82%A7%E3%82%A4%E3%83%B3%EF%BC%95%EF%BC%8D.pdf"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "name": "BXG-08 BX-00 ブースター ヘルズチェイン5-60HT メタルコート:ブラック(JANコード:4904810939979)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2024052214274.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810939979_%EF%BC%A2%EF%BC%B8%EF%BC%A7%EF%BC%8D%EF%BC%90%EF%BC%98%E3%80%80%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%98%E3%83%AB%E3%82%BA%E3%83%81%E3%82%A7%E3%82%A4%E3%83%B3%EF%BC%95%EF%BC%8D.pdf",
+        "local_key": "2024052214274",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:e38ea50588b0",
+    "name_ja": "クロコクランチ メタルコート:グリーン",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2025020514924.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810953678_%EF%BC%A2%EF%BC%B8%EF%BC%A3%EF%BC%8D%EF%BC%90%EF%BC%97%E3%80%80%E3%82%AF%E3%83%AD%E3%82%B3%E3%82%AF%E3%83%A9%E3%83%B3%E3%83%81%EF%BC%92%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B1%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%82%B0%E3%83%AA%E3%83%BC%E3%83%B3%20.pdf"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "name": "BXC-07 クロコクランチ2-60Qメタルコート:グリーン (JANコード:4904810953678)",
+        "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2025020514924.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810953678_%EF%BC%A2%EF%BC%B8%EF%BC%A3%EF%BC%8D%EF%BC%90%EF%BC%97%E3%80%80%E3%82%AF%E3%83%AD%E3%82%B3%E3%82%AF%E3%83%A9%E3%83%B3%E3%83%81%EF%BC%92%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B1%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%82%B0%E3%83%AA%E3%83%BC%E3%83%B3%20.pdf",
+        "local_key": "2025020514924",
+        "status": "checked_no_numeric_chart",
+        "checked_pdf_pages": [
+          1
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:191cb5696242",
+    "name_ja": "サムライスチール メタルコート:ホワイト",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "https://shogakukan-comic.jp/news/59015"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "name": "サムライスチール メタルコート:ホワイト",
+        "source_url": "https://shogakukan-comic.jp/news/59015",
+        "image_url": "https://shogakukan-comic.jp/wp-content/uploads/2026/05/282fded35ae4207b264b11c1cab913b7.jpg",
+        "status": "publisher_article_and_image_checked_no_numeric_chart",
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:5f0ad62018d6",
+    "name_ja": "オロチクラスタ",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:6112c0047e70",
+    "name_ja": "フェニックスウイング メタルコート:ネイビー",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:49f5c8debdef",
+    "name_ja": "シャークエッジ メタルコート:ブラック",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:7133813ff43d",
+    "name_ja": "クロックミラージュ メタルコート:ブラック",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026091516182.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810067900_%EF%BC%B5%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B3%E3%83%AD%E3%82%B3%E3%83%AD%E3%82%B3%E3%83%9F%E3%83%83%E3%82%AF%EF%BC%99%E6%9C%88%E5%8F%B7%E5%BF%9C%E5%8B%9F%E8%80%85%E5%85%A8%E5%93%A1%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9%E3%80%80%E3%82%AF%E3%83%AD%E3%83%83%E3%82%AF%E3%83%9F%E3%83%A9%E3%83%BC%E3%82%B8%E3%83%A5%EF%BC%94%EF%BC%8D%EF%BC%95%EF%BC%95%EF%BC%B3%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%80%80%E9%81%8B%E5%91%BD%E3%81%AE%E5%B7%BB%E6%88%BB%E5%A3%AB%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "category": "blade",
+        "name_ja": "クロックミラージュ メタルコート:ブラック 運命の巻戻士Ver.",
+        "family": "UX",
+        "official_ratings": {
+          "attack": null,
+          "defense": null,
+          "stamina": null
+        },
+        "source_urls": [
+          "https://www.takaratomy.co.jp/support/manual/beyblade/2026091516182.html",
+          "https://www.takaratomy.co.jp/support/manual/items/4904810067900_%EF%BC%B5%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B3%E3%83%AD%E3%82%B3%E3%83%AD%E3%82%B3%E3%83%9F%E3%83%83%E3%82%AF%EF%BC%99%E6%9C%88%E5%8F%B7%E5%BF%9C%E5%8B%9F%E8%80%85%E5%85%A8%E5%93%A1%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9%E3%80%80%E3%82%AF%E3%83%AD%E3%83%83%E3%82%AF%E3%83%9F%E3%83%A9%E3%83%BC%E3%82%B8%E3%83%A5%EF%BC%94%EF%BC%8D%EF%BC%95%EF%BC%95%EF%BC%B3%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%80%80%E9%81%8B%E5%91%BD%E3%81%AE%E5%B7%BB%E6%88%BB%E5%A3%AB%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf"
+        ],
+        "accessed_date": "2026-10-25",
+        "verification": "official_manual_entire_single_page_visually_checked_no_numeric_ratings",
+        "parameter_status": "unresolved_numeric_ratings_not_in_manual",
+        "physical_parameters": null,
+        "compatibility": {
+          "ratchet_requires": "simple_type",
+          "explicit_examples_allowed": [
+            "4-55",
+            "9-65",
+            "M-85"
+          ],
+          "explicit_examples_disallowed": [
+            "5-70",
+            "Tr"
+          ]
+        }
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:93408ffb3b93",
+    "name_ja": "ビクトリーヴァルキリー",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://www.takaratomy.co.jp/support/manual/items/4904810946816_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%99%E3%82%A4%E3%83%96%E3%83%AC%E3%83%BC%E3%83%89%EF%BC%92%EF%BC%95%E5%91%A8%E5%B9%B4%E8%A8%98%E5%BF%B5%E3%82%BB%E3%83%83%E3%83%88.pdf"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:b90bc10f7cb8",
+    "name_ja": "ドランソード ホロステッカーVer.",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://www.takaratomy.co.jp/support/manual/items/4904810946816_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%99%E3%82%A4%E3%83%96%E3%83%AC%E3%83%BC%E3%83%89%EF%BC%92%EF%BC%95%E5%91%A8%E5%B9%B4%E8%A8%98%E5%BF%B5%E3%82%BB%E3%83%83%E3%83%88.pdf"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:457d4e8f04e1",
+    "name_ja": "T-レックス",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jtm.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:d64b62825c56",
+    "name_ja": "モササウルス",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jtm.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:29beff483a6e",
+    "name_ja": "スピノサウルス",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jsq.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "blade:194bbf365577",
+    "name_ja": "ケツァルコアトルス",
+    "category": "blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jsq.html"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": null,
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assembled_blade:dcdccab42088",
+    "name_ja": "ペガサスブラストA メタルコート:レッド",
+    "category": "assembled_blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-pb.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2025080715379.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810930495_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%83%9A%E3%82%AC%E3%82%B5%E3%82%B9%E3%83%96%E3%83%A9%E3%82%B9%E3%83%88%EF%BC%A1%EF%BC%B4%EF%BD%92%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%AC%E3%83%83%E3%83%89.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG45.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "ペガサスブラストA メタルコート:レッド",
+        "status": "numeric_chart_in_red_product_manual_with_illustration_caveat",
+        "stats": {
+          "attack": 75,
+          "defense": 20,
+          "stamina": 20
+        },
+        "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2025080715379.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810930495_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%83%9A%E3%82%AC%E3%82%B5%E3%82%B9%E3%83%96%E3%83%A9%E3%82%B9%E3%83%88%EF%BC%A1%EF%BC%B4%EF%BD%92%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%AC%E3%83%83%E3%83%89.pdf",
+        "pdf_page": 2,
+        "printed_page": 14,
+        "checked_date": "2026-10-25",
+        "caveat": "赤製品専用説明書のカスタマイズ例にペガサスブラストA75/20/20掲載。ただし先頭ページにCX-07メタルコート:グリーンの線を使用との注記がある。赤固有数値と独立に表記されたものではない。",
+        "additional_custom_example": {
+          "name": "ペガサスアークA",
+          "stats": {
+            "attack": 35,
+            "defense": 20,
+            "stamina": 45
+          },
+          "not_stock_combination": true
+        }
+      }
+    ],
+    "observed_rating_evidence": [
+      {
+        "ratings": {
+          "attack": 75,
+          "defense": 20,
+          "stamina": 20
+        },
+        "source_url": "https://www.takaratomy.co.jp/support/manual/items/4904810930495_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%83%9A%E3%82%AC%E3%82%B5%E3%82%B9%E3%83%96%E3%83%A9%E3%82%B9%E3%83%88%EF%BC%A1%EF%BC%B4%EF%BD%92%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%AC%E3%83%83%E3%83%89.pdf",
+        "source_page": 2,
+        "applicability": "uncertain_reused_green_illustration",
+        "caveat": "赤製品専用説明書のカスタマイズ例にペガサスブラストA75/20/20掲載。ただし先頭ページにCX-07メタルコート:グリーンの線を使用との注記がある。赤固有数値と独立に表記されたものではない。"
+      }
+    ]
+  },
+  {
+    "id": "assembled_blade:7065e3773418",
+    "name_ja": "ドランブレイブS メタルコート:ブラック",
+    "category": "assembled_blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-db.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026060415940.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810080572_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%83%B3%E3%83%96%E3%83%AC%E3%82%A4%E3%83%96.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG51.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "ドランブレイブS メタルコート:ブラック",
+        "status": "checked_no_numeric_chart",
+        "stats": null,
+        "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2026060415940.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810080572_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%83%B3%E3%83%96%E3%83%AC%E3%82%A4%E3%83%96.pdf",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assembled_blade:09cfe55571b6",
+    "name_ja": "バックスアントラーズB メタルコート:オレンジ",
+    "category": "assembled_blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-ba.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916089.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810077367_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%90%E3%83%83%E3%82%AF%E3%82%B9%E3%82%A2%E3%83%B3%E3%83%88%E3%83%A9%E3%83%BC%E3%82%BA%EF%BC%A2%EF%BC%92%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%A4%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%82%AA%E3%83%AC%E3%83%B3%E3%82%B8.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG81.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "バックスアントラーズB メタルコート:オレンジ",
+        "status": "checked_no_numeric_chart",
+        "stats": null,
+        "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916089.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810077367_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%90%E3%83%83%E3%82%AF%E3%82%B9%E3%82%A2%E3%83%B3%E3%83%88%E3%83%A9%E3%83%BC%E3%82%BA%EF%BC%A2%EF%BC%92%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%A4%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%82%AA%E3%83%AC%E3%83%B3%E3%82%B8.pdf",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assembled_blade:3c31074160b9",
+    "name_ja": "クラーケンリグルS メタルコート:ブルー",
+    "category": "assembled_blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-kw.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916088.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810077336_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%82%AF%E3%83%A9%E3%83%BC%E3%82%B1%E3%83%B3%E3%83%AA%E3%82%B0%E3%83%AB%EF%BC%B3%EF%BC%93%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AF%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%AB%E3%83%BC.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG80.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "クラーケンリグルS メタルコート:ブルー",
+        "status": "checked_no_numeric_chart",
+        "stats": null,
+        "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916088.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810077336_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%82%AF%E3%83%A9%E3%83%BC%E3%82%B1%E3%83%B3%E3%83%AA%E3%82%B0%E3%83%AB%EF%BC%B3%EF%BC%93%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AF%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%AB%E3%83%BC.pdf",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assembled_blade:6c5a73883b3f",
+    "name_ja": "ホーネットフォートR メタルコート:イエロー",
+    "category": "assembled_blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-hf.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/index.html"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG79.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "ホーネットフォートR メタルコート:イエロー",
+        "status": "no_entry_found_in_official_support_indexes_1_to_4",
+        "stats": null,
+        "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/index.html",
+        "checked_date": "2026-10-25",
+        "additional_check": {
+          "url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-79_manual.pdf",
+          "result": "HTTP404",
+          "basis": "製品HTML内のコメントアウトされた製品説明書URL"
+        }
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assembled_blade:3f9038f62fcd",
+    "name_ja": "ドレイクブレイブG メタルコート:ブルー",
+    "category": "assembled_blade",
+    "parameter_status": "source_image_404",
+    "missing_parameter_reason": "製品指定画像404。別資料確認はadditional_source_audits参照。公式数値が存在しないとは断定しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-drb.html",
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916090.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810077398_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%AC%E3%82%A4%E3%82%AF%E3%83%96%E3%83%AC%E3%82%A4%E3%83%96%EF%BC%A7%EF%BC%94%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%A9%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%AB%E3%83%BC.pdf"
+    ],
+    "source_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXH23.png"
+    ],
+    "additional_source_audits": [
+      {
+        "name": "ドレイクブレイブG メタルコート:ブルー",
+        "status": "checked_no_numeric_chart",
+        "stats": null,
+        "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916090.html",
+        "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810077398_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%AC%E3%82%A4%E3%82%AF%E3%83%96%E3%83%AC%E3%82%A4%E3%83%96%EF%BC%A7%EF%BC%94%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%A9%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%AB%E3%83%BC.pdf",
+        "checked_pdf_pages": [
+          1,
+          2
+        ],
+        "checked_date": "2026-10-25"
+      }
+    ],
+    "observed_rating_evidence": null
+  },
+  {
+    "id": "assembled_blade:413aba0d502f",
+    "name_ja": "キッドハントK メタルコート:ホワイト",
+    "category": "assembled_blade",
+    "parameter_status": "published_numeric_source_not_yet_verified",
+    "missing_parameter_reason": "公式の存在/名称/構成は確認したが数値の一次出典未確認。未公開とは断定せず、他色や二次資料から補完しない。",
+    "source_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "https://corocoro-news.jp/news/402790/"
+    ],
+    "source_image_urls": [],
+    "additional_source_audits": [
+      {
+        "name": "キッドハントK メタルコート:ホワイト",
+        "status": "no_numeric_primary_source_verified",
+        "stats": null,
+        "source_page": "https://corocoro-news.jp/news/402790/",
+        "checked_date": "2026-10-25",
+        "notes": "検索結果で公式記事と商品名称は確認。本文直接取得はメンテナンス画面／web503。公式Xプロフィールはweb403。二次記事の数値流用はしていない。"
+      }
+    ],
+    "observed_rating_evidence": null
+  }
+]
