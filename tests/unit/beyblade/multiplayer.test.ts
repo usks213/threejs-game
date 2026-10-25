@@ -16,26 +16,45 @@ afterEach(async()=>{for(const close of cleanup.splice(0))await close();});
 async function fixture(){let now=1000;const app=await createArenaServer({port:0,now:()=>now,countdownMs:0,graceMs:100});cleanup.push(app.close);const address=app.address;if(!address||typeof address==='string')throw new Error('No TCP address');const url=`ws://127.0.0.1:${address.port}/api/beyblade`;return{...app,url,advance:(ms:number)=>{now+=ms;app.manager.tick();}};}
 async function pair(f:Awaited<ReturnType<typeof fixture>>,builds:[Build,Build]=[defaultBuild,defaultBuild]){const a=await peer(f.url),b=await peer(f.url);a.send({type:'queue',build:builds[0]});await until(()=>a.state()?.phase==='queued');b.send({type:'queue',build:builds[1]});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');return [a,b] as const;}
 describe('authoritative network with real WebSocket clients',()=>{
-  it('matches two independent clients and simulates/scorers the full match identically',async()=>{
-    const f=await fixture();const [a,b]=await pair(f);expect(a.state()?.roomId).toBe(b.state()?.roomId);expect(a.state()?.player).toBe(0);expect(b.state()?.player).toBe(1);
-    let completed=false;
-    for(let round=0;round<12&&!completed;round++){
-      a.send({type:'launch',launch:{power:.2,angle:.3,tilt:.6}});b.send({type:'launch',launch:{power:1,angle:0,tilt:0}});
+  it('matches two independent clients and scores a finite real two-round match identically',async()=>{
+    // This legal-launch fixture produces two actual Burst finishes (2 + 2 points).
+    // Keep long same-build trajectory coverage separate from score-to-four transport coverage.
+    const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
+    const buster=buildForBlade(parts.find(p=>p.canonicalId==='ドランバスター'&&p.category==='blade')!.id);buster.ratchet='ratchet:1-60';buster.bit='bit:A';
+    const [a,b]=await pair(f,[buster,sword]);expect(a.state()?.roomId).toBe(b.state()?.roomId);expect(a.state()?.player).toBe(0);expect(b.state()?.player).toBe(1);
+    for(let round=0;round<2;round++){
+      a.send({type:'launch',launch:{power:.8,angle:0,tilt:8*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
       await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);
-      for(let block=0;block<200;block++){
-        for(let step=0;step<60;step++)f.advance(1000/60);
+      for(let block=0;block<30;block++){
+        for(let step=0;step<20;step++)f.advance(1000/60);
         a.send({type:'ping'});b.send({type:'ping'});await pauses();
         if(['round-end','match-end'].includes(a.state()?.phase??''))break;
       }
       await until(()=>['round-end','match-end'].includes(a.state()?.phase??'')&&['round-end','match-end'].includes(b.state()?.phase??'')&&a.state()?.battle?.tick===b.state()?.battle?.tick);
-      const sa=a.state()!,sb=b.state()!;expect(['round-end','match-end']).toContain(sa.phase);expect(sa.match).toEqual(sb.match);expect(sa.battle).toEqual(sb.battle);expect(sa.battle?.result).not.toBeNull();
+      const sa=a.state()!,sb=b.state()!;expect(sa.match).toEqual(sb.match);expect(sa.battle).toEqual(sb.battle);expect(sa.battle?.result?.finish).toBe('burst');
+      expect(sa.match?.scores.reduce((sum,score)=>sum+score,0)).toBe(2*(round+1));
       const lockedScores=[...sa.match!.scores],lockedResult=sa.battle!.result;
       for(let block=0;block<4;block++){for(let step=0;step<60;step++)f.advance(1000/60);await pauses();}
       await until(()=>!(a.state()?.battle?.settling?.remaining)&&!(b.state()?.battle?.settling?.remaining));
       expect(a.state()?.match?.scores).toEqual(lockedScores);expect(a.state()?.battle?.result).toEqual(lockedResult);
-      if(sa.phase==='match-end'){expect(Math.max(...sa.match!.scores)).toBeGreaterThanOrEqual(4);expect(sa.match?.winner).not.toBeNull();completed=true;}else{a.send({type:'next'});b.send({type:'next'});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');}
+      if(round===0){expect(sa.phase).toBe('round-end');a.send({type:'next'});b.send({type:'next'});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');}
     }
-    expect(completed).toBe(true);a.send({type:'cancel'});b.send({type:'cancel'});await until(()=>a.state()?.phase==='idle'&&b.state()?.phase==='idle');expect(f.manager.rooms.size).toBe(0);
+    expect(a.state()?.phase).toBe('match-end');expect(b.state()?.phase).toBe('match-end');expect(Math.max(...a.state()!.match!.scores)).toBeGreaterThanOrEqual(4);expect(a.state()?.match?.winner).not.toBeNull();
+    a.send({type:'cancel'});b.send({type:'cancel'});await until(()=>a.state()?.phase==='idle'&&b.state()?.phase==='idle');expect(f.manager.rooms.size).toBe(0);
+  },15_000);
+  it('resolves the original unequal-launch same-build trajectory authoritatively for both clients',async()=>{
+    // Full-tensor model: this normal-input round takes ~8 simulated seconds and scores Spin1.
+    // One physical round preserves the regression without needlessly repeating it four times.
+    const f=await fixture();const [a,b]=await pair(f);
+    a.send({type:'launch',launch:{power:.2,angle:.3,tilt:.6}});b.send({type:'launch',launch:{power:1,angle:0,tilt:0}});
+    await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);
+    for(let block=0;block<40;block++){
+      for(let step=0;step<60;step++)f.advance(1000/60);
+      a.send({type:'ping'});b.send({type:'ping'});await pauses();if(a.state()?.phase==='round-end')break;
+    }
+    await until(()=>a.state()?.phase==='round-end'&&b.state()?.phase==='round-end'&&a.state()?.battle?.tick===b.state()?.battle?.tick);
+    expect(a.state()?.battle).toEqual(b.state()?.battle);expect(a.state()?.match).toEqual(b.state()?.match);expect(a.state()?.battle?.result?.winner).not.toBeNull();expect(a.state()?.match?.scores.reduce((sum,score)=>sum+score,0)).toBeGreaterThan(0);
+    expect(a.state()?.battle?.tops[0].profile.name).toBe(a.state()?.battle?.tops[1].profile.name);
   },15_000);
   it('keeps real burst fragments synchronized and result latched during unscored settling',async()=>{
     const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
