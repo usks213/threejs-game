@@ -123,3 +123,20 @@ test('part inspection exposes changed physical estimates, source evidence and un
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await expect(page.locator('#inspect-error')).toBeHidden();expect(errors).toEqual([]);
 });
+
+test('ordinary Burst keeps its score latched while physical pieces continue, then allows the next round',async({page})=>{
+  await page.goto('/beyblade/');
+  await page.evaluate(()=>{
+    const phase=document.getElementById('phase')!,launch=document.getElementById('launch') as HTMLButtonElement;
+    const state=window as unknown as {settlingObserved:boolean;settlingWasGated:boolean};state.settlingObserved=false;state.settlingWasGated=false;
+    const observer=new MutationObserver(()=>{if(phase.textContent?.includes('SETTLING')){state.settlingObserved=true;state.settlingWasGated=launch.disabled;observer.disconnect();}});
+    observer.observe(phase,{childList:true,characterData:true,subtree:true});
+  });
+  await page.locator('#launch').click();
+  await expect.poll(()=>page.evaluate(()=>(window as unknown as {settlingObserved:boolean}).settlingObserved),{timeout:20000}).toBe(true);
+  expect(await page.evaluate(()=>(window as unknown as {settlingWasGated:boolean}).settlingWasGated)).toBe(true);
+  await expect(page.locator('#score-you')).toHaveText('2');await expect(page.locator('#score-other')).toHaveText('0');
+  await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:20000});await expect(page.locator('#launch')).toBeEnabled();
+  await expect(page.locator('#score-you')).toHaveText('2');await page.locator('#launch').click();await expect(page.locator('#phase')).toContainText('COUNTDOWN');
+  await page.locator('#reset-match').click();await expect(page.locator('#phase')).toContainText('READY');await expect(page.locator('#score-you')).toHaveText('0');
+});

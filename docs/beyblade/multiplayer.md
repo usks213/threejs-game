@@ -51,3 +51,7 @@ The server sends the complete authoritative rigid-body state, including quaterni
 Only presentation-event history is reduced for network snapshots: at most the latest **32 events from the last 240 physics ticks (one simulation second)**. The authority retains its full 192-event ring. Final outcome and complete top state are never trimmed; this is not a lossless event-log or match-replay protocol. Rich synthetic event coverage verifies snapshots stay below 32 KiB for the current schema. Opponent display names are cached at room creation instead of rebuilding physical profiles each frame.
 
 This single-authority free-preview design allows at most **two active rooms** at once (waiting-for-launch, countdown, battle, between-rounds and reconnect-paused rooms count). Further players remain in the real FIFO queue and are paired when an active room ends or is left. Existing matches are never replaced, auto-scored or evicted to make capacity. Finished-room retention does not consume an active slot. There is no paid scaling, new resource provisioning or production deployment associated with this cap. It is a conservative workload bound, not a claim that the unprofiled Cloudflare runtime can sustain two rooms in real time; final-core/runtime benchmarks remain required before public availability is asserted.
+
+## 結果確定後の物理観測
+
+ラウンド結果と得点は最初の判定時に一度だけ確定します。対応構造のバースト片と残るベイは2.5秒の固定ステップ余動を続け、断片COM・Quaternion・角運動量もサーバー状態に含まれます。この間はround-end/match-endのままで、得点は再計算しません。次ラウンドは観測終了まで拒否し、終了状態を両者へ配信します。切断時の一時停止／再接続でも同じ状態を保持します。完全停止を保証する演出ではありません。

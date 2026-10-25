@@ -37,7 +37,7 @@ export function controlledModelComparisons(){
 }
 
 if(process.argv[1]?.endsWith('compare-beyblade-models.ts')){
-  const sourceSha256=Object.fromEntries(['src/beyblade/core/physics.ts','src/beyblade/data/physical-estimates.ts','src/beyblade/data/shape-facts.ts','src/beyblade/data/catalog.ts','scripts/compare-beyblade-models.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]));
+  const sourceSha256=Object.fromEntries(['src/beyblade/core/physics.ts','src/beyblade/data/physical-estimates.ts','src/beyblade/data/shape-facts.ts','src/beyblade/data/expanded-shape-facts.ts','src/beyblade/data/catalog.ts','scripts/compare-beyblade-models.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]));
   const comparisons=controlledModelComparisons(),audit=auditModels();
   const summary={catalogRows:audit.catalogRows,modeledRows:audit.modeledRows,uniqueMechanicalProfiles:audit.uniqueMechanicalProfiles,equivalentGroups:audit.equivalentGroups,
     sourceInformedBladeRows:audit.rows.filter(r=>r.status==='modeled'&&r.category==='blade'&&r.variants[0].metadata.components[0].shapeStatus==='source-informed').length,

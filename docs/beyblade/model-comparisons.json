@@ -1,17 +1,18 @@
 {
   "sourceSha256": {
-    "src/beyblade/core/physics.ts": "6b30b7765e60bd72792c016184ddb07974989291fcf8a9a6d01dd192677c77d8",
-    "src/beyblade/data/physical-estimates.ts": "d7896cefd5b97b0d9ef4c45f9cc1618be37c9c0c4b5d9af83e7dbf15b5859e1b",
+    "src/beyblade/core/physics.ts": "521ed3d81e8801b8ac4f48276c2b0ac97c71392f420deeca716dc403b5c14ac5",
+    "src/beyblade/data/physical-estimates.ts": "af32637426fe5d55926cd30485bc2a46390453f686eb4eaf5903e9a0ead81587",
     "src/beyblade/data/shape-facts.ts": "ec6ccb61ce8af569b97eb09eb4337fe3c9cf0016563f95b8db7aadc28a082c68",
+    "src/beyblade/data/expanded-shape-facts.ts": "7c708014a3f78ae56928d2d1f7471848bf7779b050f382aa95b53578a4931c22",
     "src/beyblade/data/catalog.ts": "281c07b4f7a8a89350ee6d926fa23e53146b07ff7d7157cb1d5b30106006a4a5",
-    "scripts/compare-beyblade-models.ts": "f83edd287c3bbb637533359ca204c2d3f6e25a785e5030ecf588a090cbc27364"
+    "scripts/compare-beyblade-models.ts": "b220d3cd88114e02e5cf6969c93f7eb5d4a29b17349f5d6f7138f0ec8d6bb5d4"
   },
   "status": "estimated model comparison; not real-toy validation",
   "fixture": "Equal estimated launch work at 80%; spin-down centered upright with zero translation, 3s floor-only. Impact upright fixed 300rad/s vs common incoming body at1m/s from80mm separation; not a ranking. Orbit up to3s normal full two-body arena; actual duration and terminal result recorded.",
   "summary": {
     "catalogRows": 311,
     "modeledRows": 228,
-    "uniqueMechanicalProfiles": 208,
+    "uniqueMechanicalProfiles": 219,
     "equivalentGroups": [
       {
         "members": [
@@ -68,15 +69,15 @@
           {
             "id": "blade:9b2d38339b86",
             "name": "ヘルズハンマー メタルコート:ブルー",
-            "fallback": true
+            "fallback": false
           },
           {
             "id": "blade:db1e65b9dc76",
             "name": "ヘルズハンマー メタルコート:レッド FCバルセロナVer.",
-            "fallback": true
+            "fallback": false
           }
         ],
-        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
       },
       {
         "members": [
@@ -106,33 +107,8 @@
             "fallback": true
           },
           {
-            "id": "blade:bcaae06d4533",
-            "name": "アイアンマン",
-            "fallback": true
-          },
-          {
-            "id": "blade:bdfb70df3e48",
-            "name": "サノス",
-            "fallback": true
-          },
-          {
-            "id": "blade:a74b65b97e86",
-            "name": "スパイダーマン",
-            "fallback": true
-          },
-          {
             "id": "blade:5f203ab27ca0",
             "name": "ヴェノム",
-            "fallback": true
-          },
-          {
-            "id": "blade:1e11cf62b78d",
-            "name": "ルーク・スカイウォーカー",
-            "fallback": true
-          },
-          {
-            "id": "blade:551fd474cc5b",
-            "name": "ダース・ベイダー",
             "fallback": true
           },
           {
@@ -146,66 +122,56 @@
             "fallback": true
           },
           {
-            "id": "blade:31310d65910a",
-            "name": "オプティマスプライム",
-            "fallback": true
-          },
-          {
-            "id": "blade:9d0d674dacc8",
-            "name": "メガトロン",
-            "fallback": true
-          },
-          {
             "id": "blade:23088f6d86b5",
             "name": "オプティマスプライマル",
-            "fallback": true
-          },
-          {
-            "id": "blade:f1d99b3b0c7e",
-            "name": "スタースクリーム",
-            "fallback": true
-          },
-          {
-            "id": "blade:b304f6919730",
-            "name": "ストームスプリガン",
-            "fallback": true
-          },
-          {
-            "id": "blade:96ca2e6dbc9e",
-            "name": "フェニックスフェザー",
-            "fallback": true
-          },
-          {
-            "id": "blade:3a946efa3d4f",
-            "name": "ヘルズチェイン メタルコート:ブラック",
-            "fallback": true
-          },
-          {
-            "id": "blade:457d4e8f04e1",
-            "name": "T-レックス",
             "fallback": true
           },
           {
             "id": "blade:d64b62825c56",
             "name": "モササウルス",
             "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:bcaae06d4533",
+            "name": "アイアンマン",
+            "fallback": true
+          },
+          {
+            "id": "blade:1e11cf62b78d",
+            "name": "ルーク・スカイウォーカー",
+            "fallback": true
+          },
+          {
+            "id": "blade:31310d65910a",
+            "name": "オプティマスプライム",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:bdfb70df3e48",
+            "name": "サノス",
+            "fallback": true
           },
           {
             "id": "blade:29beff483a6e",
             "name": "スピノサウルス",
-            "fallback": true
-          },
-          {
-            "id": "blade:194bbf365577",
-            "name": "ケツァルコアトルス",
             "fallback": true
           }
         ],
         "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
       }
     ],
-    "sourceInformedBladeRows": 27,
-    "unmodeledBladeRows": 111
+    "sourceInformedBladeRows": 104,
+    "unmodeledBladeRows": 34
   },
   "comparisons": [
     {
@@ -221,6 +187,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.03308,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.00518,
+          "bit": 0.0020250000000000003
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.880095684e-7,
+          "bit": 3.6450000000000005e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.000011626890818400001,
         "transverseInertia": 0.000006298432862431978,
@@ -311,6 +288,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.03288,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025674999999999996,
+          "ratchet": 0.00518,
+          "bit": 0.0020250000000000003
+        },
+        "componentAxialWeights": {
+          "blade": 0.000019198630164999997,
+          "ratchet": 6.880095684e-7,
+          "bit": 3.6450000000000005e-8
+        },
         "radius": 0.02830646727519907,
         "inertia": 0.000019923089733399997,
         "transverseInertia": 0.00000873448505652775,
@@ -405,6 +393,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.033655,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.026449999999999998,
+          "ratchet": 0.00518,
+          "bit": 0.0020250000000000003
+        },
+        "componentAxialWeights": {
+          "blade": 0.000011531569719352798,
+          "ratchet": 6.880095684e-7,
+          "bit": 3.6450000000000005e-8
+        },
         "radius": 0.025071339653356315,
         "inertia": 0.000012256029287752798,
         "transverseInertia": 0.000007487441604240762,
@@ -495,6 +494,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.03303,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025824999999999997,
+          "ratchet": 0.00518,
+          "bit": 0.0020250000000000003
+        },
+        "componentAxialWeights": {
+          "blade": 0.00001110250431102816,
+          "ratchet": 6.880095684e-7,
+          "bit": 3.6450000000000005e-8
+        },
         "radius": 0.021175788780922147,
         "inertia": 0.00001182696387942816,
         "transverseInertia": 0.00000586073885680609,
@@ -585,6 +595,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.033049999999999996,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.00515,
+          "bit": 0.0020250000000000003
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.875508530000001e-7,
+          "bit": 3.6450000000000005e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.000011626432103000001,
         "transverseInertia": 0.0000065465448616498444,
@@ -675,6 +696,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.033125,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.0052250000000000005,
+          "bit": 0.0020250000000000003
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.85083608e-7,
+          "bit": 3.6450000000000005e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.000011623964858000002,
         "transverseInertia": 0.000006307000863605178,
@@ -765,6 +797,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.0332,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.0053,
+          "bit": 0.0020250000000000003
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.8237235e-7,
+          "bit": 3.6450000000000005e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.000011621253600000001,
         "transverseInertia": 0.00000632128086556051,
@@ -859,6 +902,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.03363,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.00518,
+          "bit": 0.002575
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.880095684e-7,
+          "bit": 4.635e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.0000116367908184,
         "transverseInertia": 0.000006403152876771083,
@@ -953,6 +1007,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.033805,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.00518,
+          "bit": 0.00275
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.880095684e-7,
+          "bit": 4.95e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.000011639940818400001,
         "transverseInertia": 0.0000064364728813335255,
@@ -1047,6 +1112,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.033105,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.00518,
+          "bit": 0.00205
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.880095684e-7,
+          "bit": 3.6900000000000006e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.0000116273408184,
         "transverseInertia": 0.0000063031928630837564,
@@ -1137,6 +1213,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.03293,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.00518,
+          "bit": 0.0018750000000000001
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.880095684e-7,
+          "bit": 3.375e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.0000116241908184,
         "transverseInertia": 0.0000062698728585213135,
@@ -1231,6 +1318,17 @@
         "spin": 1,
         "color": 3366399,
         "mass": 0.033005,
+        "burstSeparationSupported": true,
+        "componentMasses": {
+          "blade": 0.025875,
+          "ratchet": 0.00518,
+          "bit": 0.0019500000000000001
+        },
+        "componentAxialWeights": {
+          "blade": 0.000010902431250000001,
+          "ratchet": 6.880095684e-7,
+          "bit": 3.51e-8
+        },
         "radius": 0.022366644159351787,
         "inertia": 0.000011625540818400002,
         "transverseInertia": 0.000006284152860476645,

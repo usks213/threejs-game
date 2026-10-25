@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Battle, Profile } from '../core/types';
-import { buildTopMesh } from './top-mesh';
+import { buildTopComponents, setComponentPose } from './top-mesh';
 import { STADIUM, bowlHeightAt, comHeight, getRailPath, pocketFloorAt } from '../core/physics';
 
 /** Render the solver's geometry and pose. No invented wobble, rail boost or burst motion. */
@@ -152,12 +152,19 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
     const material = new THREE.LineBasicMaterial({ color: i === 0 ? 0x527bff : 0xff8e70, transparent: true, opacity: .42, depthWrite: false }); materials.add(material);
     const line = new THREE.Line(geometry, material); line.frustumCulled = false; scene.add(line); return { positions, geometry, line, count: 0 };
   });
+  type ComponentName = 'blade' | 'ratchet' | 'bit';
+  const componentNames: ComponentName[] = ['blade', 'ratchet', 'bit'];
+  const componentMeshes: Array<Partial<Record<ComponentName, { pose: THREE.Group; shape: THREE.Group }>>> = [{}, {}];
   let profileKey = '', profiles: [Profile, Profile] | null = null, lastTick = -1;
   function setProfiles(next: [Profile, Profile]) {
     const key = JSON.stringify(next); if (key === profileKey) return; profileKey = key; profiles = next;
     groups.forEach((group, index) => {
       for (const child of [...group.children]) { group.remove(child); freeTree(child); }
-      group.add(buildTopMesh(next[index], mesh));
+      const shapes = buildTopComponents(next[index], mesh);
+      for (const component of componentNames) {
+        const pose = new THREE.Group(), shape = shapes[component];
+        pose.add(shape); group.add(pose); componentMeshes[index][component] = { pose, shape };
+      }
     });
   }
   function resize() {
@@ -178,8 +185,17 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
         group.visible = true;
         if (top) { group.position.set(top.x, top.y, top.z); group.quaternion.set(top.orientation.x, top.orientation.y, top.orientation.z, top.orientation.w); }
         else { const x = i === 0 ? -.085 : .085; group.position.set(x, bowlHeightAt(x, 0) + comHeight(profile), 0); group.rotation.set(0, time * (i === 0 ? .35 : -.35), 0); }
+        // Each fragment inherits a solver COM and quaternion. Reuse the assembled mesh with
+        // precisely its component COM offset removed; never invent a burst trajectory.
+        const separated = Boolean(top?.separated);
+        for (const component of componentNames) {
+          const visual = componentMeshes[i][component]; if (!visual) continue;
+          const fragment = separated ? battle?.fragments.find(part => part.sourceTop === i && part.component === component) : undefined;
+          setComponentPose(visual.pose, visual.shape, separated, fragment);
+        }
         const x = group.position.x, z = group.position.z, floor = bowlHeightAt(x, z);
-        shadows[i].visible = Math.hypot(x, z) <= STADIUM.pocketOuterRadius; shadows[i].position.set(x, floor + .0005, z);
+        if (separated) { group.position.set(0, 0, 0); group.quaternion.identity(); }
+        shadows[i].visible = !separated && Math.hypot(x, z) <= STADIUM.pocketOuterRadius; shadows[i].position.set(x, floor + .0005, z);
         shadows[i].scale.setScalar(profile.radius / .025); shadows[i].material.opacity = Math.max(.025, .15 - Math.max(0, group.position.y - floor - comHeight(profile)) * 1.6);
         ownershipRings[i].position.set(x, floor + .0008, z); ownershipRings[i].scale.setScalar(profile.radius / .024); ownershipRings[i].visible = !top?.eliminated;
         const trail = trails[i];
@@ -190,7 +206,7 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
           trail.geometry.attributes.position.needsUpdate = true; trail.geometry.setDrawRange(0, trail.count);
         }
         const marker = contactMarkers[i];
-        marker.visible = Boolean(top?.rail.engaged && top.rail.contactPoint);
+        marker.visible = !separated && Boolean(top?.rail.engaged && top.rail.contactPoint);
         if (marker.visible && top?.rail.contactPoint) { const contact = top.rail.contactPoint; marker.position.set(contact.x, contact.y + .001, contact.z); }
       });
       lastTick = battle?.tick ?? -1; renderer.render(scene, camera);

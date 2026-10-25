@@ -16,7 +16,7 @@ export interface Part {
 export interface Build { blade: string; ratchet: string; bit: string; lock_chip?: string; main_blade?: string; metal_blade?: string; bladeMode?:string; bitMode?:string; assist_blade?: string; over_blade?: string }
 /** Rating-informed gameplay estimates with explicit provenance; never manufacturer-measured SI constants. */
 export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: number; radius: number; inertia: number; grip: number; drag: number; restitution: number; burstThreshold: number; height: number; railGrip: number; gearRadius:number; gearHeight:number; railEligible:boolean; contactLobes:number; contactLobeDepth:number; color: number;
-  /** Estimated SI body/contact properties, never derived from marketing ratings. */
+  /** Rating-informed SI body/contact estimates; not manufacturer-measured constants. */
   transverseInertia?: number; centerOfMassHeight?: number; tipRadius?: number;
   tipShape?: 'flat'|'ball'|'needle'|'taper'; tipFriction?: number; rollingDrag?: number;
   lockStiffness?:number; lockReleaseAngle?:number; bladeRampAmplitude?:number; bladeSkew?:number;
@@ -24,6 +24,10 @@ export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: numb
   bladeEdgeSharpness?:number; bladeThickness?:number; bladeHandedness?:1|-1;
   ratchetRadius?:number; ratchetCenterHeight?:number; ratchetHalfThickness?:number; ratchetLobes?:number; ratchetLobeDepth?:number; ratchetSkew?:number;
   bitHeightOffset?:number; gearTeeth?:number; gearEngagementBand?:number; bitDiscRadius?:number; bitDiscHeight?:number;
+  /** False when actual integrated structure breakup is not modeled; never fabricate removable parts. */
+  burstSeparationSupported?:boolean;
+  componentMasses?:{blade:number;ratchet:number;bit:number};
+  componentAxialWeights?:{blade:number;ratchet:number;bit:number};
   modelPalette?:{metal:number;core:number;ratchet:number;bit:number};
 }
 export interface Launch { power: number; angle: number; tilt: number }
@@ -37,11 +41,18 @@ export interface Top {
   /** Derived compatibility/telemetry views; orientation and world angular momentum are authoritative. */
   omega:number; phase:number; tilt:number; tiltVelocity:number;
   /** Quasistatic internal detent deflection in radians, driven only by exposed-ratchet work. */
+  separated?:boolean;
   lock:number; railCooldown:number; profile:Profile; eliminated:Finish|null;
 }
 export type Finish = 'spin' | 'over' | 'burst' | 'xtreme';
-export interface BattleEvent { tick: number; kind: 'collision' | 'rail' | 'rail-engage' | 'rail-release' | 'dash' | 'finish'; top?: number; intensity?: number; finish?: Finish; position?:Vec3; velocity?:Vec3; energyBefore?:number; energyAfter?:number; spinBefore?:number; spinAfter?:number; velocityBefore?:Vec3; velocityAfter?:Vec3; travel?:number }
+export interface BattleEvent { tick: number; kind: 'collision' | 'rail' | 'rail-engage' | 'rail-release' | 'dash' | 'finish' | 'burst-split'; top?: number; intensity?: number; finish?: Finish; position?:Vec3; velocity?:Vec3; energyBefore?:number; energyAfter?:number; spinBefore?:number; spinAfter?:number; velocityBefore?:Vec3; velocityAfter?:Vec3; travel?:number }
 export interface BattleResult { winner: 0 | 1 | null; finish: Finish | 'draw'; points: number }
-export interface Battle { tick: number; tops: [Top, Top]; events: BattleEvent[]; result: BattleResult | null }
+export type BurstComponent='blade'|'ratchet'|'bit';
+export interface BurstFragment extends Top {
+  id:string;sourceTop:0|1;component:BurstComponent;assemblyProfile:Profile;
+  /** Component COM in the original assembly's COM-local frame. Shared mesh subtracts this offset. */
+  componentLocalCenter:Vec3;
+}
+export interface Battle { tick: number; tops: [Top, Top]; events: BattleEvent[]; result: BattleResult | null; fragments:BurstFragment[];settling:{elapsed:number;remaining:number}|null }
 export type Format = 'basic' | 'three-on-three';
 export interface Match { format: Format; target: number; scores: [number, number]; round: number; winner: 0 | 1 | null; last: BattleResult | null }

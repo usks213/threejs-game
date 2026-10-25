@@ -1,4 +1,4 @@
-import type { Battle, BattleResult, Finish, Launch, Profile, Top, Vec3, Quaternion } from './types';
+import type { Battle, BattleResult, Finish, Launch, Profile, Top, Vec3, Quaternion, BurstFragment, BurstComponent } from './types';
 import { points } from './rules';
 
 export const STEP=1/240;
@@ -137,7 +137,7 @@ export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]
     const tipR=rotate(q,V(0,-center+tip,0));t.y=bowlHeightAt(t.x+tipR.x,t.z+tipR.z)-tipR.y+tip+.001;
     t.angularMomentum=inertia(t,scale(bodyAxis(t),t.omega));syncDerived(t);return t;
   }) as [PhysicsTop,PhysicsTop];
-  return{tick:0,tops,events:[],result:null};
+  return{tick:0,tops,events:[],result:null,fragments:[],settling:null};
 }
 
 /** Torque-free midpoint quaternion update: world L is fixed; ω follows changing R I⁻¹ Rᵀ. */
@@ -200,6 +200,7 @@ export function resolveFloor(t:Top):number{
 /** Blade collision shape is a ring of overlapping rounded lobes, rigidly transformed in full 3D. */
 interface CollisionNode{point:Vec3;radius:number;kind:'blade'|'ratchet'|'bit'}
 function collisionNodes(t:Top):CollisionNode[]{
+  if(isFragment(t))return fragmentContactNodes(t);
   const sharp=['single-sword','sword','uppercut','broad-wing'].includes(t.profile.bladeStyle??'');
   // Smaller rounded edge nodes preserve pointed/stepped silhouettes; they remain a sampled approximation.
   const sampleRadius=Math.min((t.profile.bladeThickness??.009)/2,sharp?.0015:Infinity);
@@ -223,7 +224,7 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   t.lock=Math.sqrt(t.lock*t.lock+2*work/stiffness);return work;
 }
 export function contactRadius(t:Top,angle:number):number{const direction=inverseRotate(t.orientation,V(Math.cos(angle),0,Math.sin(angle)));const a=Math.atan2(direction.z,direction.x);return bladeRadiusAt(t.profile,a);}
-export function resolveContact(a:Top,b:Top):number{
+export function resolveContact(a:Top,b:Top,loadLocks=true):number{
   const delta=sub(position(b),position(a));
   if(norm(delta)>a.profile.radius*(1+a.profile.contactLobeDepth)+b.profile.radius*(1+b.profile.contactLobeDepth)+.012)return 0;
   const shapeA=collisionNodes(a),shapeB=collisionNodes(b);
@@ -243,8 +244,8 @@ export function resolveContact(a:Top,b:Top):number{
   if(speed>1e-9){const tangent=scale(vt,1/speed),jt=Math.min(speed/(contactMass(a,ra,tangent)+contactMass(b,rb,tangent)),.25*jn),friction=scale(tangent,-jt);applyImpulse(a,scale(friction,-1),ra);applyImpulse(b,friction,rb);impulse=add(impulse,friction);}
   let dissipated=Math.max(0,energyBefore-kineticEnergy(a)-kineticEnergy(b));
   // Blade impacts do not become generic burst damage. Only actual exposed lower-ratchet contacts load the detent.
-  if(nodeA.kind==='ratchet'){const work=applyRatchetWork(a,-dot(cross(ra,scale(impulse,-1)),bodyAxis(a)),nodeB.kind==='ratchet'?dissipated/2:dissipated);dissipated-=work;}
-  if(nodeB.kind==='ratchet')applyRatchetWork(b,-dot(cross(rb,impulse),bodyAxis(b)),dissipated);
+  if(loadLocks&&nodeA.kind==='ratchet'&&!isFragment(a)){const work=applyRatchetWork(a,-dot(cross(ra,scale(impulse,-1)),bodyAxis(a)),nodeB.kind==='ratchet'?dissipated/2:dissipated);dissipated-=work;}
+  if(loadLocks&&nodeB.kind==='ratchet'&&!isFragment(b))applyRatchetWork(b,-dot(cross(rb,impulse),bodyAxis(b)),dissipated);
   return jn;
 }
 
@@ -389,7 +390,7 @@ export function stepIsolatedTop(top:Top,dt=STEP):Top{
 }
 
 export function stepBattle(b:Battle,dt=STEP):Battle{
-  if(!Number.isFinite(dt)||dt<=0||dt>STEP+1e-10)throw new Error('Use fixed steps <= STEP');if(b.result)return b;
+  if(!Number.isFinite(dt)||dt<=0||dt>STEP+1e-10)throw new Error('Use fixed steps <= STEP');if(b.result)return stepSettlingBattle(b,dt);
   b.tick++;
   // Bound rotation of each contact feature to 0.12 rad and translation to 1.5 mm.
   const fastest=Math.max(...b.tops.map(t=>norm(t.angularVelocity))),speed=Math.max(...b.tops.map(t=>norm(velocity(t))));
@@ -400,7 +401,7 @@ export function stepBattle(b:Battle,dt=STEP):Battle{
     if(!tops[0].eliminated&&!tops[1].eliminated){const j=resolveContact(tops[0],tops[1]);if(j>0)b.events.push({tick,kind:'collision',intensity:j,position:scale(add(position(tops[0]),position(tops[1])),.5)});}
     for(let n=0;n<2;n++){
       const t=tops[n];if(t.eliminated)continue;
-      if(t.lock>=(t.profile.lockReleaseAngle??.24)-1e-12)eliminated(t,'burst',tick);
+      if(t.lock>=(t.profile.lockReleaseAngle??.24)-1e-12){splitBurstTop(b,n as 0|1,tick);eliminated(t,'burst',tick);}
       if(!t.eliminated)stadium(t,b,n,h,tick);
       if(t.omega*t.profile.spin<=0)t.rotationStopped=true;
       if(!t.eliminated&&t.rotationStopped)eliminated(t,t.pendingFinish??'spin',t.pocketEnteredTick??tick);
@@ -408,6 +409,91 @@ export function stepBattle(b:Battle,dt=STEP):Battle{
       if(Math.hypot(t.x,t.z)>STADIUM.pocketOuterRadius+.06)b.result={winner:null,finish:'draw',points:0};
     }
     b.result=b.result??resultFor(b);
+    if(b.result&&!b.settling)b.settling={elapsed:0,remaining:SETTLING_SECONDS};
   }
   if(b.events.length>192)b.events.splice(0,b.events.length-192);return b;
+}
+
+export const SETTLING_SECONDS=2.5;
+const isFragment=(t:Top):t is BurstFragment=>'componentLocalCenter' in t;
+/** Shared physical component geometry, relative to its own estimated COM. */
+export function getFragmentVertices(fragment:BurstFragment,samples=24):Vec3[]{
+  const p=fragment.assemblyProfile,center=fragment.componentLocalCenter;
+  let vertices:Vec3[];
+  if(fragment.component==='blade')vertices=getBladeVertices(p,samples);
+  else if(fragment.component==='ratchet')vertices=getRatchetVertices(p,samples);
+  else{
+    const bit=getBitGeometry(p),base=-comHeight(p);vertices=[];
+    const ring=(radius:number,y:number)=>{for(let i=0;i<samples;i++){const a=i/samples*Math.PI*2;vertices.push(V(radius*Math.cos(a),base+y,radius*Math.sin(a)));}};
+    ring(bit.gearRadius,bit.gearHeight-bit.engagementBand);ring(bit.gearRadius,bit.gearHeight+bit.engagementBand);
+    ring(bit.bodyRadius,bit.tipLength);ring(bit.tipRadius,bit.tipShape==='ball'?bit.tipRadius:0);vertices.push(V(0,base,0));
+    if(bit.discRadius){ring(bit.discRadius,bit.discHeight-bit.discHalfThickness);ring(bit.discRadius,bit.discHeight+bit.discHalfThickness);}
+  }
+  return vertices.map(v=>sub(v,center));
+}
+function fragmentContactNodes(fragment:BurstFragment):CollisionNode[]{
+  // Small rounded samples approximate each released shell, never an invisible whole-top sphere.
+  return getFragmentVertices(fragment,12).map(local=>({point:add(position(fragment),rotate(fragment.orientation,local)),radius:.0005,kind:fragment.component}));
+}
+/** Momentum-exact rigid-body partition. No random impulse; stored detent work is dissipated.
+ * Component tensors are fitted to the assembly tensor after parallel-axis subtraction, rather than
+ * giving each component a copy of the complete top's inertia (which would create spin energy).
+ */
+export function splitBurstTop(b:Battle,index:0|1,eventTick=b.tick):BurstFragment[]{
+  const top=b.tops[index];if(top.profile.burstSeparationSupported===false)return [];if(top.separated)return (b.fragments??[]).filter(f=>f.sourceTop===index);
+  const p=top.profile,kinds:BurstComponent[]=['blade','ratchet','bit'];
+  const estimates=p.componentMasses??{blade:p.mass*.77,ratchet:p.mass*.16,bit:p.mass*.07};
+  const sum=kinds.reduce((s,k)=>s+estimates[k],0),masses=kinds.map(k=>p.mass*estimates[k]/sum);
+  const nominal=[p.height*.82+bitHeightOffset(p)-top.centerOfMassHeight,getRatchetGeometry(p).centerHeight-top.centerOfMassHeight,.005+bitHeightOffset(p)-top.centerOfMassHeight];
+  const mean=nominal.reduce((s,y,i)=>s+y*masses[i],0)/p.mass;
+  let offsets=nominal.map(y=>y-mean),parallel=offsets.reduce((s,y,i)=>s+masses[i]*y*y,0);
+  // Uncalibrated custom tensors can be incompatible with geometric COM spacing. Preserve positive
+  // inertias and the original assembly tensor by shortening only the estimated mass-centre spacing.
+  const available=Math.min(top.bodyInertia.x,top.bodyInertia.z)*.8;
+  if(parallel>available){const factor=Math.sqrt(available/parallel);offsets=offsets.map(y=>y*factor);parallel=available;}
+  const weights=p.componentAxialWeights??{blade:masses[0]*p.radius*p.radius,ratchet:masses[1]*getRatchetGeometry(p).radius**2,bit:masses[2]*p.gearRadius**2};
+  const weightSum=kinds.reduce((s,k)=>s+weights[k],0),before=totalEnergy(top);
+  const fragments=kinds.map((component,i):BurstFragment=>{
+    const localCenter=V(0,offsets[i],0),r=rotate(top.orientation,localCenter),world=add(position(top),r),v=add(velocity(top),cross(top.angularVelocity,r)),weight=weights[component]/weightSum;
+    const tensor=V((top.bodyInertia.x-parallel)*weight,top.bodyInertia.y*weight,(top.bodyInertia.z-parallel)*weight);
+    const fragment:BurstFragment={...structuredClone(top),id:`${index}:${component}`,sourceTop:index,component,assemblyProfile:{...p},componentLocalCenter:localCenter,
+      x:world.x,y:world.y,z:world.z,vx:v.x,vy:v.y,vz:v.z,profile:{...p,mass:masses[i],inertia:tensor.y,transverseInertia:tensor.x,railEligible:false},bodyInertia:tensor,
+      angularMomentum:V(),lock:0,eliminated:null,separated:false,rail:{...top.rail,engaged:false,contactPoint:null,tangent:null}};
+    fragment.angularMomentum=inertia(fragment,top.angularVelocity);syncDerived(fragment);return fragment;
+  });
+  top.separated=true;top.rail.engaged=false;top.lock=0;b.fragments??=[];b.fragments.push(...fragments);
+  b.events.push({tick:eventTick,kind:'burst-split',top:index,position:position(top),energyBefore:before,energyAfter:fragments.reduce((s,f)=>s+totalEnergy(f),0)});
+  return fragments;
+}
+function resolveFragmentFloor(fragment:BurstFragment):void{
+  for(const vertex of getFragmentVertices(fragment,12))floorContact(fragment,vertex,0,.00015,fragment.component==='bit'?(fragment.profile.tipFriction??.25):.28);
+}
+function settlingBoundary(t:Top):void{
+  const envelope=isFragment(t)?Math.max(...getFragmentVertices(t,12).map(v=>Math.hypot(v.x,v.z))):t.profile.radius*(1+t.profile.contactLobeDepth);
+  pocketSideContacts(t,envelope);
+  const pocket=STADIUM.pockets.find(p=>t.x*Math.cos(p.angle)+t.z*Math.sin(p.angle)>STADIUM.radius-envelope&&Math.abs(-t.x*Math.sin(p.angle)+t.z*Math.cos(p.angle))<STADIUM.radius*Math.sin(p.halfWidth));
+  const radial=unit(V(t.x,0,t.z),V(1,0,0));
+  if(!pocket)staticCoverContact(t,V(radial.x*STADIUM.coverRadius,clamp(t.y,STADIUM.bowlDepth,STADIUM.coverRoofHeight),radial.z*STADIUM.coverRadius),envelope,.2);
+  else{
+    const normal=V(-Math.cos(pocket.angle),0,-Math.sin(pocket.angle)),along=-t.x*normal.x-t.z*normal.z,penetration=along+envelope-STADIUM.pocketOuterRadius;
+    if(penetration>0){t.x+=normal.x*penetration;t.z+=normal.z*penetration;const r=scale(normal,-envelope),vn=dot(pointVelocity(t,r),normal);if(vn<0)applyImpulse(t,scale(normal,-vn/contactMass(t,r,normal)),r);}
+  }
+  const roofRadius=clamp(Math.hypot(t.x,t.z),STADIUM.launchOpeningRadius,STADIUM.coverRadius);
+  staticCoverContact(t,V(radial.x*roofRadius,STADIUM.coverRoofHeight,radial.z*roofRadius),envelope,.1);
+}
+/** Unscored observation after the first finish. Result/finish events are never recalculated. */
+export function stepSettlingBattle(b:Battle,dt=STEP):Battle{
+  if(!Number.isFinite(dt)||dt<=0||dt>STEP+1e-10)throw new Error('Use fixed steps <= STEP');
+  if(!b.result||!b.settling||b.settling.remaining<=0)return b;
+  const duration=Math.min(dt,b.settling.remaining),bodies:Top[]=[...b.tops.filter(t=>!t.separated),...(b.fragments??[])];
+  const fastest=Math.max(0,...bodies.map(t=>norm(t.angularVelocity))),speed=Math.max(0,...bodies.map(t=>norm(velocity(t))));
+  const substeps=Math.min(64,Math.max(4,Math.ceil(fastest*duration/.12),Math.ceil(speed*duration/.0015))),h=duration/substeps;
+  b.tick++;
+  for(let i=0;i<substeps;i++){
+    for(const body of bodies){integrateFree(body,h);if(isFragment(body))resolveFragmentFloor(body);else resolveFloor(body);settlingBoundary(body);}
+    for(let a=0;a<bodies.length;a++)for(let c=a+1;c<bodies.length;c++)resolveContact(bodies[a],bodies[c],false);
+  }
+  b.settling.elapsed=Math.min(SETTLING_SECONDS,b.settling.elapsed+duration);b.settling.remaining=Math.max(0,SETTLING_SECONDS-b.settling.elapsed);
+  if(b.settling.remaining<1e-10)b.settling.remaining=0;
+  return b;
 }

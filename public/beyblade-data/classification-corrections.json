@@ -1,0 +1,47 @@
+{
+  "policy": "Physical part family is not product series; no rating redistribution, IDs preserved.",
+  "corrections": [
+    {
+      "id": "blade:f8be3a0d5ad9",
+      "family": "BX",
+      "productFamily": "UX",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux10.png"
+    },
+    {
+      "id": "blade:9c33dccb7a7e",
+      "family": "BX",
+      "productFamily": "UX",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_2.png"
+    },
+    {
+      "id": "blade:ab5fa0bf8688",
+      "family": "CX",
+      "productFamily": "UX",
+      "category": "assembled_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_3.png",
+      "components": [
+        [
+          "lock_chip",
+          "ヘルズ"
+        ],
+        [
+          "main_blade",
+          "ブレイブ"
+        ],
+        [
+          "assist_blade",
+          "J"
+        ]
+      ]
+    },
+    {
+      "id": "assembled_blade:59aabefd87eb",
+      "family": "BX",
+      "productFamily": "CX",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_3.png"
+    }
+  ]
+}

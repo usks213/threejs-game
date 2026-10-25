@@ -11,13 +11,21 @@ test('real desktop and phone clients match, launch, receive same result and leav
   await b.locator('#queue').click();
   for(const page of [a,b])await expect(page.locator('#connection')).toContainText('ready');
   await a.locator('#power').fill('100');await b.locator('#power').fill('20');await b.locator('#angle').fill('35');
+  // Observe the actual DOM transition before launching: a legitimate short round may finish
+  // while the second click awaits its browser acknowledgement on a loaded runner.
+  for(const page of [a,b])await page.evaluate(()=>{
+    const phase=document.getElementById('phase')!;
+    const target=window as unknown as {arenaBattleObserved:boolean};target.arenaBattleObserved=false;
+    const observer=new MutationObserver(()=>{if(phase.textContent?.includes('ONLINE BATTLE')){target.arenaBattleObserved=true;observer.disconnect();}});
+    observer.observe(phase,{childList:true,characterData:true,subtree:true});
+  });
   await a.locator('#launch').click();await b.locator('#launch').click();
-  for(const page of [a,b])await expect(page.locator('#phase')).toContainText('ONLINE BATTLE',{timeout:10_000});
+  for(const page of [a,b])await expect.poll(()=>page.evaluate(()=>(window as unknown as {arenaBattleObserved:boolean}).arenaBattleObserved),{timeout:10_000}).toBe(true);
   await expect.poll(()=>[...snapshots[0].keys()].filter(tick=>tick>0&&snapshots[1].has(tick)).length).toBeGreaterThan(0);
   const sharedTick=[...snapshots[0].keys()].find(tick=>tick>0&&snapshots[1].has(tick))!;
   expect(snapshots[0].get(sharedTick)).toBe(snapshots[1].get(sharedTick));
   const poses=JSON.parse(snapshots[0].get(sharedTick)!);for(const pose of poses){expect(Number.isFinite(pose.y)).toBe(true);expect(pose.orientation).toBeDefined();expect(pose.angularMomentum).toBeDefined();expect(Math.hypot(pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w)).toBeCloseTo(1,6);}
-  await a.locator('.stage').screenshot({path:testInfo.outputPath('online-live-desktop.png')});await b.locator('.stage').screenshot({path:testInfo.outputPath('online-live-phone.png')});
+  await a.locator('.stage').screenshot({path:testInfo.outputPath('online-state-desktop.png')});await b.locator('.stage').screenshot({path:testInfo.outputPath('online-state-phone.png')});
   await expect(a.locator('#phase')).toContainText('ROUND-END',{timeout:80_000});
   await expect(b.locator('#phase')).toContainText('ROUND-END');
   expect(await a.locator('#score-you').textContent()).toBe(await b.locator('#score-other').textContent());

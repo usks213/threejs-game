@@ -1,15 +1,16 @@
 {
   "sourceSha256": {
-    "src/beyblade/core/physics.ts": "6b30b7765e60bd72792c016184ddb07974989291fcf8a9a6d01dd192677c77d8",
-    "src/beyblade/data/physical-estimates.ts": "d7896cefd5b97b0d9ef4c45f9cc1618be37c9c0c4b5d9af83e7dbf15b5859e1b",
+    "src/beyblade/core/physics.ts": "521ed3d81e8801b8ac4f48276c2b0ac97c71392f420deeca716dc403b5c14ac5",
+    "src/beyblade/data/physical-estimates.ts": "af32637426fe5d55926cd30485bc2a46390453f686eb4eaf5903e9a0ead81587",
     "src/beyblade/data/shape-facts.ts": "ec6ccb61ce8af569b97eb09eb4337fe3c9cf0016563f95b8db7aadc28a082c68",
+    "src/beyblade/data/expanded-shape-facts.ts": "7c708014a3f78ae56928d2d1f7471848bf7779b050f382aa95b53578a4931c22",
     "src/beyblade/data/catalog.ts": "281c07b4f7a8a89350ee6d926fa23e53146b07ff7d7157cb1d5b30106006a4a5",
-    "scripts/compare-beyblade-models.ts": "f83edd287c3bbb637533359ca204c2d3f6e25a785e5030ecf588a090cbc27364"
+    "scripts/compare-beyblade-models.ts": "b220d3cd88114e02e5cf6969c93f7eb5d4a29b17349f5d6f7138f0ec8d6bb5d4"
   },
   "summary": {
     "catalogRows": 311,
     "modeledRows": 228,
-    "uniqueMechanicalProfiles": 208,
+    "uniqueMechanicalProfiles": 219,
     "equivalentGroups": [
       {
         "members": [
@@ -66,15 +67,15 @@
           {
             "id": "blade:9b2d38339b86",
             "name": "ヘルズハンマー メタルコート:ブルー",
-            "fallback": true
+            "fallback": false
           },
           {
             "id": "blade:db1e65b9dc76",
             "name": "ヘルズハンマー メタルコート:レッド FCバルセロナVer.",
-            "fallback": true
+            "fallback": false
           }
         ],
-        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
       },
       {
         "members": [
@@ -104,33 +105,8 @@
             "fallback": true
           },
           {
-            "id": "blade:bcaae06d4533",
-            "name": "アイアンマン",
-            "fallback": true
-          },
-          {
-            "id": "blade:bdfb70df3e48",
-            "name": "サノス",
-            "fallback": true
-          },
-          {
-            "id": "blade:a74b65b97e86",
-            "name": "スパイダーマン",
-            "fallback": true
-          },
-          {
             "id": "blade:5f203ab27ca0",
             "name": "ヴェノム",
-            "fallback": true
-          },
-          {
-            "id": "blade:1e11cf62b78d",
-            "name": "ルーク・スカイウォーカー",
-            "fallback": true
-          },
-          {
-            "id": "blade:551fd474cc5b",
-            "name": "ダース・ベイダー",
             "fallback": true
           },
           {
@@ -144,66 +120,56 @@
             "fallback": true
           },
           {
-            "id": "blade:31310d65910a",
-            "name": "オプティマスプライム",
-            "fallback": true
-          },
-          {
-            "id": "blade:9d0d674dacc8",
-            "name": "メガトロン",
-            "fallback": true
-          },
-          {
             "id": "blade:23088f6d86b5",
             "name": "オプティマスプライマル",
-            "fallback": true
-          },
-          {
-            "id": "blade:f1d99b3b0c7e",
-            "name": "スタースクリーム",
-            "fallback": true
-          },
-          {
-            "id": "blade:b304f6919730",
-            "name": "ストームスプリガン",
-            "fallback": true
-          },
-          {
-            "id": "blade:96ca2e6dbc9e",
-            "name": "フェニックスフェザー",
-            "fallback": true
-          },
-          {
-            "id": "blade:3a946efa3d4f",
-            "name": "ヘルズチェイン メタルコート:ブラック",
-            "fallback": true
-          },
-          {
-            "id": "blade:457d4e8f04e1",
-            "name": "T-レックス",
             "fallback": true
           },
           {
             "id": "blade:d64b62825c56",
             "name": "モササウルス",
             "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:bcaae06d4533",
+            "name": "アイアンマン",
+            "fallback": true
+          },
+          {
+            "id": "blade:1e11cf62b78d",
+            "name": "ルーク・スカイウォーカー",
+            "fallback": true
+          },
+          {
+            "id": "blade:31310d65910a",
+            "name": "オプティマスプライム",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:bdfb70df3e48",
+            "name": "サノス",
+            "fallback": true
           },
           {
             "id": "blade:29beff483a6e",
             "name": "スピノサウルス",
-            "fallback": true
-          },
-          {
-            "id": "blade:194bbf365577",
-            "name": "ケツァルコアトルス",
             "fallback": true
           }
         ],
         "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
       }
     ],
-    "sourceInformedBladeRows": 27,
-    "unmodeledBladeRows": 111
+    "sourceInformedBladeRows": 104,
+    "unmodeledBladeRows": 34
   },
   "rows": [
     {
@@ -423,7 +389,7 @@
         {
           "mode": null,
           "mechanicalGroup": 11,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -491,7 +457,7 @@
         {
           "mode": null,
           "mechanicalGroup": 15,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -544,7 +510,7 @@
         {
           "mode": null,
           "mechanicalGroup": 18,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -595,7 +561,7 @@
         {
           "mode": null,
           "mechanicalGroup": 21,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -663,9 +629,11 @@
         {
           "mode": null,
           "mechanicalGroup": 25,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "上下段で異なる輪郭は単一の共有外形で近似し未再現。"
+          ]
         }
       ]
     },
@@ -748,7 +716,7 @@
         {
           "mode": null,
           "mechanicalGroup": 30,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -818,7 +786,7 @@
         {
           "mode": null,
           "mechanicalGroup": 34,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -869,7 +837,7 @@
         {
           "mode": null,
           "mechanicalGroup": 37,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -886,9 +854,11 @@
         {
           "mode": null,
           "mechanicalGroup": 38,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "交互の上下突起は単一の周期斜面による近似。"
+          ]
         }
       ]
     },
@@ -937,9 +907,12 @@
         {
           "mode": null,
           "mechanicalGroup": 41,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "弾性ダンパーの独立運動は未再現。",
+            "3区画ごとの異なる斜面作用は未再現。"
+          ]
         }
       ]
     },
@@ -1028,7 +1001,7 @@
         {
           "mode": null,
           "mechanicalGroup": 46,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1098,7 +1071,7 @@
         {
           "mode": null,
           "mechanicalGroup": 50,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1115,9 +1088,11 @@
         {
           "mode": null,
           "mechanicalGroup": 51,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "上下面の異なる接触輪郭は未再現。"
+          ]
         }
       ]
     },
@@ -1152,7 +1127,7 @@
         {
           "mode": null,
           "mechanicalGroup": 53,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1186,7 +1161,7 @@
         {
           "mode": null,
           "mechanicalGroup": 55,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1220,7 +1195,7 @@
         {
           "mode": null,
           "mechanicalGroup": 57,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1288,7 +1263,7 @@
         {
           "mode": null,
           "mechanicalGroup": 61,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1322,7 +1297,7 @@
         {
           "mode": null,
           "mechanicalGroup": 63,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1375,7 +1350,7 @@
         {
           "mode": null,
           "mechanicalGroup": 66,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1392,7 +1367,7 @@
         {
           "mode": null,
           "mechanicalGroup": 67,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1443,7 +1418,7 @@
         {
           "mode": null,
           "mechanicalGroup": 70,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1460,9 +1435,11 @@
         {
           "mode": null,
           "mechanicalGroup": 71,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "大小刃の高さ別接触切替は未再現。"
+          ]
         }
       ]
     },
@@ -1511,7 +1488,7 @@
         {
           "mode": null,
           "mechanicalGroup": 74,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1528,7 +1505,7 @@
         {
           "mode": null,
           "mechanicalGroup": 75,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1562,7 +1539,7 @@
         {
           "mode": null,
           "mechanicalGroup": 77,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1632,7 +1609,7 @@
         {
           "mode": null,
           "mechanicalGroup": 80,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1683,7 +1660,7 @@
         {
           "mode": null,
           "mechanicalGroup": 83,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1785,9 +1762,11 @@
         {
           "mode": null,
           "mechanicalGroup": 88,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "水平偏重心は未計測で、軸対称慣性による近似。"
+          ]
         }
       ]
     },
@@ -1836,7 +1815,7 @@
         {
           "mode": null,
           "mechanicalGroup": 91,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1853,9 +1832,11 @@
         {
           "mode": null,
           "mechanicalGroup": 92,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "弾性ダンパーの独立運動は未再現。"
+          ]
         }
       ]
     },
@@ -1870,7 +1851,7 @@
         {
           "mode": null,
           "mechanicalGroup": 93,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -1989,7 +1970,7 @@
         {
           "mode": null,
           "mechanicalGroup": 100,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2044,7 +2025,7 @@
         {
           "mode": null,
           "mechanicalGroup": 103,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2080,7 +2061,7 @@
         {
           "mode": null,
           "mechanicalGroup": 105,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2131,7 +2112,7 @@
         {
           "mode": null,
           "mechanicalGroup": 108,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2184,9 +2165,11 @@
         {
           "mode": null,
           "mechanicalGroup": 111,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "開閉する小型刃の自由度は未再現。"
+          ]
         }
       ]
     },
@@ -2235,9 +2218,11 @@
         {
           "mode": null,
           "mechanicalGroup": 114,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "内蔵3球の上下運動は未再現。"
+          ]
         }
       ]
     },
@@ -2269,7 +2254,7 @@
         {
           "mode": null,
           "mechanicalGroup": 116,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2286,9 +2271,11 @@
         {
           "mode": null,
           "mechanicalGroup": 117,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "交互の上下突起は単一の周期斜面による近似。"
+          ]
         }
       ]
     },
@@ -2303,7 +2290,7 @@
         {
           "mode": null,
           "mechanicalGroup": 118,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2320,9 +2307,11 @@
         {
           "mode": null,
           "mechanicalGroup": 119,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "ラバー接触面の局所摩擦・弾性は未再現（共通材質の近似）。"
+          ]
         }
       ]
     },
@@ -2354,7 +2343,7 @@
         {
           "mode": null,
           "mechanicalGroup": 121,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2388,9 +2377,11 @@
         {
           "mode": null,
           "mechanicalGroup": 123,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "指定した開始時形状のみ。ダッシュ連動6→3枚変形は未再現。"
+          ]
         }
       ]
     },
@@ -2441,9 +2432,11 @@
         {
           "mode": null,
           "mechanicalGroup": 126,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "指定した開始時形状のみ。ダッシュ連動6→3枚変形は未再現。"
+          ]
         }
       ]
     },
@@ -2458,7 +2451,7 @@
         {
           "mode": null,
           "mechanicalGroup": 127,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2492,9 +2485,11 @@
         {
           "mode": null,
           "mechanicalGroup": 129,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "60枚の微細刃は接触サンプル数より細かいため平滑円盤で近似。"
+          ]
         }
       ]
     },
@@ -2526,9 +2521,11 @@
         {
           "mode": null,
           "mechanicalGroup": 131,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "ラバー接触面の局所摩擦・弾性は未再現（共通材質の近似）。"
+          ]
         }
       ]
     },
@@ -2560,9 +2557,11 @@
         {
           "mode": null,
           "mechanicalGroup": 133,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "開始時カウンター形状のみ。速度依存の形状変化は未再現。"
+          ]
         }
       ]
     },
@@ -2598,7 +2597,10 @@
           "missing": [
             "ratchet.height"
           ],
-          "unsupported": []
+          "unsupported": [
+            "バレットと本体の戦闘中分離は未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
         }
       ]
     },
@@ -2613,11 +2615,14 @@
         {
           "mode": null,
           "mechanicalGroup": 136,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [
             "ratchet.height"
           ],
-          "unsupported": []
+          "unsupported": [
+            "可動攻撃刃のばね弾性・バウンドは未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
         }
       ]
     },
@@ -2636,7 +2641,10 @@
           "missing": [
             "ratchet.height"
           ],
-          "unsupported": []
+          "unsupported": [
+            "モード別の高さ・段接触は形状未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
         }
       ]
     },
@@ -2655,7 +2663,10 @@
           "missing": [
             "ratchet.height"
           ],
-          "unsupported": []
+          "unsupported": [
+            "モード別の高さ・段接触は形状未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
         }
       ]
     },
@@ -2670,7 +2681,7 @@
         {
           "mode": null,
           "mechanicalGroup": 139,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2740,7 +2751,7 @@
         {
           "mode": null,
           "mechanicalGroup": 143,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2791,7 +2802,7 @@
         {
           "mode": null,
           "mechanicalGroup": 118,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -2808,9 +2819,11 @@
         {
           "mode": null,
           "mechanicalGroup": 146,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "開閉する小型刃の自由度は未再現。"
+          ]
         }
       ]
     },
@@ -2844,9 +2857,11 @@
         {
           "mode": null,
           "mechanicalGroup": 148,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "指定した開始時形状のみ。ダッシュ連動6→3枚変形は未再現。"
+          ]
         }
       ]
     },
@@ -2861,9 +2876,11 @@
         {
           "mode": null,
           "mechanicalGroup": 149,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "指定した開始時形状のみ。ダッシュ連動6→3枚変形は未再現。"
+          ]
         }
       ]
     },
@@ -2878,11 +2895,14 @@
         {
           "mode": null,
           "mechanicalGroup": 136,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [
             "ratchet.height"
           ],
-          "unsupported": []
+          "unsupported": [
+            "可動攻撃刃のばね弾性・バウンドは未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
         }
       ]
     },
@@ -2914,9 +2934,11 @@
         {
           "mode": null,
           "mechanicalGroup": 151,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "高さ別の連打面とアッパー面の切替は近似。"
+          ]
         }
       ]
     },
@@ -3396,6 +3418,7 @@
           "shapeStatus": "unmodeled",
           "missing": [],
           "unsupported": [
+            "一体型の実際の分離構造は未再現",
             "Tr: 変形・ガイド・弾性機構の実動作は未再現",
             "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
           ]
@@ -3406,6 +3429,7 @@
           "shapeStatus": "unmodeled",
           "missing": [],
           "unsupported": [
+            "一体型の実際の分離構造は未再現",
             "Tr: 変形・ガイド・弾性機構の実動作は未再現",
             "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
           ]
@@ -3666,6 +3690,7 @@
           "shapeStatus": "unmodeled",
           "missing": [],
           "unsupported": [
+            "一体型の実際の分離構造は未再現",
             "Op: 変形・ガイド・弾性機構の実動作は未再現",
             "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
           ]
@@ -3676,6 +3701,7 @@
           "shapeStatus": "unmodeled",
           "missing": [],
           "unsupported": [
+            "一体型の実際の分離構造は未再現",
             "Op: 変形・ガイド・弾性機構の実動作は未再現",
             "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
           ]
@@ -3726,9 +3752,11 @@
         {
           "mode": null,
           "mechanicalGroup": 177,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
-          "unsupported": []
+          "unsupported": [
+            "高さ別の連打面とアッパー面の切替は近似。"
+          ]
         }
       ]
     },
@@ -3743,7 +3771,7 @@
         {
           "mode": null,
           "mechanicalGroup": 178,
-          "shapeStatus": "unmodeled",
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -4565,14 +4593,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 204,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4586,14 +4616,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 205,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4607,14 +4639,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 206,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4635,7 +4669,9 @@
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4649,14 +4685,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 204,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4670,14 +4708,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 207,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4698,7 +4738,9 @@
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4719,7 +4761,9 @@
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4733,14 +4777,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 204,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4754,14 +4800,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 208,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4782,7 +4830,9 @@
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4796,14 +4846,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 209,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4817,14 +4869,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 204,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 210,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4838,14 +4892,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 211,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -4859,8 +4915,8 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 212,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
@@ -4880,8 +4936,8 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 205,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 213,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
@@ -4901,7 +4957,7 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 206,
+          "mechanicalGroup": 214,
           "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
@@ -4922,14 +4978,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 215,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "上下段で異なる輪郭は単一の共有外形で近似し未再現。"
+          ]
         }
       ]
     },
@@ -5009,8 +5067,8 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 207,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 216,
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }
@@ -5048,14 +5106,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 217,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -5076,7 +5136,9 @@
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -5090,14 +5152,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 205,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -5111,14 +5175,16 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 163,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 218,
+          "shapeStatus": "source-informed",
           "missing": [
             "blade.attack",
             "blade.defense",
             "blade.stamina"
           ],
-          "unsupported": []
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
         }
       ]
     },
@@ -5209,8 +5275,8 @@
       "variants": [
         {
           "mode": null,
-          "mechanicalGroup": 208,
-          "shapeStatus": "unmodeled",
+          "mechanicalGroup": 219,
+          "shapeStatus": "source-informed",
           "missing": [],
           "unsupported": []
         }

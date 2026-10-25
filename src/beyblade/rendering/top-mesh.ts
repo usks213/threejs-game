@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Profile, Vec3 } from '../core/types';
+import type { Profile, Vec3, Quaternion } from '../core/types';
 import { comHeight, getBladeVertices, getRatchetVertices, getBitGeometry } from '../core/physics';
 
 export type TopMeshFactory = (geometry: THREE.BufferGeometry, color: number, roughness?: number, metalness?: number) => THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
@@ -27,9 +27,11 @@ function bladeRim(vertices: Vec3[], innerScale = .63): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(all.flatMap(v => [v.x, v.y, v.z]), 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
 }
 
-/** Original procedural assembly. Arena and inspection both use this exact mesh builder. */
-export function buildTopMesh(profile: Profile, mesh: TopMeshFactory): THREE.Group {
-  const group = new THREE.Group(), center = comHeight(profile);
+/** Component meshes stay in assembled COM-local coordinates until the solver separates them. */
+export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
+  const components = { blade: new THREE.Group(), ratchet: new THREE.Group(), bit: new THREE.Group() };
+  let group = components.blade;
+  const center = comHeight(profile);
   const palette = profile.modelPalette ?? { metal: 0xa9b5c6, core: 0x52647a, ratchet: 0x8595a9, bit: 0x6b7b90 };
   const bladeVertices = getBladeVertices(profile), upper = bladeVertices.slice(bladeVertices.length / 2);
   const topY = upper.reduce((sum, p) => sum + p.y, 0) / upper.length;
@@ -59,7 +61,9 @@ export function buildTopMesh(profile: Profile, mesh: TopMeshFactory): THREE.Grou
     }
   }
 
+  group = components.ratchet;
   const ratchet = mesh(ringSolid(getRatchetVertices(profile)), palette.ratchet, .4, .16); group.add(ratchet);
+  group = components.bit;
   const bit = getBitGeometry(profile), gearThickness = 2 * bit.engagementBand;
   const gear = mesh(new THREE.CylinderGeometry(bit.gearRadius * .85, bit.gearRadius * .85, gearThickness, 32), palette.bit, .42, .1); gear.position.y = bit.gearHeight - center; group.add(gear);
   const toothWidth = 2 * Math.PI * bit.gearRadius / bit.gearTeeth * .58;
@@ -84,5 +88,30 @@ export function buildTopMesh(profile: Profile, mesh: TopMeshFactory): THREE.Grou
   } else {
     const tip = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius, bit.tipLength, 24), palette.bit, .4, .08); tip.position.y = bit.tipLength / 2 - center; group.add(tip);
   }
+  return components;
+}
+
+/** Arena, static inspection and separated fragments reuse these exact component meshes. */
+export function buildTopMesh(profile: Profile, mesh: TopMeshFactory): THREE.Group {
+  const group = new THREE.Group(), components = buildTopComponents(profile, mesh);
+  group.add(components.blade, components.ratchet, components.bit);
   return group;
+}
+
+/** Transform a component only from an authoritative rigid-body state. */
+export function setComponentPose(
+  pose: THREE.Group,
+  shape: THREE.Group,
+  separated: boolean,
+  fragment?: { x: number; y: number; z: number; orientation: Quaternion; componentLocalCenter: Vec3 },
+) {
+  pose.visible = !separated || Boolean(fragment);
+  if (separated && fragment) {
+    pose.position.set(fragment.x, fragment.y, fragment.z);
+    pose.quaternion.set(fragment.orientation.x, fragment.orientation.y, fragment.orientation.z, fragment.orientation.w);
+    const center = fragment.componentLocalCenter;
+    shape.position.set(-center.x, -center.y, -center.z);
+  } else {
+    pose.position.set(0, 0, 0); pose.quaternion.identity(); shape.position.set(0, 0, 0);
+  }
 }

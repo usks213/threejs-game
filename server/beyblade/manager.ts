@@ -1,5 +1,5 @@
 import { profileFor, validateBuild } from '../../src/beyblade/data/catalog';
-import { createBattle, stepBattle, STEP } from '../../src/beyblade/core/physics';
+import { createBattle, stepBattle, stepSettlingBattle, STEP } from '../../src/beyblade/core/physics';
 import { createMatch, scoreRound } from '../../src/beyblade/core/rules';
 import type { Battle, Build, Launch, Match } from '../../src/beyblade/core/types';
 import type { Phase, ServerMessage, StateMessage } from '../../src/beyblade/network/protocol';
@@ -16,6 +16,7 @@ export function battleForSnapshot(battle:Battle|null):Battle|null {
   return {...battle,events:battle.events.filter(event=>event.tick>=battle.tick-SNAPSHOT_EVENT_WINDOW_TICKS).slice(-SNAPSHOT_EVENT_LIMIT)};
 }
 const finite=(x:unknown):x is number=>typeof x==='number'&&Number.isFinite(x);
+const isSettling=(battle:Battle|null)=>Boolean(battle?.result&&battle.settling&&battle.settling.remaining>0);
 function isRecord(value:unknown):value is Record<string,unknown>{return value!==null&&typeof value==='object'&&!Array.isArray(value);}
 function parseBuild(value:unknown):Build|null {
   if(!isRecord(value)) return null;
@@ -74,7 +75,7 @@ export class RoomManager {
       this.broadcast(room);return;
     }
     if(msg.type==='next'){
-      if(room.phase!=='round-end'){this.error(s,'次のラウンドを開始できません');return;}
+      if(room.phase!=='round-end'||isSettling(room.battle)){this.error(s,'結果確定後の余動が終わるまでお待ちください');return;}
       room.ready[index]=true;
       if(room.ready[0]&&room.ready[1]){room.phase='ready';room.ready=[false,false];room.launches=[null,null];room.battle=null;}
       this.broadcast(room);return;
@@ -84,10 +85,11 @@ export class RoomManager {
   tick():void {
     const now=this.now();
     for(const room of this.rooms.values()){
-      if(room.phase==='match-end'){if(room.endedAt!==null&&now-room.endedAt>60_000)this.releaseRoom(room);continue;}
+      if(room.phase==='match-end'){this.advanceSettling(room,now);if(room.endedAt!==null&&now-room.endedAt>60_000)this.releaseRoom(room);continue;}
       const absent=room.players.findIndex(p=>p.disconnectedAt!==null&&now-p.disconnectedAt>=this.graceMs);
       if(absent!==-1){const other=absent===0?1:0;room.match={...room.match,winner:room.players[other].transport?other:null};room.phase='match-end';room.reason='disconnect-forfeit';room.endedAt=now;this.broadcast(room);continue;}
       if(room.phase==='opponent-disconnected')continue;
+      if(room.phase==='round-end'){this.advanceSettling(room,now);continue;}
       if(room.phase==='countdown'&&now>=room.countdownEndsAt){room.battle=createBattle([profileFor(room.players[0].build!,0x335dff),profileFor(room.players[1].build!,0xff7858)],[room.launches[0]!,room.launches[1]!]);room.phase='battle';room.lastTick=now;room.accumulator=0;this.broadcast(room);}
       if(room.phase!=='battle'||!room.battle)continue;
       room.accumulator+=Math.min(.1,Math.max(0,(now-room.lastTick)/1000));room.lastTick=now;
@@ -101,10 +103,16 @@ export class RoomManager {
     }
     this.pair();
   }
+  private advanceSettling(room:Room,now:number):void {
+    if(!isSettling(room.battle)||!room.battle)return;
+    room.accumulator+=Math.min(.1,Math.max(0,(now-room.lastTick)/1000));room.lastTick=now;
+    while(room.accumulator>=STEP&&isSettling(room.battle)){stepSettlingBattle(room.battle,STEP);room.accumulator-=STEP;}
+    if(!isSettling(room.battle)||now-room.lastBroadcast>=1000/30)this.broadcast(room);
+  }
   dispose():void {for(const s of this.sessions.values())s.transport?.close();this.sessions.clear();this.rooms.clear();this.queue=[];}
   private pair():void {
     this.queue=this.queue.filter(token=>{const s=this.sessions.get(token);return s?.queued&&s.transport;});
-    let activeRooms=[...this.rooms.values()].filter(room=>room.phase!=='match-end').length;
+    let activeRooms=[...this.rooms.values()].filter(room=>room.phase!=='match-end'||isSettling(room.battle)).length;
     while(this.queue.length>=2&&activeRooms<this.maxActiveRooms){activeRooms++;const a=this.sessions.get(this.queue.shift()!)!,b=this.sessions.get(this.queue.shift()!)!;a.queued=false;b.queued=false;const id=crypto.randomUUID();a.roomId=id;b.roomId=id;const room:Room={id,players:[a,b],names:[profileFor(a.build!).name,profileFor(b.build!).name],phase:'ready',priorPhase:'ready',match:createMatch(),battle:null,launches:[null,null],ready:[false,false],countdownEndsAt:0,lastTick:this.now(),accumulator:0,lastBroadcast:0,endedAt:null};this.rooms.set(id,room);this.broadcast(room);}
   }
   private cancel(s:Session):void {

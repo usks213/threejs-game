@@ -1,6 +1,6 @@
-# パーツ別の推定物理モデル v3
+# パーツ別の推定物理モデル v4
 
-**公式評価を物理モデルへ反映するよう改修したが、メーカー測定値・実物再現の保証ではない。** 評価表は無改変で保持し、以下の換算はすべて `ESTIMATED_UNMEASURED`。出典を目視確認した14ブレード系列の刃数・機構説明と、公開された部品評価を制約として使う。モデルの名前・IDをハッシュ化して架空の差を作ることはない。
+**公式評価を物理モデルへ反映するよう改修したが、メーカー測定値・実物再現の保証ではない。** 評価表は無改変で保持し、以下の換算はすべて `ESTIMATED_UNMEASURED`。出典を目視確認したブレード系列の刃数・機構説明と、公開された部品評価を制約として使う。モデルの名前・IDをハッシュ化して架空の差を作ることはない。
 
 再現コマンド:
 
@@ -9,18 +9,18 @@ node --import tsx scripts/compare-beyblade-models.ts
 npx vitest run tests/unit/beyblade/model.test.ts tests/unit/beyblade/model-mechanics.test.ts tests/unit/beyblade/catalog.test.ts
 ```
 
-出力: [`model-comparisons.json`](model-comparisons.json) と全行のコンパクトな [`model-audit.json`](model-audit.json)。式の実装は [`physical-estimates.ts`](../../src/beyblade/data/physical-estimates.ts)、個別の一次出典と観察結果は [`shape-facts.ts`](../../src/beyblade/data/shape-facts.ts)。`modelMetadataFor(build)` がUIに公表値・未知入力・未再現機構・換算先・単位を渡す。
+出力: [`model-comparisons.json`](model-comparisons.json) と全行のコンパクトな [`model-audit.json`](model-audit.json)。式の実装は [`physical-estimates.ts`](../../src/beyblade/data/physical-estimates.ts)、個別の一次出典と観察結果は [`shape-facts.ts`](../../src/beyblade/data/shape-facts.ts) と [`expanded-shape-facts.ts`](../../src/beyblade/data/expanded-shape-facts.ts)。`modelMetadataFor(build)` がUIに公表値・未知入力・未再現機構・換算先・単位を渡す。
 
 ## 全カタログ監査
 
-311行を走査。228行は発売・組立条件を満たす単体差し替えの比較対象で、モードを展開すると208種類の機械的ビルド署名になる。残る83行にはCX構成部品単体や発売／組立未確認が含まれる。CX単体の評価を創作せず、確認済み完成ブレードを通じてのみ扱う。
+311行を走査。228行は発売・組立条件を満たす単体差し替えの比較対象で、モードを展開すると219種類の機械的ビルド署名になる。残る83行にはCX構成部品単体や発売／組立未確認が含まれる。CX単体の評価を創作せず、確認済み完成ブレードを通じてのみ扱う。
 
-- プレイ可能ブレード138行中、27行（色違いを含む）は出典に基づく輪郭系列。
-- **111行は「形状未再現・暫定モデル」**。評価による推定はあるが実物輪郭を再現していない。
+- プレイ可能ブレード138行中、104行（色違いを含む）は出典に基づく輪郭系列。
+- **34行は「形状未再現・暫定モデル」**。評価による推定はあるが実物輪郭を再現していない。
 - 署名は描画名・チーム色・材質色だけを除外し、質量・慣性・全接触形状・摩擦等を比較する。
-- 6同等グループのうち、初期Hell Scythe／4-60／Tの行は各基準部品を差し替えても**同じ完成ビルド**になるため重複する。
+- 8同等グループのうち、初期Hell Scythe／4-60／Tの行は各基準部品を差し替えても**同じ完成ビルド**になるため重複する。
 - PhoenixWing黒色、DranDagger黒／白などは現データの評価・形状近似が一致するため同等。色だけで物性を変えない。
-- HellsHammer等未対応の別色、および欠測のライノリーパーC、コラボ部品等の21行グループは**共有の暫定係数により区別不能**。実物が同じという意味ではない。JSONの `equivalentGroups` に全名前と理由を公開する。
+- HellsHammer等未対応の別色、および欠測のライノリーパーC、コラボ部品等の7行グループは**共有の暫定係数により区別不能**。実物が同じという意味ではない。JSONの `equivalentGroups` に全名前と理由を公開する。
 - `auditModels()` は全行の理由とモード別プロフィールを返す。全件を異なる実物モデルにしたという主張はしない。
 
 ## 数値の換算規則
@@ -58,3 +58,18 @@ npx vitest run tests/unit/beyblade/model.test.ts tests/unit/beyblade/model-mecha
 ## 未再現と校正の限界
 
 自由回転FB/リング、弾性ダンパー、自動変形、point+flat接触遷移等は対応メタデータに未再現と明記。初期モード評価は反映するが勝手に自動遷移したと称さない。全質量・慣性・絶対寸法・摩擦・保持力は未計測。生産公差、摩耗、温度、実際のランチャー出力にも未校正。配色は公式代表画像からの近似で、ロゴ・商標図案・画像をコピーしない。
+
+
+## v4 の出典に基づく拡張と分類訂正
+
+73非CX調査系列を読み、明示した共有輪郭スタイルと接触区画数・推定寸法・配色へ落とし込めるものだけを実装した。**出典レコードが存在するだけでは形状未再現の表示を解除しない。** `bladeStyle=generic` は常に未再現となる全行テストがある。公式の刃数と画像から観察した主区画数はメタデータで区別する。
+
+- GhostCircleは公式0枚刃。内部の計算上は1周期・突出深さ0の完全な円とし、架空の3枚刃を付けない。
+- ClockMirageは公式60枚刃だが現接触サンプルで微細60歯を解像できない。円盤近似＋微細刃未再現の警告を残す。
+- ScorpioSpearの6枚ディフェンス／3枚アタックは指定した初期輪郭のみ。マゼンタコート版も各モードを別の初期形状へ対応させ、ダッシュ連動の機械変形を実装したとは称さない。
+- KnightMailの上下する3球、SamuraiSaberの開閉刃、ImpactDrake/MeteoDragoonのラバー材質、MummyCurseの自動変形、GloryValkyrieの可動ばね、LusterDragoonの横偏重心は未再現と明記する。
+- IronMan/Luke/Optimus等は画像で4区画を観察した共通の粗い輪郭近似で、データ不足の場合に同一の機械署名になる。実物同等性の主張でも、個別の彫刻・ロゴの再現でもない。
+
+一次画像のシリーズ表示に基づき、PteraSwing・TyrannoRoar・SharkGillは**BX部品**、HellsBraveJは**CX完成ブレード**へ訂正した。含まれたセットのUX/CX製品シリーズとは別属性に保持する。HellsBraveJは既存のHells lock chip、Brave main blade、J assist bladeへ結び、単体評価はnullのまま。すべてのID、公式評価値、製品リストを保持し、公開CSV/JSONとアプリ入力を一致させた。
+
+再現: `node scripts/correct-beyblade-classifications.mjs`。出典は [`classification-corrections.json`](../../public/beyblade-data/classification-corrections.json)。

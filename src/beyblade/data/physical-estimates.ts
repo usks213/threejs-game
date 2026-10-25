@@ -1,7 +1,8 @@
 import type { BeyType, Part, Profile, Ratings } from '../core/types';
+import { expandedBladeShapeFacts } from './expanded-shape-facts';
 import { bladeShapeFacts, bitShapeFacts, ratchetShapeFacts } from './shape-facts';
 
-export const MODEL_VERSION='official-rating-constrained-estimate-v3';
+export const MODEL_VERSION='official-rating-constrained-estimate-v4';
 export interface ModelComponentInput { part:Part; ratings:Ratings|null; mode?:string }
 export interface AssemblyModelInput { blade:ModelComponentInput;ratchet:ModelComponentInput|null;bit:ModelComponentInput;spin:1|-1;color:number }
 export interface ModelMetadata {
@@ -12,16 +13,31 @@ export interface ModelMetadata {
 }
 const clamp=(x:number,min:number,max:number)=>Math.min(max,Math.max(min,x));
 const clean=(name:string)=>name.replace(/\s*(?:ダブル)?メタルコート(?:[:：].*)?$/,'').replace(/[（）()]/g,'').trim();
-const factFor=(name:string)=>bladeShapeFacts.find(f=>clean(f.name_ja)===clean(name));
-export const SHAPE_SOURCES=Object.fromEntries(bladeShapeFacts.map(f=>[clean(f.name_ja),f.source_url]));
+interface BladeShapeFact {
+  name_ja:string;row_ids?:readonly string[];source_url:string;source_image_url?:string|null;
+  facts:{contact_count:number|null;spin:number|null;summary_ja:string};
+  estimated_geometry?:{lobeDepthRatio?:number|null;radiusScale?:number|null;outerInertiaFactor?:number|null;massScale?:number|null;rakeSign?:number|string|null;primaryAttackPoints?:number;heightAdjustment?:number};
+  image_observation?:{contour_ja:string;palette_ja:string};
+  implemented_geometry?:{style:string;contactLobes:number;countBasis:string;smoothCircle?:boolean;palette:{metal:number;core:number}};
+  mechanism_limits?:readonly string[];
+}
+const allBladeFacts:readonly BladeShapeFact[]=[...bladeShapeFacts,...expandedBladeShapeFacts];
+const factFor=(name:string,id?:string)=>allBladeFacts.find(f=>id&&f.row_ids?.includes(id))??allBladeFacts.find(f=>clean(f.name_ja)===clean(name));
+export const SHAPE_SOURCES=Object.fromEntries(allBladeFacts.map(f=>[clean(f.name_ja),f.source_url]));
 export function shapeDescription(name:string,type:BeyType):string {
-  const f=factFor(name);return f?`${f.facts.summary_ja} 形状・寸法は出典に基づく近似です。`:`形状未再現・暫定モデル（${{attack:'攻撃',defense:'防御',stamina:'持久',balance:'バランス'}[type]}系）`;
+  const f=factFor(name);return f&&implementedStyle(f)!=='generic'?`${f.facts.summary_ja} 形状・寸法は出典に基づく近似です。`:`形状未再現・暫定モデル（${{attack:'攻撃',defense:'防御',stamina:'持久',balance:'バランス'}[type]}系）`;
 }
 const styles:Record<string,NonNullable<Profile['bladeStyle']>>={
   ドランソード:'sword',ヘルズサイズ:'scythe',ウィザードアロー:'round-wing',ナイトシールド:'shield',ドランバスター:'single-sword',
   ウィザードロッド:'round-wing',フェニックスウイング:'broad-wing',コバルトドラグーン:'uppercut',ホエールウェーブ:'smash',
   'ライトニングエルドラゴ アッパー型':'uppercut','ライトニングエルドラゴ 連打型':'smash',ドランダガー:'sword',シャークエッジ:'uppercut',シルバーウルフ:'round-wing',
 };
+// A researched source row alone is never enough to clear the unmodeled warning.
+const supportedStyles=new Set<string>(['sword','scythe','round-wing','shield','single-sword','broad-wing','uppercut','smash']);
+function implementedStyle(f:BladeShapeFact|undefined):NonNullable<Profile['bladeStyle']>{
+  const value=f?.implemented_geometry?.style??(f?styles[clean(f.name_ja)]:undefined);
+  return value&&supportedStyles.has(value)?value as NonNullable<Profile['bladeStyle']>:'generic';
+}
 const palettes:Record<string,{metal:number;core:number}>={
   ドランソード:{metal:0xb4bfcd,core:0x218fc9},ヘルズサイズ:{metal:0xb7bdc8,core:0xc52e46},ウィザードアロー:{metal:0xb4bbc8,core:0xf2c72d},
   ナイトシールド:{metal:0xb0bac4,core:0x1c7257},ドランバスター:{metal:0xb7c1ce,core:0x24a7d8},ウィザードロッド:{metal:0xb9c0cc,core:0xf4c82b},
@@ -40,7 +56,7 @@ const ratingKeys=['attack','defense','stamina'] as const;
  */
 export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;metadata:ModelMetadata} {
   const {blade,ratchet,bit,spin,color}=input,name=clean(blade.part.canonicalId??blade.part.name),code=bit.part.canonicalId??bit.part.name;
-  const form=factFor(name),bitFact=bitShapeFacts.find(f=>f.code===code),missingInputs:string[]=[],unsupportedMechanisms:string[]=[];
+  const form=factFor(blade.part.name,blade.part.id)??factFor(name),bladeStyle=implementedStyle(form),shapeImplemented=bladeStyle!=='generic',bitFact=bitShapeFacts.find(f=>f.code===code),missingInputs:string[]=[],unsupportedMechanisms:string[]=[...(form?.mechanism_limits??[])];
   const score=(c:ModelComponentInput|null,key:keyof Ratings,fallback:number,label:string)=>{
     const value=c?.ratings?.[key];if(value==null){missingInputs.push(`${label}.${key}`);return fallback/100;}return clamp(value/100,0,1.5);
   };
@@ -55,6 +71,8 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
     invariantRatchet={...ratchet,ratings};
   }
   const integrated=!ratchet;
+  const burstSeparationSupported=!blade.part.integratedRatchet&&!bit.part.integratedBit;
+  if(!burstSeparationSupported)unsupportedMechanisms.push('一体型の実際の分離構造は未再現');
   const ra=integrated ? .11 : score(invariantRatchet,'attack',11,'ratchet'),rd=integrated ? .13 : score(invariantRatchet,'defense',13,'ratchet'),rs=integrated ? .06 : score(invariantRatchet,'stamina',6,'ratchet');
   const publishedHeight=ratchet?.ratings?.height??(bit.part.integratedBit?bit.ratings?.height:null);
   if(publishedHeight==null)missingInputs.push('ratchet.height');
@@ -73,9 +91,9 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   if(name==='ナイトシールド')unsupportedMechanisms.push('ナイトシールド: ダンパーの独立した弾性運動は未再現');
   if(name==='シルバーウルフ')unsupportedMechanisms.push('シルバーウルフ: フリー回転リングは未再現');
   if(blade.mode||bit.mode)unsupportedMechanisms.push('モードの開始時評価は適用。回転中の自動変形遷移は未再現');
-  const geometry=form?.estimated_geometry as {lobeDepthRatio?:number;radiusScale?:number;outerInertiaFactor?:number;massScale?:number;rakeSign?:number|string;primaryAttackPoints?:number}|undefined;
-  const contactLobes=form?.facts.contact_count??geometry?.primaryAttackPoints??({attack:3,defense:6,stamina:2,balance:4}[blade.part.type]);
-  const contactLobeDepth=clamp((geometry?.lobeDepthRatio??.10)+.10*(ba-.33)-.035*(bd-.33),.025,.30);
+  const geometry=shapeImplemented?form?.estimated_geometry:undefined;
+  const contactLobes=(shapeImplemented?form?.implemented_geometry?.contactLobes??form?.facts.contact_count:null)??geometry?.primaryAttackPoints??({attack:3,defense:6,stamina:2,balance:4}[blade.part.type]);
+  const contactLobeDepth=form?.implemented_geometry?.smoothCircle&&shapeImplemented?0:clamp((geometry?.lobeDepthRatio??.10)+.10*(ba-.33)-.035*(bd-.33),.025,.30);
   const outerRadius=.0265*(geometry?.radiusScale??1)*clamp(.97+.04*ba+.04*bs,.96,1.08);
   const radius=outerRadius/(1+contactLobeDepth);
   const bladeMass=clamp((.026+.004*(bd-.35)+.002*(ba-.30)+.0015*(bs-.35))*(geometry?.massScale??1),.023,.035);
@@ -92,9 +110,11 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const left=ratchet?.part.ratingsVariants?.find(v=>v.condition==='left_spin')?.ratings;
   const right=ratchet?.part.ratingsVariants?.find(v=>v.condition==='right_spin')?.ratings;
   const ratchetSkew=left?.attack!=null&&right?.attack!=null?clamp((left.attack-right.attack)/100,-.15,.15):.08;
-  const height=.028+ratchetHeightOffset,ratchetCenterHeight=.012+ratchetHeightOffset*.5;
+  const height=.028+ratchetHeightOffset+(geometry?.heightAdjustment??0),ratchetCenterHeight=.012+ratchetHeightOffset*.5;
   const centerOfMassHeight=(bladeMass*(.023+ratchetHeightOffset)+ratchetMass*ratchetCenterHeight+bitMass*.005)/mass;
-  const inertia=bladeMass*outerRadius**2*outerFraction+ratchetMass*ratchetRadius**2*.55+bitMass*(bitDiscRadius||.006)**2*.5;
+  const componentMasses={blade:bladeMass,ratchet:ratchetMass,bit:bitMass};
+  const componentAxialWeights={blade:bladeMass*outerRadius**2*outerFraction,ratchet:ratchetMass*ratchetRadius**2*.55,bit:bitMass*(bitDiscRadius||.006)**2*.5};
+  const inertia=componentAxialWeights.blade+componentAxialWeights.ratchet+componentAxialWeights.bit;
   const transverseInertia=mass*(.25*radius**2+height**2/12);
   const tipRadius=baseTipRadius[tipShape]*clamp(.85+.50*ta-.10*ts,.7,1.3)*(code==='O'||code==='LO'?.70:code==='FB'?.65:1);
   const directionalTraction=(code==='C'||code==='LC')&&spin===-1?1.18:1;
@@ -108,18 +128,18 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const publishedBurst=score(bit,'burst_resistance',50,'bit')*100;
   const effectiveBurst=code==='DS'?20:simpleJoint?30:publishedBurst;
   const lockStiffness=.006+.020*effectiveBurst/100+.006*rd,lockReleaseAngle=.20+.08*effectiveBurst/100+.05*rd;
-  const palette={...(palettes[name]??{metal:0xaeb9c8,core:0x667488})};
+  const palette={...(form?.implemented_geometry?.palette??palettes[name]??{metal:0xaeb9c8,core:0x667488})};
   const coat=blade.part.name.match(/メタルコート[:：]([^\s]+)/)?.[1];if(coat&&namedColors[coat])palette.metal=namedColors[coat];
-  const profile:Profile={name:`${blade.part.name} ${ratchet?.part.name??''}${code}`,type:blade.part.type,spin,color,mass,radius,inertia,transverseInertia,centerOfMassHeight,height,
+  const profile:Profile={name:`${blade.part.name} ${ratchet?.part.name??''}${code}`,type:blade.part.type,spin,color,mass,burstSeparationSupported,componentMasses,componentAxialWeights,radius,inertia,transverseInertia,centerOfMassHeight,height,
     grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.48,burstThreshold:.026,
-    lockStiffness,lockReleaseAngle,gearRadius,gearHeight:.007,railEligible:true,railGrip:clamp(.55+.65*dash,.55,.94),gearTeeth,gearEngagementBand,bitHeightOffset,bitDiscRadius,bitDiscHeight:.005,bladeHandedness:form?.facts.spin??spin,
+    lockStiffness,lockReleaseAngle,gearRadius,gearHeight:.007,railEligible:true,railGrip:clamp(.55+.65*dash,.55,.94),gearTeeth,gearEngagementBand,bitHeightOffset,bitDiscRadius,bitDiscHeight:.005,bladeHandedness:form?.facts.spin===-1?-1:form?.facts.spin===1?1:spin,
     ratchetRadius,ratchetCenterHeight,ratchetHalfThickness:.0025+ratchetHeightOffset*.10,ratchetLobes,ratchetLobeDepth,ratchetSkew,
-    contactLobes,contactLobeDepth,bladeStyle:styles[name]??'generic',bladeEdgeSharpness:clamp(.3+.6*ba-.2*bd,.15,.85),bladeThickness:.0085+(geometry?.massScale??1)*.0005+.001*(bd-.35),
+    contactLobes,contactLobeDepth,bladeStyle,bladeEdgeSharpness:clamp(.3+.6*ba-.2*bd,.15,.85),bladeThickness:.0085+(geometry?.massScale??1)*.0005+.001*(bd-.35),
     bladeRampAmplitude:typeof geometry?.rakeSign==='number'?geometry.rakeSign*(.0011+.0012*ba):0,
-    bladeSkew:styles[name]==='round-wing'?.06:styles[name]==='single-sword'?.35:.15+.20*ba,
+    bladeSkew:bladeStyle==='round-wing'?.06:bladeStyle==='single-sword'?.35:.15+.20*ba,
     modelPalette:{...palette,ratchet:0x69798b,bit:nominalBitColors[code]??palette.core}};
   const components:ModelMetadata['components']=[
-    {category:'blade',name:blade.part.name,source:form?.source_url??blade.part.source,shapeStatus:form?'source-informed':'unmodeled',officialRatings:blade.ratings,notes:[form?.facts.summary_ja??'形状未再現・暫定モデル。評価に拘束された汎用輪郭です。','公式評価→外径・接触深さ・質量配分・慣性への換算は未校正の推定です。','配色は代表製品の近似。個別カラーの厳密な再現ではありません。']},
+    {category:'blade',name:blade.part.name,source:form?.source_url??blade.part.source,shapeStatus:shapeImplemented?'source-informed':'unmodeled',officialRatings:blade.ratings,notes:[shapeImplemented?form!.facts.summary_ja:'形状未再現・暫定モデル。出典の存在だけでは形状実装と扱いません。',...(form?.image_observation?[`画像観察: ${form.image_observation.contour_ja}`]:[]),...(form?.implemented_geometry?[`接触区画 ${contactLobes}: ${form.implemented_geometry.countBasis==='official_text'?'公式明記の刃数を概形へ反映':'画像観察・推定の主区画数（公式刃数と区別）'}`]:[]),'公式評価→外径・接触深さ・質量配分・慣性への換算は未校正の推定です。','配色は代表製品の近似。個別カラーの厳密な再現ではありません。']},
     {category:'ratchet',name:ratchet?.part.name??'一体型',source:ratchet?.part.source??blade.part.source,shapeStatus:ratchetKnown?'source-informed':'unmodeled',officialRatings:ratchet?.ratings??null,notes:[ratchetKnown?`${ratchetLobes}枚の突出と高さ区分を近似。`:'一体型・未確認構造は暫定の保持部形状です。','高さ評価のSI換算は推定。数値60を6mmと断定しません。',...(ratchet?.part.ratingsVariants?.length?['左右別評価は同じ実物の質量を変えません。評価差から固定した輪郭の非対称性を推定します。']:[]),...(simpleJoint?[`シンプルジョイント条件を適用: 実効耐性 ${effectiveBurst}（ビット単体の公式値は保持）。`]:[])]},
     {category:'bit',name:bit.part.name,source:bitFact?.source_url??bit.part.source,shapeStatus:bitFact?'source-informed':'unmodeled',officialRatings:bit.ratings,notes:[bitFact?.facts_ja??'形状未再現・暫定モデル。公表評価を用いた先端分類です。','攻撃/防御/持久→接触半径・摩擦・損失、ダッシュ→ギア径と結合、耐性→ロック障壁を推定。',gearTeeth===10?'10枚歯は公式記述。歯ピッチ・ギア半径と平均噛合拘束は推定。':'12枚歯は未確認部品にも用いる共通近似。実物の歯数・歯ピッチの確認ではありません。',...(bitHeightOffset?[`軸高の相対差 ${bitHeightOffset*1000} mm は公式記述。絶対寸法は未計測。`]:[])]},
   ];

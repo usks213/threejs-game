@@ -34,6 +34,7 @@ try{
     await wait(()=>['round-end','match-end'].includes(a.state?.phase??'')&&['round-end','match-end'].includes(b.state?.phase??''),60_000);
     assert.deepEqual(a.state?.match,b.state?.match);assert.deepEqual(a.state?.battle,b.state?.battle);assert.ok(a.state?.battle?.result);assert.ok(a.state!.battle!.tick>0);
     if(a.state?.phase==='match-end'){assert.ok(Math.max(...a.state.match!.scores)>=4);break;}
+    await wait(()=>!(a.state?.battle?.settling?.remaining)&&!(b.state?.battle?.settling?.remaining),10_000);
     send(a,{type:'next'});send(b,{type:'next'});await wait(()=>a.state?.phase==='ready'&&b.state?.phase==='ready');
   }
   assert.equal(a.state?.phase,'match-end');const result={rounds,scores:a.state?.match?.scores,winner:a.state?.match?.winner};

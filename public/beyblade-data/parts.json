@@ -3922,7 +3922,7 @@
     "id": "blade:f8be3a0d5ad9",
     "category": "blade",
     "name_ja": "プテラスイング",
-    "family": "UX",
+    "family": "BX",
     "official_ratings": {
       "attack": 27,
       "defense": 23,
@@ -3946,7 +3946,9 @@
       "2024-11-02"
     ],
     "parameter_status": "verified_numeric_ratings",
-    "parameter_scale": "official_relative_ratings_not_SI"
+    "parameter_scale": "official_relative_ratings_not_SI",
+    "product_family": "UX",
+    "classification_source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux10.png"
   },
   {
     "id": "blade:5e088f2ac8be",
@@ -4670,7 +4672,7 @@
     "id": "blade:9c33dccb7a7e",
     "category": "blade",
     "name_ja": "ティラノロア",
-    "family": "UX",
+    "family": "BX",
     "official_ratings": {
       "attack": 60,
       "defense": 28,
@@ -4694,7 +4696,9 @@
       "2025-08-09"
     ],
     "parameter_status": "verified_numeric_ratings",
-    "parameter_scale": "official_relative_ratings_not_SI"
+    "parameter_scale": "official_relative_ratings_not_SI",
+    "product_family": "UX",
+    "classification_source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_2.png"
   },
   {
     "id": "ratchet:1-70",
@@ -4729,9 +4733,9 @@
   },
   {
     "id": "blade:ab5fa0bf8688",
-    "category": "blade",
+    "category": "assembled_blade",
     "name_ja": "ヘルズブレイブJ",
-    "family": "UX",
+    "family": "CX",
     "official_ratings": {
       "attack": 60,
       "defense": 25,
@@ -4740,7 +4744,7 @@
       "dash": null,
       "burst_resistance": null
     },
-    "rating_scope": "individual_component",
+    "rating_scope": "assembled_blade",
     "source_image_urls": [
       "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_3.png"
     ],
@@ -4755,7 +4759,19 @@
       "2025-08-09"
     ],
     "parameter_status": "verified_numeric_ratings",
-    "parameter_scale": "official_relative_ratings_not_SI"
+    "parameter_scale": "official_relative_ratings_not_SI",
+    "product_family": "UX",
+    "classification_source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_3.png",
+    "component_types": [
+      "lock_chip",
+      "main_blade",
+      "assist_blade"
+    ],
+    "component_names": [
+      "ヘルズ",
+      "ブレイブ",
+      "J"
+    ]
   },
   {
     "id": "blade:ea70ff71bc83",
@@ -7338,9 +7354,9 @@
   },
   {
     "id": "assembled_blade:59aabefd87eb",
-    "category": "assembled_blade",
+    "category": "blade",
     "name_ja": "シャークギル",
-    "family": "CX",
+    "family": "BX",
     "official_ratings": {
       "attack": 20,
       "defense": 25,
@@ -7349,7 +7365,7 @@
       "dash": null,
       "burst_resistance": null
     },
-    "rating_scope": "assembled_blade",
+    "rating_scope": "individual_component",
     "source_image_urls": [
       "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_3.png"
     ],
@@ -7361,14 +7377,14 @@
     "physical_parameters": null,
     "availability": "unknown_not_verified",
     "modes": null,
-    "component_names": [],
-    "component_types": [],
     "notes": "CX製品同梱BXベイ。",
     "evidence_release_dates": [
       "2025-11-01"
     ],
     "parameter_status": "verified_numeric_ratings",
-    "parameter_scale": "official_relative_ratings_not_SI"
+    "parameter_scale": "official_relative_ratings_not_SI",
+    "product_family": "CX",
+    "classification_source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_3.png"
   },
   {
     "id": "assembled_blade:94a3826a8ebf",
