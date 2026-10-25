@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-test('arena opens, launches, resets, changes layout and filters catalog',async({page},testInfo)=>{
+test('arena opens, launches and resets without browser errors',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/beyblade/');
   await expect(page.getByRole('heading',{name:'バトルアリーナ'})).toBeVisible();
@@ -15,6 +15,11 @@ test('arena opens, launches, resets, changes layout and filters catalog',async({
   await page.getByRole('button',{name:'試合をリセット'}).click();
   await expect(page.locator('#score-you')).toHaveText('0');
   await expect(page.locator('#phase')).toContainText('READY');
+  expect(errors).toEqual([]);
+});
+test('mode tabs, catalog filtering and responsive layouts work',async({page},testInfo)=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/beyblade/');
   await page.getByRole('tab',{name:'オンライン'}).click();
   await expect(page.locator('#online-panel')).toBeVisible();
   await page.getByRole('tab',{name:'ひとりで練習'}).click();
@@ -68,4 +73,18 @@ test('static or denied backend is explicitly unavailable without a pretend onlin
     await page.getByRole('tab',{name:'ひとりで練習'}).click();await expect(page.locator('#launch')).toBeEnabled();
     await page.unroute('**/api/beyblade/health');
   }
+});
+
+test('launch countdown uses wall time even when animation frames are slow',async({page})=>{
+  await page.addInitScript(()=>{
+    const raf=window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame=callback=>raf(()=>{window.setTimeout(()=>callback(performance.now()),200);});
+  });
+  await page.goto('/beyblade/');
+  await page.locator('#launch').click();
+  const started=Date.now();
+  await expect(page.locator('#phase')).toContainText('BATTLE LIVE',{timeout:5500});
+  expect(Date.now()-started).toBeLessThan(5500);
+  await page.locator('#reset-match').click();
+  await expect(page.locator('#phase')).toContainText('READY');
 });
