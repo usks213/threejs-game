@@ -1,54 +1,10 @@
 import * as THREE from 'three';
 import type { Battle, Profile } from '../core/types';
 import { buildTopComponents, setComponentPose } from './top-mesh';
-import { STADIUM, bowlHeightAt, comHeight, getRailPath, getBankSampleRadii } from '../core/physics';
+import { STADIUM, bowlHeightAt, comHeight, getRailPath } from '../core/physics';
 
-/** Visual finish-zone tint follows the existing continuous channel blend; never changes collision geometry. */
-function floorTint(color: THREE.Color, x: number, z: number) {
-  color.setHex(0xe8edf5);
-  let best = 0, finish: 'over' | 'xtreme' = 'over';
-  for (const pocket of STADIUM.pockets) {
-    const along = x * Math.cos(pocket.angle) + z * Math.sin(pocket.angle);
-    const across = -x * Math.sin(pocket.angle) + z * Math.cos(pocket.angle);
-    const width = STADIUM.radius * Math.sin(pocket.halfWidth);
-    const a = THREE.MathUtils.clamp((along - STADIUM.pocketEntryRadius) / STADIUM.pocketRampLength, 0, 1);
-    const c = THREE.MathUtils.clamp((Math.abs(across) - (width - .012)) / .016, 0, 1);
-    const blend = a * a * (3 - 2 * a) * (1 - c * c * (3 - 2 * c));
-    if (blend > best) { best = blend; finish = pocket.finish; }
-  }
-  return color.lerp(finish === 'xtreme' ? xtremeFloorColor : overFloorColor, best);
-}
-const xtremeFloorColor = new THREE.Color(0xff795c), overFloorColor = new THREE.Color(0x8da4bf);
-
-export function buildStadiumSurfaceGeometry() {
-  const positions: number[] = [], indices: number[] = [], colors: number[] = [], color = new THREE.Color();
-  // Preserve the physical rail's notch vertices and explicitly resolve each narrow bank transition.
-  const railAngles = getRailPath().map(point => (Math.atan2(point.z, point.x) + Math.PI * 2) % (Math.PI * 2));
-  const notchAngles = [-1, 1].flatMap(side => [.35, 1].flatMap(factor => Array.from({ length: 41 }, (_, i) => Math.PI * 1.5 + side * STADIUM.railNotchHalfAngle * factor + (i - 20) * .001)));
-  const angles = [...Array.from({ length: 769 }, (_, i) => i / 768 * Math.PI * 2), ...railAngles, ...notchAngles]
-    .sort((a, b) => a - b).filter((angle, i, all) => i === 0 || angle - all[i - 1] > 1e-8);
-  let levels = 0;
-  for (const angle of angles) {
-    const bank = getBankSampleRadii(angle), railRadius = bank[0], bankEnd = bank[bank.length - 1];
-    const outerBank = getBankSampleRadii(angle, [0, .0015, .003, .0045, .006].map(offset => STADIUM.bankOuterSlopeStart + offset));
-    const radii = [
-      ...Array.from({ length: 9 }, (_, i) => railRadius * i / 8),
-      ...bank.slice(1),
-      ...Array.from({ length: 32 }, (_, i) => bankEnd + (STADIUM.coverRadius - bankEnd) * (i + 1) / 32),
-      ...outerBank.map(radius => Math.min(radius, STADIUM.coverRadius)),
-    ].sort((a, b) => a - b);
-    levels = radii.length;
-    for (const radius of radii) {
-      const x = radius * Math.cos(angle), z = radius * Math.sin(angle);
-      positions.push(x, bowlHeightAt(x, z), z); floorTint(color, x, z); colors.push(color.r, color.g, color.b);
-    }
-  }
-  for (let column = 0; column < angles.length - 1; column++) for (let ring = 0; ring < levels - 1; ring++) {
-    const a = column * levels + ring, b = a + levels;
-    indices.push(a, b + 1, a + 1, a, b, b + 1);
-  }
-  const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
-}
+import { buildStadiumSurfaceGeometry, floorTint } from './stadium-surface';
+export { buildStadiumSurfaceGeometry } from './stadium-surface';
 
 /** Render the solver's geometry and pose. No invented wobble, rail boost or burst motion. */
 export function createArena(canvas: HTMLCanvasElement, onError: (message: string) => void) {

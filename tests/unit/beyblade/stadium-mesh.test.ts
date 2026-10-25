@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildStadiumSurfaceGeometry } from '../../../src/beyblade/rendering/arena';
-import { bowlHeightAt, pocketFloorAt, getBankSampleRadii, STADIUM } from '../../../src/beyblade/core/physics';
+import { bowlHeightAt, bowlNormalAt, pocketFloorAt, getBankSampleRadii, STADIUM } from '../../../src/beyblade/core/physics';
 
 describe('shared continuous stadium bank mesh', () => {
   it('samples only the physical floor through the bank, apron and pocket ramp', () => {
@@ -35,6 +35,32 @@ describe('shared continuous stadium bank mesh', () => {
     }
     expect(maximum).toBeLessThan(.0006); expect(pocketMaximum).toBeLessThan(.00035);
     expect(geometry.getAttribute('color').count).toBe(positions.count); geometry.dispose();
+  });
+  it('keeps the measured triangle budget and uses physical surface normals', () => {
+    const geometry = buildStadiumSurfaceGeometry(), positions = geometry.getAttribute('position'), normals = geometry.getAttribute('normal');
+    expect(geometry.getIndex()!.count / 3).toBeLessThan(25000);
+    for (let i = 0; i < positions.count; i++) {
+      const normal = bowlNormalAt(positions.getX(i), positions.getZ(i));
+      expect(Math.hypot(normals.getX(i) - normal.x, normals.getY(i) - normal.y, normals.getZ(i) - normal.z)).toBeLessThan(.001);
+    }
+    geometry.dispose();
+  });
+  it('keeps shared adaptive edges conforming rather than leaving internal cracks', () => {
+    const geometry = buildStadiumSurfaceGeometry(), positions = geometry.getAttribute('position'), indices = geometry.getIndex()!;
+    const vertexKey = (i: number) => `${Math.round(positions.getX(i) * 1e7)}:${Math.round(positions.getZ(i) * 1e7)}`;
+    const edges = new Map<string, { count: number; a: number; b: number }>();
+    for (let i = 0; i < indices.count; i += 3) for (let side = 0; side < 3; side++) {
+      const a = indices.getX(i + side), b = indices.getX(i + (side + 1) % 3), ka = vertexKey(a), kb = vertexKey(b);
+      if (ka === kb) continue;
+      const key = ka < kb ? `${ka}/${kb}` : `${kb}/${ka}`, edge = edges.get(key);
+      if (edge) edge.count++; else edges.set(key, { count: 1, a, b });
+    }
+    // Subdivided outer-circle chords lie at most 0.074 mm inside the exact circle.
+    // Every one-sided edge must remain in that perimeter band, never inside the playfield.
+    for (const edge of edges.values()) if (edge.count === 1) {
+      for (const index of [edge.a, edge.b]) expect(Math.abs(Math.hypot(positions.getX(index), positions.getZ(index)) - STADIUM.coverRadius)).toBeLessThan(.00008);
+    }
+    geometry.dispose();
   });
   it('has consistently upward-facing triangles instead of an invisible bank', () => {
     const geometry = buildStadiumSurfaceGeometry(), positions = geometry.getAttribute('position'), indices = geometry.getIndex()!;
