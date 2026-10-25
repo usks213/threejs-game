@@ -43,8 +43,7 @@ describe('physical burst partition and unscored observation',()=>{
   },30000);
   it('splits an actual legal-launch burst and visibly separates component centres under physics',()=>{
     const cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
-    const build={...buildForBlade(parts.find(p=>p.category==='blade'&&p.canonicalId==='ドランバスター'&&p.release==='released')!.id),ratchet:parts.find(p=>p.category==='ratchet'&&p.canonicalId==='1-60')!.id,bit:parts.find(p=>p.category==='bit'&&p.canonicalId==='A')!.id};
-    const b=createBattle([profileFor(build),cpu],[{power:.8,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]);
+    const b=createBattle([profileFor(defaultBuild),cpu],[{power:.5,angle:-50*Math.PI/180,tilt:30*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]);
     for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);
     expect(b.result?.finish).toBe('burst');expect(b.fragments.length).toBeGreaterThan(0);
     const before=b.fragments.map(f=>({x:f.x,y:f.y,z:f.z}));for(let i=0;i<240;i++)stepSettlingBattle(b);

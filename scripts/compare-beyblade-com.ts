@@ -41,9 +41,15 @@ export function compareRatchetCOM(){
   });
 }
 if(process.argv[1]?.endsWith('compare-beyblade-com.ts')){
-  const sourceSha256=Object.fromEntries(['src/beyblade/core/physics.ts','src/beyblade/core/body-geometry.ts','src/beyblade/core/inertia.ts','src/beyblade/data/physical-estimates.ts','src/beyblade/data/assembly-mass.ts','src/beyblade/data/catalog.ts','scripts/compare-beyblade-com.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]));
+  const sourceSha256=Object.fromEntries(['src/beyblade/core/physics.ts','src/beyblade/core/body-geometry.ts','src/beyblade/core/inertia.ts','src/beyblade/data/physical-estimates.ts','src/beyblade/data/independent-masses.ts','src/beyblade/data/assembly-mass.ts','src/beyblade/data/catalog.ts','scripts/compare-beyblade-com.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]));
   const report={status:'uncalibrated geometry-derived mass model; not real-toy measurement or ranking',sourceSha256,launch,deliveredLaunchWork:launchEnergyAt(launch.power),
     fixtures:{isolated:'3s maximum; shared floor solver, tip centered2mm above floor, initial tilt8degrees, initial translation zero; no opponent/rail/cover/result resetting; outer floor is unbounded, radial distances are displacement from fixture origin, not a closed orbit or real-stadium stability ranking',impact:'equal estimated rotational launch work; upright subject and common incoming reference, stems80mm apart at10mm above nominal floor; incoming speed1m/s; no gravity or drag until first real contact',arena:'3s maximum normal two-body arena; actual duration/result recorded'},comparisons:compareRatchetCOM()};
-  mkdirSync('docs/beyblade',{recursive:true});writeFileSync('docs/beyblade/com-comparisons.json',JSON.stringify(report,null,2)+'\n');
+  mkdirSync('docs/beyblade/com-events',{recursive:true});
+  const serialized={...report,comparisons:report.comparisons.map(r=>{
+    const {events,...ordinaryArena}=r.ordinaryArena,eventsFile=`com-events/${r.ratchet}.json`;
+    writeFileSync(`docs/beyblade/${eventsFile}`,JSON.stringify(events)+'\n');
+    return {...r,ordinaryArena:{...ordinaryArena,eventCount:events.length,eventsFile}};
+  })};
+  writeFileSync('docs/beyblade/com-comparisons.json',JSON.stringify(serialized,null,2)+'\n');
   console.log(JSON.stringify(report.comparisons.map(r=>({ratchet:r.ratchet,com:r.centerOfMass,ratchetCOM:r.massComponents?.[1].center,inertia:r.inertiaTensor,floor:r.isolatedFloor.final,impact:r.commonImpact.impulse,arena:r.ordinaryArena.final,duration:r.ordinaryArena.simulatedSeconds,result:r.ordinaryArena.result})),null,2));
 }

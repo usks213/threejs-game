@@ -1,16 +1,17 @@
+import {independentMassFor,type MassCalibration} from './independent-masses';
 import {deriveAssemblyMass,principalInertias} from './assembly-mass';
 import type { BeyType, Part, Profile, Ratings } from '../core/types';
 import { expandedBladeShapeFacts } from './expanded-shape-facts';
 import { bladeShapeFacts, bitShapeFacts, ratchetShapeFacts } from './shape-facts';
 
-export const MODEL_VERSION='geometry-integrated-mass-estimate-v5';
+export const MODEL_VERSION='independent-mass-informed-geometry-v6';
 export interface ModelComponentInput { part:Part; ratings:Ratings|null; mode?:string }
 export interface AssemblyModelInput { blade:ModelComponentInput;ratchet:ModelComponentInput|null;bit:ModelComponentInput;spin:1|-1;color:number }
 export interface ModelMetadata {
   version:string;status:'source-informed-estimate'|'partial-estimate';label:string;
   components:{category:'blade'|'ratchet'|'bit';name:string;source:string;shapeStatus:'source-informed'|'unmodeled';officialRatings:Ratings|null;notes:string[]}[];
-  missingInputs:string[];unsupportedMechanisms:string[];
-  derived:{key:string;label:string;value:number;unit:string;provenance:'estimated'|'official-relative';inputs:string[]}[];
+  missingInputs:string[];unsupportedMechanisms:string[];massCalibration?:MassCalibration[];
+  derived:{key:string;label:string;value:number;unit:string;provenance:'estimated'|'official-relative'|'measurement-informed';inputs:string[]}[];
 }
 const clamp=(x:number,min:number,max:number)=>Math.min(max,Math.max(min,x));
 const clean=(name:string)=>name.replace(/\s*(?:ダブル)?メタルコート(?:[:：].*)?$/,'').replace(/[（）()]/g,'').trim();
@@ -61,6 +62,8 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const score=(c:ModelComponentInput|null,key:keyof Ratings,fallback:number,label:string)=>{
     const value=c?.ratings?.[key];if(value==null){missingInputs.push(`${label}.${key}`);return fallback/100;}return clamp(value/100,0,1.5);
   };
+  const bladeMeasured=independentMassFor(blade.part),ratchetMeasured=ratchet?independentMassFor(ratchet.part):null,bitMeasured=independentMassFor(bit.part);
+  const massCalibration=[bladeMeasured,ratchetMeasured,bitMeasured].filter((m):m is MassCalibration=>m!==null);
   const ba=score(blade,'attack',33,'blade'),bd=score(blade,'defense',33,'blade'),bs=score(blade,'stamina',34,'blade');
   const ta=score(bit,'attack',25,'bit'),td=score(bit,'defense',25,'bit'),ts=score(bit,'stamina',25,'bit'),dash=score(bit,'dash',25,'bit');
   // The same 2-60 ratchet cannot change mass when the blade spin changes. Use only unconditional
@@ -93,14 +96,19 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   if(name==='シルバーウルフ')unsupportedMechanisms.push('シルバーウルフ: フリー回転リングは未再現');
   if(blade.mode||bit.mode)unsupportedMechanisms.push('モードの開始時評価は適用。回転中の自動変形遷移は未再現');
   const geometry=shapeImplemented?form?.estimated_geometry:undefined;
+  // Exact reviewed pair only: official UX-01 / BXG-18 images depict the same nominal outline,
+  // with metal coating stated for Barcelona. Tooling revision/coating thickness are not measured.
+  // Marketing-score uplift must not invent a larger or sharper mold. Other variants are not inferred.
+  const sharedBusterOutline=['blade:ad2b5f965feb','blade:8ee8d8c3477d'].includes(blade.part.id);
+  const ga=sharedBusterOutline?.70:ba,gd=sharedBusterOutline?.20:bd,gs=sharedBusterOutline?.10:bs;
   const contactLobes=(shapeImplemented?form?.implemented_geometry?.contactLobes??form?.facts.contact_count:null)??geometry?.primaryAttackPoints??({attack:3,defense:6,stamina:2,balance:4}[blade.part.type]);
-  const contactLobeDepth=form?.implemented_geometry?.smoothCircle&&shapeImplemented?0:clamp((geometry?.lobeDepthRatio??.10)+.10*(ba-.33)-.035*(bd-.33),.025,.30);
-  const outerRadius=.0265*(geometry?.radiusScale??1)*clamp(.97+.04*ba+.04*bs,.96,1.08);
+  const contactLobeDepth=form?.implemented_geometry?.smoothCircle&&shapeImplemented?0:clamp((geometry?.lobeDepthRatio??.10)+.10*(ga-.33)-.035*(gd-.33),.025,.30);
+  const outerRadius=.0265*(geometry?.radiusScale??1)*clamp(.97+.04*ga+.04*gs,.96,1.08);
   const radius=outerRadius/(1+contactLobeDepth);
-  const bladeMass=clamp((.026+.004*(bd-.35)+.002*(ba-.30)+.0015*(bs-.35))*(geometry?.massScale??1),.023,.035);
-  const ratchetMass=.0053+.003*(rd-.13)+.0015*(rs-.06);
+  const bladeMass=bladeMeasured?bladeMeasured.adoptedGrams/1000:clamp((.026+.004*(bd-.35)+.002*(ba-.30)+.0015*(bs-.35))*(geometry?.massScale??1),.023,.035);
+  const ratchetMass=ratchetMeasured?ratchetMeasured.adoptedGrams/1000:.0053+.003*(rd-.13)+.0015*(rs-.06);
   const bitDiscRadius=['DB','DS'].includes(code)?.010:0;
-  const bitMass=.0022+.0015*(td-.20)+.001*(ts-.20)+(bitDiscRadius?.0018:0)+(code==='MN'?.0007:0);
+  const bitMass=bitMeasured?bitMeasured.adoptedGrams/1000:.0022+.0015*(td-.20)+.001*(ts-.20)+(bitDiscRadius?.0018:0)+(code==='MN'?.0007:0);
   const mass=bladeMass+ratchetMass+bitMass;
   const outerFraction=clamp((geometry?.outerInertiaFactor??.64)+.15*(bs-.35)-.06*(ba-.30)+.025*(bd-.35),.48,.88);
   const ratchetCode=ratchet?.part.canonicalId??'',lobesMatch=ratchetCode.match(/^(\d+)-/);
@@ -135,9 +143,9 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
     grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.48,burstThreshold:.026,
     lockStiffness,lockReleaseAngle,gearRadius,gearHeight:.007,railEligible:true,railGrip:clamp(.55+.65*dash,.55,.94),gearTeeth,gearEngagementBand,bitHeightOffset,bitDiscRadius,bitDiscHeight:.005,bladeHandedness:form?.facts.spin===-1?-1:form?.facts.spin===1?1:spin,
     ratchetRadius,ratchetCenterHeight,ratchetHalfThickness:.0025+ratchetHeightOffset*.10,ratchetLobes,ratchetLobeDepth,ratchetSkew,
-    contactLobes,contactLobeDepth,bladeStyle,bladeEdgeSharpness:clamp(.3+.6*ba-.2*bd,.15,.85),bladeThickness:.0085+(geometry?.massScale??1)*.0005+.001*(bd-.35),
-    bladeRampAmplitude:typeof geometry?.rakeSign==='number'?geometry.rakeSign*(.0011+.0012*ba):0,
-    bladeSkew:bladeStyle==='round-wing'?.06:bladeStyle==='single-sword'?.35:.15+.20*ba,
+    contactLobes,contactLobeDepth,bladeStyle,bladeEdgeSharpness:clamp(.3+.6*ga-.2*gd,.15,.85),bladeThickness:.0085+(geometry?.massScale??1)*.0005+.001*(gd-.35),
+    bladeRampAmplitude:typeof geometry?.rakeSign==='number'?geometry.rakeSign*(.0011+.0012*ga):0,
+    bladeSkew:bladeStyle==='round-wing'?.06:bladeStyle==='single-sword'?.35:.15+.20*ga,
     modelPalette:{...palette,ratchet:0x69798b,bit:nominalBitColors[code]??palette.core}};
   const distribution=deriveAssemblyMass(profile,componentMasses,outerFraction);
   profile.centerOfMass=distribution.center;profile.inertiaTensor=distribution.inertia;profile.massComponents=distribution.components;
@@ -152,7 +160,7 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   ];
   const partial=components.some(c=>c.shapeStatus==='unmodeled')||missingInputs.length>0||unsupportedMechanisms.length>0;
   const derived:ModelMetadata['derived']=[
-    {key:'mass',label:'組立質量',value:mass*1000,unit:'g',provenance:'estimated',inputs:['ブレード防御・攻撃・持久','ラチェット防御・持久','ビット防御・持久','出典の重量配分']},
+    {key:'mass',label:'組立質量（各部の合計）',value:mass*1000,unit:'g',provenance:massCalibration.length?'measurement-informed':'estimated',inputs:[`${massCalibration.length}/3部品に独立秤量の代表値を採用。残りは評価に拘束された推定。`,'完成した同一個体の実測値ではなく部品値の加算']},
     {key:'inertia',label:'自転慣性',value:profile.inertia,unit:'kg·m²',provenance:'estimated',inputs:['共有形状の体積積分','推定リム/コア密度','各部質量','完全な平行軸定理']},
     {key:'radius',label:'外接半径',value:outerRadius*1000,unit:'mm',provenance:'estimated',inputs:['公式形状記述','ブレード攻撃・持久']},
     {key:'com',label:'重心高さ',value:distribution.center.y*1000,unit:'mm',provenance:'estimated',inputs:['ラチェット高さ','各部質量配分','ビット軸高差']},
@@ -165,11 +173,13 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   derived.push({key:'lateral-com',label:'軸からの横重心距離',value:Math.hypot(distribution.center.x,distribution.center.z)*1000,unit:'mm',provenance:'estimated',inputs:['横非対称形状の体積積分（人工オフセットなし）']});
   for(const key of ['xx','yy','zz','xy','xz','yz'] as const)derived.push({key:`tensor-${key}`,label:`慣性テンソル I${key}`,value:distribution.inertia[key],unit:'kg·m²',provenance:'estimated',inputs:['各部の重心テンソル','完全な平行軸定理']});
   principalInertias(distribution.inertia).forEach((value,i)=>derived.push({key:`principal-${i}`,label:`主慣性 ${i+1}`,value,unit:'kg·m²',provenance:'estimated',inputs:['推定テンソルの固有値']}));
-  for(const c of distribution.components){derived.push({key:`component-${c.component}-mass`,label:`${c.component} 質量`,value:c.mass*1000,unit:'g',provenance:'estimated',inputs:['公式評価に拘束された推定質量']});for(const axis of ['x','y','z'] as const)derived.push({key:`component-${c.component}-${axis}`,label:`${c.component} 重心 ${axis}`,value:c.center[axis]*1000,unit:'mm',provenance:'estimated',inputs:['共有形状の体積積分']});}
+  for(const c of distribution.components){derived.push({key:`component-${c.component}-mass`,label:`${c.component} 質量`,value:c.mass*1000,unit:'g',provenance:massCalibration.some(m=>m.component===c.component)?'measurement-informed':'estimated',inputs:[massCalibration.some(m=>m.component===c.component)?'独立した公開秤量から選択した代表値（公式仕様ではない）':'公式評価に拘束された推定質量']});for(const axis of ['x','y','z'] as const)derived.push({key:`component-${c.component}-${axis}`,label:`${c.component} 重心 ${axis}`,value:c.center[axis]*1000,unit:'mm',provenance:'estimated',inputs:['共有形状の体積積分']});}
   const zones=distribution.materialZones;
   for(const [key,label,value,unit] of [['rim-mass','金属リムの推定質量',zones.rimMass*1000,'g'],['core-hub-mass','樹脂コア/ハブの推定質量',zones.coreHubMass*1000,'g'],['rim-density','リムの推定有効密度',zones.rimDensity,'kg/m³'],['core-density','コアの推定有効密度',zones.coreDensity,'kg/m³'],['density-ratio','リム/コアの推定密度比',zones.densityRatio,'倍']] as const)derived.push({key,label,value,unit,provenance:'estimated',inputs:['外周配分制約→密度比4〜8','共有形状の体積','部品質量へ正規化（実測密度ではない）']});
   for(const c of distribution.components)derived.push({key:`component-${c.component}-iyy`,label:`${c.component} 自転慣性`,value:c.inertia.yy,unit:'kg·m²',provenance:'estimated',inputs:['部品自身の重心まわりの体積積分']});
   components[0].notes.push(...distribution.densityNotes);
+  if(sharedBusterOutline)components[0].notes.push('標準版とFCバルセロナ版の公式図・塗装説明から同じ基準輪郭を共有。評価加算による輪郭拡大なし。金型番号・塗膜厚・微細改版は未確認。質量と推定密度配分は別に扱う。');
+  for(const component of components)if(massCalibration.some(m=>m.component===component.category))component.notes.push('質量だけに独立した公開秤量を参照。形状・密度配分・重心・慣性は引き続き推定。');
   if(bitHeightOffset)derived.push({key:'bitHeightOffset',label:'軸高の相対差',value:bitHeightOffset*1000,unit:'mm',provenance:'official-relative',inputs:[`${code} の公式相対寸法`]});
-  return {profile,metadata:{version:MODEL_VERSION,status:partial?'partial-estimate':'source-informed-estimate',label:partial?'一部未再現・暫定モデルを含む推定':'公式評価・形状情報に拘束された未校正モデル',components,missingInputs:[...new Set(missingInputs)],unsupportedMechanisms,derived}};
+  return {profile,metadata:{version:MODEL_VERSION,status:partial?'partial-estimate':'source-informed-estimate',label:partial?'一部未再現・暫定モデルを含む推定':'公式評価・形状情報に拘束された未校正モデル',components,massCalibration,missingInputs:[...new Set(missingInputs)],unsupportedMechanisms,derived}};
 }

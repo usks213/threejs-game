@@ -39,7 +39,7 @@ export function compareModelCase({label,build}:{label:string;build:Build}){const
 export function controlledModelComparisons(){return modelComparisonCases().map(compareModelCase);}
 
 if(process.argv[1]?.endsWith('compare-beyblade-models.ts')){
-  const sourceSha256=Object.fromEntries(['src/beyblade/core/physics.ts','src/beyblade/core/body-geometry.ts','src/beyblade/core/inertia.ts','src/beyblade/data/assembly-mass.ts','src/beyblade/data/physical-estimates.ts','src/beyblade/data/shape-facts.ts','src/beyblade/data/expanded-shape-facts.ts','src/beyblade/data/catalog.ts','scripts/compare-beyblade-models.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]));
+  const sourceSha256=Object.fromEntries(['src/beyblade/core/physics.ts','src/beyblade/core/body-geometry.ts','src/beyblade/core/inertia.ts','src/beyblade/data/assembly-mass.ts','src/beyblade/data/physical-estimates.ts','src/beyblade/data/independent-masses.ts','src/beyblade/data/shape-facts.ts','src/beyblade/data/expanded-shape-facts.ts','src/beyblade/data/catalog.ts','scripts/compare-beyblade-models.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]));
   const comparisons=controlledModelComparisons(),audit=auditModels();
   const summary={catalogRows:audit.catalogRows,modeledRows:audit.modeledRows,uniqueMechanicalProfiles:audit.uniqueMechanicalProfiles,equivalentGroups:audit.equivalentGroups,
     sourceInformedBladeRows:audit.rows.filter(r=>r.status==='modeled'&&r.category==='blade'&&r.variants[0].metadata.components[0].shapeStatus==='source-informed').length,

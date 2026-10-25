@@ -23,7 +23,8 @@ describe('official-rating-constrained estimated mechanical model',()=>{
     const b=part('ドランソード'),r=part('3-60','ratchet'),t=part('F','bit');
     const base={blade:{part:b,ratings:{attack:60,defense:20,stamina:20}},ratchet:{part:r,ratings:r.ratings},bit:{part:t,ratings:t.ratings},spin:1 as const,color:0};
     const a=estimateAssembly(base),c=estimateAssembly({...base,blade:{...base.blade,ratings:{attack:66,defense:22,stamina:22}}});
-    expect(a.profile.mass).not.toBe(c.profile.mass);expect(a.profile.inertia).not.toBe(c.profile.inertia);
+    expect(a.profile.mass).toBe(c.profile.mass); // Independent sample mass is not overwritten by ratings.
+    expect(a.profile.inertia).not.toBe(c.profile.inertia);expect(a.profile.radius).not.toBe(c.profile.radius);
     expect(c.metadata.components[0].officialRatings?.attack).toBe(66);
     expect(a.profile.restitution).toBe(c.profile.restitution);
   });
@@ -65,7 +66,7 @@ describe('official-rating-constrained estimated mechanical model',()=>{
       for(const x of Object.values(v.profile))if(typeof x==='number')expect(Number.isFinite(x),row.name).toBe(true);
       expect(v.profile.mass).toBeGreaterThan(.02);expect(v.profile.inertia).toBeGreaterThan(0);
       expect(v.signature).toBe(mechanicalSignature(v.profile));
-      for(const derived of v.metadata.derived)expect(['estimated','official-relative']).toContain(derived.provenance);
+      for(const derived of v.metadata.derived){expect(['estimated','official-relative','measurement-informed']).toContain(derived.provenance);if(derived.provenance==='measurement-informed')expect(derived.key==='mass'||/^component-(blade|ratchet|bit)-mass$/.test(derived.key)).toBe(true);}
     }
     for(const group of audit.equivalentGroups)expect(group.explanation).toContain('実物');
   });

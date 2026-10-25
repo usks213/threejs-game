@@ -20,10 +20,9 @@ describe('authoritative network with real WebSocket clients',()=>{
     // This legal-launch fixture produces two actual Burst finishes (2 + 2 points).
     // Keep long same-build trajectory coverage separate from score-to-four transport coverage.
     const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
-    const buster=buildForBlade(parts.find(p=>p.canonicalId==='ドランバスター'&&p.category==='blade')!.id);buster.ratchet='ratchet:1-60';buster.bit='bit:A';
-    const [a,b]=await pair(f,[buster,sword]);expect(a.state()?.roomId).toBe(b.state()?.roomId);expect(a.state()?.player).toBe(0);expect(b.state()?.player).toBe(1);
+    const [a,b]=await pair(f,[defaultBuild,sword]);expect(a.state()?.roomId).toBe(b.state()?.roomId);expect(a.state()?.player).toBe(0);expect(b.state()?.player).toBe(1);
     for(let round=0;round<2;round++){
-      a.send({type:'launch',launch:{power:.8,angle:0,tilt:8*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
+      a.send({type:'launch',launch:{power:.5,angle:-50*Math.PI/180,tilt:30*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
       await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);
       for(let block=0;block<30;block++){
         for(let step=0;step<20;step++)f.advance(1000/60);
@@ -58,9 +57,8 @@ describe('authoritative network with real WebSocket clients',()=>{
   },15_000);
   it('keeps real burst fragments synchronized and result latched during unscored settling',async()=>{
     const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
-    const buster=buildForBlade(parts.find(p=>p.canonicalId==='ドランバスター'&&p.category==='blade')!.id);buster.ratchet='ratchet:1-60';buster.bit='bit:A';
-    const [a,b]=await pair(f,[buster,sword]);
-    a.send({type:'launch',launch:{power:.8,angle:0,tilt:8*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
+    const [a,b]=await pair(f,[defaultBuild,sword]);
+    a.send({type:'launch',launch:{power:.5,angle:-50*Math.PI/180,tilt:30*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
     await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);
     for(let block=0;block<30;block++){for(let step=0;step<20;step++)f.advance(1000/60);await pauses();if(a.state()?.phase==='round-end')break;}
     await until(()=>a.state()?.phase==='round-end'&&b.state()?.phase==='round-end');
@@ -73,6 +71,21 @@ describe('authoritative network with real WebSocket clients',()=>{
     expect(a.state()?.battle?.result).toEqual(lockedResult);expect(a.state()?.match?.scores).toEqual(lockedScores);
     a.send({type:'next'});b.send({type:'next'});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');expect(a.state()?.battle).toBeNull();
   },15000);
+  it('preserves the former Buster Burst input as a general authoritative trajectory regression',async()=>{
+    // Independent mass observations legitimately change the finish; never tune physics to a fixture.
+    const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
+    const buster=buildForBlade(parts.find(p=>p.canonicalId==='ドランバスター'&&p.category==='blade')!.id);buster.ratchet='ratchet:1-60';buster.bit='bit:A';
+    const [a,b]=await pair(f,[buster,sword]);
+    a.send({type:'launch',launch:{power:.8,angle:0,tilt:8*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
+    await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);
+    for(let block=0;block<40;block++){
+      for(let step=0;step<60;step++)f.advance(1000/60);
+      a.send({type:'ping'});b.send({type:'ping'});await pauses();if(a.state()?.phase==='round-end')break;
+    }
+    await until(()=>a.state()?.phase==='round-end'&&b.state()?.phase==='round-end'&&a.state()?.battle?.tick===b.state()?.battle?.tick);
+    expect(a.state()?.battle).toEqual(b.state()?.battle);expect(a.state()?.match).toEqual(b.state()?.match);expect(a.state()?.battle?.result).toBeTruthy();
+    expect(a.state()?.battle?.tops[0].profile.name).toBe(profileFor(buster).name);expect(a.state()?.battle?.tick).toBeGreaterThan(0);
+  },15_000);
   it('rejects forged builds, client scores, duplicate sequences, and invalid launch values',async()=>{
     const f=await fixture();const [a,b]=await pair(f);a.send({type:'score',score:999,winner:0});a.send({type:'launch',launch:{power:Infinity,angle:0,tilt:0}});a.socket.send(JSON.stringify({seq:1,type:'launch',launch:{power:1,angle:0,tilt:0}}));await until(()=>a.messages.filter(m=>m.type==='error').length>=3);expect(a.state()?.phase).toBe('ready');expect(a.state()?.match?.scores).toEqual([0,0]);expect(b.state()?.match?.scores).toEqual([0,0]);
     const c=await peer(f.url);c.send({type:'queue',build:{...defaultBuild,bit:'invented'}});await until(()=>c.messages.some(m=>m.type==='error'));expect(c.state()?.phase).toBe('idle');expect(f.manager.rooms.size).toBe(1);

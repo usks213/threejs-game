@@ -1,14 +1,15 @@
 {
   "sourceSha256": {
-    "src/beyblade/core/physics.ts": "33de174219efa3d32eb09564bb617f6856517e49c59ee1f2b3db1de4621e8bfb",
+    "src/beyblade/core/physics.ts": "e2d6696c9ae7d1b8b379eb4ac3fe31a5b102217f8d040d8977b75c7afaee4db5",
     "src/beyblade/core/body-geometry.ts": "cf155a590761e1f8bbdc6417d980f11978349073b2cdf64375d6767436929e3c",
     "src/beyblade/core/inertia.ts": "a451fdf648d4c7401591204a815b997bbc57fec178485b489e74243b46da6ed4",
     "src/beyblade/data/assembly-mass.ts": "e39372952152d2577aca46f83bdbe6ce124c374ba16205a9a79b8d1ff0c38785",
-    "src/beyblade/data/physical-estimates.ts": "3ef0fede4c0b80e20578bb863fc0d09e6bf72c1eddc389a35d7f94fc822c5a16",
+    "src/beyblade/data/physical-estimates.ts": "1ed5525d1fb3b20deed47c7ea1dde4a3fa5f76abae7ec72ca5c61b0bbb161f0f",
+    "src/beyblade/data/independent-masses.ts": "8fb0ebc0b53986dd1c0771d3b66e37f3c5cc9a0b0f22ef1d9e73a8c7979aa9e8",
     "src/beyblade/data/shape-facts.ts": "ec6ccb61ce8af569b97eb09eb4337fe3c9cf0016563f95b8db7aadc28a082c68",
     "src/beyblade/data/expanded-shape-facts.ts": "7c708014a3f78ae56928d2d1f7471848bf7779b050f382aa95b53578a4931c22",
     "src/beyblade/data/catalog.ts": "281c07b4f7a8a89350ee6d926fa23e53146b07ff7d7157cb1d5b30106006a4a5",
-    "scripts/compare-beyblade-models.ts": "d9256e4ab1f5b8c5ccd9e8af9404759f733530dc0be2a28fbf116a04a9ecb772"
+    "scripts/compare-beyblade-models.ts": "762c5b7ff551e55e188193fda4b1c0997b78d5dfa516e93b45d8978f04623b50"
   },
   "summary": {
     "catalogRows": 311,

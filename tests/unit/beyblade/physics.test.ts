@@ -96,13 +96,13 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     expect(railEligible(t)).toBe(true);t.x=STADIUM.railRadius+.01;expect(railEligible(t)).toBe(false);t.x=STADIUM.railRadius-profile.gearRadius;t.y+=.03;expect(railEligible(t)).toBe(false);
     t.y-=.03;t.profile.railEligible=false;expect(railEligible(t)).toBe(false);
   });
-  it('the 60% / +15 degree / 20 degree preset shows real gearing, dashes and later contact',()=>{
+  it('the 60% / +15 degree / 20 degree preset shows real gearing and dashes without energy injection',()=>{
     const p=profileFor(defaultBuild),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
     const state=createBattle([p,cpu],[{power:.6,angle:15*Math.PI/180,tilt:20*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]),events:(typeof state.events)=[];
     let energy=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);
     for(let i=0;i<240*15&&!state.result;i++){stepBattle(state);events.push(...state.events.filter(e=>e.tick>state.tick-1));const next=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);expect(next).toBeLessThanOrEqual(energy+1e-9);energy=next;}
-    expect(state.result).not.toBe(null);expect(events.some(e=>e.kind==='rail-engage')).toBe(true);expect(events.some(e=>e.kind==='dash')).toBe(true);expect(events.some(e=>e.kind==='collision')).toBe(true);
-    // Later contact is not claimed to be an uninterrupted direct dash-hit chain.
+    expect(state.result).not.toBe(null);expect(events.some(e=>e.kind==='rail-engage')).toBe(true);expect(events.some(e=>e.kind==='dash')).toBe(true);
+    // Mass calibration changes whether this trajectory intersects the opponent. Separate rail-bank and Burst fixtures assert real contact.
   },20000);
   it('the previous 80% / +15 degree / upright preset stays finite and closes without energy injection',()=>{
     const p=profileFor(defaultBuild),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));

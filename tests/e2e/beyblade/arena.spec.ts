@@ -126,10 +126,10 @@ test('part inspection exposes changed physical estimates, source evidence and un
 
 test('ordinary Burst keeps its score latched while physical pieces continue, then allows the next round',async({page})=>{
   await page.goto('/beyblade/');
-  await page.locator('select[data-part="blade"]').selectOption({label:'ドランバスター'});
-  await page.locator('select[data-part="ratchet"]').selectOption({label:'1-60'});
-  await page.locator('select[data-part="bit"]').selectOption({label:'A'});
-  await page.locator('#power').fill('80');await page.locator('#angle').fill('0');await page.locator('#tilt').fill('8');
+  await page.locator('select[data-part="blade"]').selectOption({label:'ヘルズサイズ'});
+  await page.locator('select[data-part="ratchet"]').selectOption({label:'4-60'});
+  await page.locator('select[data-part="bit"]').selectOption({label:'T · テーパー'});
+  await page.locator('#power').fill('50');await page.locator('#angle').fill('-50');await page.locator('#tilt').fill('30');
   await page.evaluate(()=>{
     const phase=document.getElementById('phase')!,launch=document.getElementById('launch') as HTMLButtonElement;
     const state=window as unknown as {settlingObserved:boolean;settlingWasGated:boolean};state.settlingObserved=false;state.settlingWasGated=false;
@@ -166,6 +166,7 @@ test('ratchet-only swaps change modeled COM and inertia, with an exact-scale ins
 });
 
 test('the reported Sword Needle launch no longer leaves the CPU fenced behind the rail',async({page})=>{
+  test.setTimeout(95000);
   await page.goto('/beyblade/');
   await page.locator('select[data-part="blade"]').selectOption({label:'ドランソード'});
   await page.locator('select[data-part="ratchet"]').selectOption('ratchet:3-60');
@@ -173,10 +174,45 @@ test('the reported Sword Needle launch no longer leaves the CPU fenced behind th
   await page.locator('#power').fill('80');await page.locator('#angle').fill('0');await page.locator('#tilt').fill('8');
   await expect(page.locator('#other-name')).toHaveText('ドランソード');
   // The core regression separately verifies inward return and absence of the old exterior pin.
-  // This actual UI fixture previously remained 0–0 beyond26 simulated seconds.
+  // With observed component masses the equal-work launch ends after 28.4 simulated seconds.
+  // Isolated SwiftShader runs take ~50–59 wall seconds for this 30.9 s simulation.
+  // The bound includes tracing overhead; performance is reported separately, not inferred from passing.
   await page.locator('#launch').click();
-  await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:20000});
+  await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:75000});
   const total=Number(await page.locator('#score-you').innerText())+Number(await page.locator('#score-other').innerText());
   expect(total).toBeGreaterThan(0);await expect(page.locator('#launch')).toBeEnabled();
   await page.locator('#reset-match').click();await expect(page.locator('#phase')).toContainText('READY');
+});
+
+test('independent mass observations stay separate from official ratings and estimated COM',async({page},testInfo)=>{
+  await page.goto('/beyblade/');
+  const blade=page.locator('select[data-part="blade"]');
+  await blade.selectOption('blade:e383f65c06a2');
+  await page.locator('select[data-part="ratchet"]').selectOption('ratchet:3-60');
+  await page.locator('select[data-part="bit"]').selectOption('bit:F');
+  const panel=page.locator('#mass-calibration');
+  await expect(panel).toBeVisible();
+  await expect(panel.locator('details')).toHaveCount(3);
+  await expect(page.locator('#model-values')).toContainText('43.32 g');
+  await expect(page.locator('#mass-summary')).toContainText('重心と慣性（推定）');
+  await panel.locator('summary').first().click();
+  await expect(panel).toContainText('34.77–35.12 g');
+  await expect(panel).toContainText('確認個体数 不明');
+  await expect(panel.locator('a').first()).toHaveAttribute('href','https://beybase.com/beyblade-part-weights-database/');
+  await expect(panel).toContainText('誤差帯や母集団範囲ではない');
+  await panel.screenshot({path:testInfo.outputPath('independent-mass-provenance.png'),scale:'css'});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+});
+
+test('mass provenance does not leak across unmeasured variants or reloads',async({page})=>{
+  await page.goto('/beyblade/');
+  const blade=page.locator('select[data-part="blade"]'),panel=page.locator('#mass-calibration');
+  // Unknown blade variants must not inherit standard or coated specimens.
+  await blade.selectOption({label:'ウィザードアロー'});
+  await expect(panel.locator('details[data-mass-part^="blade:"]')).toHaveCount(0);
+  await page.reload();
+  await expect(panel.locator('details[data-mass-part^="blade:"]')).toHaveCount(0);
+  await blade.selectOption('blade:e383f65c06a2');
+  await expect(panel.locator('details[data-mass-part="blade:e383f65c06a2"]')).toHaveCount(1);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });

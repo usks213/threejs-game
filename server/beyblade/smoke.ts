@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { writeFile, readFile } from 'node:fs/promises';
 import { WebSocket } from 'ws';
-import { defaultBuild } from '../../src/beyblade/data/catalog';
+import { defaultBuild, buildForBlade, parts } from '../../src/beyblade/data/catalog';
 import type { ServerMessage, StateMessage } from '../../src/beyblade/network/protocol';
 const base=process.env.BEYBLADE_SMOKE_URL;
 if(!base)throw new Error('Set BEYBLADE_SMOKE_URL to an explicitly authorized local/preview origin');
@@ -27,10 +27,11 @@ try{
     console.info(JSON.stringify({ok:true,restart:'fresh sessions, no fabricated recovered result',clients:2}));
   }else{
   await connect();await connect();
-  const [a,b]=peers;send(a,{type:'queue',build:defaultBuild});send(b,{type:'queue',build:defaultBuild});await wait(()=>a.state?.phase==='ready'&&b.state?.phase==='ready');assert.equal(a.state?.roomId,b.state?.roomId);assert.notEqual(a.state?.player,b.state?.player);
+  const [a,b]=peers;const sword=buildForBlade(parts.find(p=>p.category==='blade'&&p.canonicalId==='ドランソード')!.id);
+  send(a,{type:'queue',build:defaultBuild});await wait(()=>a.state?.phase==='queued');send(b,{type:'queue',build:sword});await wait(()=>a.state?.phase==='ready'&&b.state?.phase==='ready');assert.equal(a.state?.roomId,b.state?.roomId);assert.notEqual(a.state?.player,b.state?.player);
   let rounds=0;
   while(rounds++<12){
-    send(a,{type:'launch',launch:{power:.2,angle:.3,tilt:.6}});send(b,{type:'launch',launch:{power:1,angle:0,tilt:0}});
+    send(a,{type:'launch',launch:{power:.5,angle:-50*Math.PI/180,tilt:30*Math.PI/180}});send(b,{type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
     await wait(()=>['round-end','match-end'].includes(a.state?.phase??'')&&['round-end','match-end'].includes(b.state?.phase??''),60_000);
     assert.deepEqual(a.state?.match,b.state?.match);assert.deepEqual(a.state?.battle,b.state?.battle);assert.ok(a.state?.battle?.result);assert.ok(a.state!.battle!.tick>0);
     if(a.state?.phase==='match-end'){assert.ok(Math.max(...a.state.match!.scores)>=4);break;}
