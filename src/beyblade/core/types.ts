@@ -31,7 +31,7 @@ export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: numb
   componentAxialWeights?:{blade:number;ratchet:number;bit:number};
   modelPalette?:{metal:number;core:number;ratchet:number;bit:number};
 }
-export interface Launch { power: number; angle: number; tilt: number }
+export interface Launch { power: number; angle: number; tilt: number; position?: { x: number; z: number } }
 export interface Vec3 { x:number; y:number; z:number }
 export interface SymmetricTensor {xx:number;yy:number;zz:number;xy:number;xz:number;yz:number}
 export interface MassComponent {component:BurstComponent;mass:number;center:Vec3;inertia:SymmetricTensor}

@@ -140,8 +140,9 @@ test('ordinary Burst keeps its score latched while physical pieces continue, the
   await expect.poll(()=>page.evaluate(()=>(window as unknown as {settlingObserved:boolean}).settlingObserved),{timeout:20000}).toBe(true);
   expect(await page.evaluate(()=>(window as unknown as {settlingWasGated:boolean}).settlingWasGated)).toBe(true);
   const scores=[await page.locator('#score-you').innerText(),await page.locator('#score-other').innerText()];expect(scores.map(Number).sort()).toEqual([0,2]);
+  await expect(page.locator('#battle-result')).toBeVisible();await expect(page.locator('#result-finish')).toHaveText('バーストフィニッシュ');await expect(page.locator('#finish-banner')).toHaveText('バーストフィニッシュ');await expect(page.locator('#result-points')).toContainText('+2 pt');await expect(page.locator('#result-score')).toContainText(`YOU ${scores[0]} : ${scores[1]} CPU`);
   await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:20000});await expect(page.locator('#launch')).toBeEnabled();
-  expect([await page.locator('#score-you').innerText(),await page.locator('#score-other').innerText()]).toEqual(scores);await page.locator('#launch').click();await expect(page.locator('#phase')).toContainText('COUNTDOWN');
+  expect([await page.locator('#score-you').innerText(),await page.locator('#score-other').innerText()]).toEqual(scores);await page.locator('#launch').click();await expect(page.locator('#phase')).toContainText('COUNTDOWN');await expect(page.locator('#battle-result')).toBeHidden();await expect(page.locator('#finish-banner')).toBeHidden();
   await page.locator('#reset-match').click();await expect(page.locator('#phase')).toContainText('READY');await expect(page.locator('#score-you')).toHaveText('0');
 });
 
@@ -215,4 +216,51 @@ test('mass provenance does not leak across unmeasured variants or reloads',async
   await blade.selectOption('blade:e383f65c06a2');
   await expect(panel.locator('details[data-mass-part="blade:e383f65c06a2"]')).toHaveCount(1);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+});
+
+test('pointer and keyboard select a launch position, settings lock during countdown',async({page,isMobile})=>{
+  await page.goto('/beyblade/');
+  const canvas=page.locator('#arena-canvas');
+  await expect(canvas).toHaveAttribute('data-launch-x','-0.105');
+  await page.locator('#pick-position').click();
+  const box=(await canvas.boundingBox())!;
+  // Left of stadium center, inside the visible blue launch lane on both aspect ratios.
+  const point={x:box.x+box.width*.39,y:box.y+box.height*.5};
+  if(isMobile)await page.touchscreen.tap(point.x,point.y);else await page.mouse.click(point.x,point.y);
+  await expect(canvas).not.toHaveAttribute('data-launch-x','-0.105');
+  const x=Number(await canvas.getAttribute('data-launch-x')),z=Number(await canvas.getAttribute('data-launch-z'));
+  expect(x).toBeLessThanOrEqual(-.04);expect(Math.hypot(x,z)).toBeLessThanOrEqual(.120001);
+  await page.locator('#reset-position').click();await expect(canvas).toHaveAttribute('data-launch-x','-0.105');
+  await page.locator('#pick-position').click();await canvas.press('ArrowRight');await canvas.press('Enter');
+  expect(Number(await canvas.getAttribute('data-launch-x'))).toBeCloseTo(-.1);
+  await page.locator('#launch').click();
+  for(const id of ['power','angle','tilt','pick-position','reset-position'])await expect(page.locator(`#${id}`)).toBeDisabled();
+  await page.locator('#reset-match').click();await expect(page.locator('#pick-position')).toBeEnabled();
+  await expect(page.locator('#battle-result')).toBeHidden();
+});
+
+test('spoken settings are reviewed before applying and unsupported speech has a text fallback',async({page})=>{
+  await page.addInitScript(()=>{Object.defineProperty(window,'SpeechRecognition',{value:undefined,configurable:true});Object.defineProperty(window,'webkitSpeechRecognition',{value:undefined,configurable:true});});
+  await page.goto('/beyblade/');await page.locator('.speech-controls summary').click();
+  await expect(page.locator('#speech-start')).toBeDisabled();await expect(page.locator('#speech-status')).toContainText('未対応');
+  await page.locator('#spoken-command').fill('パワー８０、角度マイナス１０、傾き５');await page.locator('#speech-preview').click();
+  await expect(page.locator('#power')).toHaveValue('60');await expect(page.locator('#speech-status')).toContainText('角度 -10°');
+  await page.locator('#speech-apply').click();await expect(page.locator('#power')).toHaveValue('80');await expect(page.locator('#angle')).toHaveValue('-10');await expect(page.locator('#tilt')).toHaveValue('5');await expect(page.locator('#phase')).toContainText('READY');
+  await page.locator('#spoken-command').fill('パワー50、傾き90');await page.locator('#speech-preview').click();await expect(page.locator('#speech-apply')).toBeDisabled();await expect(page.locator('#power')).toHaveValue('80');
+});
+
+test('speech recognition transcript is reviewable and cancelled when launching',async({page})=>{
+  await page.addInitScript(()=>{
+    class MockRecognition {
+      lang='';continuous=false;interimResults=false;onresult:((event:{results:{transcript:string}[][]})=>void)|null=null;onerror:null=null;onend:null=null;
+      start(){(window as unknown as {testRecognition:MockRecognition}).testRecognition=this;}
+      abort(){(window as unknown as {recognitionAborted:boolean}).recognitionAborted=true;}
+    }
+    Object.defineProperty(window,'SpeechRecognition',{value:MockRecognition,configurable:true});
+  });
+  await page.goto('/beyblade/');await page.locator('.speech-controls summary').click();await page.locator('#speech-start').click();
+  await page.evaluate(()=>(window as unknown as {testRecognition:{onresult:(event:{results:{transcript:string}[][]})=>void}}).testRecognition.onresult({results:[[{transcript:'パワー70、傾き10'}]]}));
+  await expect(page.locator('#spoken-command')).toHaveValue('パワー70、傾き10');await expect(page.locator('#power')).toHaveValue('60');await page.locator('#speech-apply').click();await expect(page.locator('#power')).toHaveValue('70');
+  await page.locator('#speech-start').click();await page.locator('#launch').click();await expect(page.locator('#speech-start')).toBeDisabled();await expect(page.locator('#speech-apply')).toBeDisabled();
+  expect(await page.evaluate(()=>(window as unknown as {recognitionAborted:boolean}).recognitionAborted)).toBe(true);await page.locator('#reset-match').click();
 });

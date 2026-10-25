@@ -38,6 +38,9 @@ test('real desktop and phone clients match, launch, receive same result and leav
     await expect(b.locator('#phase')).toContainText('ROUND-END');
     expect(await a.locator('#score-you').textContent()).toBe(await b.locator('#score-other').textContent());
     expect(await a.locator('#score-other').textContent()).toBe(await b.locator('#score-you').textContent());
+    for(const page of [a,b])await expect(page.locator('#battle-result')).toBeVisible();
+    expect(await a.locator('#result-finish').textContent()).toBe(await b.locator('#result-finish').textContent());
+    const aWinner=await a.locator('#battle-result').getAttribute('data-winner');expect(await b.locator('#battle-result').getAttribute('data-winner')).toBe(aWinner==='0'?'1':'0');
   });
   // Live coverage comes from the transition and exact snapshots above, not a screenshot
   // that may arrive after a short round. Full-page layout is covered by the arena tests.
@@ -52,6 +55,7 @@ test('real desktop and phone clients match, launch, receive same result and leav
   await test.step('leave and verify opponent match end without browser errors',async()=>{
     await b.locator('#cancel-queue').click();
     await expect(a.locator('#phase')).toContainText('MATCH-END');
+    await expect(a.locator('#result-finish')).toHaveText('退出・接続切れによる決着');await expect(a.locator('#result-title')).toHaveText('YOU WIN');
     await expect(b.locator('#connection')).toContainText('接続を終了');
     expect(errors).toEqual([]);
   });

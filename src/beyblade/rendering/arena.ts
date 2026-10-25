@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Battle, Profile } from '../core/types';
+import { defaultLaunchPosition, LAUNCH_RADIUS, LAUNCH_GAP, type LaunchPosition } from '../core/launch-position';
 import { buildTopComponents, setComponentPose } from './top-mesh';
 import { STADIUM, bowlHeightAt, comHeight, getRailPath } from '../core/physics';
 
@@ -147,10 +148,31 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
     camera.position.set(0, distance * .665, distance * .747); camera.lookAt(0, .018, 0); camera.updateProjectionMatrix();
   }
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
+  let launchPosition = defaultLaunchPosition(0), launchPlayer: 0 | 1 = 0;
+  const target = mesh(new THREE.TorusGeometry(.034,.0018,6,40),0x335dff);
+  target.rotation.x=Math.PI/2; target.material.emissive.setHex(0x335dff); target.material.emissiveIntensity=.7; scene.add(target);
+  const laneShape=new THREE.Shape();
+  const edge=Math.acos(LAUNCH_GAP/LAUNCH_RADIUS);
+  laneShape.absarc(0,0,LAUNCH_RADIUS,-edge,edge,false);laneShape.closePath();
+  const lane=mesh(new THREE.ShapeGeometry(laneShape),0x335dff);
+  lane.rotation.x=-Math.PI/2;lane.material.transparent=true;lane.material.opacity=.12;lane.material.depthWrite=false;lane.position.y=.008;scene.add(lane);
+  const raycaster=new THREE.Raycaster();
   function lost(event: Event) { event.preventDefault(); onError('描画が中断されました。画面を再読み込みしてください。'); }
   canvas.addEventListener('webglcontextlost', lost);
   return {
     setProfiles,
+    setLaunchPosition(position: LaunchPosition, player: 0|1, visible: boolean) {
+      launchPosition={...position};launchPlayer=player;
+      target.position.set(position.x,bowlHeightAt(position.x,position.z)+.003,position.z);target.visible=visible;
+      lane.rotation.z=player===0?Math.PI:0;lane.visible=visible;
+    },
+    pickLaunchPosition(clientX: number, clientY: number): LaunchPosition | null {
+      const rect=canvas.getBoundingClientRect();if(!rect.width||!rect.height)return null;
+      camera.updateMatrixWorld();floorSurface.updateMatrixWorld();
+      raycaster.setFromCamera(new THREE.Vector2((clientX-rect.left)/rect.width*2-1,1-(clientY-rect.top)/rect.height*2),camera);
+      const hit=raycaster.intersectObject(floorSurface,false)[0];
+      return hit?{x:hit.point.x,z:hit.point.z}:null;
+    },
     draw(battle: Battle | null, time: number) {
       const resetTrail = !battle || battle.tick < lastTick, addTrail = Boolean(battle && battle.tick !== lastTick);
       groups.forEach((group, i) => {
@@ -158,7 +180,7 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
         if (!profile) { group.visible = false; shadows[i].visible = false; return; }
         group.visible = true;
         if (top) { group.position.set(top.x, top.y, top.z); group.quaternion.set(top.orientation.x, top.orientation.y, top.orientation.z, top.orientation.w); }
-        else { const x = i === 0 ? -.085 : .085; group.position.set(x, bowlHeightAt(x, 0) + comHeight(profile), 0); group.rotation.set(0, time * (i === 0 ? .35 : -.35), 0); }
+        else { const {x,z}=i===0?launchPosition:defaultLaunchPosition(launchPlayer===0?1:0); group.position.set(x, bowlHeightAt(x,z) + comHeight(profile),z); group.rotation.set(0, time * (i === 0 ? .35 : -.35), 0); }
         // Each fragment inherits a solver COM and quaternion. Reuse the assembled mesh with
         // precisely its component COM offset removed; never invent a burst trajectory.
         const separated = Boolean(top?.separated);

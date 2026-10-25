@@ -4,6 +4,7 @@ import {bitHeightOffset,comHeight,gearHeightAt,getBitGeometry,bladeRadiusAt,blad
 export {bitHeightOffset,comHeight,gearHeightAt,getBitGeometry,bladeRadiusAt,bladeCenterHeightAt,canonicalBladeCenterHeightAt,getBladeOutline,getRatchetGeometry,getRatchetOutline,getRatchetVertices,getBladeVertices,getCenterOfMass,geometryToCOM,getCanonicalBladeVertices,getCanonicalRatchetVertices,getCanonicalBitVertices,getBladeMaterialGeometry} from './body-geometry';
 import type { Battle, BattleResult, Finish, Launch, Profile, Top, Vec3, Quaternion, BurstFragment, BurstComponent, SymmetricTensor } from './types';
 import { points } from './rules';
+import { defaultLaunchPosition, validLaunchPosition } from './launch-position';
 
 export const STEP=1/240;
 const G=9.81;
@@ -103,6 +104,7 @@ const contactMass=(t:Top,r:Vec3,n:Vec3)=>1/t.profile.mass+dot(cross(inverseInert
 function angularFriction(t:Top,axis:Vec3,maxImpulse:number):void{const speed=dot(t.angularVelocity,axis),effective=dot(axis,inverseInertia(t,axis));const j=-Math.sign(speed)*Math.min(Math.abs(speed)/effective,Math.max(0,maxImpulse));t.angularMomentum=add(t.angularMomentum,scale(axis,j));syncDerived(t);}
 
 export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]):Battle{
+  for (const i of [0,1] as const) if (launches[i].position !== undefined && !validLaunchPosition(launches[i].position,i)) throw new Error('Invalid launch position');
   const tops=profiles.map((p,i):PhysicsTop=>{
     if(![p.mass,p.radius,p.inertia,p.burstThreshold,p.gearRadius].every(n=>Number.isFinite(n)&&n>0)||p.radius>=STADIUM.radius/2||p.gearRadius>=p.radius||![p.drag,p.grip,p.height,p.railGrip,p.contactLobes,p.contactLobeDepth,p.gearHeight].every(Number.isFinite)||![1,-1].includes(p.spin))throw new Error('Invalid physical profile');
     const optionalPositive=[p.transverseInertia,p.centerOfMassHeight,p.tipRadius,p.lockStiffness,p.lockReleaseAngle,p.bladeThickness,p.bladeEdgeSharpness,p.ratchetRadius,p.ratchetHalfThickness,p.gearEngagementBand];
@@ -112,13 +114,14 @@ export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]
     if(p.massComponents?.some(c=>!Number.isFinite(c.mass)||c.mass<=0||!Object.values(c.center).every(Number.isFinite)||!positiveDefinite(c.inertia)))throw new Error('Invalid component mass tensor');
     if(p.massComponents){const combined=combineMassComponents(p.massComponents),c=getCenterOfMass(p),tensor=p.inertiaTensor;
       if(Math.abs(combined.mass-p.mass)>p.mass*1e-9||norm(sub(combined.center,c))>1e-9||!tensor||Object.keys(tensor).some(k=>Math.abs(combined.inertia[k as keyof SymmetricTensor]-tensor[k as keyof SymmetricTensor])>Math.max(tensor.xx,tensor.yy,tensor.zz)*1e-8))throw new Error('Component mass/COM/tensor must reproduce assembly');}
-    const l=launches[i],power=clamp(finite(l.power,.75),.05,1),angle=clamp(finite(l.angle,0),-Math.PI,Math.PI),tilt=clamp(finite(l.tilt,.12),0,.65),side=i===0?-1:1,direction=angle+(i===0?0:Math.PI);
+    const l=launches[i],power=clamp(finite(l.power,.75),.05,1),angle=clamp(finite(l.angle,0),-Math.PI,Math.PI),tilt=clamp(finite(l.tilt,.12),0,.65),direction=angle+(i===0?0:Math.PI);
     const speed=(.45+power*1.45)*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass);
     const angularSpeed=(170+power*440)*Math.sqrt(LAUNCH_REFERENCE.axialInertia/(p.inertiaTensor?.yy??p.inertia));
     const yaw=i*Math.PI,tiltAxis=V(Math.sin(direction),0,-Math.cos(direction));
     const q=multiply(rotationVector(scale(tiltAxis,tilt)),rotationVector(V(0,yaw,0)));
     const center=comHeight(p),tip=p.tipRadius??.0015,transverse=p.transverseInertia??(.5*p.inertia+p.mass*(p.height*.35)**2/12);
-    const t:PhysicsTop={profile:{...p},x:side*.105,y:0,z:side*.053,vx:Math.cos(direction)*speed,vy:-.12*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass),vz:Math.sin(direction)*speed,orientation:q,angularMomentum:V(),angularVelocity:V(),bodyInertia:V(p.inertiaTensor?.xx??transverse,p.inertiaTensor?.yy??p.inertia,p.inertiaTensor?.zz??transverse),bodyInertiaTensor:p.inertiaTensor?{...p.inertiaTensor}:undefined,centerOfMassHeight:center,tipRadius:tip,omega:p.spin*angularSpeed,phase:yaw,tilt,tiltVelocity:0,lock:0,railCooldown:0,eliminated:null,rail:{engaged:false,travel:0,translationWork:0,rotationWork:0,contactPoint:null,tangent:null,lastContactTick:-1,lastReleaseTick:-1,dashCount:0,speedBefore:0,spinBefore:0,energyBefore:0}};
+    const spawn=l.position??defaultLaunchPosition(i as 0|1);
+    const t:PhysicsTop={profile:{...p},x:spawn.x,y:0,z:spawn.z,vx:Math.cos(direction)*speed,vy:-.12*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass),vz:Math.sin(direction)*speed,orientation:q,angularMomentum:V(),angularVelocity:V(),bodyInertia:V(p.inertiaTensor?.xx??transverse,p.inertiaTensor?.yy??p.inertia,p.inertiaTensor?.zz??transverse),bodyInertiaTensor:p.inertiaTensor?{...p.inertiaTensor}:undefined,centerOfMassHeight:center,tipRadius:tip,omega:p.spin*angularSpeed,phase:yaw,tilt,tiltVelocity:0,lock:0,railCooldown:0,eliminated:null,rail:{engaged:false,travel:0,translationWork:0,rotationWork:0,contactPoint:null,tangent:null,lastContactTick:-1,lastReleaseTick:-1,dashCount:0,speedBefore:0,spinBefore:0,energyBefore:0}};
     const tipR=rotate(q,geometryToCOM(p,V(0,tip,0)));t.y=bowlHeightAt(t.x+tipR.x,t.z+tipR.z)-tipR.y+tip+.001;
     t.angularMomentum=inertia(t,scale(bodyAxis(t),t.omega));syncDerived(t);return t;
   }) as [PhysicsTop,PhysicsTop];

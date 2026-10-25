@@ -16,6 +16,19 @@ afterEach(async()=>{for(const close of cleanup.splice(0))await close();});
 async function fixture(){let now=1000;const app=await createArenaServer({port:0,now:()=>now,countdownMs:0,graceMs:100});cleanup.push(app.close);const address=app.address;if(!address||typeof address==='string')throw new Error('No TCP address');const url=`ws://127.0.0.1:${address.port}/api/beyblade`;return{...app,url,advance:(ms:number)=>{now+=ms;app.manager.tick();}};}
 async function pair(f:Awaited<ReturnType<typeof fixture>>,builds:[Build,Build]=[defaultBuild,defaultBuild]){const a=await peer(f.url),b=await peer(f.url);a.send({type:'queue',build:builds[0]});await until(()=>a.state()?.phase==='queued');b.send({type:'queue',build:builds[1]});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');return [a,b] as const;}
 describe('authoritative network with real WebSocket clients',()=>{
+  it('validates launch positions on the server and preserves accepted coordinates',async()=>{
+    const f=await fixture(),[a,b]=await pair(f);
+    a.send({type:'launch',launch:{power:.6,angle:0,tilt:.1,position:{x:.08,z:0}}});
+    await until(()=>a.messages.some(m=>m.type==='error'&&m.message.includes('範囲外')));
+    expect(a.state()?.ready).toEqual([false,false]);
+    a.send({type:'launch',launch:{power:.6,angle:0,tilt:.1,position:{x:-.07,z:.02}}});
+    b.send({type:'launch',launch:{power:.6,angle:0,tilt:.1,position:{x:.08,z:-.02}}});
+    await until(()=>a.state()?.phase==='countdown');f.advance(1);
+    await until(()=>a.messages.some(m=>m.type==='state'&&m.battle?.tick===0));
+    const initial=a.messages.find((m):m is StateMessage=>m.type==='state'&&m.battle?.tick===0)!;
+    expect(initial.battle?.tops.map(t=>({x:t.x,z:t.z}))).toEqual([{x:-.07,z:.02},{x:.08,z:-.02}]);
+  });
+
   it('matches two independent clients and scores a finite real two-round match identically',async()=>{
     // This legal-launch fixture produces two actual Burst finishes (2 + 2 points).
     // Keep long same-build trajectory coverage separate from score-to-four transport coverage.

@@ -19,13 +19,14 @@
 <span class="pill">XTREME STADIUM</span>
 </div>
 <div class="stage">
-<canvas id="arena-canvas" aria-label="ベイブレードの3Dスタジアム">
+<canvas id="arena-canvas" tabindex="0" aria-describedby="position-help" aria-label="ベイブレードの3Dスタジアム">
 </canvas>
 <div class="stage-top">
 <span class="tag">01 / TRAINING ARENA</span>
 <span class="tag live" id="phase">● READY TO LAUNCH</span>
 </div>
 <button class="arena-focus" id="arena-focus" aria-pressed="false">アリーナを拡大</button>
+<div id="finish-banner" class="finish-banner" hidden></div>
 <div class="motion-state" id="motion-state" aria-live="off">6DOF · 3次元の姿勢と接触を計算</div>
 <div class="stage-error" id="arena-error" role="alert" hidden>
 </div>
@@ -46,6 +47,9 @@
 </div>
 </div>
 </div>
+<section id="battle-result" class="battle-result" role="status" aria-live="polite" aria-atomic="true" hidden>
+<div class="eyebrow" id="result-match"></div><h2 id="result-title"></h2><p id="result-finish"></p><strong id="result-points"></strong><p id="result-score"></p>
+</section>
 <div class="model-warning"><strong>公式性能・形状を反映した、未校正の物理モデルです。</strong><br>公式の評価値と形状説明から物理係数を推定し、重力・姿勢・角運動量・接触・ギアの噛み合いを計算します。実機測定に基づく一致検証は未実施です。</div>
 <div class="status" role="status">
 <i class="indicator">
@@ -58,6 +62,12 @@
 <span class="micro">LAUNCH CONTROL</span>
 </div>
 <label class="cpu-picker" id="cpu-picker">練習相手 <select id="cpu-blade" aria-label="練習相手のブレード"></select></label>
+<div class="position-controls">
+<button class="ghost" id="pick-position" aria-pressed="false">ポインターで位置を選ぶ</button>
+<button class="ghost" id="reset-position">位置を初期値に戻す</button>
+<output id="position-value"></output>
+</div>
+<p class="note" id="position-help">「位置を選ぶ」を押して、スタジアムの青い範囲をクリック・タップ。ドラッグで微調整できます。キーボードは矢印キーで移動、Enterで確定。相手との重なりを避けるため自分側の範囲から選びます。</p>
 <div class="launch-controls">
 <label>パワー <output id="power-value">60%</output>
 <input id="power" type="range" min="20" max="100" value="60" aria-label="シュートパワー">
@@ -69,6 +79,12 @@
 <input id="tilt" type="range" min="0" max="30" value="20" aria-label="シュートの傾き">
 </label>
 </div>
+<details class="speech-controls"><summary>話してシュート設定を入力</summary>
+<p class="note">例:「パワー80、角度マイナス10、傾き5」。認識内容を確認して反映します。音声認識はブラウザーのサービスへ音声を送信する場合があります。文字入力も使えます。</p>
+<label for="spoken-command">音声・文字によるシュート指示</label><input id="spoken-command" type="text" maxlength="200" placeholder="パワー80、角度0、傾き5">
+<div class="speech-actions"><button class="ghost" id="speech-start" aria-pressed="false">音声入力</button><button class="ghost" id="speech-preview">内容を確認</button><button id="speech-apply" disabled>設定に反映</button></div>
+<p id="speech-status" role="status">認識した内容はここで確認できます。</p>
+</details>
 <div class="actions">
 <button class="primary" id="launch">3, 2, 1 — GO SHOOT!</button>
 <button class="ghost" id="reset-match" aria-label="試合をリセット">↻ リセット</button>

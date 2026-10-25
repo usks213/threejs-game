@@ -1,6 +1,7 @@
 import { profileFor, validateBuild } from '../../src/beyblade/data/catalog';
 import { createBattle, stepBattle, stepSettlingBattle, STEP } from '../../src/beyblade/core/physics';
 import { createMatch, scoreRound } from '../../src/beyblade/core/rules';
+import { validLaunchPosition } from '../../src/beyblade/core/launch-position';
 import type { Battle, Build, Launch, Match } from '../../src/beyblade/core/types';
 import type { Phase, ServerMessage, StateMessage } from '../../src/beyblade/network/protocol';
 export interface Transport { send(message:ServerMessage):void; close():void }
@@ -27,10 +28,11 @@ function parseBuild(value:unknown):Build|null {
   const build={blade:'',ratchet:'',bit:'',...value} as unknown as Build;
   return validateBuild(build).length?null:build;
 }
-function parseLaunch(value:unknown):Launch|null {
+function parseLaunch(value:unknown,player:0|1):Launch|null {
   if(!isRecord(value))return null;
   const {power,angle,tilt}=value;
-  return finite(power)&&power>=.2&&power<=1&&finite(angle)&&Math.abs(angle)<=Math.PI&&finite(tilt)&&tilt>=0&&tilt<=.65?{power,angle,tilt}:null;
+  if(value.position!==undefined&&!validLaunchPosition(value.position,player))return null;
+  return finite(power)&&power>=.2&&power<=1&&finite(angle)&&Math.abs(angle)<=Math.PI&&finite(tilt)&&tilt>=0&&tilt<=.65?{power,angle,tilt,...(validLaunchPosition(value.position,player)?{position:{x:value.position.x,z:value.position.z}}:{})}:null;
 }
 /** All scoring, legal builds, simulation time and phase transitions live on the server. */
 export class RoomManager {
@@ -69,7 +71,7 @@ export class RoomManager {
     const room=s.roomId?this.rooms.get(s.roomId):undefined;if(!room){this.error(s,'対戦ルームがありません');return;}const index=room.players[0]===s?0:1;
     if(msg.type==='launch'){
       if(room.phase!=='ready'||room.launches[index]){this.error(s,'このタイミングではシュートできません');return;}
-      const launch=parseLaunch(msg.launch);if(!launch){this.error(s,'シュート設定が範囲外です');return;}
+      const launch=parseLaunch(msg.launch,index);if(!launch){this.error(s,'シュート設定が範囲外です');return;}
       room.launches[index]=launch;room.ready[index]=true;
       if(room.launches[0]&&room.launches[1]){room.phase='countdown';room.countdownEndsAt=now+this.countdownMs;}
       this.broadcast(room);return;
