@@ -28,16 +28,18 @@ function orbit(p:Profile){
   for(let i=0;i<3/STEP&&!state.result;i++){stepBattle(state);for(const e of state.events)events.set(`${e.tick}:${e.kind}:${e.top}`,e);}
   const t=state.tops[0];return {simulatedSeconds:state.tick*STEP,result:state.result,x:t.x,y:t.y,z:t.z,omega:t.omega,firstRail:[...events.values()].find(e=>e.kind==='rail-engage'&&e.top===0)?.tick??null,firstDash:[...events.values()].find(e=>e.kind==='dash'&&e.top===0)?.tick??null};
 }
-export function controlledModelComparisons(){
+export function modelComparisonCases(){
   const builds:{label:string;build:Build}[]=[{label:'Sword / 3-60 / F',build:base},
     ...['ウィザードロッド','ナイトシールド','ドランバスター'].map(name=>({label:`blade-only: ${name}`,build:{...base,blade:find(name,'blade').id}})),
     ...['3-80','9-60','4-60'].map(name=>({label:`ratchet-only: ${name}`,build:{...base,ratchet:find(name,'ratchet').id}})),
     ...['B','N','R','LF','A'].map(name=>({label:`bit-only: ${name}`,build:{...base,bit:find(name,'bit').id}}))];
-  return builds.map(({label,build})=>{const profile=profileFor(build);return {label,build,profile,isolatedSpin:spinDown(profile),incomingImpact:impact(profile),ordinaryLaunch:orbit(profile)};});
+  return builds;
 }
+export function compareModelCase({label,build}:{label:string;build:Build}){const profile=profileFor(build);return {label,build,profile,isolatedSpin:spinDown(profile),incomingImpact:impact(profile),ordinaryLaunch:orbit(profile)};}
+export function controlledModelComparisons(){return modelComparisonCases().map(compareModelCase);}
 
 if(process.argv[1]?.endsWith('compare-beyblade-models.ts')){
-  const sourceSha256=Object.fromEntries(['src/beyblade/core/physics.ts','src/beyblade/data/physical-estimates.ts','src/beyblade/data/shape-facts.ts','src/beyblade/data/expanded-shape-facts.ts','src/beyblade/data/catalog.ts','scripts/compare-beyblade-models.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]));
+  const sourceSha256=Object.fromEntries(['src/beyblade/core/physics.ts','src/beyblade/core/body-geometry.ts','src/beyblade/core/inertia.ts','src/beyblade/data/assembly-mass.ts','src/beyblade/data/physical-estimates.ts','src/beyblade/data/shape-facts.ts','src/beyblade/data/expanded-shape-facts.ts','src/beyblade/data/catalog.ts','scripts/compare-beyblade-models.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]));
   const comparisons=controlledModelComparisons(),audit=auditModels();
   const summary={catalogRows:audit.catalogRows,modeledRows:audit.modeledRows,uniqueMechanicalProfiles:audit.uniqueMechanicalProfiles,equivalentGroups:audit.equivalentGroups,
     sourceInformedBladeRows:audit.rows.filter(r=>r.status==='modeled'&&r.category==='blade'&&r.variants[0].metadata.components[0].shapeStatus==='source-informed').length,

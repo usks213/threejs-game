@@ -17,6 +17,7 @@ export interface Build { blade: string; ratchet: string; bit: string; lock_chip?
 /** Rating-informed gameplay estimates with explicit provenance; never manufacturer-measured SI constants. */
 export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: number; radius: number; inertia: number; grip: number; drag: number; restitution: number; burstThreshold: number; height: number; railGrip: number; gearRadius:number; gearHeight:number; railEligible:boolean; contactLobes:number; contactLobeDepth:number; color: number;
   /** Rating-informed SI body/contact estimates; not manufacturer-measured constants. */
+  centerOfMass?:Vec3;inertiaTensor?:SymmetricTensor;massComponents?:MassComponent[];
   transverseInertia?: number; centerOfMassHeight?: number; tipRadius?: number;
   tipShape?: 'flat'|'ball'|'needle'|'taper'; tipFriction?: number; rollingDrag?: number;
   lockStiffness?:number; lockReleaseAngle?:number; bladeRampAmplitude?:number; bladeSkew?:number;
@@ -32,11 +33,13 @@ export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: numb
 }
 export interface Launch { power: number; angle: number; tilt: number }
 export interface Vec3 { x:number; y:number; z:number }
+export interface SymmetricTensor {xx:number;yy:number;zz:number;xy:number;xz:number;yz:number}
+export interface MassComponent {component:BurstComponent;mass:number;center:Vec3;inertia:SymmetricTensor}
 export interface Quaternion { x:number; y:number; z:number; w:number }
 export interface RailState { engaged:boolean; travel:number; contactPoint:Vec3|null; tangent:Vec3|null; lastContactTick:number; lastReleaseTick:number; dashCount:number; speedBefore:number; spinBefore:number; energyBefore:number }
 export interface Top {
   x:number; y:number; z:number; vx:number; vy:number; vz:number;
-  orientation:Quaternion; angularMomentum:Vec3; angularVelocity:Vec3; bodyInertia:Vec3;
+  orientation:Quaternion; angularMomentum:Vec3; angularVelocity:Vec3; bodyInertia:Vec3;bodyInertiaTensor?:SymmetricTensor;
   centerOfMassHeight:number; tipRadius:number; rail:RailState;
   /** Derived compatibility/telemetry views; orientation and world angular momentum are authoritative. */
   omega:number; phase:number; tilt:number; tiltVelocity:number;

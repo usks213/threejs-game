@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Profile, Vec3, Quaternion } from '../core/types';
-import { comHeight, getBladeVertices, getRatchetVertices, getBitGeometry } from '../core/physics';
+import { getCenterOfMass, getCanonicalBladeVertices, getCanonicalRatchetVertices, getBitGeometry, getBladeMaterialGeometry } from '../core/physics';
 
 export type TopMeshFactory = (geometry: THREE.BufferGeometry, color: number, roughness?: number, metalness?: number) => THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
 
@@ -27,20 +27,26 @@ function bladeRim(vertices: Vec3[], innerScale = .63): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(all.flatMap(v => [v.x, v.y, v.z]), 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
 }
 
-/** Component meshes stay in assembled COM-local coordinates until the solver separates them. */
+/** Canonical stem-frame content is translated by the complete COM exactly once. */
 export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
   const components = { blade: new THREE.Group(), ratchet: new THREE.Group(), bit: new THREE.Group() };
-  let group = components.blade;
-  const center = comHeight(profile);
+  const centerOfMass = getCenterOfMass(profile);
+  const content = { blade: new THREE.Group(), ratchet: new THREE.Group(), bit: new THREE.Group() };
+  for (const component of ['blade', 'ratchet', 'bit'] as const) {
+    content[component].position.set(-centerOfMass.x, -centerOfMass.y, -centerOfMass.z);
+    components[component].add(content[component]);
+  }
+  let group = content.blade;
+  // All procedural vertices below are canonical, measured from the bit tip.
   const palette = profile.modelPalette ?? { metal: 0xa9b5c6, core: 0x52647a, ratchet: 0x8595a9, bit: 0x6b7b90 };
-  const bladeVertices = getBladeVertices(profile), upper = bladeVertices.slice(bladeVertices.length / 2);
-  const topY = upper.reduce((sum, p) => sum + p.y, 0) / upper.length;
-  const metal = mesh(bladeRim(bladeVertices), palette.metal, .32, .60); metal.material.flatShading = true; group.add(metal);
+  const bladeVertices = getCanonicalBladeVertices(profile), materialGeometry = getBladeMaterialGeometry(profile);
+  const { topY, coreRadius } = materialGeometry;
+  const metal = mesh(bladeRim(bladeVertices, materialGeometry.rimInnerScale), palette.metal, .32, .60); metal.material.flatShading = true; group.add(metal);
 
   // Small material-coloured hub leaves the actual contact silhouette exposed. No logos or copied artwork.
-  const coreRadius = profile.radius * (profile.bladeStyle === 'round-wing' ? .53 : profile.bladeStyle === 'single-sword' ? .40 : .46);
-  const core = mesh(new THREE.CylinderGeometry(coreRadius, coreRadius * 1.08, .0026, 32), palette.core, .3, .18); core.position.y = topY + .0013; group.add(core);
-  const hub = mesh(new THREE.CylinderGeometry(coreRadius * .55, coreRadius * .62, .002, 20), palette.core, .25, .25); hub.position.y = topY + .0031; group.add(hub);
+  const coreZone = materialGeometry.core, hubZone = materialGeometry.hub;
+  const core = mesh(new THREE.CylinderGeometry(coreZone.radiusTop, coreZone.radiusBottom, coreZone.yMax - coreZone.yMin, 32), palette.core, .3, .18); core.position.y = (coreZone.yMin + coreZone.yMax) / 2; group.add(core);
+  const hub = mesh(new THREE.CylinderGeometry(hubZone.radiusTop, hubZone.radiusBottom, hubZone.yMax - hubZone.yMin, 20), palette.core, .25, .25); hub.position.y = (hubZone.yMin + hubZone.yMax) / 2; group.add(hub);
   const hubRing = mesh(new THREE.TorusGeometry(coreRadius * .66, .0007, 5, 28), 0xe2e9f3, .3, .55); hubRing.rotation.x = Math.PI / 2; hubRing.position.y = topY + .0032; group.add(hubRing);
   const inset = mesh(new THREE.CylinderGeometry(coreRadius * .39, coreRadius * .39, .0008, 20), 0x263449, .32, .25); inset.position.y = topY + .0045; group.add(inset);
 
@@ -61,15 +67,15 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
     }
   }
 
-  group = components.ratchet;
-  const ratchet = mesh(ringSolid(getRatchetVertices(profile)), palette.ratchet, .4, .16); group.add(ratchet);
-  group = components.bit;
+  group = content.ratchet;
+  const ratchet = mesh(ringSolid(getCanonicalRatchetVertices(profile)), palette.ratchet, .4, .16); group.add(ratchet);
+  group = content.bit;
   const bit = getBitGeometry(profile), gearThickness = 2 * bit.engagementBand;
-  const gear = mesh(new THREE.CylinderGeometry(bit.gearRadius * .85, bit.gearRadius * .85, gearThickness, 32), palette.bit, .42, .1); gear.position.y = bit.gearHeight - center; group.add(gear);
+  const gear = mesh(new THREE.CylinderGeometry(bit.gearRadius * .85, bit.gearRadius * .85, gearThickness, 32), palette.bit, .42, .1); gear.position.y = bit.gearHeight; group.add(gear);
   const toothWidth = 2 * Math.PI * bit.gearRadius / bit.gearTeeth * .58;
   for (let tooth = 0; tooth < bit.gearTeeth; tooth++) {
     const angle = tooth / bit.gearTeeth * Math.PI * 2, part = mesh(new THREE.BoxGeometry(bit.gearRadius * .22, gearThickness, toothWidth), palette.bit, .43, .1);
-    part.position.set(Math.cos(angle) * bit.gearRadius * .90, bit.gearHeight - center, Math.sin(angle) * bit.gearRadius * .90); part.rotation.y = -angle; group.add(part);
+    part.position.set(Math.cos(angle) * bit.gearRadius * .90, bit.gearHeight, Math.sin(angle) * bit.gearRadius * .90); part.rotation.y = -angle; group.add(part);
   }
   if (bit.discRadius && bit.discHeight !== undefined) {
     const discShape = new THREE.Shape(); discShape.absarc(0, 0, bit.discRadius, 0, Math.PI * 2, false);
@@ -80,13 +86,13 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
       hole.absarc(0, 0, bit.discRadius * .79, a - .33, a + .33, false);
       hole.lineTo(Math.cos(a + .33) * bit.discRadius * .48, Math.sin(a + .33) * bit.discRadius * .48); hole.closePath(); discShape.holes.push(hole);
     }
-    const geometry = new THREE.ExtrudeGeometry(discShape, { depth: bit.discHalfThickness * 2, bevelEnabled: false, curveSegments: 12 }); geometry.rotateX(-Math.PI / 2); geometry.translate(0, bit.discHeight - center - bit.discHalfThickness, 0); group.add(mesh(geometry, palette.bit, .4, .1));
+    const geometry = new THREE.ExtrudeGeometry(discShape, { depth: bit.discHalfThickness * 2, bevelEnabled: false, curveSegments: 12 }); geometry.rotateX(-Math.PI / 2); geometry.translate(0, bit.discHeight - bit.discHalfThickness, 0); group.add(mesh(geometry, palette.bit, .4, .1));
   }
   if (bit.tipShape === 'ball') {
-    const ball = mesh(new THREE.SphereGeometry(bit.tipRadius, 20, 12), palette.bit, .37, .08); ball.position.y = bit.tipRadius - center; group.add(ball);
-    const neck = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius * .8, Math.max(.0005, bit.tipLength - bit.tipRadius), 20), palette.bit, .4, .08); neck.position.y = (bit.tipLength + bit.tipRadius) / 2 - center; group.add(neck);
+    const ball = mesh(new THREE.SphereGeometry(bit.tipRadius, 20, 12), palette.bit, .37, .08); ball.position.y = bit.tipRadius; group.add(ball);
+    const neck = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius * .8, Math.max(.0005, bit.tipLength - bit.tipRadius), 20), palette.bit, .4, .08); neck.position.y = (bit.tipLength + bit.tipRadius) / 2; group.add(neck);
   } else {
-    const tip = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius, bit.tipLength, 24), palette.bit, .4, .08); tip.position.y = bit.tipLength / 2 - center; group.add(tip);
+    const tip = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius, bit.tipLength, 24), palette.bit, .4, .08); tip.position.y = bit.tipLength / 2; group.add(tip);
   }
   return components;
 }

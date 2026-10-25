@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Profile } from '../core/types';
-import { comHeight } from '../core/physics';
+import { getCenterOfMass, getCanonicalBladeVertices } from '../core/physics';
 import { buildTopMesh } from './top-mesh';
 
 /** Static inspection uses exactly the arena assembly, fixed camera/scale, and no animation loop. */
@@ -22,21 +22,42 @@ export function createTopPreview(canvas: HTMLCanvasElement, onError: (message: s
   const markGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.029, 0, .024), new THREE.Vector3(-.019, 0, .024)]);
   const markMaterial = new THREE.LineBasicMaterial({ color: 0x708199 }); geometries.add(markGeometry); materials.add(markMaterial);
   const scaleMark = new THREE.Line(markGeometry, markMaterial); scene.add(scaleMark); // Exactly 10 mm in the assembly's SI coordinate system.
+  let massReference: THREE.Group | null = null, showMassReference = false;
   let disposed = false, key = '', view: 'top' | 'underside' = 'top';
   function draw() { if (!disposed) renderer.render(scene, camera); }
   function removeAssembly() {
     for (const child of [...stage.children]) {
       stage.remove(child); child.traverse(object => {
-        if (object instanceof THREE.Mesh) {
+        if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
           geometries.delete(object.geometry); object.geometry.dispose();
           for (const material of Array.isArray(object.material) ? object.material : [object.material]) { materials.delete(material); material.dispose(); }
         }
       });
     }
   }
+  function buildMassReference(profile: Profile) {
+    const center = getCenterOfMass(profile), reference = new THREE.Group();
+    const height = Math.max(...getCanonicalBladeVertices(profile).map(vertex => vertex.y)) + .006;
+    const axisGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-center.x, -center.y, -center.z),
+      new THREE.Vector3(-center.x, height - center.y, -center.z),
+    ]);
+    const axisMaterial = new THREE.LineBasicMaterial({ color: 0x66788f, depthTest: false, depthWrite: false, transparent: true, opacity: .9 });
+    geometries.add(axisGeometry); materials.add(axisMaterial);
+    const axis = new THREE.Line(axisGeometry, axisMaterial); axis.renderOrder = 10; reference.add(axis);
+    // This connection has the actual modeled lateral length; it is never exaggerated.
+    const offsetGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-center.x, 0, -center.z), new THREE.Vector3(0, 0, 0)]);
+    const offsetMaterial = new THREE.LineBasicMaterial({ color: 0x8b35d9, depthTest: false, depthWrite: false });
+    geometries.add(offsetGeometry); materials.add(offsetMaterial);
+    const offset = new THREE.Line(offsetGeometry, offsetMaterial); offset.renderOrder = 11; reference.add(offset);
+    const marker = mesh(new THREE.SphereGeometry(.00065, 12, 8), 0x9b37ef, .5, 0);
+    marker.material.depthTest = false; marker.material.depthWrite = false; marker.material.transparent = true; marker.material.emissive.setHex(0x6e17ab); marker.renderOrder = 12; reference.add(marker);
+    reference.visible = showMassReference; return reference;
+  }
   function setProfile(profile: Profile) {
     const next = JSON.stringify(profile); if (key === next) return; key = next; removeAssembly(); stage.add(buildTopMesh(profile, mesh));
-    floor.position.y = -comHeight(profile) - .0005; scaleMark.position.y = floor.position.y + .0002; draw();
+    massReference = buildMassReference(profile); stage.add(massReference);
+    floor.position.y = -getCenterOfMass(profile).y - .0005; scaleMark.position.y = floor.position.y + .0002; draw();
   }
   function resize() {
     const rect = canvas.getBoundingClientRect(), aspect = Math.max(1, rect.width) / Math.max(1, rect.height);
@@ -48,6 +69,7 @@ export function createTopPreview(canvas: HTMLCanvasElement, onError: (message: s
   canvas.addEventListener('webglcontextlost', lost);
   return {
     setProfile,
+    setMassReferenceVisible(visible: boolean) { showMassReference = visible; if (massReference) massReference.visible = visible; draw(); },
     setView(next: 'top' | 'underside') {
       view = next; camera.position.set(.060, view === 'underside' ? -.065 : .065, .100); camera.lookAt(0, view === 'underside' ? -.004 : .001, 0); floor.visible = view === 'top'; draw();
     },

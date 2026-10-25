@@ -59,14 +59,14 @@
 </div>
 <label class="cpu-picker" id="cpu-picker">練習相手 <select id="cpu-blade" aria-label="練習相手のブレード"></select></label>
 <div class="launch-controls">
-<label>パワー <output id="power-value">80%</output>
-<input id="power" type="range" min="20" max="100" value="80" aria-label="シュートパワー">
+<label>パワー <output id="power-value">60%</output>
+<input id="power" type="range" min="20" max="100" value="60" aria-label="シュートパワー">
 </label>
 <label>狙う角度 <output id="angle-value">15°</output>
 <input id="angle" type="range" min="-50" max="50" value="15" aria-label="シュート角度">
 </label>
-<label>傾き <output id="tilt-value">0°</output>
-<input id="tilt" type="range" min="0" max="30" value="0" aria-label="シュートの傾き">
+<label>傾き <output id="tilt-value">20°</output>
+<input id="tilt" type="range" min="0" max="30" value="20" aria-label="シュートの傾き">
 </label>
 </div>
 <div class="actions">
@@ -93,6 +93,8 @@
 <canvas id="bey-inspect-canvas" aria-label="選択中のベイの立体モデル"></canvas>
 <p id="inspect-error" class="note" role="status" hidden></p>
 <button id="inspect-view" class="ghost" aria-pressed="false">裏側・ビットを見る</button>
+<button id="inspect-mass" class="ghost" aria-pressed="false">重心とビット軸を表示</button>
+<p id="mass-reference-legend" class="note" hidden>紫: 推定重心 / 灰: ビット軸（位置は実寸・透視表示）。外周の重量配分による慣性差とは別です。</p>
 <div class="inspect-controls"><button id="inspect-left" class="ghost" aria-label="モデルを左へ回す">↶</button><span>対戦と同じ近似形状<br>共通の縮尺で比較</span><button id="inspect-right" class="ghost" aria-label="モデルを右へ回す">↷</button></div>
 </div>
 <p class="model-status" id="shape-description"></p>
@@ -103,6 +105,7 @@
 <p class="note">バーはメーカー公表の評価値です。質量・摩擦などの実測値ではありません。</p>
 <section class="derived-model" aria-label="推定した物理特性">
 <h3>この構成の物理モデル <span>推定値</span></h3>
+<div id="mass-summary" class="mass-summary"></div>
 <div id="model-values" class="model-values"></div>
 <p class="note">公式評価と形状説明から算出した推定です。メーカーの実測物性値ではありません。シュートのパワーは、推定した発射エネルギーを表します。</p>
 <details class="model-evidence"><summary>公式値と推定への反映を確認</summary><div id="model-evidence"></div></details>

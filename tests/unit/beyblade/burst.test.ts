@@ -15,7 +15,7 @@ describe('physical burst partition and unscored observation',()=>{
     closeVector(momentum(f),momentum([before]));closeVector(angular(f),angular([before]));
     expect(f.reduce((s,t)=>s+kineticEnergy(t),0)).toBeCloseTo(kineticEnergy(before),12);
     expect(f.reduce((s,t)=>s+totalEnergy(t),0)).toBeLessThan(energy);
-    for(const t of f)for(const i of Object.values(t.bodyInertia))expect(i).toBeGreaterThan(0);
+    for(const t of f){for(const i of Object.values(t.bodyInertia))expect(i).toBeGreaterThan(0);expect(t.centerOfMassHeight).toBe(t.profile.centerOfMass?.y);}
     expect(splitBurstTop(b,0)).toEqual(f);expect(b.fragments).toHaveLength(3);
   });
   it('does not invent separable units for an unsupported integrated structure',()=>{
@@ -43,7 +43,8 @@ describe('physical burst partition and unscored observation',()=>{
   },30000);
   it('splits an actual legal-launch burst and visibly separates component centres under physics',()=>{
     const cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
-    const b=createBattle([p(),cpu],[{power:.8,angle:15*Math.PI/180,tilt:0},{power:.76,angle:-.12,tilt:.11}]);
+    const build={...buildForBlade(parts.find(p=>p.category==='blade'&&p.canonicalId==='ドランバスター'&&p.release==='released')!.id),ratchet:parts.find(p=>p.category==='ratchet'&&p.canonicalId==='1-60')!.id,bit:parts.find(p=>p.category==='bit'&&p.canonicalId==='A')!.id};
+    const b=createBattle([profileFor(build),cpu],[{power:.8,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]);
     for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);
     expect(b.result?.finish).toBe('burst');expect(b.fragments.length).toBeGreaterThan(0);
     const before=b.fragments.map(f=>({x:f.x,y:f.y,z:f.z}));for(let i=0;i<240;i++)stepSettlingBattle(b);

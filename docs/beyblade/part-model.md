@@ -1,4 +1,4 @@
-# パーツ別の推定物理モデル v4
+# パーツ別の推定物理モデル v5
 
 **公式評価を物理モデルへ反映するよう改修したが、メーカー測定値・実物再現の保証ではない。** 評価表は無改変で保持し、以下の換算はすべて `ESTIMATED_UNMEASURED`。出典を目視確認したブレード系列の刃数・機構説明と、公開された部品評価を制約として使う。モデルの名前・IDをハッシュ化して架空の差を作ることはない。
 
@@ -33,7 +33,7 @@ npx vitest run tests/unit/beyblade/model.test.ts tests/unit/beyblade/model-mecha
 - ラチェット質量 = .0053+.003(D−.13)+.0015(S−.06)。
 - ビット質量 = .0022+.0015(D−.20)+.001(S−.20) + ディスクなら.0018 + MNなら.0007。
 - ブレード外周配分係数 = clamp(出典形状係数+.15(S−.35)−.06(A−.30)+.025(D−.35),.48,.88)。
-- 自転慣性 = bladeMass×outerRadius²×外周配分 + ratchetMass×ratchetRadius²×.55 + bitMass×(discRadiusまたは.006)²×.5。
+- v5では自転慣性を経験係数で後合わせしない。上記外周配分制約をリム/コア推定密度比 clamp(6+8(制約−.64),4,8) へ写し、共有形状の体積からゾーン質量・重心・完全な慣性テンソルを積分する。全部品を完全な平行軸定理で合成し、そのIyyを自転慣性として使う。詳細は [3D重心と質量分布](center-of-mass.md)。
 - ラチェット半径 = clamp(.0153+.004(A−.11)−.002(D−.13)+形状追加,.014,.019)。5枚刃追加.001、8枚刃追加.0013。突出深さは0枚なら0、他はclamp(.035+.45A−.16D,.025,.15)。
 - 高さ変位 = clamp((H−60)×.00008,−.0012,.0024)。**60=6mmという公式寸法とは扱わない。** 質量加重COMと各部の露出高さに反映。
 - 先端半径 = 先端形状の基準半径×clamp(.85+.5A−.1S,.7,1.3)、O/LOは.7、FBは.65を乗じる（推定）。flat2.8mm、ball/taper1.5mm、needle.45mmが基準。
@@ -53,7 +53,7 @@ npx vitest run tests/unit/beyblade/model.test.ts tests/unit/beyblade/model-mecha
 2. **共通入力衝突**: 正立・共通高さ・300rad/s、同じ相手が1m/sで接近。無重力/無抵抗の空間で最初の実接触を記録。形状により接触時刻が変わる。運動量・損失から反動が生じ、評価点からキックを加えない。
 3. **通常発射**: 同一入力で3秒の通常2体アリーナ。自機の軌道、レール接触・ダッシュ時刻を記録。カオス的な1試合の勝率から強さ順位を主張しない。
 
-3-60/F固定でSword→Rodだけを変更すると、推定慣性1.16e−5→1.99e−5 kg·m²、等仕事発射の自転509.8→389.4 rad/s。3秒の単独残存運動エネルギーは64.7%→71.5%。Sword/3-60固定でF→Bだけを変更すると64.7%→87.9%。これは**モデル内部の機械的差**であり、実測の持久時間や実物ランキングではない。
+各部だけを交換した現在の数値は生成済みJSONに記録する。v5のラチェット単独比較は [`com-comparisons.json`](com-comparisons.json) と `scripts/compare-beyblade-com.ts` に分け、各部の3D重心・完全テンソル、床上の傾き/歳差、同じ入射条件の衝突、通常アリーナの実際の経過時間を保持する。これは**モデル内部の機械的差**であり、実測の持久時間や実物ランキングではない。
 
 ## 未再現と校正の限界
 
@@ -73,3 +73,7 @@ npx vitest run tests/unit/beyblade/model.test.ts tests/unit/beyblade/model-mecha
 一次画像のシリーズ表示に基づき、PteraSwing・TyrannoRoar・SharkGillは**BX部品**、HellsBraveJは**CX完成ブレード**へ訂正した。含まれたセットのUX/CX製品シリーズとは別属性に保持する。HellsBraveJは既存のHells lock chip、Brave main blade、J assist bladeへ結び、単体評価はnullのまま。すべてのID、公式評価値、製品リストを保持し、公開CSV/JSONとアプリ入力を一致させた。
 
 再現: `node scripts/correct-beyblade-classifications.mjs`。出典は [`classification-corrections.json`](../../public/beyblade-data/classification-corrections.json)。
+
+### 取付け位相の推定
+
+ブレードとラチェットの先頭区画を基準+Xへ置く**共通ゼロ位相は推定の組立基準**であり、実製品のロック位置や取付け角を実測したものではない。ユーザーが任意のラチェット角を調整する機能は追加しない。Busterと1-60の横重心が相殺・加算されるベクトルも、この推定基準による結果で、公式に確認された相殺配置とは扱わない。

@@ -27,6 +27,7 @@ describe('authoritative network with real WebSocket clients',()=>{
         a.send({type:'ping'});b.send({type:'ping'});await pauses();
         if(['round-end','match-end'].includes(a.state()?.phase??''))break;
       }
+      await until(()=>['round-end','match-end'].includes(a.state()?.phase??'')&&['round-end','match-end'].includes(b.state()?.phase??'')&&a.state()?.battle?.tick===b.state()?.battle?.tick);
       const sa=a.state()!,sb=b.state()!;expect(['round-end','match-end']).toContain(sa.phase);expect(sa.match).toEqual(sb.match);expect(sa.battle).toEqual(sb.battle);expect(sa.battle?.result).not.toBeNull();
       const lockedScores=[...sa.match!.scores],lockedResult=sa.battle!.result;
       for(let block=0;block<4;block++){for(let step=0;step<60;step++)f.advance(1000/60);await pauses();}
@@ -38,8 +39,9 @@ describe('authoritative network with real WebSocket clients',()=>{
   },15_000);
   it('keeps real burst fragments synchronized and result latched during unscored settling',async()=>{
     const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
-    const [a,b]=await pair(f,[defaultBuild,sword]);
-    a.send({type:'launch',launch:{power:.8,angle:15*Math.PI/180,tilt:0}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
+    const buster=buildForBlade(parts.find(p=>p.canonicalId==='ドランバスター'&&p.category==='blade')!.id);buster.ratchet='ratchet:1-60';buster.bit='bit:A';
+    const [a,b]=await pair(f,[buster,sword]);
+    a.send({type:'launch',launch:{power:.8,angle:0,tilt:8*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
     await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);
     for(let block=0;block<30;block++){for(let step=0;step<20;step++)f.advance(1000/60);await pauses();if(a.state()?.phase==='round-end')break;}
     await until(()=>a.state()?.phase==='round-end'&&b.state()?.phase==='round-end');

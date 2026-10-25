@@ -1,8 +1,9 @@
+import {deriveAssemblyMass,principalInertias} from './assembly-mass';
 import type { BeyType, Part, Profile, Ratings } from '../core/types';
 import { expandedBladeShapeFacts } from './expanded-shape-facts';
 import { bladeShapeFacts, bitShapeFacts, ratchetShapeFacts } from './shape-facts';
 
-export const MODEL_VERSION='official-rating-constrained-estimate-v4';
+export const MODEL_VERSION='geometry-integrated-mass-estimate-v5';
 export interface ModelComponentInput { part:Part; ratings:Ratings|null; mode?:string }
 export interface AssemblyModelInput { blade:ModelComponentInput;ratchet:ModelComponentInput|null;bit:ModelComponentInput;spin:1|-1;color:number }
 export interface ModelMetadata {
@@ -138,6 +139,12 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
     bladeRampAmplitude:typeof geometry?.rakeSign==='number'?geometry.rakeSign*(.0011+.0012*ba):0,
     bladeSkew:bladeStyle==='round-wing'?.06:bladeStyle==='single-sword'?.35:.15+.20*ba,
     modelPalette:{...palette,ratchet:0x69798b,bit:nominalBitColors[code]??palette.core}};
+  const distribution=deriveAssemblyMass(profile,componentMasses,outerFraction);
+  profile.centerOfMass=distribution.center;profile.inertiaTensor=distribution.inertia;profile.massComponents=distribution.components;
+  profile.inertia=distribution.inertia.yy;profile.transverseInertia=(distribution.inertia.xx+distribution.inertia.zz)/2;
+  // Compatibility scalar is nominal-before-bit-offset; authoritative centerOfMass already includes it once.
+  profile.centerOfMassHeight=distribution.center.y-bitHeightOffset;
+  profile.componentAxialWeights=Object.fromEntries(distribution.components.map(c=>[c.component,c.inertia.yy+c.mass*((c.center.x-distribution.center.x)**2+(c.center.z-distribution.center.z)**2)])) as typeof componentAxialWeights;
   const components:ModelMetadata['components']=[
     {category:'blade',name:blade.part.name,source:form?.source_url??blade.part.source,shapeStatus:shapeImplemented?'source-informed':'unmodeled',officialRatings:blade.ratings,notes:[shapeImplemented?form!.facts.summary_ja:'形状未再現・暫定モデル。出典の存在だけでは形状実装と扱いません。',...(form?.image_observation?[`画像観察: ${form.image_observation.contour_ja}`]:[]),...(form?.implemented_geometry?[`接触区画 ${contactLobes}: ${form.implemented_geometry.countBasis==='official_text'?'公式明記の刃数を概形へ反映':'画像観察・推定の主区画数（公式刃数と区別）'}`]:[]),'公式評価→外径・接触深さ・質量配分・慣性への換算は未校正の推定です。','配色は代表製品の近似。個別カラーの厳密な再現ではありません。']},
     {category:'ratchet',name:ratchet?.part.name??'一体型',source:ratchet?.part.source??blade.part.source,shapeStatus:ratchetKnown?'source-informed':'unmodeled',officialRatings:ratchet?.ratings??null,notes:[ratchetKnown?`${ratchetLobes}枚の突出と高さ区分を近似。`:'一体型・未確認構造は暫定の保持部形状です。','高さ評価のSI換算は推定。数値60を6mmと断定しません。',...(ratchet?.part.ratingsVariants?.length?['左右別評価は同じ実物の質量を変えません。評価差から固定した輪郭の非対称性を推定します。']:[]),...(simpleJoint?[`シンプルジョイント条件を適用: 実効耐性 ${effectiveBurst}（ビット単体の公式値は保持）。`]:[])]},
@@ -146,14 +153,23 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const partial=components.some(c=>c.shapeStatus==='unmodeled')||missingInputs.length>0||unsupportedMechanisms.length>0;
   const derived:ModelMetadata['derived']=[
     {key:'mass',label:'組立質量',value:mass*1000,unit:'g',provenance:'estimated',inputs:['ブレード防御・攻撃・持久','ラチェット防御・持久','ビット防御・持久','出典の重量配分']},
-    {key:'inertia',label:'自転慣性',value:inertia,unit:'kg·m²',provenance:'estimated',inputs:['外径','持久評価','外周重量配分','各部質量']},
+    {key:'inertia',label:'自転慣性',value:profile.inertia,unit:'kg·m²',provenance:'estimated',inputs:['共有形状の体積積分','推定リム/コア密度','各部質量','完全な平行軸定理']},
     {key:'radius',label:'外接半径',value:outerRadius*1000,unit:'mm',provenance:'estimated',inputs:['公式形状記述','ブレード攻撃・持久']},
-    {key:'com',label:'重心高さ',value:(centerOfMassHeight+bitHeightOffset)*1000,unit:'mm',provenance:'estimated',inputs:['ラチェット高さ','各部質量配分','ビット軸高差']},
+    {key:'com',label:'重心高さ',value:distribution.center.y*1000,unit:'mm',provenance:'estimated',inputs:['ラチェット高さ','各部質量配分','ビット軸高差']},
     {key:'tipFriction',label:'先端摩擦係数',value:tipFriction,unit:'μ',provenance:'estimated',inputs:['先端形状','ビット攻撃・防御','回転方向別の溝']},
     {key:'drag',label:'自転損失率',value:drag,unit:'s⁻¹',provenance:'estimated',inputs:['ブレード・ビット持久評価']},
     {key:'gearRadius',label:'ギアピッチ半径',value:gearRadius*1000,unit:'mm',provenance:'estimated',inputs:['ギア形状・歯数','ビットダッシュ評価']},
     {key:'lockBarrier',label:'ロック解放障壁',value:.5*lockStiffness*lockReleaseAngle**2,unit:'J',provenance:'estimated',inputs:['ビット耐性','ラチェット防御','シンプルジョイント条件']},
   ];
+  for(const axis of ['x','y','z'] as const)derived.push({key:`com-${axis}`,label:`全体重心 ${axis.toUpperCase()}`,value:distribution.center[axis]*1000,unit:'mm',provenance:'estimated',inputs:['先端基準座標','形状の体積積分','各部の推定質量']});
+  derived.push({key:'lateral-com',label:'軸からの横重心距離',value:Math.hypot(distribution.center.x,distribution.center.z)*1000,unit:'mm',provenance:'estimated',inputs:['横非対称形状の体積積分（人工オフセットなし）']});
+  for(const key of ['xx','yy','zz','xy','xz','yz'] as const)derived.push({key:`tensor-${key}`,label:`慣性テンソル I${key}`,value:distribution.inertia[key],unit:'kg·m²',provenance:'estimated',inputs:['各部の重心テンソル','完全な平行軸定理']});
+  principalInertias(distribution.inertia).forEach((value,i)=>derived.push({key:`principal-${i}`,label:`主慣性 ${i+1}`,value,unit:'kg·m²',provenance:'estimated',inputs:['推定テンソルの固有値']}));
+  for(const c of distribution.components){derived.push({key:`component-${c.component}-mass`,label:`${c.component} 質量`,value:c.mass*1000,unit:'g',provenance:'estimated',inputs:['公式評価に拘束された推定質量']});for(const axis of ['x','y','z'] as const)derived.push({key:`component-${c.component}-${axis}`,label:`${c.component} 重心 ${axis}`,value:c.center[axis]*1000,unit:'mm',provenance:'estimated',inputs:['共有形状の体積積分']});}
+  const zones=distribution.materialZones;
+  for(const [key,label,value,unit] of [['rim-mass','金属リムの推定質量',zones.rimMass*1000,'g'],['core-hub-mass','樹脂コア/ハブの推定質量',zones.coreHubMass*1000,'g'],['rim-density','リムの推定有効密度',zones.rimDensity,'kg/m³'],['core-density','コアの推定有効密度',zones.coreDensity,'kg/m³'],['density-ratio','リム/コアの推定密度比',zones.densityRatio,'倍']] as const)derived.push({key,label,value,unit,provenance:'estimated',inputs:['外周配分制約→密度比4〜8','共有形状の体積','部品質量へ正規化（実測密度ではない）']});
+  for(const c of distribution.components)derived.push({key:`component-${c.component}-iyy`,label:`${c.component} 自転慣性`,value:c.inertia.yy,unit:'kg·m²',provenance:'estimated',inputs:['部品自身の重心まわりの体積積分']});
+  components[0].notes.push(...distribution.densityNotes);
   if(bitHeightOffset)derived.push({key:'bitHeightOffset',label:'軸高の相対差',value:bitHeightOffset*1000,unit:'mm',provenance:'official-relative',inputs:[`${code} の公式相対寸法`]});
   return {profile,metadata:{version:MODEL_VERSION,status:partial?'partial-estimate':'source-informed-estimate',label:partial?'一部未再現・暫定モデルを含む推定':'公式評価・形状情報に拘束された未校正モデル',components,missingInputs:[...new Set(missingInputs)],unsupportedMechanisms,derived}};
 }

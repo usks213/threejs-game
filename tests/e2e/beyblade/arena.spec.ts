@@ -126,6 +126,10 @@ test('part inspection exposes changed physical estimates, source evidence and un
 
 test('ordinary Burst keeps its score latched while physical pieces continue, then allows the next round',async({page})=>{
   await page.goto('/beyblade/');
+  await page.locator('select[data-part="blade"]').selectOption({label:'ドランバスター'});
+  await page.locator('select[data-part="ratchet"]').selectOption({label:'1-60'});
+  await page.locator('select[data-part="bit"]').selectOption({label:'A'});
+  await page.locator('#power').fill('80');await page.locator('#angle').fill('0');await page.locator('#tilt').fill('8');
   await page.evaluate(()=>{
     const phase=document.getElementById('phase')!,launch=document.getElementById('launch') as HTMLButtonElement;
     const state=window as unknown as {settlingObserved:boolean;settlingWasGated:boolean};state.settlingObserved=false;state.settlingWasGated=false;
@@ -135,8 +139,28 @@ test('ordinary Burst keeps its score latched while physical pieces continue, the
   await page.locator('#launch').click();
   await expect.poll(()=>page.evaluate(()=>(window as unknown as {settlingObserved:boolean}).settlingObserved),{timeout:20000}).toBe(true);
   expect(await page.evaluate(()=>(window as unknown as {settlingWasGated:boolean}).settlingWasGated)).toBe(true);
-  await expect(page.locator('#score-you')).toHaveText('2');await expect(page.locator('#score-other')).toHaveText('0');
+  const scores=[await page.locator('#score-you').innerText(),await page.locator('#score-other').innerText()];expect(scores.map(Number).sort()).toEqual([0,2]);
   await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:20000});await expect(page.locator('#launch')).toBeEnabled();
-  await expect(page.locator('#score-you')).toHaveText('2');await page.locator('#launch').click();await expect(page.locator('#phase')).toContainText('COUNTDOWN');
+  expect([await page.locator('#score-you').innerText(),await page.locator('#score-other').innerText()]).toEqual(scores);await page.locator('#launch').click();await expect(page.locator('#phase')).toContainText('COUNTDOWN');
   await page.locator('#reset-match').click();await expect(page.locator('#phase')).toContainText('READY');await expect(page.locator('#score-you')).toHaveText('0');
+});
+
+
+test('ratchet-only swaps change modeled COM and inertia, with an exact-scale inspection reference',async({page})=>{
+  await page.goto('/beyblade/');
+  await page.locator('select[data-part="blade"]').selectOption({label:'ドランソード'});
+  await page.locator('select[data-part="bit"]').selectOption({label:'F · フラット'});
+  const ratchet=page.locator('select[data-part="ratchet"]');
+  await ratchet.selectOption({label:'3-60'});
+  const center=async()=>JSON.parse((await page.locator('#mass-summary').getAttribute('data-center'))!) as {x:number;y:number;z:number};
+  const low=await center();const lowTensor=await page.locator('#mass-summary').getAttribute('data-inertia');
+  expect(Math.hypot(low.x,low.z)).toBeLessThan(1e-10);
+  await ratchet.selectOption({label:'3-80'});expect((await center()).y).toBeGreaterThan(low.y);
+  expect(await page.locator('#mass-summary').getAttribute('data-inertia')).not.toBe(lowTensor);
+  await ratchet.selectOption({label:'1-60'});const offset=await center();expect(Math.hypot(offset.x,offset.z)).toBeGreaterThan(1e-5);
+  await page.locator('#inspect-mass').click();await expect(page.locator('#inspect-mass')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#mass-reference-legend')).toContainText('実寸');
+  await page.locator('#inspect-view').click();await page.locator('#inspect-left').click();
+  await expect(page.locator('#inspect-error')).toBeHidden();
+  await page.locator('#inspect-mass').click();await expect(page.locator('#mass-reference-legend')).toBeHidden();
 });

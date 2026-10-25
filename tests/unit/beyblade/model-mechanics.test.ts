@@ -1,18 +1,18 @@
-import {describe,it,expect} from 'vitest';
-import {controlledModelComparisons} from '../../../scripts/compare-beyblade-models';
+import {beforeAll,describe,it,expect} from 'vitest';
+import {modelComparisonCases,compareModelCase} from '../../../scripts/compare-beyblade-models';
+// Same fixtures/assertions as the former aggregate test, but one bounded test per swap.
+// This avoids a cumulative30s timeout during concurrent core/browser audits without hiding slow cases.
 describe('controlled one-component mechanical comparisons',()=>{
-  it('changes actual spin-down, contact recoil and ordinary launch trajectories—not a winner/damage multiplier',()=>{
-    const report=controlledModelComparisons();const baseline=report[0];
-    for(const row of report.slice(1)){
-      expect(row.isolatedSpin,label(row)).not.toEqual(baseline.isolatedSpin);
-      expect(row.incomingImpact,label(row)).not.toEqual(baseline.incomingImpact);
-      expect(row.ordinaryLaunch,label(row)).not.toEqual(baseline.ordinaryLaunch);
-      expect(row.incomingImpact.impulse).toBeGreaterThan(0);
-      expect(row.incomingImpact.energyChange).toBeLessThanOrEqual(1e-9);
-      expect(row.isolatedSpin.retainedEnergy).toBeLessThanOrEqual(1.001);
-    }
-    // Equal delivered launch work gives a high-inertia outer-weight blade a lower initial RPM.
-    expect(report[1].isolatedSpin.initialOmega).toBeLessThan(baseline.isolatedSpin.initialOmega);
-  },30000);
+  const cases=modelComparisonCases();let baseline:ReturnType<typeof compareModelCase>;
+  beforeAll(()=>{baseline=compareModelCase(cases[0]);},15000);
+  it.each(cases.slice(1))('$label changes actual spin-down, recoil and orbit, not a winner multiplier',entry=>{
+    const row=compareModelCase(entry);
+    expect(row.isolatedSpin).not.toEqual(baseline.isolatedSpin);
+    expect(row.incomingImpact).not.toEqual(baseline.incomingImpact);
+    expect(row.ordinaryLaunch).not.toEqual(baseline.ordinaryLaunch);
+    expect(row.incomingImpact.impulse).toBeGreaterThan(0);
+    expect(row.incomingImpact.energyChange).toBeLessThanOrEqual(1e-9);
+    expect(row.isolatedSpin.retainedEnergy).toBeLessThanOrEqual(1.001);
+    if(entry.label==='blade-only: ウィザードロッド')expect(row.isolatedSpin.initialOmega).toBeLessThan(baseline.isolatedSpin.initialOmega);
+  },15000);
 });
-const label=(row:{label:string})=>row.label;
