@@ -1,4 +1,5 @@
 import type { BeyType, Build, Part, PartCategory, Profile, Ratings } from '../core/types';
+import { estimatedProfile } from './physical-estimates';
 import { validateThreeOnThreeParts } from '../core/rules';
 import { officialParts, officialProducts } from './official-data';
 import type { OfficialPart } from './source-types';
@@ -112,19 +113,9 @@ export function validateDeck(builds:Build[]):string[] {
 export function ratingsFor(part:Part,spin:1|-1=1,mode?:string):Ratings|null {
   return part.modes?.find(m=>m.name===mode)?.ratings??part.ratingsVariants?.find(v=>v.condition===(spin===1?'right_spin':'left_spin'))?.ratings??part.ratings;
 }
-/** Explicit, uncalibrated GAME MODEL. Official ratings are not mass/friction/inertia measurements. */
+/** Uncalibrated geometric/material estimates, independent of manufacturer ratings. */
 export function profileFor(build:Build,color=0x335dff):Profile {
   const errors=validateBuild(build);if(errors.length)throw new Error(errors.join(' / '));
-  const blade=byId.get(build.blade)!,bit=byId.get(build.bit)!,ratchet=byId.get(build.ratchet);const spin=blade.spin??1;
-  const b=ratingsFor(blade,spin,build.bladeMode),t=ratingsFor(bit,spin,build.bitMode),r=ratchet?ratingsFor(ratchet,spin):null;
-  const normalized=(value:number|null|undefined,fallback:number)=>Math.max(0,Math.min(1,(value??fallback)/100));
-  const attack=normalized(b?.attack,33),stamina=normalized(b?.stamina,33),defense=normalized(r?.defense,12);
-  const grip=.15+normalized(t?.attack,30)*.35;
-  const mass=.035,radius=.024,inertia=(.50+normalized(b?.defense,33)*.12)*mass*radius*radius;
-  const simple=Boolean(ratchet&&simpleRatchets.has(ratchet.canonicalId??''));
-  const burst=simple?(bit.canonicalId==='DS'?20:30):(t?.burst_resistance??50);
-  return {name:`${blade.name} ${ratchet?.name??''}${bit.canonicalId??bit.name}`,type:blade.type,spin,mass,radius,inertia,grip,
-    drag:.025+(1-stamina)*.018+(1-normalized(t?.stamina,30))*.004,
-    restitution:.43+attack*.27+defense*.06,burstThreshold:.012+normalized(burst,50)*.018,
-    height:.024+normalized(r?.height??t?.height,60)*.005,gearRadius:.006,gearHeight:.007,railEligible:true,contactLobes:{attack:3,defense:6,stamina:12,balance:4}[blade.type],contactLobeDepth:{attack:.06,defense:.015,stamina:.003,balance:.025}[blade.type],railGrip:.45+normalized(t?.dash,25)*.55,color};
+  const blade=byId.get(build.blade)!,bit=byId.get(build.bit)!,ratchet=byId.get(build.ratchet);
+  return estimatedProfile(`${blade.name} ${ratchet?.name??''}${bit.canonicalId??bit.name}`,blade.canonicalId??blade.name,blade.type,bit.canonicalId??bit.name,blade.spin??1,color);
 }

@@ -5,6 +5,8 @@ test('arena opens, launches, resets, changes layout and filters catalog',async({
   await expect(page.getByRole('heading',{name:'バトルアリーナ'})).toBeVisible();
   await expect(page.locator('#arena-canvas')).toBeVisible();
   await expect(page.locator('#arena-error')).toBeHidden();
+  await page.locator('#arena-focus').click();await expect(page.locator('#arena-focus')).toHaveAttribute('aria-pressed','true');
+  await page.locator('#arena-focus').click();await expect(page.locator('#arena-focus')).toHaveAttribute('aria-pressed','false');
   await page.locator('#power').fill('60');
   await expect(page.locator('#power-value')).toHaveText('60%');
   await page.getByRole('button',{name:'3, 2, 1 — GO SHOOT!'}).click();

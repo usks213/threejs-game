@@ -5,9 +5,16 @@ import type { Battle, Build, Launch, Match } from '../../src/beyblade/core/types
 import type { Phase, ServerMessage, StateMessage } from '../../src/beyblade/network/protocol';
 export interface Transport { send(message:ServerMessage):void; close():void }
 interface Session { token:string; transport:Transport|null; build:Build|null; roomId:string|null; queued:boolean; disconnectedAt:number|null; lastSeen:number; lastSeq:number; rateStart:number; rateCount:number }
-interface Room { id:string; players:[Session,Session]; phase:Phase; priorPhase:Phase; match:Match; battle:Battle|null; launches:[Launch|null,Launch|null]; ready:[boolean,boolean]; countdownEndsAt:number; lastTick:number; accumulator:number; lastBroadcast:number; endedAt:number|null; reason?:string }
-export interface ManagerOptions { now?:()=>number; countdownMs?:number; graceMs?:number; maxSessions?:number }
+interface Room { id:string; players:[Session,Session]; names:[string,string]; phase:Phase; priorPhase:Phase; match:Match; battle:Battle|null; launches:[Launch|null,Launch|null]; ready:[boolean,boolean]; countdownEndsAt:number; lastTick:number; accumulator:number; lastBroadcast:number; endedAt:number|null; reason?:string }
+export interface ManagerOptions { now?:()=>number; countdownMs?:number; graceMs?:number; maxSessions?:number; maxActiveRooms?:number }
 const SESSION_TTL=300_000;
+export const SNAPSHOT_EVENT_LIMIT=32;
+export const SNAPSHOT_EVENT_WINDOW_TICKS=240;
+/** Presentation event window only. All rigid-body state stays exact and authoritative. */
+export function battleForSnapshot(battle:Battle|null):Battle|null {
+  if(!battle)return null;
+  return {...battle,events:battle.events.filter(event=>event.tick>=battle.tick-SNAPSHOT_EVENT_WINDOW_TICKS).slice(-SNAPSHOT_EVENT_LIMIT)};
+}
 const finite=(x:unknown):x is number=>typeof x==='number'&&Number.isFinite(x);
 function isRecord(value:unknown):value is Record<string,unknown>{return value!==null&&typeof value==='object'&&!Array.isArray(value);}
 function parseBuild(value:unknown):Build|null {
@@ -27,8 +34,8 @@ function parseLaunch(value:unknown):Launch|null {
 /** All scoring, legal builds, simulation time and phase transitions live on the server. */
 export class RoomManager {
   readonly sessions=new Map<string,Session>(); readonly rooms=new Map<string,Room>();
-  private queue:string[]=[]; private now:()=>number; private countdownMs:number; private graceMs:number; private maxSessions:number;
-  constructor(options:ManagerOptions={}){this.now=options.now??Date.now;this.countdownMs=options.countdownMs??2000;this.graceMs=options.graceMs??15_000;this.maxSessions=options.maxSessions??128;}
+  private queue:string[]=[]; private now:()=>number; private countdownMs:number; private graceMs:number; private maxSessions:number;private maxActiveRooms:number;
+  constructor(options:ManagerOptions={}){this.now=options.now??Date.now;this.countdownMs=options.countdownMs??2000;this.graceMs=options.graceMs??15_000;this.maxSessions=options.maxSessions??128;this.maxActiveRooms=Math.max(1,Math.floor(options.maxActiveRooms??2));}
   connect(transport:Transport,resumeToken?:string):string|null {
     const now=this.now(); let session=resumeToken?this.sessions.get(resumeToken):undefined;
     if(!session){if(this.sessions.size>=this.maxSessions){transport.send({type:'error',message:'サーバーが混み合っています。時間をおいてお試しください。'});transport.close();return null;}const token=crypto.randomUUID()+crypto.randomUUID();session={token,transport:null,build:null,roomId:null,queued:false,disconnectedAt:null,lastSeen:now,lastSeq:0,rateStart:now,rateCount:0};this.sessions.set(token,session);}
@@ -92,16 +99,18 @@ export class RoomManager {
       if(s.transport&&now-s.lastSeen>30_000){const transport=s.transport;this.disconnect(s.token,transport);transport.close();}
       if(!s.transport&&!s.roomId&&now-s.lastSeen>SESSION_TTL)this.sessions.delete(s.token);
     }
+    this.pair();
   }
   dispose():void {for(const s of this.sessions.values())s.transport?.close();this.sessions.clear();this.rooms.clear();this.queue=[];}
   private pair():void {
     this.queue=this.queue.filter(token=>{const s=this.sessions.get(token);return s?.queued&&s.transport;});
-    while(this.queue.length>=2){const a=this.sessions.get(this.queue.shift()!)!,b=this.sessions.get(this.queue.shift()!)!;a.queued=false;b.queued=false;const id=crypto.randomUUID();a.roomId=id;b.roomId=id;const room:Room={id,players:[a,b],phase:'ready',priorPhase:'ready',match:createMatch(),battle:null,launches:[null,null],ready:[false,false],countdownEndsAt:0,lastTick:this.now(),accumulator:0,lastBroadcast:0,endedAt:null};this.rooms.set(id,room);this.broadcast(room);}
+    let activeRooms=[...this.rooms.values()].filter(room=>room.phase!=='match-end').length;
+    while(this.queue.length>=2&&activeRooms<this.maxActiveRooms){activeRooms++;const a=this.sessions.get(this.queue.shift()!)!,b=this.sessions.get(this.queue.shift()!)!;a.queued=false;b.queued=false;const id=crypto.randomUUID();a.roomId=id;b.roomId=id;const room:Room={id,players:[a,b],names:[profileFor(a.build!).name,profileFor(b.build!).name],phase:'ready',priorPhase:'ready',match:createMatch(),battle:null,launches:[null,null],ready:[false,false],countdownEndsAt:0,lastTick:this.now(),accumulator:0,lastBroadcast:0,endedAt:null};this.rooms.set(id,room);this.broadcast(room);}
   }
   private cancel(s:Session):void {
     this.removeQueue(s);const room=s.roomId?this.rooms.get(s.roomId):undefined;
     if(room){if(room.phase!=='match-end'){const other=room.players[0]===s?1:0;room.match={...room.match,winner:other};room.phase='match-end';room.reason='opponent-left';room.endedAt=this.now();this.broadcast(room);}s.roomId=null;if(room.players.every(p=>p.roomId!==room.id))this.rooms.delete(room.id);}
-    this.sendState(s);
+    this.sendState(s);this.pair();
   }
   private removeQueue(s:Session){s.queued=false;this.queue=this.queue.filter(t=>t!==s.token);}
   private releaseRoom(room:Room){for(const s of room.players)if(s.roomId===room.id){s.roomId=null;this.sendState(s);}this.rooms.delete(room.id);}
@@ -110,7 +119,7 @@ export class RoomManager {
     const room=s.roomId?this.rooms.get(s.roomId):undefined;
     if(!room)return{type:'state',phase:s.queued?'queued':'idle',player:null,roomId:null,match:null,battle:null,ready:[false,false]};
     const player=room.players[0]===s?0:1;
-    return {type:'state',phase:room.phase,player,roomId:room.id,match:room.match,battle:room.battle,ready:room.ready,countdownEndsAt:room.countdownEndsAt,reason:room.reason,opponentName:room.players[player===0?1:0].build?profileFor(room.players[player===0?1:0].build!).name:undefined};
+    return {type:'state',phase:room.phase,player,roomId:room.id,match:room.match,battle:battleForSnapshot(room.battle),ready:room.ready,countdownEndsAt:room.countdownEndsAt,reason:room.reason,opponentName:room.names[player===0?1:0]};
   }
   private sendState(s:Session){s.transport?.send(this.snapshot(s));}
   private broadcast(room:Room){room.lastBroadcast=this.now();for(const s of room.players)this.sendState(s);}

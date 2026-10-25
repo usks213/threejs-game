@@ -15,11 +15,27 @@ export interface Part {
 }
 export interface Build { blade: string; ratchet: string; bit: string; lock_chip?: string; main_blade?: string; metal_blade?: string; bladeMode?:string; bitMode?:string; assist_blade?: string; over_blade?: string }
 /** Gameplay estimates, never manufacturer-measured physical constants. */
-export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: number; radius: number; inertia: number; grip: number; drag: number; restitution: number; burstThreshold: number; height: number; railGrip: number; gearRadius:number; gearHeight:number; railEligible:boolean; contactLobes:number; contactLobeDepth:number; color: number }
+export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: number; radius: number; inertia: number; grip: number; drag: number; restitution: number; burstThreshold: number; height: number; railGrip: number; gearRadius:number; gearHeight:number; railEligible:boolean; contactLobes:number; contactLobeDepth:number; color: number;
+  /** Estimated SI body/contact properties, never derived from marketing ratings. */
+  transverseInertia?: number; centerOfMassHeight?: number; tipRadius?: number;
+  tipShape?: 'flat'|'ball'|'needle'|'taper'; tipFriction?: number; rollingDrag?: number;
+  lockStiffness?:number; lockReleaseAngle?:number; bladeRampAmplitude?:number; bladeSkew?:number;
+}
 export interface Launch { power: number; angle: number; tilt: number }
-export interface Top { x: number; z: number; vx: number; vz: number; omega: number; phase: number; tilt: number; tiltVelocity: number; lock: number; railCooldown: number; profile: Profile; eliminated: Finish | null }
+export interface Vec3 { x:number; y:number; z:number }
+export interface Quaternion { x:number; y:number; z:number; w:number }
+export interface RailState { engaged:boolean; travel:number; contactPoint:Vec3|null; tangent:Vec3|null; lastContactTick:number; lastReleaseTick:number; dashCount:number; speedBefore:number; spinBefore:number; energyBefore:number }
+export interface Top {
+  x:number; y:number; z:number; vx:number; vy:number; vz:number;
+  orientation:Quaternion; angularMomentum:Vec3; angularVelocity:Vec3; bodyInertia:Vec3;
+  centerOfMassHeight:number; tipRadius:number; rail:RailState;
+  /** Derived compatibility/telemetry views; orientation and world angular momentum are authoritative. */
+  omega:number; phase:number; tilt:number; tiltVelocity:number;
+  /** Quasistatic internal detent deflection in radians, driven only by exposed-ratchet work. */
+  lock:number; railCooldown:number; profile:Profile; eliminated:Finish|null;
+}
 export type Finish = 'spin' | 'over' | 'burst' | 'xtreme';
-export interface BattleEvent { tick: number; kind: 'collision' | 'rail' | 'finish'; top?: number; intensity?: number; finish?: Finish }
+export interface BattleEvent { tick: number; kind: 'collision' | 'rail' | 'rail-engage' | 'rail-release' | 'dash' | 'finish'; top?: number; intensity?: number; finish?: Finish; position?:Vec3; velocity?:Vec3; energyBefore?:number; energyAfter?:number; spinBefore?:number; spinAfter?:number; velocityBefore?:Vec3; velocityAfter?:Vec3; travel?:number }
 export interface BattleResult { winner: 0 | 1 | null; finish: Finish | 'draw'; points: number }
 export interface Battle { tick: number; tops: [Top, Top]; events: BattleEvent[]; result: BattleResult | null }
 export type Format = 'basic' | 'three-on-three';

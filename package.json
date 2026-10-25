@@ -15,7 +15,8 @@
     "e2e": "playwright test",
     "server:beyblade": "node --import tsx server/beyblade/run.ts",
     "smoke:beyblade": "node --import tsx server/beyblade/smoke.ts",
-    "test:worker": "npm run build && node server/beyblade/worker-smoke.mjs"
+    "test:worker": "npm run build && node server/beyblade/worker-smoke.mjs",
+    "analyze:beyblade": "node --import tsx scripts/analyze-beyblade-physics.ts"
   },
   "dependencies": {
     "three": "0.180.0",

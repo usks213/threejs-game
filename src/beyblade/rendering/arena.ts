@@ -1,33 +1,223 @@
 import * as THREE from 'three';
 import type { Battle, Profile } from '../core/types';
-import { STADIUM } from '../core/physics';
-export function createArena(canvas: HTMLCanvasElement, onError: (message:string)=>void) {
-  let renderer: THREE.WebGLRenderer;
-  try { renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true}); }
-  catch { onError('WebGLを利用できません。対応ブラウザーで開き直してください。'); return null; }
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5)); renderer.setClearColor(0xeff2f8,1);
-  const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0xeff2f8,2,5);
-  const camera=new THREE.PerspectiveCamera(39,1,.01,10); camera.position.set(0,.82,.75); camera.lookAt(0,0,0);
-  scene.add(new THREE.HemisphereLight(0xffffff,0x7b88ab,3));
-  const sun=new THREE.DirectionalLight(0xffffff,3); sun.position.set(-1,2,1); scene.add(sun);
-  const materials=new Set<THREE.Material>(); const geometries=new Set<THREE.BufferGeometry>();
-  function mesh(geo:THREE.BufferGeometry,color:number,roughness=.5,metalness=.1) { geometries.add(geo); const mat=new THREE.MeshStandardMaterial({color,roughness,metalness}); materials.add(mat); return new THREE.Mesh(geo,mat); }
-  const plinth=mesh(new THREE.CylinderGeometry(.325,.34,.055,80),0x1e2b47); plinth.position.y=-.064; scene.add(plinth);
-  const dish=mesh(new THREE.CylinderGeometry(.238,.235,.018,80),0xf9fbff); dish.position.y=-.025; scene.add(dish);
-  // The visible rail has the same three openings as the collision stadium.
-  for(let i=0;i<192;i++){const a=i/192*Math.PI*2;if(STADIUM.pockets.some(p=>Math.abs(Math.atan2(Math.sin(a-p.angle),Math.cos(a-p.angle)))<p.halfWidth))continue;const rim=mesh(new THREE.TorusGeometry(STADIUM.radius,.008,8,2,Math.PI*2/192),0x4b68fa);rim.rotation.x=Math.PI/2;rim.rotation.z=a;scene.add(rim);}
+import { STADIUM, bowlHeightAt, comHeight, getBladeOutline, getBladeVertices, getRailPath, getRatchetGeometry, pocketFloorAt } from '../core/physics';
 
-  const outer=mesh(new THREE.TorusGeometry(.318,.012,12,96),0xd9e0ee); outer.rotation.x=Math.PI/2; outer.position.y=-.01; scene.add(outer);
-  for(let i=0;i<64;i++){ const tooth=mesh(new THREE.BoxGeometry(.01,.008,.016),i%4===0?0x91a8ff:0x2944c1); const a=i/64*Math.PI*2; tooth.position.set(Math.cos(a)*STADIUM.railRadius,.005,Math.sin(a)*STADIUM.railRadius); tooth.rotation.y=-a;if(!STADIUM.pockets.some(p=>Math.abs(Math.atan2(Math.sin(a-p.angle),Math.cos(a-p.angle)))<p.halfWidth))scene.add(tooth); }
-  for(const {angle:a,finish} of STADIUM.pockets) {const pocket=mesh(new THREE.BoxGeometry(.10,.014,.12),finish==='xtreme'?0xff7358:0x8d9cb8); pocket.position.set(Math.cos(a)*.267,-.012,Math.sin(a)*.267); pocket.rotation.y=-a+Math.PI/2;scene.add(pocket);}
-  for(const r of [.06,.12,.18]) { const line=mesh(new THREE.TorusGeometry(r,.0007,4,80),0xc7d0e1);line.rotation.x=Math.PI/2;line.position.y=-.014;scene.add(line); }
-  const center=mesh(new THREE.CylinderGeometry(.008,.008,.002,24),0x7184a5);center.position.y=-.013;scene.add(center);
-  const groups:[THREE.Group,THREE.Group]=[new THREE.Group(),new THREE.Group()];
-  let profileKey='';
-  function setProfiles(profiles:[Profile,Profile]) { const key=profiles.map(p=>`${p.name}:${p.radius}:${p.color}`).join('|');if(key===profileKey)return;profileKey=key;groups.forEach((g,i)=>{ for(const child of [...g.children]) {g.remove(child);if(child instanceof THREE.Mesh){ child.geometry.dispose();geometries.delete(child.geometry);(child.material as THREE.Material).dispose();materials.delete(child.material as THREE.Material);}} const p=profiles[i]; const shell=mesh(new THREE.CylinderGeometry(p.radius,p.radius*.9,.012,p.type==='attack'?6:p.type==='stamina'?24:p.type==='defense'?12:8),0x9daabc,.26,.85);shell.position.y=.018;g.add(shell); const cap=mesh(new THREE.CylinderGeometry(p.radius*.75,p.radius*.85,.01,6),p.color,.3,.6);cap.position.y=.026;g.add(cap); const core=mesh(new THREE.CylinderGeometry(.008,.009,.005,12),0xf8fafc,.3,.2);core.position.y=.033;g.add(core); const tip=mesh(new THREE.ConeGeometry(.007,.016,12),p.color);tip.rotation.x=Math.PI;tip.position.y=.003;g.add(tip); const accent=mesh(new THREE.BoxGeometry(.032,.003,.005),0xffffff);accent.position.y=.034;g.add(accent);g.children.forEach(child=>{child.userData.baseY=child.position.y;}); }); }
-  groups.forEach(g=>scene.add(g));
-  function resize(){const rect=canvas.getBoundingClientRect(); renderer.setSize(rect.width,rect.height,false);camera.aspect=rect.width/Math.max(rect.height,1);camera.updateProjectionMatrix();}
-  const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
-  function lost(event:Event){event.preventDefault();onError('描画が中断されました。画面を再読み込みしてください。');}canvas.addEventListener('webglcontextlost',lost);
-  return {setProfiles,draw(battle:Battle|null,time:number){groups.forEach((g,i)=>{const top=battle?.tops[i];if(top){g.position.set(top.x,0,top.z);g.rotation.set(top.tilt*Math.cos(top.phase*.05),top.phase,top.tilt*Math.sin(top.phase*.05));g.visible=!top.eliminated || top.eliminated==='spin'||top.eliminated==='burst';if(top.eliminated==='burst'){g.children.forEach((part,j)=>{part.position.x=(j%2?1:-1)*.015*j;part.position.y=.012;});}else{g.children.forEach(part=>{part.position.x=0;part.position.y=Number(part.userData.baseY??0);});}}else{g.children.forEach(part=>{part.position.x=0;part.position.y=Number(part.userData.baseY??0);});g.position.set(i===0?-.09:.09,0,0);g.rotation.set(0,time*(i?-.4:.4),0);g.visible=true;}});renderer.render(scene,camera);},dispose(){observer.disconnect();canvas.removeEventListener('webglcontextlost',lost);geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();}};
+/** Render the solver's geometry and pose. No invented wobble, rail boost or burst motion. */
+export function createArena(canvas: HTMLCanvasElement, onError: (message: string) => void) {
+  let renderer: THREE.WebGLRenderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+  catch { onError('WebGLを利用できません。対応ブラウザーで開き直してください。'); return null; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setClearColor(0xeff2f8, 1);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(37, 1, .01, 5);
+  camera.position.set(0, .58, .65); camera.lookAt(0, .018, 0);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x687b9d, 3));
+  const sun = new THREE.DirectionalLight(0xffffff, 3.2); sun.position.set(-.8, 1.5, .4); scene.add(sun);
+  const materials = new Set<THREE.Material>(), geometries = new Set<THREE.BufferGeometry>();
+  function mesh(geometry: THREE.BufferGeometry, color: number, roughness = .5, metalness = .1) {
+    geometries.add(geometry);
+    const material = new THREE.MeshStandardMaterial({ color, roughness, metalness }); materials.add(material);
+    return new THREE.Mesh(geometry, material);
+  }
+  function freeTree(object: THREE.Object3D) {
+    object.traverse(child => {
+      if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+        geometries.delete(child.geometry); child.geometry.dispose();
+        const list = Array.isArray(child.material) ? child.material : [child.material];
+        for (const material of list) { materials.delete(material); material.dispose(); }
+      }
+    });
+  }
+  function surfaceGeometry(radius: number, rings = 28, segments = 144) {
+    const positions: number[] = [], indices: number[] = [];
+    const radii = [...Array.from({ length: rings + 1 }, (_, i) => radius * i / rings), STADIUM.radius, STADIUM.pocketEntryRadius].filter(r => r <= radius).sort((a, b) => a - b).filter((r, i, all) => i === 0 || Math.abs(r - all[i - 1]) > 1e-8);
+    const angles = [...Array.from({ length: segments + 1 }, (_, i) => i / segments * Math.PI * 2), ...STADIUM.pockets.flatMap(p => [p.angle - p.halfWidth, p.angle + p.halfWidth])].sort((a, b) => a - b).filter((a, i, all) => i === 0 || Math.abs(a - all[i - 1]) > 1e-8);
+    for (const r of radii) for (const angle of angles) {
+      const x = r * Math.cos(angle), z = r * Math.sin(angle);
+      positions.push(x, pocketFloorAt(x, z) === null ? bowlHeightAt(x, z) : STADIUM.bowlDepth, z);
+    }
+    for (let ring = 0; ring < radii.length - 1; ring++) for (let i = 0; i < angles.length - 1; i++) {
+      const r = (radii[ring] + radii[ring + 1]) / 2, angle = (angles[i] + angles[i + 1]) / 2;
+      if (pocketFloorAt(Math.cos(angle) * r, Math.sin(angle) * r) !== null) continue;
+      const a = ring * angles.length + i, b = a + angles.length;
+      indices.push(a, b + 1, b, a, a + 1, b + 1);
+    }
+    const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
+  }
+  const trayShape = new THREE.Shape();
+  const extent = STADIUM.pocketOuterRadius + .006, corner = .07;
+  trayShape.moveTo(-extent + corner, -extent); trayShape.lineTo(extent - corner, -extent); trayShape.lineTo(extent, -extent + corner); trayShape.lineTo(extent, extent - corner); trayShape.lineTo(extent - corner, extent); trayShape.lineTo(-extent + corner, extent); trayShape.lineTo(-extent, extent - corner); trayShape.lineTo(-extent, -extent + corner); trayShape.closePath();
+  const tray = mesh(new THREE.ExtrudeGeometry(trayShape, { depth: .025, bevelEnabled: true, bevelSegments: 1, bevelSize: .006, bevelThickness: .005, steps: 1 }), 0x27364f, .55, .25);
+  tray.rotation.x = Math.PI / 2; tray.position.y = -.018; scene.add(tray);
+  scene.add(mesh(surfaceGeometry(STADIUM.radius), 0xe8edf5, .48, .1));
+  // Flat apron with exact straight-channel cutouts, not an angular-sector approximation.
+  const apron = new THREE.Shape(); let started = false;
+  function apronPoint(x: number, z: number) { if (!started) { apron.moveTo(x, -z); started = true; } else apron.lineTo(x, -z); }
+  const pocketMouths = STADIUM.pockets.map(p => ({ angle: p.angle, half: STADIUM.radius * Math.sin(p.halfWidth) + .004 })).sort((a, b) => a.angle - b.angle);
+  let cursor = 0;
+  for (const mouth of pocketMouths) {
+    const halfAngle = Math.asin(mouth.half / STADIUM.coverRadius), begin = mouth.angle - halfAngle, end = mouth.angle + halfAngle;
+    for (let angle = cursor; angle < begin; angle += Math.PI / 96) apronPoint(Math.cos(angle) * STADIUM.coverRadius, Math.sin(angle) * STADIUM.coverRadius);
+    apronPoint(Math.cos(begin) * STADIUM.coverRadius, Math.sin(begin) * STADIUM.coverRadius);
+    const nx = Math.cos(mouth.angle), nz = Math.sin(mouth.angle), tx = -nz, tz = nx;
+    apronPoint(nx * Math.max(STADIUM.pocketEntryRadius, STADIUM.radius + .0001) - tx * mouth.half, nz * Math.max(STADIUM.pocketEntryRadius, STADIUM.radius + .0001) - tz * mouth.half);
+    apronPoint(nx * Math.max(STADIUM.pocketEntryRadius, STADIUM.radius + .0001) + tx * mouth.half, nz * Math.max(STADIUM.pocketEntryRadius, STADIUM.radius + .0001) + tz * mouth.half);
+    apronPoint(Math.cos(end) * STADIUM.coverRadius, Math.sin(end) * STADIUM.coverRadius); cursor = end;
+  }
+  for (let angle = cursor; angle <= Math.PI * 2; angle += Math.PI / 96) apronPoint(Math.cos(angle) * STADIUM.coverRadius, Math.sin(angle) * STADIUM.coverRadius);
+  apron.closePath(); const apronHole = new THREE.Path(); apronHole.absarc(0, 0, STADIUM.radius, 0, Math.PI * 2, true); apron.holes.push(apronHole);
+  const apronGeometry = new THREE.ShapeGeometry(apron, 96); apronGeometry.rotateX(-Math.PI / 2); apronGeometry.translate(0, STADIUM.bowlDepth, 0); scene.add(mesh(apronGeometry, 0xe8edf5, .48, .1));
+  const pocketAt = (angle: number) => STADIUM.pockets.find(p => Math.cos(angle - p.angle) > 0 && Math.abs(Math.sin(angle - p.angle) * STADIUM.coverRadius) < STADIUM.radius * Math.sin(p.halfWidth) + .004);
+  // Wall panels omit exactly the solver's pocket angular openings.
+  const wallHeight = 'wallHeight' in STADIUM && typeof STADIUM.wallHeight === 'number' ? STADIUM.wallHeight : .034;
+  const wallPositions: number[] = [], wallIndices: number[] = [];
+  for (let i = 0; i < 180; i++) {
+    const a = i / 180 * Math.PI * 2, b = (i + 1) / 180 * Math.PI * 2;
+    if (pocketAt((a + b) / 2)) continue;
+    const ax = Math.cos(a) * STADIUM.coverRadius, az = Math.sin(a) * STADIUM.coverRadius, bx = Math.cos(b) * STADIUM.coverRadius, bz = Math.sin(b) * STADIUM.coverRadius;
+    const ay = bowlHeightAt(ax, az), by = bowlHeightAt(bx, bz), offset = wallPositions.length / 3;
+    wallPositions.push(ax, ay, az, bx, by, bz, bx, by + wallHeight, bz, ax, ay + wallHeight, az);
+    wallIndices.push(offset, offset + 1, offset + 2, offset, offset + 2, offset + 3);
+  }
+  const wallGeometry = new THREE.BufferGeometry(); wallGeometry.setAttribute('position', new THREE.Float32BufferAttribute(wallPositions, 3)); wallGeometry.setIndex(wallIndices); wallGeometry.computeVertexNormals(); geometries.add(wallGeometry);
+  const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x8da6c9, roughness: .22, metalness: .05, transparent: true, opacity: .24, side: THREE.DoubleSide, depthWrite: false }); materials.add(wallMaterial);
+  scene.add(new THREE.Mesh(wallGeometry, wallMaterial));
+  const roof = mesh(new THREE.RingGeometry(STADIUM.launchOpeningRadius, STADIUM.coverRadius, 96), 0xb5c6e0, .18, .05);
+  roof.rotation.x = -Math.PI / 2; roof.position.y = STADIUM.coverRoofHeight; roof.material.transparent = true; roof.material.opacity = .035; roof.material.side = THREE.DoubleSide; roof.material.depthWrite = false; scene.add(roof);
+  const openingPoints: THREE.Vector3[] = [];
+  for (let i = 0; i <= 96; i++) { const a = i / 96 * Math.PI * 2; openingPoints.push(new THREE.Vector3(Math.cos(a) * STADIUM.launchOpeningRadius, STADIUM.coverRoofHeight, Math.sin(a) * STADIUM.launchOpeningRadius)); }
+  const openingGeometry = new THREE.BufferGeometry().setFromPoints(openingPoints), openingMaterial = new THREE.LineBasicMaterial({ color: 0xc5d0e1, transparent: true, opacity: .28, depthWrite: false }); geometries.add(openingGeometry); materials.add(openingMaterial); scene.add(new THREE.Line(openingGeometry, openingMaterial));
+  const dummy = new THREE.Object3D();
+  const rail = getRailPath();
+  // Visual tooth pitch is an explicit estimate, consistent with the 12-tooth / 6 mm bit model.
+  // Points lie on the same piecewise-linear path used by the contact solver.
+  const lengths = rail.map((point, i) => { const next = rail[(i + 1) % rail.length]; return Math.hypot(next.x - point.x, next.z - point.z); });
+  const circumference = lengths.reduce((sum, length) => sum + length, 0), toothCount = Math.max(1, Math.round(circumference / (Math.PI * .012 / 12)));
+  let segment = 0, segmentStart = 0;
+  const railPoints = Array.from({ length: toothCount }, (_, i) => {
+    const distance = i * circumference / toothCount;
+    while (segment < rail.length - 1 && distance > segmentStart + lengths[segment]) segmentStart += lengths[segment++];
+    const point = rail[segment], next = rail[(segment + 1) % rail.length], t = (distance - segmentStart) / lengths[segment];
+    return { x: point.x + (next.x - point.x) * t, y: point.y + (next.y - point.y) * t, z: point.z + (next.z - point.z) * t };
+  });
+  const railGeometry = new THREE.BoxGeometry(.0018, .004, .004); geometries.add(railGeometry);
+  const railMaterial = new THREE.MeshStandardMaterial({ color: 0x355af5, roughness: .38, metalness: .35 }); materials.add(railMaterial);
+  const teeth = new THREE.InstancedMesh(railGeometry, railMaterial, railPoints.length);
+  railPoints.forEach((point, i) => {
+    const next = railPoints[(i + 1) % railPoints.length];
+    dummy.position.set(point.x, point.y, point.z); dummy.rotation.set(0, -Math.atan2(next.z - point.z, next.x - point.x), 0); dummy.updateMatrix(); teeth.setMatrixAt(i, dummy.matrix);
+  }); scene.add(teeth);
+  for (const pocket of STADIUM.pockets) {
+    const nx = Math.cos(pocket.angle), nz = Math.sin(pocket.angle), tx = -nz, tz = nx;
+    const half = STADIUM.radius * Math.sin(pocket.halfWidth), depth = STADIUM.pocketOuterRadius - STADIUM.pocketEntryRadius;
+    const color = pocket.finish === 'xtreme' ? 0xff795c : 0x8da4bf;
+    const floorPositions: number[] = [], floorIndices: number[] = [], acrossSegments = 16;
+    for (let i = 0; i <= 32; i++) {
+      const along = STADIUM.pocketEntryRadius + depth * i / 32;
+      for (let j = 0; j <= acrossSegments; j++) {
+        const side = (half + .004) * (2 * j / acrossSegments - 1), x = nx * along + tx * side, z = nz * along + tz * side;
+        floorPositions.push(x, bowlHeightAt(x, z), z);
+      }
+      if (i < 32) for (let j = 0; j < acrossSegments; j++) { const a = i * (acrossSegments + 1) + j, b = a + acrossSegments + 1; floorIndices.push(a, b + 1, b, a, a + 1, b + 1); }
+    }
+    const floorGeometry = new THREE.BufferGeometry(); floorGeometry.setAttribute('position', new THREE.Float32BufferAttribute(floorPositions, 3)); floorGeometry.setIndex(floorIndices); floorGeometry.computeVertexNormals(); scene.add(mesh(floorGeometry, color));
+    const back = mesh(new THREE.BoxGeometry(.006, wallHeight, half * 2 + .012), color, .5, .15); back.position.set(nx * (STADIUM.pocketOuterRadius + .003), STADIUM.pocketFloorHeight + wallHeight / 2, nz * (STADIUM.pocketOuterRadius + .003)); back.rotation.y = -pocket.angle; back.material.transparent = true; back.material.opacity = .28; back.material.depthWrite = false; scene.add(back);
+    const sideStart = STADIUM.radius - .006, sideLength = STADIUM.pocketOuterRadius - sideStart, sideCenter = (sideStart + STADIUM.pocketOuterRadius) / 2;
+    for (const sign of [-1, 1]) {
+      const side = mesh(new THREE.BoxGeometry(sideLength, wallHeight, .006), 0x7288a9, .35, .1); side.material.transparent = true; side.material.opacity = .27; side.material.depthWrite = false;
+      side.position.set(nx * sideCenter + tx * (half + .003) * sign, STADIUM.pocketFloorHeight + wallHeight / 2, nz * sideCenter + tz * (half + .003) * sign); side.rotation.y = -pocket.angle; scene.add(side);
+    }
+  }
+  // Concentric reference marks follow the actual bowl surface, never float above it.
+  for (const radius of [.06, .12, .18]) {
+    const points: THREE.Vector3[] = [];
+    for (let i = 0; i <= 100; i++) { const a = i / 100 * Math.PI * 2, x = Math.cos(a) * radius, z = Math.sin(a) * radius; points.push(new THREE.Vector3(x, bowlHeightAt(x, z) + .00025, z)); }
+    const geometry = new THREE.BufferGeometry().setFromPoints(points), material = new THREE.LineBasicMaterial({ color: 0xc1ccdf }); geometries.add(geometry); materials.add(material); scene.add(new THREE.Line(geometry, material));
+  }
+  const groups: [THREE.Group, THREE.Group] = [new THREE.Group(), new THREE.Group()]; groups.forEach(group => scene.add(group));
+  const shadows = groups.map(() => {
+    const shadow = mesh(new THREE.CircleGeometry(.025, 32), 0x52647b); shadow.rotation.x = -Math.PI / 2; shadow.material.transparent = true; shadow.material.opacity = .13; shadow.material.depthWrite = false; scene.add(shadow); return shadow;
+  });
+  const contactMarkers = groups.map((_, i) => {
+    const marker = mesh(new THREE.TorusGeometry(.008, .001, 5, 24), i === 0 ? 0x335dff : 0xf5785a); marker.rotation.x = Math.PI / 2; marker.material.emissive.setHex(i === 0 ? 0x335dff : 0xf5785a); marker.material.emissiveIntensity = .4; marker.visible = false; scene.add(marker); return marker;
+  });
+  const trailLength = 64;
+  const trails = groups.map((_, i) => {
+    const positions = new Float32Array(trailLength * 3), geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3)); geometry.setDrawRange(0, 0); geometries.add(geometry);
+    const material = new THREE.LineBasicMaterial({ color: i === 0 ? 0x527bff : 0xff8e70, transparent: true, opacity: .42, depthWrite: false }); materials.add(material);
+    const line = new THREE.Line(geometry, material); line.frustumCulled = false; scene.add(line); return { positions, geometry, line, count: 0 };
+  });
+  let profileKey = '', profiles: [Profile, Profile] | null = null, lastTick = -1;
+  function bladeGeometry(profile: Profile) {
+    const vertices = getBladeVertices(profile), count = vertices.length / 2;
+    const geometry = new THREE.BufferGeometry(), positions = vertices.flatMap(v => [v.x, v.y, v.z]), indices: number[] = [];
+    for (let i = 0; i < count; i++) { const next = (i + 1) % count; indices.push(i, count + i, count + next, i, count + next, next); }
+    const faces = THREE.ShapeUtils.triangulateShape(vertices.slice(0, count).map(v => new THREE.Vector2(v.x, v.z)), []);
+    for (const [a, b, c] of faces) { indices.push(a, b, c, count + a, count + c, count + b); }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
+  }
+  function setProfiles(next: [Profile, Profile]) {
+    const key = JSON.stringify(next); if (key === profileKey) return; profileKey = key; profiles = next;
+    groups.forEach((group, index) => {
+      for (const child of [...group.children]) { group.remove(child); freeTree(child); }
+      const profile = next[index], center = comHeight(profile), vertices = getBladeVertices(profile), topY = vertices[vertices.length / 2].y;
+      group.add(mesh(bladeGeometry(profile), 0x9caec5, .25, .9));
+      const outline = getBladeOutline(profile);
+      const capShape = new THREE.Shape(); outline.forEach((point, i) => { if (i === 0) capShape.moveTo(point.x * .70, point.z * .70); else capShape.lineTo(point.x * .70, point.z * .70); }); capShape.closePath();
+      const cap = mesh(new THREE.ExtrudeGeometry(capShape, { depth: .003, bevelEnabled: false }), profile.color, .38, .25); cap.rotation.x = Math.PI / 2; cap.position.y = topY + .003; group.add(cap);
+      const hub = mesh(new THREE.CylinderGeometry(.0055, .0065, .003, 10), 0xf6f9ff, .27, .4); hub.position.y = topY + .004; group.add(hub);
+      const ratchetDimensions = getRatchetGeometry(profile);
+      const ratchet = mesh(new THREE.CylinderGeometry(ratchetDimensions.radius * .91, ratchetDimensions.radius, ratchetDimensions.halfThickness * 2, 24), profile.color, .44, .2); ratchet.position.y = ratchetDimensions.centerHeight - center; group.add(ratchet);
+      const gear = mesh(new THREE.CylinderGeometry(profile.gearRadius * .87, profile.gearRadius * .87, .004, 24), profile.color, .5, .1); gear.position.y = profile.gearHeight - center; group.add(gear);
+      for (let tooth = 0; tooth < 12; tooth++) {
+        const a = tooth / 12 * Math.PI * 2, part = mesh(new THREE.BoxGeometry(.0015, .004, .002), profile.color, .5, .1);
+        part.position.set(Math.cos(a) * profile.gearRadius * .88, profile.gearHeight - center, Math.sin(a) * profile.gearRadius * .88); part.rotation.y = -a; group.add(part);
+      }
+      const tipRadius = profile.tipRadius ?? .0015;
+      const tipHeight = Math.max(.002, profile.gearHeight - .002);
+      if (profile.tipShape === 'ball') {
+        const ball = mesh(new THREE.SphereGeometry(tipRadius, 16, 10), 0xe1eaf6, .4, .15); ball.position.y = tipRadius - center; group.add(ball);
+        const neck = mesh(new THREE.CylinderGeometry(.0035, tipRadius * .8, Math.max(.001, tipHeight - tipRadius), 16), 0xe1eaf6, .4, .15); neck.position.y = (tipHeight + tipRadius) / 2 - center; group.add(neck);
+      } else {
+        const tip = mesh(new THREE.CylinderGeometry(.004, tipRadius, tipHeight, 20), 0xe1eaf6, .4, .15); tip.position.y = tipHeight / 2 - center; group.add(tip);
+      }
+    });
+  }
+  function resize() {
+    const rect = canvas.getBoundingClientRect(); renderer.setSize(rect.width, rect.height, false); camera.aspect = Math.max(rect.width, 1) / Math.max(rect.height, 1);
+    const distance = Math.max(.56 / camera.aspect, .49) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    camera.position.set(0, distance * .665, distance * .747); camera.lookAt(0, .018, 0); camera.updateProjectionMatrix();
+  }
+  const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
+  function lost(event: Event) { event.preventDefault(); onError('描画が中断されました。画面を再読み込みしてください。'); }
+  canvas.addEventListener('webglcontextlost', lost);
+  return {
+    setProfiles,
+    draw(battle: Battle | null, time: number) {
+      const resetTrail = !battle || battle.tick < lastTick, addTrail = Boolean(battle && battle.tick !== lastTick);
+      groups.forEach((group, i) => {
+        const top = battle?.tops[i], profile = top?.profile ?? profiles?.[i];
+        if (!profile) { group.visible = false; shadows[i].visible = false; return; }
+        group.visible = true;
+        if (top) { group.position.set(top.x, top.y, top.z); group.quaternion.set(top.orientation.x, top.orientation.y, top.orientation.z, top.orientation.w); }
+        else { const x = i === 0 ? -.085 : .085; group.position.set(x, bowlHeightAt(x, 0) + comHeight(profile), 0); group.rotation.set(0, time * (i === 0 ? .35 : -.35), 0); }
+        const x = group.position.x, z = group.position.z, floor = bowlHeightAt(x, z);
+        shadows[i].visible = Math.hypot(x, z) <= STADIUM.pocketOuterRadius; shadows[i].position.set(x, floor + .0005, z);
+        shadows[i].scale.setScalar(profile.radius / .025); shadows[i].material.opacity = Math.max(.025, .15 - Math.max(0, group.position.y - floor - comHeight(profile)) * 1.6);
+        const trail = trails[i];
+        if (resetTrail) { trail.count = 0; trail.geometry.setDrawRange(0, 0); }
+        if (addTrail && top && !top.eliminated) {
+          if (trail.count === trailLength) trail.positions.copyWithin(0, 3); else trail.count++;
+          const offset = (trail.count - 1) * 3; trail.positions[offset] = top.x; trail.positions[offset + 1] = Math.max(floor + .001, top.y - top.centerOfMassHeight); trail.positions[offset + 2] = top.z;
+          trail.geometry.attributes.position.needsUpdate = true; trail.geometry.setDrawRange(0, trail.count);
+        }
+        const marker = contactMarkers[i];
+        marker.visible = Boolean(top?.rail.engaged && top.rail.contactPoint);
+        if (marker.visible && top?.rail.contactPoint) { const contact = top.rail.contactPoint; marker.position.set(contact.x, contact.y + .001, contact.z); }
+      });
+      lastTick = battle?.tick ?? -1; renderer.render(scene, camera);
+    },
+    dispose() { observer.disconnect(); canvas.removeEventListener('webglcontextlost', lost); geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose()); renderer.dispose(); },
+  };
 }

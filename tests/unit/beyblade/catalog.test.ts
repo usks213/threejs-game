@@ -57,6 +57,15 @@ describe('source-backed parts catalog and safe assemblies',()=>{
     const left=find('メテオドラグーン');expect(left.spinVerification).toBe('official');
     expect(officialParts.find(r=>r.id===left.id)?.physical_parameters).toBeNull();
   });
+  it('uses observed blade counts and tip form rather than marketing ratings as physical constants',()=>{
+    for(const [name,lobes] of [['ドランソード',3],['ヘルズサイズ',4],['ウィザードアロー',2],['ナイトシールド',6]] as const){
+      expect(profileFor(buildForBlade(find(name).id)).contactLobes).toBe(lobes);
+    }
+    const blade=find('ヘルズサイズ'),original=blade.ratings,before=profileFor(defaultBuild);
+    try{blade.ratings={attack:99,defense:1,stamina:99};expect(profileFor(defaultBuild)).toEqual(before);}finally{blade.ratings=original;}
+    const flat=profileFor({...defaultBuild,bit:find('F','bit').id}),needle=profileFor({...defaultBuild,bit:find('N','bit').id});
+    expect(flat.tipShape).toBe('flat');expect(needle.tipShape).toBe('needle');expect(flat.tipRadius).toBeGreaterThan(needle.tipRadius!);
+  });
   it('rejects invalid and unknown-release parts and duplicate-color decks',()=>{
     expect(validateBuild({...defaultBuild,bit:'not-a-part'}).length).toBeGreaterThan(0);
     const unknown=parts.find(p=>p.category==='blade'&&p.release!=='released');if(unknown)expect(validateBuild(buildForBlade(unknown.id)).length).toBeGreaterThan(0);
@@ -70,9 +79,9 @@ describe('source-backed parts catalog and safe assemblies',()=>{
       expect(model.inertia).toBeGreaterThan(0);expect(model.burstThreshold).toBeGreaterThan(0);
     }
   });
-  it('changes modeled ratchet, bit and blade behavior without mutating official ratings',()=>{
+  it('changes estimated tip contact geometry without mutating official ratings',()=>{
     const original=JSON.stringify(officialParts);const a=profileFor(defaultBuild);
     const alternate={...defaultBuild,bit:find('F','bit').id};const b=profileFor(alternate);
-    expect(a.grip).not.toBe(b.grip);expect(a.railGrip).not.toBe(b.railGrip);expect(JSON.stringify(officialParts)).toBe(original);
+    expect(a.grip).not.toBe(b.grip);expect(a.tipShape).not.toBe(b.tipShape);expect(a.tipRadius).not.toBe(b.tipRadius);expect(JSON.stringify(officialParts)).toBe(original);
   });
 });
