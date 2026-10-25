@@ -1,0 +1,1316 @@
+{
+  "sourceSha256": {
+    "src/beyblade/core/physics.ts": "6b30b7765e60bd72792c016184ddb07974989291fcf8a9a6d01dd192677c77d8",
+    "src/beyblade/data/physical-estimates.ts": "d7896cefd5b97b0d9ef4c45f9cc1618be37c9c0c4b5d9af83e7dbf15b5859e1b",
+    "src/beyblade/data/shape-facts.ts": "ec6ccb61ce8af569b97eb09eb4337fe3c9cf0016563f95b8db7aadc28a082c68",
+    "src/beyblade/data/catalog.ts": "281c07b4f7a8a89350ee6d926fa23e53146b07ff7d7157cb1d5b30106006a4a5",
+    "scripts/compare-beyblade-models.ts": "f83edd287c3bbb637533359ca204c2d3f6e25a785e5030ecf588a090cbc27364"
+  },
+  "status": "estimated model comparison; not real-toy validation",
+  "fixture": "Equal estimated launch work at 80%; spin-down centered upright with zero translation, 3s floor-only. Impact upright fixed 300rad/s vs common incoming body at1m/s from80mm separation; not a ranking. Orbit up to3s normal full two-body arena; actual duration and terminal result recorded.",
+  "summary": {
+    "catalogRows": 311,
+    "modeledRows": 228,
+    "uniqueMechanicalProfiles": 208,
+    "equivalentGroups": [
+      {
+        "members": [
+          {
+            "id": "blade:a347771f4214",
+            "name": "ヘルズサイズ",
+            "fallback": false
+          },
+          {
+            "id": "ratchet:4-60",
+            "name": "4-60",
+            "fallback": false
+          },
+          {
+            "id": "bit:T",
+            "name": "T · テーパー",
+            "fallback": false
+          }
+        ],
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:878139ab424a",
+            "name": "フェニックスウイング メタルコート",
+            "fallback": false
+          },
+          {
+            "id": "blade:c8c198827248",
+            "name": "フェニックスウイング メタルコート:ブラック",
+            "fallback": false
+          }
+        ],
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:8fe87fc8f81d",
+            "name": "ドランダガー メタルコート:ブラック",
+            "fallback": false
+          },
+          {
+            "id": "blade:2f65012272cb",
+            "name": "ドランダガー メタルコート:ホワイト",
+            "fallback": false
+          }
+        ],
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:9b2d38339b86",
+            "name": "ヘルズハンマー メタルコート:ブルー",
+            "fallback": true
+          },
+          {
+            "id": "blade:db1e65b9dc76",
+            "name": "ヘルズハンマー メタルコート:レッド FCバルセロナVer.",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "ratchet_integrated_blade:e2ba1a713448",
+            "name": "グローリーワルキューレ メタルコート:ホワイト",
+            "fallback": true
+          },
+          {
+            "id": "ratchet_integrated_blade:8f6bf7fe20d5",
+            "name": "グローリーワルキューレ メタルコート:ブルー",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "assembled_blade:16e9ca768210",
+            "name": "ライノリーパーC",
+            "fallback": true
+          },
+          {
+            "id": "assembled_blade:3dfd9c62cce5",
+            "name": "ホエールフレイムM",
+            "fallback": true
+          },
+          {
+            "id": "blade:bcaae06d4533",
+            "name": "アイアンマン",
+            "fallback": true
+          },
+          {
+            "id": "blade:bdfb70df3e48",
+            "name": "サノス",
+            "fallback": true
+          },
+          {
+            "id": "blade:a74b65b97e86",
+            "name": "スパイダーマン",
+            "fallback": true
+          },
+          {
+            "id": "blade:5f203ab27ca0",
+            "name": "ヴェノム",
+            "fallback": true
+          },
+          {
+            "id": "blade:1e11cf62b78d",
+            "name": "ルーク・スカイウォーカー",
+            "fallback": true
+          },
+          {
+            "id": "blade:551fd474cc5b",
+            "name": "ダース・ベイダー",
+            "fallback": true
+          },
+          {
+            "id": "blade:8910d2dfb26d",
+            "name": "マンダロリアン",
+            "fallback": true
+          },
+          {
+            "id": "blade:975d63b58389",
+            "name": "モフ・ギデオン",
+            "fallback": true
+          },
+          {
+            "id": "blade:31310d65910a",
+            "name": "オプティマスプライム",
+            "fallback": true
+          },
+          {
+            "id": "blade:9d0d674dacc8",
+            "name": "メガトロン",
+            "fallback": true
+          },
+          {
+            "id": "blade:23088f6d86b5",
+            "name": "オプティマスプライマル",
+            "fallback": true
+          },
+          {
+            "id": "blade:f1d99b3b0c7e",
+            "name": "スタースクリーム",
+            "fallback": true
+          },
+          {
+            "id": "blade:b304f6919730",
+            "name": "ストームスプリガン",
+            "fallback": true
+          },
+          {
+            "id": "blade:96ca2e6dbc9e",
+            "name": "フェニックスフェザー",
+            "fallback": true
+          },
+          {
+            "id": "blade:3a946efa3d4f",
+            "name": "ヘルズチェイン メタルコート:ブラック",
+            "fallback": true
+          },
+          {
+            "id": "blade:457d4e8f04e1",
+            "name": "T-レックス",
+            "fallback": true
+          },
+          {
+            "id": "blade:d64b62825c56",
+            "name": "モササウルス",
+            "fallback": true
+          },
+          {
+            "id": "blade:29beff483a6e",
+            "name": "スピノサウルス",
+            "fallback": true
+          },
+          {
+            "id": "blade:194bbf365577",
+            "name": "ケツァルコアトルス",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      }
+    ],
+    "sourceInformedBladeRows": 27,
+    "unmodeledBladeRows": 111
+  },
+  "comparisons": [
+    {
+      "label": "Sword / 3-60 / F",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:F"
+      },
+      "profile": {
+        "name": "ドランソード 3-60F",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.03308,
+        "radius": 0.022366644159351787,
+        "inertia": 0.000011626890818400001,
+        "transverseInertia": 0.000006298432862431978,
+        "centerOfMassHeight": 0.020175634824667475,
+        "height": 0.028,
+        "grip": 0.2495,
+        "tipFriction": 0.2495,
+        "tipRadius": 0.002912,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.022600000000000002,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.022539999999999998,
+        "lockReleaseAngle": 0.2685,
+        "gearRadius": 0.00606,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.7775000000000001,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 2264526
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.7594839898704,
+        "finalOmega": 410.1803162845829,
+        "retainedEnergy": 0.6474706400706804,
+        "tilt": 0.001913189380422612
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.15744625193172546,
+        "impulse": 0.03802371528986264,
+        "recoil": {
+          "x": -0.7531014024803154,
+          "y": 0.7220338483341137,
+          "z": 0.5615257878723918
+        },
+        "angularMomentum": {
+          "x": 0.0001661181256031793,
+          "y": 0.003198549026066105,
+          "z": 0.0005950675013348225
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 3,
+        "result": null,
+        "x": 0.16892945253643274,
+        "y": 0.02733883626856765,
+        "z": 0.008900256633147918,
+        "omega": 70.98143395127096,
+        "firstRail": 50.833333333333336,
+        "firstDash": null
+      }
+    },
+    {
+      "label": "blade-only: ウィザードロッド",
+      "build": {
+        "blade": "blade:cd31341f19d7",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:F"
+      },
+      "profile": {
+        "name": "ウィザードロッド 3-60F",
+        "type": "stamina",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.03288,
+        "radius": 0.02830646727519907,
+        "inertia": 0.000019923089733399997,
+        "transverseInertia": 0.00000873448505652775,
+        "centerOfMassHeight": 0.02015845498783455,
+        "height": 0.028,
+        "grip": 0.2495,
+        "tipFriction": 0.2495,
+        "tipRadius": 0.002912,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.019000000000000003,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.022539999999999998,
+        "lockReleaseAngle": 0.2685,
+        "gearRadius": 0.00606,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.7775000000000001,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 5,
+        "contactLobeDepth": 0.029799999999999997,
+        "bladeStyle": "round-wing",
+        "bladeEdgeSharpness": 0.34,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0,
+        "bladeSkew": 0.06,
+        "modelPalette": {
+          "metal": 12173516,
+          "core": 16042027,
+          "ratchet": 6912395,
+          "bit": 2264526
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 389.4204606083692,
+        "finalOmega": 329.28967647760265,
+        "retainedEnergy": 0.7150220168479839,
+        "tilt": 0.0014455859351289759
+      },
+      "incomingImpact": {
+        "contactTime": 0.0305,
+        "energyChange": -0.014984722965433184,
+        "impulse": 0.003933640001783738,
+        "recoil": {
+          "x": -0.10706232285406324,
+          "y": -0.05581094419103608,
+          "z": 0.025103439092625697
+        },
+        "angularMomentum": {
+          "x": -0.000007434490353876997,
+          "y": 0.005975997631286969,
+          "z": -0.000033772993612963006
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 0.6666666666666666,
+        "result": {
+          "winner": 0,
+          "finish": "xtreme",
+          "points": 3
+        },
+        "x": 0.015800558723829496,
+        "y": 0.028273411285688194,
+        "z": 0.1776452166041546,
+        "omega": 275.06196171254817,
+        "firstRail": 51.411764705882355,
+        "firstDash": null
+      }
+    },
+    {
+      "label": "blade-only: ナイトシールド",
+      "build": {
+        "blade": "blade:4f50829c3010",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:F"
+      },
+      "profile": {
+        "name": "ナイトシールド 3-60F",
+        "type": "defense",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.033655,
+        "radius": 0.025071339653356315,
+        "inertia": 0.000012256029287752798,
+        "transverseInertia": 0.000007487441604240762,
+        "centerOfMassHeight": 0.02022388946664686,
+        "height": 0.028,
+        "grip": 0.2495,
+        "tipFriction": 0.2495,
+        "tipRadius": 0.002912,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.022150000000000003,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.022539999999999998,
+        "lockReleaseAngle": 0.2685,
+        "gearRadius": 0.00606,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.7775000000000001,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 6,
+        "contactLobeDepth": 0.044300000000000006,
+        "bladeStyle": "shield",
+        "bladeEdgeSharpness": 0.30999999999999994,
+        "bladeThickness": 0.009200000000000002,
+        "bladeRampAmplitude": 0,
+        "bladeSkew": 0.19,
+        "modelPalette": {
+          "metal": 11582148,
+          "core": 1864279,
+          "ratchet": 6912395,
+          "bit": 2264526
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 496.5033882716645,
+        "finalOmega": 400.62002124957775,
+        "retainedEnergy": 0.6510622672669574,
+        "tilt": 0.002316376254406724
+      },
+      "incomingImpact": {
+        "contactTime": 0.03133333333333333,
+        "energyChange": -0.39430044335425796,
+        "impulse": 0.09906006421789457,
+        "recoil": {
+          "x": -2.4385489307923787,
+          "y": 0.4594307111791145,
+          "z": 1.745700331761459
+        },
+        "angularMomentum": {
+          "x": 0.00020344575815145867,
+          "y": 0.002846704979903742,
+          "z": 0.0005026564996215986
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 3,
+        "result": null,
+        "x": 0.13696787410002087,
+        "y": 0.029187141171221547,
+        "z": 0.13149665499303606,
+        "omega": 150.51375158679454,
+        "firstRail": 51.44444444444444,
+        "firstDash": null
+      }
+    },
+    {
+      "label": "blade-only: ドランバスター",
+      "build": {
+        "blade": "blade:ad2b5f965feb",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:F"
+      },
+      "profile": {
+        "name": "ドランバスター 3-60F",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.03303,
+        "radius": 0.021175788780922147,
+        "inertia": 0.00001182696387942816,
+        "transverseInertia": 0.00000586073885680609,
+        "centerOfMassHeight": 0.020171359370269454,
+        "height": 0.028,
+        "grip": 0.2495,
+        "tipFriction": 0.2495,
+        "tipRadius": 0.002912,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.0235,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.022539999999999998,
+        "lockReleaseAngle": 0.2685,
+        "gearRadius": 0.00606,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.7775000000000001,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 1,
+        "contactLobeDepth": 0.29155,
+        "bladeStyle": "single-sword",
+        "bladeEdgeSharpness": 0.6799999999999999,
+        "bladeThickness": 0.00885,
+        "bladeRampAmplitude": 0,
+        "bladeSkew": 0.35,
+        "modelPalette": {
+          "metal": 12042702,
+          "core": 2402264,
+          "ratchet": 6912395,
+          "bit": 2264526
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 505.4293719514754,
+        "finalOmega": 406.1932947986299,
+        "retainedEnergy": 0.6458704385335652,
+        "tilt": 0.001727519428505305
+      },
+      "incomingImpact": {
+        "contactTime": 0.03283333333333333,
+        "energyChange": -0.24717485868597533,
+        "impulse": 0.059531129681716484,
+        "recoil": {
+          "x": -1.5721627457136595,
+          "y": -0.5664093433280836,
+          "z": 0.8117403906644347
+        },
+        "angularMomentum": {
+          "x": 0.00009423343172363353,
+          "y": 0.0027482182623959177,
+          "z": -0.0003756177033662448
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 3,
+        "result": null,
+        "x": 0.1540425071326422,
+        "y": 0.029127827086308965,
+        "z": 0.10670194157928986,
+        "omega": 168.41636604369893,
+        "firstRail": 50.77777777777778,
+        "firstDash": 134.26666666666668
+      }
+    },
+    {
+      "label": "ratchet-only: 3-80",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:3-80",
+        "bit": "bit:F"
+      },
+      "profile": {
+        "name": "ドランソード 3-80F",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.033049999999999996,
+        "radius": 0.022366644159351787,
+        "inertia": 0.000011626432103000001,
+        "transverseInertia": 0.0000065465448616498444,
+        "centerOfMassHeight": 0.021560363086232985,
+        "height": 0.0296,
+        "grip": 0.2495,
+        "tipFriction": 0.2495,
+        "tipRadius": 0.002912,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.022600000000000002,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.02242,
+        "lockReleaseAngle": 0.2675,
+        "gearRadius": 0.00606,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.7775000000000001,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01558,
+        "ratchetCenterHeight": 0.0128,
+        "ratchetHalfThickness": 0.00266,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.0913,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 2264526
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.7695400507978,
+        "finalOmega": 410.212733240725,
+        "retainedEnergy": 0.6475477813188478,
+        "tilt": 0.002112979670121647
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.16346221635223857,
+        "impulse": 0.03956923626790631,
+        "recoil": {
+          "x": -0.8022532436806864,
+          "y": 0.7333736126840259,
+          "z": 0.5844295850866303
+        },
+        "angularMomentum": {
+          "x": 0.00016772858014706653,
+          "y": 0.003190739729667564,
+          "z": 0.0006031727995918073
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 3,
+        "result": null,
+        "x": -0.08568483119858808,
+        "y": 0.025477077425650165,
+        "z": -0.14135495758775962,
+        "omega": 17.680744910581886,
+        "firstRail": 50.833333333333336,
+        "firstDash": 134.92857142857142
+      }
+    },
+    {
+      "label": "ratchet-only: 9-60",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:9-60",
+        "bit": "bit:F"
+      },
+      "profile": {
+        "name": "ドランソード 9-60F",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.033125,
+        "radius": 0.022366644159351787,
+        "inertia": 0.000011623964858000002,
+        "transverseInertia": 0.000006307000863605178,
+        "centerOfMassHeight": 0.02016452830188679,
+        "height": 0.028,
+        "grip": 0.2495,
+        "tipFriction": 0.2495,
+        "tipRadius": 0.002912,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.022600000000000002,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.0226,
+        "lockReleaseAngle": 0.269,
+        "gearRadius": 0.00606,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.7775000000000001,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.015439999999999999,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 9,
+        "ratchetLobeDepth": 0.0775,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 2264526
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.8236377546192,
+        "finalOmega": 410.13274256370397,
+        "retainedEnergy": 0.6471575685385567,
+        "tilt": 0.0019196144665733037
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.15693868703684477,
+        "impulse": 0.03790273676143631,
+        "recoil": {
+          "x": -0.747018984807745,
+          "y": 0.7214506350949148,
+          "z": 0.5590809119638745
+        },
+        "angularMomentum": {
+          "x": 0.00016633576999736105,
+          "y": 0.0031979490275238155,
+          "z": 0.0005954928217822176
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 3,
+        "result": null,
+        "x": 0.011158017922641863,
+        "y": 0.022123377945096574,
+        "z": -0.08251235138797776,
+        "omega": 163.19921650918286,
+        "firstRail": 50.666666666666664,
+        "firstDash": null
+      }
+    },
+    {
+      "label": "ratchet-only: 4-60",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:4-60",
+        "bit": "bit:F"
+      },
+      "profile": {
+        "name": "ドランソード 4-60F",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.0332,
+        "radius": 0.022366644159351787,
+        "inertia": 0.000011621253600000001,
+        "transverseInertia": 0.00000632128086556051,
+        "centerOfMassHeight": 0.020146084337349397,
+        "height": 0.028,
+        "grip": 0.2495,
+        "tipFriction": 0.2495,
+        "tipRadius": 0.002912,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.022600000000000002,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.022779999999999998,
+        "lockReleaseAngle": 0.2705,
+        "gearRadius": 0.00606,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.7775000000000001,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.0153,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 4,
+        "ratchetLobeDepth": 0.0637,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 2264526
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.88310564217824,
+        "finalOmega": 410.0214233116153,
+        "retainedEnergy": 0.6466554625239693,
+        "tilt": 0.0019298885752061549
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.15611356163160583,
+        "impulse": 0.03770620375208941,
+        "recoil": {
+          "x": -0.7370800845733804,
+          "y": 0.7204699158427774,
+          "z": 0.5550981917936436
+        },
+        "angularMomentum": {
+          "x": 0.00016669462128771317,
+          "y": 0.003197571079616703,
+          "z": 0.0005961874939791369
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 1.3916666666666666,
+        "result": {
+          "winner": 0,
+          "finish": "burst",
+          "points": 2
+        },
+        "x": -0.0735280815545002,
+        "y": 0.031038696644239052,
+        "z": 0.19330963216004762,
+        "omega": 291.06409359215814,
+        "firstRail": 50.833333333333336,
+        "firstDash": null
+      }
+    },
+    {
+      "label": "bit-only: B",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:B"
+      },
+      "profile": {
+        "name": "ドランソード 3-60B",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.03363,
+        "radius": 0.022366644159351787,
+        "inertia": 0.0000116367908184,
+        "transverseInertia": 0.000006403152876771083,
+        "centerOfMassHeight": 0.019927445732976508,
+        "height": 0.028,
+        "grip": 0.1395,
+        "tipFriction": 0.1395,
+        "tipRadius": 0.0013124999999999999,
+        "tipShape": "ball",
+        "rollingDrag": 0.000018,
+        "drag": 0.0202,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.01254,
+        "lockReleaseAngle": 0.2285,
+        "gearRadius": 0.00591,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.615,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 15055143
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.54259890617897,
+        "finalOmega": 477.7681073417882,
+        "retainedEnergy": 0.8791709222332028,
+        "tilt": 0
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.14513319798646052,
+        "impulse": 0.035145111295972496,
+        "recoil": {
+          "x": -0.6337572387275391,
+          "y": 0.7064060151904696,
+          "z": 0.5096421977635145
+        },
+        "angularMomentum": {
+          "x": 0.0001677961806361891,
+          "y": 0.003213201381632041,
+          "z": 0.0005937635677011389
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 1.1625,
+        "result": {
+          "winner": 1,
+          "finish": "over",
+          "points": 2
+        },
+        "x": 0.22282243735108706,
+        "y": 0.01381416024845904,
+        "z": 0.10678615544345135,
+        "omega": 433.20160858442904,
+        "firstRail": 47.72222222222222,
+        "firstDash": null
+      }
+    },
+    {
+      "label": "bit-only: N",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:N"
+      },
+      "profile": {
+        "name": "ドランソード 3-60N",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.033805,
+        "radius": 0.022366644159351787,
+        "inertia": 0.000011639940818400001,
+        "transverseInertia": 0.0000064364728813335255,
+        "centerOfMassHeight": 0.01985017009318148,
+        "height": 0.028,
+        "grip": 0.09000000000000001,
+        "tipFriction": 0.09000000000000001,
+        "tipRadius": 0.0003915,
+        "tipShape": "needle",
+        "rollingDrag": 0.000023599999999999998,
+        "drag": 0.0214,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.01254,
+        "lockReleaseAngle": 0.2285,
+        "gearRadius": 0.00591,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.615,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 2653785
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.47364804910217,
+        "finalOmega": 477.3557177361834,
+        "retainedEnergy": 0.8778914244521514,
+        "tilt": 0
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.13986010369276936,
+        "impulse": 0.03398873375072583,
+        "recoil": {
+          "x": -0.5980630443939318,
+          "y": 0.6930315739560247,
+          "z": 0.4859102991813461
+        },
+        "angularMomentum": {
+          "x": 0.00016599444378207436,
+          "y": 0.003224266101389953,
+          "z": 0.0005861388071430351
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 0.8291666666666666,
+        "result": {
+          "winner": 1,
+          "finish": "over",
+          "points": 2
+        },
+        "x": 0.23801450989578213,
+        "y": 0.013564619469804397,
+        "z": 0.15130506948685474,
+        "omega": 401.4507743463634,
+        "firstRail": 45.94444444444444,
+        "firstDash": null
+      }
+    },
+    {
+      "label": "bit-only: R",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:R"
+      },
+      "profile": {
+        "name": "ドランソード 3-60R",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.033105,
+        "radius": 0.022366644159351787,
+        "inertia": 0.0000116273408184,
+        "transverseInertia": 0.0000063031928630837564,
+        "centerOfMassHeight": 0.020164174595982475,
+        "height": 0.028,
+        "grip": 0.252,
+        "tipFriction": 0.252,
+        "tipRadius": 0.002884,
+        "tipShape": "flat",
+        "rollingDrag": 0.0000264,
+        "drag": 0.022,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.022539999999999998,
+        "lockReleaseAngle": 0.2685,
+        "gearRadius": 0.005025,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.7450000000000001,
+        "gearTeeth": 10,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 2199497
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.74961956812103,
+        "finalOmega": 410.9023106093375,
+        "retainedEnergy": 0.6497771492193204,
+        "tilt": 0.0019205629302956942
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.15687219330940116,
+        "impulse": 0.037885460737016985,
+        "recoil": {
+          "x": -0.7470461767241208,
+          "y": 0.7216416692973713,
+          "z": 0.5591664636556378
+        },
+        "angularMomentum": {
+          "x": 0.00016628336745163532,
+          "y": 0.003199073912397609,
+          "z": 0.0005952939392805967
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 3,
+        "result": null,
+        "x": 0.1570477542162358,
+        "y": 0.02899533802837459,
+        "z": 0.10004579719258182,
+        "omega": 214.78769491530457,
+        "firstRail": 51.22222222222222,
+        "firstDash": 146.66666666666666
+      }
+    },
+    {
+      "label": "bit-only: LF",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:LF"
+      },
+      "profile": {
+        "name": "ドランソード 3-60LF",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.03293,
+        "radius": 0.022366644159351787,
+        "inertia": 0.0000116241908184,
+        "transverseInertia": 0.0000062698728585213135,
+        "centerOfMassHeight": 0.020244761615548133,
+        "height": 0.028,
+        "grip": 0.2615,
+        "tipFriction": 0.2615,
+        "tipRadius": 0.002982,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.022600000000000002,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.022539999999999998,
+        "lockReleaseAngle": 0.2685,
+        "gearRadius": 0.00609,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.81,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": -0.001,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 2199497
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.8186825489297,
+        "finalOmega": 405.7077382744562,
+        "retainedEnergy": 0.6332806485443692,
+        "tilt": 0.0019406217892788218
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.16109441267231484,
+        "impulse": 0.03890540066393419,
+        "recoil": {
+          "x": -0.7912803054619415,
+          "y": 0.7242492258657135,
+          "z": 0.5765595120652639
+        },
+        "angularMomentum": {
+          "x": 0.00016508217481447468,
+          "y": 0.0031951110791895556,
+          "z": 0.000593543079867257
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 2.345833333333333,
+        "result": {
+          "winner": 0,
+          "finish": "xtreme",
+          "points": 3
+        },
+        "x": 0.04315026304332721,
+        "y": 0.026608444108222752,
+        "z": -0.165438360738444,
+        "omega": 70.55951339632557,
+        "firstRail": 50.77777777777778,
+        "firstDash": null
+      }
+    },
+    {
+      "label": "bit-only: A",
+      "build": {
+        "blade": "blade:e383f65c06a2",
+        "ratchet": "ratchet:3-60",
+        "bit": "bit:A"
+      },
+      "profile": {
+        "name": "ドランソード 3-60A",
+        "type": "attack",
+        "spin": 1,
+        "color": 3366399,
+        "mass": 0.033005,
+        "radius": 0.022366644159351787,
+        "inertia": 0.000011625540818400002,
+        "transverseInertia": 0.000006284152860476645,
+        "centerOfMassHeight": 0.020210119678836538,
+        "height": 0.028,
+        "grip": 0.252,
+        "tipFriction": 0.252,
+        "tipRadius": 0.002912,
+        "tipShape": "flat",
+        "rollingDrag": 0.000029199999999999998,
+        "drag": 0.022600000000000002,
+        "restitution": 0.48,
+        "burstThreshold": 0.026,
+        "lockStiffness": 0.022539999999999998,
+        "lockReleaseAngle": 0.2685,
+        "gearRadius": 0.0071861999999999985,
+        "gearHeight": 0.007,
+        "railEligible": true,
+        "railGrip": 0.81,
+        "gearTeeth": 12,
+        "gearEngagementBand": 0.0045,
+        "bitHeightOffset": 0,
+        "bitDiscRadius": 0,
+        "bitDiscHeight": 0.005,
+        "bladeHandedness": 1,
+        "ratchetRadius": 0.01554,
+        "ratchetCenterHeight": 0.012,
+        "ratchetHalfThickness": 0.0025,
+        "ratchetLobes": 3,
+        "ratchetLobeDepth": 0.08810000000000001,
+        "ratchetSkew": 0.08,
+        "contactLobes": 3,
+        "contactLobeDepth": 0.1848,
+        "bladeStyle": "sword",
+        "bladeEdgeSharpness": 0.58,
+        "bladeThickness": 0.008900000000000002,
+        "bladeRampAmplitude": 0.00176,
+        "bladeSkew": 0.26,
+        "modelPalette": {
+          "metal": 11845581,
+          "core": 2199497,
+          "ratchet": 6912395,
+          "bit": 2199497
+        }
+      },
+      "isolatedSpin": {
+        "initialOmega": 509.7890806915182,
+        "finalOmega": 409.6895195731004,
+        "retainedEnergy": 0.6458471416682896,
+        "tilt": 0.0019248452850207526
+      },
+      "incomingImpact": {
+        "contactTime": 0.03666666666666667,
+        "energyChange": -0.15922566718004827,
+        "impulse": 0.038453100840863785,
+        "recoil": {
+          "x": -0.7717853882734507,
+          "y": 0.7231735192146134,
+          "z": 0.568849407496943
+        },
+        "angularMomentum": {
+          "x": 0.00016561032789967853,
+          "y": 0.003196893777127891,
+          "z": 0.0005943430428653981
+        }
+      },
+      "ordinaryLaunch": {
+        "simulatedSeconds": 2.5375,
+        "result": {
+          "winner": 1,
+          "finish": "spin",
+          "points": 1
+        },
+        "x": 0.2052937376235607,
+        "y": 0.029591209114382674,
+        "z": 0.04083227125206855,
+        "omega": -0.06772164364309718,
+        "firstRail": 50.44444444444444,
+        "firstDash": 127.85714285714286
+      }
+    }
+  ]
+}

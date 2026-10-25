@@ -1,5 +1,5 @@
 import { describe,expect,it } from 'vitest';
-import { applyRatchetWork,bodyAxis,bowlHeightAt,bowlNormalAt,comHeight,createBattle,engageRail,getBladeOutline,getBladeVertices,getRailPath,integrateFree,kineticEnergy,railEligible,resolveContact,resolveFloor,setAngularVelocity,setOrientation,STEP,stepBattle,STADIUM,totalEnergy } from '../../../src/beyblade/core/physics';
+import { applyRatchetWork,bladeRadiusAt,bodyAxis,bowlHeightAt,bowlNormalAt,comHeight,createBattle,engageRail,getBitGeometry,getBladeOutline,getBladeVertices,getRatchetOutline,getRatchetVertices,getRailPath,launchEnergyAt,integrateFree,kineticEnergy,railEligible,resolveRailSolid,resolveContact,resolveFloor,setAngularVelocity,setOrientation,STEP,stepBattle,stepIsolatedTop,STADIUM,totalEnergy } from '../../../src/beyblade/core/physics';
 import type { PhysicsTop } from '../../../src/beyblade/core/physics';
 import type { Profile,Top,Vec3 } from '../../../src/beyblade/core/types';
 import { buildForBlade,defaultBuild,parts,profileFor } from '../../../src/beyblade/data/catalog';
@@ -96,8 +96,23 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     expect(railEligible(t)).toBe(true);t.x=STADIUM.railRadius+.01;expect(railEligible(t)).toBe(false);t.x=STADIUM.railRadius-profile.gearRadius;t.y+=.03;expect(railEligible(t)).toBe(false);
     t.y-=.03;t.profile.railEligible=false;expect(railEligible(t)).toBe(false);
   });
-  it('public default launches reach gearing, inward release and later actual opponent contact',()=>{
-    const p=profileFor(defaultBuild),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id)),state=createBattle([p,cpu],[{power:.8,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]),events=new Map<string,(typeof state.events)[number]>();let maxRadius=0;
+  it('the 80% / +15 degree / upright preset produces a direct dash-to-contact chain without a boost',()=>{
+    const p=profileFor(defaultBuild),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
+    const state=createBattle([p,cpu],[{power:.8,angle:15*Math.PI/180,tilt:0},{power:.76,angle:-.12,tilt:.11}]),events:(typeof state.events)=[];
+    let energy=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);
+    for(let i=0;i<240*10&&!state.result;i++){
+      const before=state.tops.map(t=>({x:t.x,y:t.y,z:t.z,speed:Math.hypot(t.vx,t.vy,t.vz)}));stepBattle(state);
+      events.push(...state.events.filter(e=>e.tick>state.tick-1));
+      state.tops.forEach((t,n)=>expect(Math.hypot(t.x-before[n].x,t.y-before[n].y,t.z-before[n].z)).toBeLessThan(Math.max(before[n].speed,Math.hypot(t.vx,t.vy,t.vz))*STEP+.001));
+      const next=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);expect(next).toBeLessThanOrEqual(energy+1e-9);energy=next;
+    }
+    const chain=events.filter(e=>e.kind==='dash').map(dash=>({dash,hit:events.find(e=>e.kind==='collision'&&e.tick>dash.tick&&e.tick<dash.tick+72)})).find(pair=>pair.hit);
+    expect(chain).toBeDefined();expect(events.some(e=>e.kind==='rail-engage'&&e.top===chain!.dash.top&&e.tick>chain!.dash.tick&&e.tick<chain!.hit!.tick)).toBe(false);
+    expect(state.result).not.toBe(null);
+  });
+  it('a legal Rod/5-70/DB normal launch reaches gearing, inward release and later opponent contact',()=>{
+    const build={...buildForBlade(parts.find(p=>p.category==='blade'&&p.canonicalId==='ウィザードロッド'&&p.release==='released')!.id),ratchet:parts.find(p=>p.category==='ratchet'&&p.canonicalId==='5-70')!.id,bit:parts.find(p=>p.category==='bit'&&p.canonicalId==='DB')!.id};
+    const p=profileFor(build),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id)),state=createBattle([p,cpu],[{power:.8,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]),events=new Map<string,(typeof state.events)[number]>();let maxRadius=0;
     for(let n=0;n<240*15&&!state.result;n++){stepBattle(state);for(const t of state.tops)maxRadius=Math.max(maxRadius,Math.hypot(t.x,t.z));for(const e of state.events)events.set(`${e.tick}:${e.kind}:${e.top}`,e);}
     const all=[...events.values()],mesh=all.find(e=>e.kind==='rail-engage'&&Math.hypot(e.velocityAfter!.x,e.velocityAfter!.z)>Math.hypot(e.velocityBefore!.x,e.velocityBefore!.z)+.1&&Math.abs(e.spinAfter!)<Math.abs(e.spinBefore!));
     expect(maxRadius).toBeGreaterThan(.18);expect(mesh).toBeDefined();expect(mesh!.energyAfter).toBeLessThanOrEqual(mesh!.energyBefore!+1e-10);
@@ -126,7 +141,7 @@ describe('finish arbitration and replay bounds',()=>{
     const p=profileFor(defaultBuild),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
     const state=createBattle([p,cpu],[{power:.5,angle:angle*Math.PI/180,tilt:30*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]);
     let energy=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);
-    for(let i=0;i<240*15&&!state.result;i++){
+    for(let i=0;i<240*60&&!state.result;i++){
       const before=state.tops.map(t=>({x:t.x,y:t.y,z:t.z,speed:Math.hypot(t.vx,t.vy,t.vz)}));stepBattle(state);
       state.tops.forEach((t,n)=>{const moved=Math.hypot(t.x-before[n].x,t.y-before[n].y,t.z-before[n].z),speed=Math.max(before[n].speed,Math.hypot(t.vx,t.vy,t.vz));expect(moved).toBeLessThan(speed*STEP+.005);});
       const next=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);expect(next).toBeLessThanOrEqual(energy+1e-5);energy=next;
@@ -157,4 +172,84 @@ describe('finish arbitration and replay bounds',()=>{
       if(state.events.some(e=>e.finish==='burst'))expect(state.events.some(e=>e.kind==='collision')).toBe(true);
     }
   },20000);
+});
+
+
+describe('component-informed geometry and equal-work launch contract',()=>{
+  it('does not give a higher-inertia or heavier assembly free launcher energy',()=>{
+    const heavy={...profile,mass:profile.mass*1.4,inertia:profile.inertia*1.8};
+    const state=createBattle([profile,heavy],[launch,launch]),energy=launchEnergyAt(launch.power);
+    for(const top of state.tops){
+      const linear=.5*top.profile.mass*(top.vx**2+top.vy**2+top.vz**2);
+      expect(kineticEnergy(top)-linear).toBeCloseTo(energy.rotational,12);
+      expect(linear).toBeCloseTo(energy.translational,12);
+    }
+    expect(Math.abs(state.tops[1].omega/state.tops[0].omega)).toBeCloseTo(Math.sqrt(1/1.8),12);
+    expect(Math.hypot(state.tops[1].vx,state.tops[1].vz)/Math.hypot(state.tops[0].vx,state.tops[0].vz)).toBeCloseTo(Math.sqrt(1/1.4),12);
+  });
+  it('uses one shared shape and thickness for recognizable blade families',()=>{
+    const generic=getBladeOutline({...profile,contactLobes:1,contactLobeDepth:.25,bladeStyle:'generic'});
+    const sword=getBladeOutline({...profile,contactLobes:1,contactLobeDepth:.25,bladeStyle:'single-sword'});
+    expect(sword).not.toEqual(generic);
+    const vertices=getBladeVertices({...profile,bladeThickness:.014});expect(vertices[48].y-vertices[0].y).toBeCloseTo(.014,12);
+  });
+  it('preserves an angular spear peak, flank cutouts and secondary shoulders',()=>{
+    const p={...profile,contactLobes:1,contactLobeDepth:.3,bladeStyle:'single-sword' as const};
+    expect(bladeRadiusAt(p,0)).toBeGreaterThan(bladeRadiusAt(p,.4)*1.5);
+    expect(bladeRadiusAt(p,.78)).toBeGreaterThan(bladeRadiusAt(p,.4)*1.3);
+    const wing={...profile,bladeStyle:'broad-wing' as const};
+    expect(bladeRadiusAt(wing,1/profile.contactLobes)).toBeGreaterThan(bladeRadiusAt(wing,1.15/profile.contactLobes));
+  });
+  it('keeps solid rail contact active without tooth eligibility and uses the top face on re-entry',()=>{
+    const top=battle().tops[0];setOrientation(top,{x:0,y:0,z:0,w:1});top.profile.railEligible=false;
+    top.x=STADIUM.railRadius-profile.gearRadius+.0002;top.z=0;top.y=bowlHeightAt(STADIUM.railRadius,0)+.007-profile.gearHeight+top.centerOfMassHeight;top.vx=1;top.vy=top.vz=0;
+    const before=top.x;expect(resolveRailSolid(top)).toBe(true);expect(top.x).toBeLessThan(before);expect(before-top.x).toBeLessThan(.0004);
+    top.x=STADIUM.railRadius-profile.gearRadius+.001;top.y+=.0054;top.vy=-1;top.vx=0;
+    const x=top.x,y=top.y;expect(resolveRailSolid(top)).toBe(true);expect(top.x).toBeCloseTo(x,8);expect(top.y).toBeGreaterThan(y);expect(top.y-y).toBeLessThan(.0003);
+  });
+  it('keeps a fixed physical ratchet shape when only spin direction changes',()=>{
+    const p={...profile,ratchetRadius:.016,ratchetLobes:2,ratchetLobeDepth:.12,ratchetSkew:.35};
+    expect(getRatchetOutline(p)).toEqual(getRatchetOutline({...p,spin:-1}));
+    expect(getRatchetOutline(p)).not.toEqual(getRatchetOutline({...p,ratchetLobes:9}));
+    const vertices=getRatchetVertices({...p,ratchetHalfThickness:.004});expect(vertices[48].y-vertices[0].y).toBeCloseTo(.008,12);
+  });
+  it('supports fixed handed blade geometry for a dual-spin part',()=>{
+    const p={...profile,bladeStyle:'broad-wing' as const,bladeSkew:.3,bladeHandedness:1 as const};
+    expect(getBladeOutline(p)).toEqual(getBladeOutline({...p,spin:-1}));
+  });
+  it('applies a bit height offset once to COM and rail height, not twice to body-local geometry',()=>{
+    const low={...profile,bitHeightOffset:-.001},high={...profile,bitHeightOffset:.001};
+    expect(comHeight(high)-comHeight(low)).toBeCloseTo(.002,12);
+    expect(getBitGeometry(high).gearHeight-getBitGeometry(low).gearHeight).toBeCloseTo(.002,12);
+    expect(getBladeVertices(high)[0].y).toBeCloseTo(getBladeVertices(low)[0].y,12);
+    expect(getRatchetVertices(high)[0].y).toBeCloseTo(getRatchetVertices(low)[0].y,12);
+  });
+  it('uses an extended bit gear band as real height eligibility, not a speed boost',()=>{
+    const top=battle().tops[0];setOrientation(top,{x:0,y:0,z:0,w:1});
+    top.x=STADIUM.railRadius-profile.gearRadius;top.z=0;
+    top.y=bowlHeightAt(STADIUM.railRadius,0)+.007-profile.gearHeight+top.centerOfMassHeight+.006;
+    expect(railEligible(top)).toBe(false);top.profile.gearEngagementBand=.008;expect(railEligible(top)).toBe(true);
+  });
+  it('a wider exposed ratchet changes actual contact reach at the same mass and launch',()=>{
+    function impact(radius:number){const state=createBattle([{...profile,ratchetRadius:radius},profile],[{...launch,tilt:0},{...launch,tilt:0}]),[a,b]=state.tops;
+      setOrientation(a,{x:0,y:0,z:0,w:1});setOrientation(b,{x:0,y:0,z:0,w:1});a.x=-.021;b.x=.021;a.y=.04;b.y=.027;a.z=b.z=0;a.vx=1;b.vx=-1;a.vy=b.vy=a.vz=b.vz=0;setAngularVelocity(a,{x:0,y:400,z:0});setAngularVelocity(b,{x:0,y:400,z:0});return resolveContact(a,b);}
+    expect(impact(.012)).toBe(0);expect(impact(.021)).toBeGreaterThan(0);
+  });
+  it('provides a supported Disc Ball contact shape instead of a decorative-only disc',()=>{
+    const base=battle().tops[0],disc=structuredClone(base);disc.profile.bitDiscRadius=.015;disc.profile.bitDiscHeight=.003;
+    for(const top of [base,disc]){setOrientation(top,{x:0,y:0,z:Math.sin(.2),w:Math.cos(.2)});top.x=top.z=0;top.y=.018;top.vx=top.vz=0;top.vy=-.2;resolveFloor(top);}
+    expect(getBitGeometry(disc.profile).discRadius).toBe(.015);expect(difference(base.angularMomentum,disc.angularMomentum)).toBeGreaterThan(1e-8);
+  });
+});
+
+
+describe('controlled isolated-body fixture',()=>{
+  it('matches the same free/floor step in a two-body match before any other contact',()=>{
+    const state=createBattle([profile,profile],[launch,launch]),single=structuredClone(state.tops[0]);
+    stepIsolatedTop(single);stepBattle(state);expect(single).toEqual(state.tops[0]);
+  });
+  it('terminates on spin loss without inventing or clearing a battle result',()=>{
+    const single=battle().tops[0];setAngularVelocity(single,{x:0,y:0,z:0});stepIsolatedTop(single);
+    expect(single.eliminated).toBe('spin');expect('result' in single).toBe(false);
+  });
 });

@@ -9,7 +9,8 @@ const id=(name:string,category:string)=>parts.find(p=>p.canonicalId===name&&p.ca
 const stock=(blade:string,ratchet:string,bit:string):Build=>({...buildForBlade(id(blade,'blade')),ratchet:id(ratchet,'ratchet'),bit:id(bit,'bit')});
 const builds=[stock('ドランソード','3-60','F'),stock('ヘルズサイズ','4-60','T'),stock('ウィザードアロー','4-80','B'),stock('ナイトシールド','3-80','N')];
 const cases: {name:string;builds:[Build,Build];launches:[Launch,Launch]}[]=[
-  {name:'public-default',builds:[defaultBuild,buildForBlade(id('ドランソード','blade'))],launches:[{power:.8,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]},
+  {name:'public-default',builds:[defaultBuild,buildForBlade(id('ドランソード','blade'))],launches:[{power:.8,angle:15*Math.PI/180,tilt:0},{power:.76,angle:-.12,tilt:.11}]},
+  {name:'previous-default-regression',builds:[defaultBuild,buildForBlade(id('ドランソード','blade'))],launches:[{power:.8,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]},
   ...builds.flatMap((build,i)=>[0,.14,.35].map(tilt=>({name:`${i}-${tilt}`,builds:[build,builds[(i+1)%builds.length]] as [Build,Build],launches:[{power:.8,angle:0,tilt},{power:.76,angle:-.12,tilt:.11}] as [Launch,Launch]}))),
 ];
 const reports=cases.map(c=>{

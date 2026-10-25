@@ -37,7 +37,13 @@ export function rotate(q:Quaternion,v:Vec3):Vec3{const u=V(q.x,q.y,q.z),uv=cross
 const inverseRotate=(q:Quaternion,v:Vec3)=>rotate({x:-q.x,y:-q.y,z:-q.z,w:q.w},v);
 function rotationVector(v:Vec3):Quaternion{const angle=norm(v);if(angle<1e-12)return{x:0,y:0,z:0,w:1};const s=Math.sin(angle/2)/angle;return{x:v.x*s,y:v.y*s,z:v.z*s,w:Math.cos(angle/2)};}
 export const bodyAxis=(t:Top)=>rotate(t.orientation,V(0,1,0));
-export const comHeight=(p:Profile)=>p.centerOfMassHeight??p.height*.72;
+const bitHeightOffset=(p:Profile)=>p.bitHeightOffset??0;
+export const comHeight=(p:Profile)=>(p.centerOfMassHeight??p.height*.72)+bitHeightOffset(p);
+const gearHeightAt=(p:Profile)=>p.gearHeight+bitHeightOffset(p);
+export function getBitGeometry(p:Profile){const tipRadius=p.tipRadius??.0015,gearHeight=gearHeightAt(p);return{gearRadius:p.gearRadius,gearHeight,gearTeeth:p.gearTeeth??12,engagementBand:p.gearEngagementBand??.0045,tipRadius,tipShape:p.tipShape??'taper',tipLength:Math.max(tipRadius*2,gearHeight*.75),bodyRadius:p.gearRadius*.65,discRadius:p.bitDiscRadius??0,discHeight:(p.bitDiscHeight??p.gearHeight*.65)+bitHeightOffset(p),discHalfThickness:.001};}
+/** Estimated delivered work at a reference launcher setting; not an OEM launcher calibration. */
+export const LAUNCH_REFERENCE={mass:.035,axialInertia:.55*.035*.024**2};
+export function launchEnergyAt(power:number){const p=clamp(finite(power,.75),.05,1);return{rotational:.5*LAUNCH_REFERENCE.axialInertia*(170+440*p)**2,translational:.5*LAUNCH_REFERENCE.mass*((.45+1.45*p)**2+.12**2)};}
 interface SurfaceSample{height:number;dx:number;dz:number;inPocket:boolean}
 function floorSurface(x:number,z:number):SurfaceSample{
   const r2=x*x+z*z,R=STADIUM.radius,inside=r2<R*R,base=STADIUM.bowlDepth*Math.min(r2/(R*R),1),slope=inside?2*STADIUM.bowlDepth/(R*R):0;
@@ -58,16 +64,36 @@ function floorSurface(x:number,z:number):SurfaceSample{
 export function pocketFloorAt(x:number,z:number):number|null{const sample=floorSurface(x,z);return sample.inPocket?sample.height:null;}
 export function bowlHeightAt(x:number,z:number):number{return floorSurface(x,z).height;}
 export function bowlNormalAt(x:number,z:number):Vec3{const sample=floorSurface(x,z);return unit(V(-sample.dx,1,-sample.dz));}
+/** Piecewise angular control points are estimated silhouette cues, not scanned OEM geometry. */
+function contourAt(phase:number,points:readonly (readonly [number,number])[]):number{
+  const a=Math.atan2(Math.sin(phase),Math.cos(phase));
+  for(let i=1;i<points.length;i++)if(a<=points[i][0]){const [x0,y0]=points[i-1],[x1,y1]=points[i];return y0+(y1-y0)*(a-x0)/(x1-x0);}
+  return points[points.length-1][1];
+}
 export function bladeRadiusAt(profile:Profile,angle:number):number{
-  const phase=profile.contactLobes*angle*profile.spin,skew=profile.bladeSkew??0;
-  return profile.radius*(1+profile.contactLobeDepth*(Math.cos(phase)+skew*Math.sin(2*phase))/(1+Math.abs(skew)));
+  const phase=profile.contactLobes*angle*(profile.bladeHandedness??profile.spin),skew=profile.bladeSkew??0;
+  let wave=(Math.cos(phase)+skew*Math.sin(2*phase))/(1+Math.abs(skew));
+  // Source-informed families, explicitly estimated contours. The same function drives display and contact samples.
+  switch(profile.bladeStyle){
+    case 'single-sword':wave=contourAt(phase,[[-Math.PI,-.35],[-2.35,.15],[-1.7,-.55],[-.78,.35],[-.4,-1],[0,1],[.4,-1],[.78,.35],[1.7,-.55],[2.35,.15],[Math.PI,-.35]]);break;
+    case 'sword':case 'uppercut':wave=contourAt(phase,[[-Math.PI,-.65],[-2.1,-.8],[-.8,-.5],[.15,.15],[.85,1],[1.05,-.75],[2.1,-.95],[Math.PI,-.65]]);break;
+    case 'scythe':case 'smash':wave=contourAt(phase,[[-Math.PI,-.55],[-2.0,-.8],[-.6,-.15],[.35,.6],[1.0,1],[1.25,-.65],[2.4,-.75],[Math.PI,-.55]]);break;
+    case 'broad-wing':wave=contourAt(phase,[[-Math.PI,-.75],[-2.2,-.65],[-1,.15],[.35,.8],[1,1],[1.15,-.9],[2.4,-.85],[Math.PI,-.75]]);break;
+    case 'shield':wave=clamp(wave*1.5,-1,1);break;
+    case 'round-wing':wave=.65*wave+.35*Math.cos(2*phase);break;
+  }
+  const sharpness=profile.bladeEdgeSharpness??1;
+  if(sharpness!==1)wave=Math.sign(wave)*Math.abs(wave)**sharpness;
+  return profile.radius*(1+profile.contactLobeDepth*wave);
 }
 export function bladeCenterHeightAt(profile:Profile,angle:number):number{
-  return profile.height*.82-comHeight(profile)+(profile.bladeRampAmplitude??0)*Math.sin(profile.contactLobes*angle*profile.spin);
+  return profile.height*.82+bitHeightOffset(profile)-comHeight(profile)+(profile.bladeRampAmplitude??0)*Math.sin(profile.contactLobes*angle*(profile.bladeHandedness??profile.spin));
 }
 export function getBladeOutline(profile:Profile,samples=48):{x:number;z:number}[]{return Array.from({length:samples},(_,i)=>{const a=i/samples*Math.PI*2,r=bladeRadiusAt(profile,a);return{x:r*Math.cos(a),z:r*Math.sin(a)};});}
-export function getRatchetGeometry(profile:Profile){return{radius:profile.radius*.65,centerHeight:profile.height*.43,halfThickness:.0025};}
-export function getBladeVertices(profile:Profile,samples=48):Vec3[]{const outline=getBladeOutline(profile,samples),half=.0045;return[-1,1].flatMap(side=>outline.map((p,i)=>V(p.x,bladeCenterHeightAt(profile,i/samples*Math.PI*2)+side*half,p.z)));}
+export function getRatchetGeometry(profile:Profile){return{radius:profile.ratchetRadius??profile.radius*.65,centerHeight:(profile.ratchetCenterHeight??profile.height*.43)+bitHeightOffset(profile),halfThickness:profile.ratchetHalfThickness??.0025,lobes:profile.ratchetLobes??0,lobeDepth:profile.ratchetLobeDepth??0,skew:profile.ratchetSkew??0};}
+export function getRatchetOutline(profile:Profile,samples=48):{x:number;z:number}[]{const geometry=getRatchetGeometry(profile);return Array.from({length:samples},(_,i)=>{const a=i/samples*Math.PI*2,phase=geometry.lobes*a,r=geometry.radius*(1+geometry.lobeDepth*(Math.cos(phase)+geometry.skew*Math.sin(2*phase))/(1+Math.abs(geometry.skew)));return{x:r*Math.cos(a),z:r*Math.sin(a)};});}
+export function getRatchetVertices(profile:Profile,samples=48):Vec3[]{const geometry=getRatchetGeometry(profile),outline=getRatchetOutline(profile,samples);return[-1,1].flatMap(side=>outline.map(p=>V(p.x,geometry.centerHeight-comHeight(profile)+side*geometry.halfThickness,p.z)));}
+export function getBladeVertices(profile:Profile,samples=48):Vec3[]{const outline=getBladeOutline(profile,samples),half=(profile.bladeThickness??.009)/2;return[-1,1].flatMap(side=>outline.map((p,i)=>V(p.x,bladeCenterHeightAt(profile,i/samples*Math.PI*2)+side*half,p.z)));}
 /** Closed tooth line with the official rear inward notch topology. Centerline y is gear height above the bowl. */
 export function getRailPath(samples=128):Vec3[]{
   const angles=Array.from({length:samples},(_,i)=>-Math.PI+i/samples*2*Math.PI);
@@ -99,13 +125,15 @@ function angularFriction(t:Top,axis:Vec3,maxImpulse:number):void{const speed=dot
 export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]):Battle{
   const tops=profiles.map((p,i):PhysicsTop=>{
     if(![p.mass,p.radius,p.inertia,p.burstThreshold,p.gearRadius].every(n=>Number.isFinite(n)&&n>0)||p.radius>=STADIUM.radius/2||p.gearRadius>=p.radius||![p.drag,p.grip,p.height,p.railGrip,p.contactLobes,p.contactLobeDepth,p.gearHeight].every(Number.isFinite)||![1,-1].includes(p.spin))throw new Error('Invalid physical profile');
-    const optionalPositive=[p.transverseInertia,p.centerOfMassHeight,p.tipRadius,p.lockStiffness,p.lockReleaseAngle];
-    if(optionalPositive.some(v=>v!==undefined&&(!Number.isFinite(v)||v<=0))||![p.tipFriction??0,p.rollingDrag??0,p.bladeRampAmplitude??0,p.bladeSkew??0].every(Number.isFinite)||p.height<=0||p.contactLobes<1||p.contactLobeDepth<0||p.contactLobeDepth>.5)throw new Error('Invalid body/contact estimate');
+    const optionalPositive=[p.transverseInertia,p.centerOfMassHeight,p.tipRadius,p.lockStiffness,p.lockReleaseAngle,p.bladeThickness,p.bladeEdgeSharpness,p.ratchetRadius,p.ratchetHalfThickness,p.gearEngagementBand];
+    if(optionalPositive.some(v=>v!==undefined&&(!Number.isFinite(v)||v<=0))||![p.tipFriction??0,p.rollingDrag??0,p.bladeRampAmplitude??0,p.bladeSkew??0,p.bitHeightOffset??0,p.ratchetCenterHeight??0,p.ratchetLobes??0,p.ratchetLobeDepth??0,p.ratchetSkew??0,p.bitDiscRadius??0,p.bitDiscHeight??0,p.gearTeeth??12].every(Number.isFinite)||p.height<=0||p.contactLobes<1||p.contactLobeDepth<0||p.contactLobeDepth>.5)throw new Error('Invalid body/contact estimate');
     const l=launches[i],power=clamp(finite(l.power,.75),.05,1),angle=clamp(finite(l.angle,0),-Math.PI,Math.PI),tilt=clamp(finite(l.tilt,.12),0,.65),side=i===0?-1:1,direction=angle+(i===0?0:Math.PI);
+    const speed=(.45+power*1.45)*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass);
+    const angularSpeed=(170+power*440)*Math.sqrt(LAUNCH_REFERENCE.axialInertia/p.inertia);
     const yaw=i*Math.PI,tiltAxis=V(Math.sin(direction),0,-Math.cos(direction));
     const q=multiply(rotationVector(scale(tiltAxis,tilt)),rotationVector(V(0,yaw,0)));
     const center=comHeight(p),tip=p.tipRadius??.0015,transverse=p.transverseInertia??(.5*p.inertia+p.mass*(p.height*.35)**2/12);
-    const t:PhysicsTop={profile:{...p},x:side*.105,y:0,z:side*.053,vx:Math.cos(direction)*(.45+power*1.45),vy:-.12,vz:Math.sin(direction)*(.45+power*1.45),orientation:q,angularMomentum:V(),angularVelocity:V(),bodyInertia:V(transverse,p.inertia,transverse),centerOfMassHeight:center,tipRadius:tip,omega:p.spin*(170+power*440),phase:yaw,tilt,tiltVelocity:0,lock:0,railCooldown:0,eliminated:null,rail:{engaged:false,travel:0,contactPoint:null,tangent:null,lastContactTick:-1,lastReleaseTick:-1,dashCount:0,speedBefore:0,spinBefore:0,energyBefore:0}};
+    const t:PhysicsTop={profile:{...p},x:side*.105,y:0,z:side*.053,vx:Math.cos(direction)*speed,vy:-.12*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass),vz:Math.sin(direction)*speed,orientation:q,angularMomentum:V(),angularVelocity:V(),bodyInertia:V(transverse,p.inertia,transverse),centerOfMassHeight:center,tipRadius:tip,omega:p.spin*angularSpeed,phase:yaw,tilt,tiltVelocity:0,lock:0,railCooldown:0,eliminated:null,rail:{engaged:false,travel:0,contactPoint:null,tangent:null,lastContactTick:-1,lastReleaseTick:-1,dashCount:0,speedBefore:0,spinBefore:0,energyBefore:0}};
     const tipR=rotate(q,V(0,-center+tip,0));t.y=bowlHeightAt(t.x+tipR.x,t.z+tipR.z)-tipR.y+tip+.001;
     t.angularMomentum=inertia(t,scale(bodyAxis(t),t.omega));syncDerived(t);return t;
   }) as [PhysicsTop,PhysicsTop];
@@ -162,22 +190,28 @@ export function resolveFloor(t:Top):number{
   }else impulse+=floorContact(t,V(0,-t.centerOfMassHeight+tip,0),tip,tip*(shape==='needle'?.15:shape==='ball'?.12:.45),mu);
   // The metal body can scrape the floor when tilted. Contact torque causes wobble/fall naturally.
   if(t.tilt>.22){const vertices=getBladeVertices(p,12);for(const vertex of vertices)impulse+=floorContact(t,vertex,0,.0005,.28);
-    const ratchet=getRatchetGeometry(p);for(let i=0;i<8;i++){const a=i*Math.PI/4;impulse+=floorContact(t,V(ratchet.radius*Math.cos(a),ratchet.centerHeight-t.centerOfMassHeight-ratchet.halfThickness,ratchet.radius*Math.sin(a)),0,.0003,.25);}
-    impulse+=floorContact(t,V(0,p.height*.82-t.centerOfMassHeight+.01,0),0,.0005,.28);
+    const ratchet=getRatchetGeometry(p);for(const point of getRatchetOutline(p,8))impulse+=floorContact(t,V(point.x,ratchet.centerHeight-t.centerOfMassHeight-ratchet.halfThickness,point.z),0,.0003,.25);
+    const bit=getBitGeometry(p);if(bit.discRadius>0)for(let i=0;i<8;i++){const a=i*Math.PI/4;impulse+=floorContact(t,V(bit.discRadius*Math.cos(a),bit.discHeight-t.centerOfMassHeight-bit.discHalfThickness,bit.discRadius*Math.sin(a)),0,.0004,p.tipFriction??p.grip);}
+    impulse+=floorContact(t,V(0,p.height*.82+bitHeightOffset(p)-t.centerOfMassHeight+.01,0),0,.0005,.28);
   }
   syncDerived(t);return impulse;
 }
 
 /** Blade collision shape is a ring of overlapping rounded lobes, rigidly transformed in full 3D. */
-interface CollisionNode{point:Vec3;radius:number;kind:'blade'|'ratchet'}
+interface CollisionNode{point:Vec3;radius:number;kind:'blade'|'ratchet'|'bit'}
 function collisionNodes(t:Top):CollisionNode[]{
-  const sampleRadius=.0045;
-  const nodes:CollisionNode[]=getBladeOutline(t.profile,24).map(v=>{
+  const sharp=['single-sword','sword','uppercut','broad-wing'].includes(t.profile.bladeStyle??'');
+  // Smaller rounded edge nodes preserve pointed/stepped silhouettes; they remain a sampled approximation.
+  const sampleRadius=Math.min((t.profile.bladeThickness??.009)/2,sharp?.0015:Infinity);
+  const nodes:CollisionNode[]=getBladeOutline(t.profile,sharp?48:24).flatMap(v=>{
     const d=Math.hypot(v.x,v.z),s=(d-sampleRadius)/d;
-    return{point:add(position(t),rotate(t.orientation,V(v.x*s,bladeCenterHeightAt(t.profile,Math.atan2(v.z,v.x)),v.z*s))),radius:sampleRadius,kind:'blade'};
+    const center=bladeCenterHeightAt(t.profile,Math.atan2(v.z,v.x)),offset=(t.profile.bladeThickness??.009)/2-sampleRadius;
+    return(sharp?[-offset,offset]:[0]).map(y=>({point:add(position(t),rotate(t.orientation,V(v.x*s,center+y,v.z*s))),radius:sampleRadius,kind:'blade' as const}));
   });
   const ratchet=getRatchetGeometry(t.profile);
-  for(let i=0;i<16;i++){const a=i*Math.PI/8,r=ratchet.radius-ratchet.halfThickness;nodes.push({point:add(position(t),rotate(t.orientation,V(r*Math.cos(a),ratchet.centerHeight-t.centerOfMassHeight,r*Math.sin(a)))),radius:ratchet.halfThickness,kind:'ratchet'});}
+  for(const point of getRatchetOutline(t.profile,16)){const radius=Math.hypot(point.x,point.z),scale=(radius-ratchet.halfThickness)/radius;nodes.push({point:add(position(t),rotate(t.orientation,V(point.x*scale,ratchet.centerHeight-t.centerOfMassHeight,point.z*scale))),radius:ratchet.halfThickness,kind:'ratchet'});}
+  const bit=getBitGeometry(t.profile);
+  if(bit.discRadius>0)for(let i=0;i<16;i++){const a=i*Math.PI/8,r=bit.discRadius-bit.discHalfThickness;nodes.push({point:add(position(t),rotate(t.orientation,V(r*Math.cos(a),bit.discHeight-t.centerOfMassHeight,r*Math.sin(a)))),radius:bit.discHalfThickness,kind:'bit'});}
   return nodes;
 }
 /** Detent potential E=.5*k*theta². Only dissipated contact work may enter this internal coordinate. */
@@ -216,7 +250,7 @@ export function resolveContact(a:Top,b:Top):number{
 
 interface RailContact{point:Vec3;normal:Vec3;tangent:Vec3;distance:number;signedDistance:number;gearCenter:Vec3}
 function nearestRail(t:Top):RailContact{
-  const gearCenter=add(position(t),rotate(t.orientation,V(0,t.profile.gearHeight-t.centerOfMassHeight,0)));
+  const gearCenter=add(position(t),rotate(t.orientation,V(0,gearHeightAt(t.profile)-t.centerOfMassHeight,0)));
   let best:RailContact={point:RAIL[0],normal:V(1,0,0),tangent:V(0,0,1),distance:Infinity,signedDistance:Infinity,gearCenter};
   for(let i=0;i<RAIL.length;i++){
     const a=RAIL[i],b=RAIL[(i+1)%RAIL.length],dx=b.x-a.x,dz=b.z-a.z,u=clamp(((gearCenter.x-a.x)*dx+(gearCenter.z-a.z)*dz)/(dx*dx+dz*dz),0,1);
@@ -227,25 +261,42 @@ function nearestRail(t:Top):RailContact{
 }
 function eligibleAt(t:Top,c:RailContact):boolean{
   const p=t.profile,axis=bodyAxis(t);
-  return p.railEligible&&Math.acos(clamp(axis.y,-1,1))<=STADIUM.railMaxTilt&&Math.abs(c.gearCenter.y-c.point.y)<.0045
+  return p.railEligible&&Math.acos(clamp(axis.y,-1,1))<=STADIUM.railMaxTilt&&Math.abs(c.gearCenter.y-c.point.y)<(p.gearEngagementBand??.0045)
     &&c.signedDistance<=p.gearRadius+.0005&&c.signedDistance>=-.0015&&Math.abs(t.omega)>30;
 }
 export function railEligible(t:Top):boolean{if(Math.hypot(t.x,t.z)<.14)return false;return eligibleAt(t,nearestRail(t));}
 /** Energy-dissipating gear constraint at the actual transformed bit pitch contact. */
 export function engageRail(t:Top,nx:number,nz:number):number{
-  const normal=unit(V(nx,0,nz)),gearOffset=rotate(t.orientation,V(0,t.profile.gearHeight-t.centerOfMassHeight,0));
+  const normal=unit(V(nx,0,nz)),gearOffset=rotate(t.orientation,V(0,gearHeightAt(t.profile)-t.centerOfMassHeight,0));
   const r=add(gearOffset,scale(normal,t.profile.gearRadius)),tangent=V(-normal.z,0,normal.x);
   const slip=dot(pointVelocity(t,r),tangent),j=-slip/contactMass(t,r,tangent)*clamp(t.profile.railGrip,0,1);
   applyImpulse(t,scale(tangent,j),r);return Math.abs(j);
 }
+/** Solid finite gear/rail contact is independent of whether teeth can mesh.
+ * Closest rail-strip point is tested against the transformed finite gear cylinder.
+ * The cylinder's nearest exit face handles top/bottom re-entry without a sideways snap.
+ */
+export function resolveRailSolid(t:Top):boolean{
+  const c=nearestRail(t),half=t.profile.gearEngagementBand??.0045;
+  const nearest=V(c.point.x,clamp(c.gearCenter.y,c.point.y-.001,c.point.y+.001),c.point.z);
+  const local=inverseRotate(t.orientation,sub(nearest,c.gearCenter)),radial=Math.hypot(local.x,local.z);
+  const radialPenetration=t.profile.gearRadius-radial,axialPenetration=half-Math.abs(local.y);
+  if(radialPenetration<=0||axialPenetration<=0)return false;
+  const radialFace=radialPenetration<axialPenetration;
+  const localNormal=radialFace?V(-local.x/Math.max(radial,1e-12),0,-local.z/Math.max(radial,1e-12)):V(0,-Math.sign(local.y||1),0);
+  const normal=rotate(t.orientation,localNormal),penetration=radialFace?radialPenetration:axialPenetration;
+  const r=sub(nearest,position(t));
+  t.x+=normal.x*penetration;t.y+=normal.y*penetration;t.z+=normal.z*penetration;
+  const vn=dot(pointVelocity(t,r),normal);if(vn<0)applyImpulse(t,scale(normal,-vn/contactMass(t,r,normal)),r);
+  return true;
+}
 function resolveRail(t:Top,battle:Battle,index:number,eventTick:number,dt:number,meshAllowed=true):void{
   if(Math.hypot(t.x,t.z)<.14&&!t.rail.engaged)return;
-  const c=nearestRail(t),eligible=meshAllowed&&eligibleAt(t,c),before=totalEnergy(t),spinBefore=t.omega,velocityBefore=velocity(t),speedBefore=Math.hypot(t.vx,t.vz);
+  const before=totalEnergy(t),spinBefore=t.omega,velocityBefore=velocity(t),speedBefore=Math.hypot(t.vx,t.vz);
+  resolveRailSolid(t);
+  const c=nearestRail(t),eligible=meshAllowed&&eligibleAt(t,c);
   if(eligible){
-    const outward=scale(c.normal,-1),gearOffset=sub(c.gearCenter,position(t)),r=add(gearOffset,scale(outward,t.profile.gearRadius));
-    const penetration=t.profile.gearRadius-c.signedDistance;
-    if(penetration>0){t.x+=c.normal.x*penetration;t.z+=c.normal.z*penetration;}
-    const vn=dot(pointVelocity(t,r),c.normal);if(vn<0)applyImpulse(t,scale(c.normal,-vn/contactMass(t,r,c.normal)),r);
+    const outward=scale(c.normal,-1);
     const j=engageRail(t,outward.x,outward.z);
     if(!t.rail.engaged){t.rail.engaged=true;t.rail.travel=0;t.rail.speedBefore=speedBefore;t.rail.spinBefore=spinBefore;t.rail.energyBefore=before;battle.events.push({tick:eventTick,kind:'rail-engage',top:index,intensity:j,position:position(t),energyBefore:before,energyAfter:totalEnergy(t),spinBefore,spinAfter:t.omega,velocityBefore,velocityAfter:velocity(t)});}
     t.rail.travel+=Math.hypot(t.vx,t.vz)*dt;t.rail.lastContactTick=eventTick;t.rail.contactPoint=c.point;t.rail.tangent=c.tangent;
@@ -318,6 +369,25 @@ function resultFor(b:Battle):BattleResult|null{
   const first=candidates.filter(({top})=>(top.finishTick??b.tick)===earliest);
   if(first.length===2)return{winner:null,finish:'draw',points:0};const loser=first[0],finish=loser.top.eliminated!;return{winner:loser.i===0?1:0,finish,points:points[finish]};
 }
+/** Controlled single-body floor experiment. No opponent, rail/cover, score, or Battle.result is involved.
+ * Uses the same adaptive rigid-body integration and floor contacts as a match. For spin-down comparisons,
+ * initialise each body at the same explicit position/orientation and delivered launch work; report this
+ * floor-only fixture separately from full-stadium orbit or matchup results.
+ */
+export function stepIsolatedTop(top:Top,dt=STEP):Top{
+  if(!Number.isFinite(dt)||dt<=0||dt>STEP+1e-10)throw new Error('Use fixed steps <= STEP');
+  if(top.eliminated)return top;
+  const t=top as PhysicsTop,fastest=norm(t.angularVelocity),speed=norm(velocity(t));
+  const substeps=Math.min(64,Math.max(4,Math.ceil(fastest*dt/.12),Math.ceil(speed*dt/.0015))),h=dt/substeps;
+  for(let i=0;i<substeps&&!t.eliminated;i++){
+    syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;
+    t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-.25*h);
+    integrateFree(t,h);resolveFloor(t);
+    if(t.rotationStopped||t.omega*t.profile.spin<=0){t.rotationStopped=true;t.eliminated='spin';}
+  }
+  return t;
+}
+
 export function stepBattle(b:Battle,dt=STEP):Battle{
   if(!Number.isFinite(dt)||dt<=0||dt>STEP+1e-10)throw new Error('Use fixed steps <= STEP');if(b.result)return b;
   b.tick++;

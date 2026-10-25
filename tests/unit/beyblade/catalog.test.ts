@@ -53,16 +53,16 @@ describe('source-backed parts catalog and safe assemblies',()=>{
   });
   it('supports verified left spin and distinguishes estimates from official data',()=>{
     const build=buildForBlade(find('メテオドラグーン').id);const p=profileFor(build);
-    expect(p.spin).toBe(-1);expect(p.mass).toBe(.035);expect(p.gearRadius).toBe(.006);
+    expect(p.spin).toBe(-1);expect(p.mass).toBeGreaterThan(.02);expect(p.mass).toBeLessThan(.06);expect(p.gearRadius).toBeGreaterThan(.004);
     const left=find('メテオドラグーン');expect(left.spinVerification).toBe('official');
     expect(officialParts.find(r=>r.id===left.id)?.physical_parameters).toBeNull();
   });
-  it('uses observed blade counts and tip form rather than marketing ratings as physical constants',()=>{
+  it('uses observed form plus explicitly estimated official-rating constraints',()=>{
     for(const [name,lobes] of [['ドランソード',3],['ヘルズサイズ',4],['ウィザードアロー',2],['ナイトシールド',6]] as const){
       expect(profileFor(buildForBlade(find(name).id)).contactLobes).toBe(lobes);
     }
     const blade=find('ヘルズサイズ'),original=blade.ratings,before=profileFor(defaultBuild);
-    try{blade.ratings={attack:99,defense:1,stamina:99};expect(profileFor(defaultBuild)).toEqual(before);}finally{blade.ratings=original;}
+    try{blade.ratings={attack:99,defense:1,stamina:99};expect(profileFor(defaultBuild).inertia).not.toEqual(before.inertia);}finally{blade.ratings=original;}
     const flat=profileFor({...defaultBuild,bit:find('F','bit').id}),needle=profileFor({...defaultBuild,bit:find('N','bit').id});
     expect(flat.tipShape).toBe('flat');expect(needle.tipShape).toBe('needle');expect(flat.tipRadius).toBeGreaterThan(needle.tipRadius!);
   });

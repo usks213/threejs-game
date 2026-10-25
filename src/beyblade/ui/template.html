@@ -5,7 +5,7 @@
 <div class="toplinks">
 <span>
 <i class="online-dot">
-</i>6DOF PHYSICS LAB · v0.2</span>
+</i>PART MODEL LAB · v0.3</span>
 <button class="ghost" id="catalog-link">パーツ図鑑 ↗</button>
 </div>
 </header>
@@ -46,7 +46,7 @@
 </div>
 </div>
 </div>
-<div class="model-warning"><strong>実機の再現ではなく、未校正の物理プロトタイプです。</strong><br>公表評価値と推定物理係数を区別し、重力・姿勢・角運動量・軸先接触・ギアの噛み合いを計算します。実機測定に基づく一致検証は未実施です。</div>
+<div class="model-warning"><strong>公式性能・形状を反映した、未校正の物理モデルです。</strong><br>公式の評価値と形状説明から物理係数を推定し、重力・姿勢・角運動量・接触・ギアの噛み合いを計算します。実機測定に基づく一致検証は未実施です。</div>
 <div class="status" role="status">
 <i class="indicator">
 </i>
@@ -62,11 +62,11 @@
 <label>パワー <output id="power-value">80%</output>
 <input id="power" type="range" min="20" max="100" value="80" aria-label="シュートパワー">
 </label>
-<label>狙う角度 <output id="angle-value">0°</output>
-<input id="angle" type="range" min="-50" max="50" value="0" aria-label="シュート角度">
+<label>狙う角度 <output id="angle-value">15°</output>
+<input id="angle" type="range" min="-50" max="50" value="15" aria-label="シュート角度">
 </label>
-<label>傾き <output id="tilt-value">8°</output>
-<input id="tilt" type="range" min="0" max="30" value="8" aria-label="シュートの傾き">
+<label>傾き <output id="tilt-value">0°</output>
+<input id="tilt" type="range" min="0" max="30" value="0" aria-label="シュートの傾き">
 </label>
 </div>
 <div class="actions">
@@ -89,12 +89,25 @@
 <div class="eyebrow">YOUR CUSTOM BEY</div>
 <div class="build-name" id="build-name">ヘルズサイズ</div>
 <div class="build-subtitle" id="build-subtitle">BALANCE TYPE / RIGHT SPIN</div>
-<p class="note" id="shape-description"></p>
+<div class="bey-inspection">
+<canvas id="bey-inspect-canvas" aria-label="選択中のベイの立体モデル"></canvas>
+<p id="inspect-error" class="note" role="status" hidden></p>
+<button id="inspect-view" class="ghost" aria-pressed="false">裏側・ビットを見る</button>
+<div class="inspect-controls"><button id="inspect-left" class="ghost" aria-label="モデルを左へ回す">↶</button><span>対戦と同じ近似形状<br>共通の縮尺で比較</span><button id="inspect-right" class="ghost" aria-label="モデルを右へ回す">↷</button></div>
+</div>
+<p class="model-status" id="shape-description"></p>
 <div id="part-selects">
 </div>
 <div class="stats" id="ratings">
 </div>
 <p class="note">バーはメーカー公表の評価値です。質量・摩擦などの実測値ではありません。</p>
+<section class="derived-model" aria-label="推定した物理特性">
+<h3>この構成の物理モデル <span>推定値</span></h3>
+<div id="model-values" class="model-values"></div>
+<p class="note">公式評価と形状説明から算出した推定です。メーカーの実測物性値ではありません。シュートのパワーは、推定した発射エネルギーを表します。</p>
+<details class="model-evidence"><summary>公式値と推定への反映を確認</summary><div id="model-evidence"></div></details>
+<div id="model-gaps" class="model-gaps"></div>
+</section>
 <p class="note" id="build-error" role="alert">
 </p>
 </section>

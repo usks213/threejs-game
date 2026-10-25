@@ -22,7 +22,7 @@ test('real desktop and phone clients match, launch, receive same result and leav
   await expect(b.locator('#phase')).toContainText('ROUND-END');
   expect(await a.locator('#score-you').textContent()).toBe(await b.locator('#score-other').textContent());
   expect(await a.locator('#score-other').textContent()).toBe(await b.locator('#score-you').textContent());
-  await a.screenshot({path:testInfo.outputPath('online-desktop.png'),fullPage:true});await b.screenshot({path:testInfo.outputPath('online-phone.png'),fullPage:true});
+  await a.screenshot({path:testInfo.outputPath('online-desktop.png'),fullPage:true,scale:'css'});await b.screenshot({path:testInfo.outputPath('online-phone.png'),fullPage:true,scale:'css'});
   await a.locator('#launch').click();await b.locator('#launch').click();
   for(const page of [a,b])await expect(page.locator('#phase')).toContainText('ONLINE READY');
   await b.locator('#cancel-queue').click();

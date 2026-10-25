@@ -14,12 +14,17 @@ export interface Part {
 
 }
 export interface Build { blade: string; ratchet: string; bit: string; lock_chip?: string; main_blade?: string; metal_blade?: string; bladeMode?:string; bitMode?:string; assist_blade?: string; over_blade?: string }
-/** Gameplay estimates, never manufacturer-measured physical constants. */
+/** Rating-informed gameplay estimates with explicit provenance; never manufacturer-measured SI constants. */
 export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: number; radius: number; inertia: number; grip: number; drag: number; restitution: number; burstThreshold: number; height: number; railGrip: number; gearRadius:number; gearHeight:number; railEligible:boolean; contactLobes:number; contactLobeDepth:number; color: number;
   /** Estimated SI body/contact properties, never derived from marketing ratings. */
   transverseInertia?: number; centerOfMassHeight?: number; tipRadius?: number;
   tipShape?: 'flat'|'ball'|'needle'|'taper'; tipFriction?: number; rollingDrag?: number;
   lockStiffness?:number; lockReleaseAngle?:number; bladeRampAmplitude?:number; bladeSkew?:number;
+  bladeStyle?:'sword'|'scythe'|'round-wing'|'shield'|'single-sword'|'broad-wing'|'uppercut'|'smash'|'generic';
+  bladeEdgeSharpness?:number; bladeThickness?:number; bladeHandedness?:1|-1;
+  ratchetRadius?:number; ratchetCenterHeight?:number; ratchetHalfThickness?:number; ratchetLobes?:number; ratchetLobeDepth?:number; ratchetSkew?:number;
+  bitHeightOffset?:number; gearTeeth?:number; gearEngagementBand?:number; bitDiscRadius?:number; bitDiscHeight?:number;
+  modelPalette?:{metal:number;core:number;ratchet:number;bit:number};
 }
 export interface Launch { power: number; angle: number; tilt: number }
 export interface Vec3 { x:number; y:number; z:number }

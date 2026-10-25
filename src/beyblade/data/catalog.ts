@@ -1,5 +1,6 @@
 import type { BeyType, Build, Part, PartCategory, Profile, Ratings } from '../core/types';
-import { estimatedProfile } from './physical-estimates';
+import { estimateAssembly } from './physical-estimates';
+export type { ModelMetadata } from './physical-estimates';
 import { validateThreeOnThreeParts } from '../core/rules';
 import { officialParts, officialProducts } from './official-data';
 import type { OfficialPart } from './source-types';
@@ -113,9 +114,11 @@ export function validateDeck(builds:Build[]):string[] {
 export function ratingsFor(part:Part,spin:1|-1=1,mode?:string):Ratings|null {
   return part.modes?.find(m=>m.name===mode)?.ratings??part.ratingsVariants?.find(v=>v.condition===(spin===1?'right_spin':'left_spin'))?.ratings??part.ratings;
 }
-/** Uncalibrated geometric/material estimates, independent of manufacturer ratings. */
-export function profileFor(build:Build,color=0x335dff):Profile {
+/** Source ratings constrain an explicitly estimated mechanical model; they are not measured SI constants. */
+function modelFor(build:Build,color=0x335dff) {
   const errors=validateBuild(build);if(errors.length)throw new Error(errors.join(' / '));
-  const blade=byId.get(build.blade)!,bit=byId.get(build.bit)!,ratchet=byId.get(build.ratchet);
-  return estimatedProfile(`${blade.name} ${ratchet?.name??''}${bit.canonicalId??bit.name}`,blade.canonicalId??blade.name,blade.type,bit.canonicalId??bit.name,blade.spin??1,color);
+  const blade=byId.get(build.blade)!,bit=byId.get(build.bit)!,ratchet=byId.get(build.ratchet),spin=blade.spin??1;
+  return estimateAssembly({blade:{part:blade,ratings:ratingsFor(blade,spin,build.bladeMode),mode:build.bladeMode},ratchet:ratchet?{part:ratchet,ratings:ratingsFor(ratchet,spin)}:null,bit:{part:bit,ratings:ratingsFor(bit,spin,build.bitMode),mode:build.bitMode},spin,color});
 }
+export function profileFor(build:Build,color=0x335dff):Profile {return modelFor(build,color).profile;}
+export function modelMetadataFor(build:Build) {return modelFor(build).metadata;}

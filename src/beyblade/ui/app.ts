@@ -1,9 +1,9 @@
-import { shapeDescription } from '../data/physical-estimates';
 import template from './template.html?raw';
-import { parts, defaultBuild, profileFor, validateBuild, buildForBlade, selectableParts, requiredBuildKeys, ratingsFor, officialProducts } from '../data/catalog';
+import { parts, defaultBuild, profileFor, modelMetadataFor, validateBuild, buildForBlade, selectableParts, requiredBuildKeys, ratingsFor, officialProducts } from '../data/catalog';
 import { createBattle, stepBattle, STEP } from '../core/physics';
 import { createMatch, scoreRound } from '../core/rules';
 import { createArena } from '../rendering/arena';
+import { createTopPreview } from '../rendering/top-preview';
 import { ArenaClient } from '../network/client';
 import type { StateMessage } from '../network/protocol';
 import type { Battle, Build, Launch, PartCategory } from '../core/types';
@@ -19,6 +19,9 @@ export function startArena(){
   try{const saved=JSON.parse(localStorage.getItem('x-arena-build-v1')??'null');if(saved && validateBuild(saved).length===0)build=saved;}catch{/* unavailable storage */}
   let battle:Battle|null=null;let match=createMatch();let matchStarted=false;let client:ArenaClient|null=null;let networkState:StateMessage|null=null;let queuedOnConnect=false;let networkGeneration=0;let backendAvailable=false;let healthController:AbortController|null=null;let healthGeneration=0;let running=false;let launchDeadline=0;let mode:'local'|'online'='local';let disposed=false;let last=0;let accumulator=0;let lastHud=0;let frame=0;
   const arena=createArena(el<HTMLCanvasElement>('arena-canvas'),message=>{el('arena-error').hidden=false;el('arena-error').textContent=message;});
+  const inspection=createTopPreview(el<HTMLCanvasElement>('bey-inspect-canvas'),message=>{el('inspect-error').hidden=false;el('inspect-error').textContent=message;});
+  let underside=false;el('inspect-view').addEventListener('click',()=>{underside=!underside;inspection?.setView(underside?'underside':'top');el('inspect-view').setAttribute('aria-pressed',String(underside));el('inspect-view').textContent=underside?'表側・ブレードを見る':'裏側・ビットを見る';},{signal});
+  el('inspect-left').addEventListener('click',()=>inspection?.rotate(-Math.PI/6),{signal});el('inspect-right').addEventListener('click',()=>inspection?.rotate(Math.PI/6),{signal});
   const setMessage=(message:string)=>{el('message').textContent=message;};
   const launchInput=():Launch=>({power:Number(el<HTMLInputElement>('power').value)/100,angle:Number(el<HTMLInputElement>('angle').value)*Math.PI/180,tilt:Number(el<HTMLInputElement>('tilt').value)*Math.PI/180});
   const categories: [keyof Build,PartCategory,string][]=[['blade','blade','BLADE / ブレード'],['lock_chip','lock_chip','LOCK CHIP / ロックチップ'],['main_blade','main_blade','MAIN BLADE / メインブレード'],['metal_blade','metal_blade','METAL / メタルブレード'],['assist_blade','assist_blade','ASSIST / アシストブレード'],['over_blade','over_blade','OVER / オーバーブレード'],['ratchet','ratchet','RATCHET / ラチェット'],['bit','bit','BIT / ビット']];
@@ -30,11 +33,16 @@ export function startArena(){
     el('part-selects').innerHTML=wanted.map(([key,,label])=>{const options=selectableParts(key,build);return `<label class="part-select"><span>${label}</span><select data-part="${key}" aria-label="${label}" ${matchStarted||running||launchDeadline?'disabled':''}>${options.map(p=>`<option value="${escape(p.id)}" ${p.id===build[key]?'selected':''}>${escape(p.name)}</option>`).join('')}</select></label>`;}).join('');
     for(const [key,id] of [['bladeMode',build.blade],['bitMode',build.bit]] as const){const part=parts.find(p=>p.id===id);if(part?.modes?.length)el('part-selects').insertAdjacentHTML('beforeend',`<label class="part-select"><span>${key==='bladeMode'?'ブレード':'ビット'} / モード</span><select data-part="${key}" aria-label="${key}" ${matchStarted?'disabled':''}>${part.modes.map(m=>`<option ${m.name===build[key]?'selected':''} value="${escape(m.name)}">${escape(m.name)}</option>`).join('')}</select></label>`);}
     const cpuOptions=selectableParts('blade',opponentBuild);el('cpu-blade').innerHTML=cpuOptions.map(p=>`<option value="${escape(p.id)}" ${p.id===opponentBuild.blade?'selected':''}>${escape(p.name)}</option>`).join('');el<HTMLSelectElement>('cpu-blade').disabled=matchStarted;el('other-name').textContent=parts.find(p=>p.id===opponentBuild.blade)?.name??'CPU';
-    el('shape-description').textContent=shapeDescription(blade.canonicalId??blade.name,blade.type)+(blade.modes?.length||parts.find(p=>p.id===build.bit)?.modes?.length?'。モードによる実機の変形動作は未実装です。':'');
     const currentRatings=ratingsFor(blade,blade.spin??1,build.bladeMode);
     el('ratings').innerHTML=([['attack','攻撃'],['defense','防御'],['stamina','持久']] as const).map(([key,label])=>`<div class="stat"><span>${label}</span><div class="bar"><i style="width:${currentRatings?.[key]??0}%"></i></div><b>${currentRatings?.[key]??'—'}</b></div>`).join('');
     const errors=validateBuild(build);el('build-error').textContent=errors.join(' / ');el<HTMLButtonElement>('launch').disabled=errors.length>0||!arena||running||launchDeadline>0||(mode==='online'&&!['ready','round-end'].includes(networkState?.phase??''));
-    if(!errors.length){arena?.setProfiles([profileFor(build),profileFor(opponentBuild,0xf5785a)]);try{localStorage.setItem('x-arena-build-v1',JSON.stringify(build));}catch{/* optional persistence */}}
+    if(!errors.length){const profile=profileFor(build),metadata=modelMetadataFor(build);arena?.setProfiles([profile,profileFor(opponentBuild,0xf5785a)]);inspection?.setProfile(profile);
+      el('shape-description').textContent=metadata.label;el('shape-description').classList.toggle('provisional',metadata.status==='partial-estimate');
+      const valueText=(value:number,unit:string)=>unit==='kg'?`${(value*1000).toFixed(2)} g`:unit==='m'?`${(value*1000).toFixed(2)} mm`:`${Number(value.toPrecision(4))} ${unit}`;
+      el('model-values').innerHTML=metadata.derived.map(d=>`<div><span>${escape(d.label)}</span><b>${escape(valueText(d.value,d.unit))}</b><small>${d.provenance==='official-relative'?'公式の相対寸法':'推定'}</small></div>`).join('');
+      el('model-evidence').innerHTML=metadata.components.map(c=>`<section><h4>${escape(c.name)}</h4><p>${c.shapeStatus==='unmodeled'?'形状未再現・暫定モデル':'公式の形状説明を反映した近似'}</p><p>${c.officialRatings?Object.entries(c.officialRatings).map(([k,v])=>`${escape(k)} ${v==null?'未公表 / 未確認':escape(v)}`).join(' · '):'公式評価は未確認'}</p><ul>${c.notes.map(n=>`<li>${escape(n)}</li>`).join('')}</ul><a href="${escape(c.source)}" target="_blank" rel="noreferrer">公式出典 ↗</a></section>`).join('')+`<h4>推定に使った入力</h4><ul>${metadata.derived.map(d=>`<li>${escape(d.label)}: ${d.inputs.map(escape).join(' / ')}</li>`).join('')}</ul>`;
+      el('model-gaps').textContent=[...metadata.components.filter(c=>c.shapeStatus==='unmodeled').map(c=>`${c.name}: 形状未再現・暫定モデル`),...metadata.missingInputs.map(k=>`公式値未確認: ${k}`),...metadata.unsupportedMechanisms].join(' / ');
+      try{localStorage.setItem('x-arena-build-v1',JSON.stringify(build));}catch{/* optional persistence */}}
   }
   function scoreHud(){el('score-you').textContent=String(match.scores[0]);el('score-other').textContent=String(match.scores[1]);el('round-label').textContent=match.winner===null?`ROUND ${match.round} · FIRST TO 4`:match.winner===0?'YOU WIN':'CPU WINS';}
   function renderCatalog(){const query=el<HTMLInputElement>('catalog-search').value.toLowerCase();const found=parts.filter(p=>`${p.name} ${p.category} ${p.family}`.toLowerCase().includes(query));el('catalog-count').textContent=`${found.length} PARTS`;el('catalog-body').innerHTML=found.map(p=>`<tr><td>${escape(p.name)}</td><td>${escape(p.sourceCategory??p.category)}</td><td>${p.family}</td>${['attack','defense','stamina','dash','burst_resistance','height'].map(k=>`<td>${p.ratings?.[k as keyof typeof p.ratings]??'未確認'}</td>`).join('')}<td class="rating-note">${escape(p.ratingScope??'')} ${escape(p.notes??'')}${p.ratingsVariants?.length?`<br>${p.ratingsVariants.map(v=>escape(`${v.condition}: ATK ${v.ratings.attack??'—'} / DEF ${v.ratings.defense??'—'} / STA ${v.ratings.stamina??'—'}`)).join('<br>')}`:''}${p.modes?.length?`<br>${p.modes.map(m=>escape(`${m.name}: ATK ${m.ratings.attack??'—'} / DEF ${m.ratings.defense??'—'} / STA ${m.ratings.stamina??'—'}`)).join('<br>')}`:''}</td><td>${p.release==='released'?'発売済':p.release==='upcoming'?'発売予定':'発売未確認'}</td><td><a href="${escape(p.source)}" target="_blank" rel="noreferrer">公式 ↗</a></td></tr>`).join('');}
@@ -89,5 +97,5 @@ export function startArena(){
   el('product-count').textContent=`公式掲載商品 ${officialProducts.length} 件（発売予定を含む）`;
   el('product-body').innerHTML=officialProducts.map(p=>`<tr><td>${escape(p.name_ja)}</td><td>${escape(p.release_date??'未確認')}</td><td>${p.date_status==='upcoming'?'発売予定':p.date_status==='dated_on_or_before_cutoff'?'発売済':'発売日未確認'}</td><td><a href="${escape(p.source_url)}" target="_blank" rel="noreferrer">公式 ↗</a></td></tr>`).join('');
   updateBuild();renderCatalog();scoreHud();frame=requestAnimationFrame(animate);
-  return()=>{disposed=true;healthGeneration++;healthController?.abort();client?.dispose();abort.abort();cancelAnimationFrame(frame);arena?.dispose();};
+  return()=>{disposed=true;healthGeneration++;healthController?.abort();client?.dispose();abort.abort();cancelAnimationFrame(frame);arena?.dispose();inspection?.dispose();};
 }

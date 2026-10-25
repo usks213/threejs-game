@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Battle, Profile } from '../core/types';
-import { STADIUM, bowlHeightAt, comHeight, getBladeOutline, getBladeVertices, getRailPath, getRatchetGeometry, pocketFloorAt } from '../core/physics';
+import { buildTopMesh } from './top-mesh';
+import { STADIUM, bowlHeightAt, comHeight, getRailPath, pocketFloorAt } from '../core/physics';
 
 /** Render the solver's geometry and pose. No invented wobble, rail boost or burst motion. */
 export function createArena(canvas: HTMLCanvasElement, onError: (message: string) => void) {
@@ -101,7 +102,7 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
     const point = rail[segment], next = rail[(segment + 1) % rail.length], t = (distance - segmentStart) / lengths[segment];
     return { x: point.x + (next.x - point.x) * t, y: point.y + (next.y - point.y) * t, z: point.z + (next.z - point.z) * t };
   });
-  const railGeometry = new THREE.BoxGeometry(.0018, .004, .004); geometries.add(railGeometry);
+  const railGeometry = new THREE.BoxGeometry(.0018, .002, .004); geometries.add(railGeometry);
   const railMaterial = new THREE.MeshStandardMaterial({ color: 0x355af5, roughness: .38, metalness: .35 }); materials.add(railMaterial);
   const teeth = new THREE.InstancedMesh(railGeometry, railMaterial, railPoints.length);
   railPoints.forEach((point, i) => {
@@ -139,6 +140,9 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
   const shadows = groups.map(() => {
     const shadow = mesh(new THREE.CircleGeometry(.025, 32), 0x52647b); shadow.rotation.x = -Math.PI / 2; shadow.material.transparent = true; shadow.material.opacity = .13; shadow.material.depthWrite = false; scene.add(shadow); return shadow;
   });
+  const ownershipRings = groups.map((_, i) => {
+    const ring = mesh(new THREE.TorusGeometry(.026, .0007, 5, 40), i === 0 ? 0x335dff : 0xf5785a); ring.rotation.x = Math.PI / 2; ring.material.transparent = true; ring.material.opacity = .62; ring.material.depthWrite = false; scene.add(ring); return ring;
+  });
   const contactMarkers = groups.map((_, i) => {
     const marker = mesh(new THREE.TorusGeometry(.008, .001, 5, 24), i === 0 ? 0x335dff : 0xf5785a); marker.rotation.x = Math.PI / 2; marker.material.emissive.setHex(i === 0 ? 0x335dff : 0xf5785a); marker.material.emissiveIntensity = .4; marker.visible = false; scene.add(marker); return marker;
   });
@@ -149,39 +153,11 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
     const line = new THREE.Line(geometry, material); line.frustumCulled = false; scene.add(line); return { positions, geometry, line, count: 0 };
   });
   let profileKey = '', profiles: [Profile, Profile] | null = null, lastTick = -1;
-  function bladeGeometry(profile: Profile) {
-    const vertices = getBladeVertices(profile), count = vertices.length / 2;
-    const geometry = new THREE.BufferGeometry(), positions = vertices.flatMap(v => [v.x, v.y, v.z]), indices: number[] = [];
-    for (let i = 0; i < count; i++) { const next = (i + 1) % count; indices.push(i, count + i, count + next, i, count + next, next); }
-    const faces = THREE.ShapeUtils.triangulateShape(vertices.slice(0, count).map(v => new THREE.Vector2(v.x, v.z)), []);
-    for (const [a, b, c] of faces) { indices.push(a, b, c, count + a, count + c, count + b); }
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
-  }
   function setProfiles(next: [Profile, Profile]) {
     const key = JSON.stringify(next); if (key === profileKey) return; profileKey = key; profiles = next;
     groups.forEach((group, index) => {
       for (const child of [...group.children]) { group.remove(child); freeTree(child); }
-      const profile = next[index], center = comHeight(profile), vertices = getBladeVertices(profile), topY = vertices[vertices.length / 2].y;
-      group.add(mesh(bladeGeometry(profile), 0x9caec5, .25, .9));
-      const outline = getBladeOutline(profile);
-      const capShape = new THREE.Shape(); outline.forEach((point, i) => { if (i === 0) capShape.moveTo(point.x * .70, point.z * .70); else capShape.lineTo(point.x * .70, point.z * .70); }); capShape.closePath();
-      const cap = mesh(new THREE.ExtrudeGeometry(capShape, { depth: .003, bevelEnabled: false }), profile.color, .38, .25); cap.rotation.x = Math.PI / 2; cap.position.y = topY + .003; group.add(cap);
-      const hub = mesh(new THREE.CylinderGeometry(.0055, .0065, .003, 10), 0xf6f9ff, .27, .4); hub.position.y = topY + .004; group.add(hub);
-      const ratchetDimensions = getRatchetGeometry(profile);
-      const ratchet = mesh(new THREE.CylinderGeometry(ratchetDimensions.radius * .91, ratchetDimensions.radius, ratchetDimensions.halfThickness * 2, 24), profile.color, .44, .2); ratchet.position.y = ratchetDimensions.centerHeight - center; group.add(ratchet);
-      const gear = mesh(new THREE.CylinderGeometry(profile.gearRadius * .87, profile.gearRadius * .87, .004, 24), profile.color, .5, .1); gear.position.y = profile.gearHeight - center; group.add(gear);
-      for (let tooth = 0; tooth < 12; tooth++) {
-        const a = tooth / 12 * Math.PI * 2, part = mesh(new THREE.BoxGeometry(.0015, .004, .002), profile.color, .5, .1);
-        part.position.set(Math.cos(a) * profile.gearRadius * .88, profile.gearHeight - center, Math.sin(a) * profile.gearRadius * .88); part.rotation.y = -a; group.add(part);
-      }
-      const tipRadius = profile.tipRadius ?? .0015;
-      const tipHeight = Math.max(.002, profile.gearHeight - .002);
-      if (profile.tipShape === 'ball') {
-        const ball = mesh(new THREE.SphereGeometry(tipRadius, 16, 10), 0xe1eaf6, .4, .15); ball.position.y = tipRadius - center; group.add(ball);
-        const neck = mesh(new THREE.CylinderGeometry(.0035, tipRadius * .8, Math.max(.001, tipHeight - tipRadius), 16), 0xe1eaf6, .4, .15); neck.position.y = (tipHeight + tipRadius) / 2 - center; group.add(neck);
-      } else {
-        const tip = mesh(new THREE.CylinderGeometry(.004, tipRadius, tipHeight, 20), 0xe1eaf6, .4, .15); tip.position.y = tipHeight / 2 - center; group.add(tip);
-      }
+      group.add(buildTopMesh(next[index], mesh));
     });
   }
   function resize() {
@@ -205,6 +181,7 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
         const x = group.position.x, z = group.position.z, floor = bowlHeightAt(x, z);
         shadows[i].visible = Math.hypot(x, z) <= STADIUM.pocketOuterRadius; shadows[i].position.set(x, floor + .0005, z);
         shadows[i].scale.setScalar(profile.radius / .025); shadows[i].material.opacity = Math.max(.025, .15 - Math.max(0, group.position.y - floor - comHeight(profile)) * 1.6);
+        ownershipRings[i].position.set(x, floor + .0008, z); ownershipRings[i].scale.setScalar(profile.radius / .024); ownershipRings[i].visible = !top?.eliminated;
         const trail = trails[i];
         if (resetTrail) { trail.count = 0; trail.geometry.setDrawRange(0, 0); }
         if (addTrail && top && !top.eliminated) {

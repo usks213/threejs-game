@@ -17,7 +17,7 @@ test('arena opens, launches and resets without browser errors',async({page})=>{
   await expect(page.locator('#phase')).toContainText('READY');
   expect(errors).toEqual([]);
 });
-test('mode tabs, catalog filtering and responsive layouts work',async({page},testInfo)=>{
+test('mode tabs and catalog filtering work',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/beyblade/');
   await page.getByRole('tab',{name:'オンライン'}).click();
@@ -28,11 +28,17 @@ test('mode tabs, catalog filtering and responsive layouts work',async({page},tes
   await expect(page.locator('#catalog-body tr')).toHaveCount(0);
   await page.locator('#catalog-search').fill('');
   expect(await page.locator('#catalog-body tr').count()).toBeGreaterThan(2);
+  expect(errors).toEqual([]);
+});
+test('phone and desktop layouts fit and capture at CSS pixel scale',async({page},testInfo)=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/beyblade/');
   await page.setViewportSize({width:390,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
-  await page.screenshot({path:testInfo.outputPath('arena-mobile.png'),fullPage:true});
+  await page.screenshot({path:testInfo.outputPath('arena-mobile.png'),fullPage:true,scale:'css'});
   await page.setViewportSize({width:1400,height:1000});
-  await page.screenshot({path:testInfo.outputPath('arena-desktop.png'),fullPage:true});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  await page.screenshot({path:testInfo.outputPath('arena-desktop.png'),fullPage:true,scale:'css'});
   expect(errors).toEqual([]);
 });
 test('countdown cancellation and repeated reset do not restart battle',async({page})=>{
@@ -87,4 +93,33 @@ test('launch countdown uses wall time even when animation frames are slow',async
   expect(Date.now()-started).toBeLessThan(5500);
   await page.locator('#reset-match').click();
   await expect(page.locator('#phase')).toContainText('READY');
+});
+
+
+test('part inspection exposes changed physical estimates, source evidence and unsupported geometry',async({page})=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/beyblade/');
+  const blade=page.locator('select[data-part="blade"]');
+  await expect(page.locator('#bey-inspect-canvas')).toBeVisible();
+  await expect(page.locator('#inspect-error')).toBeHidden();
+  await blade.selectOption({label:'ドランバスター'});
+  const busterValues=await page.locator('#model-values').innerText();
+  await expect(page.locator('#model-values')).toContainText('推定');
+  await page.locator('.model-evidence summary').click();
+  await expect(page.locator('#model-evidence')).toContainText('attack');
+  await expect(page.locator('#model-evidence a').first()).toHaveAttribute('href',/^https:\/\/beyblade\.takaratomy\.co\.jp\//);
+  await blade.selectOption({label:'ウィザードロッド'});
+  expect(await page.locator('#model-values').innerText()).not.toBe(busterValues);
+  const bit=page.locator('select[data-part="bit"]');
+  await bit.selectOption({label:'F · フラット'});const flatValues=await page.locator('#model-values').innerText();
+  await bit.selectOption({label:'B · ボール'});expect(await page.locator('#model-values').innerText()).not.toBe(flatValues);
+  await page.locator('#inspect-left').click();await page.locator('#inspect-right').click();
+  await page.locator('#inspect-view').click();await expect(page.locator('#inspect-view')).toHaveAttribute('aria-pressed','true');
+  await page.locator('#inspect-view').click();await expect(page.locator('#inspect-view')).toHaveAttribute('aria-pressed','false');
+  await blade.selectOption({label:'バレットグリフォン'});
+  await expect(page.locator('#shape-description')).toContainText('暫定');
+  await expect(page.locator('#model-evidence')).toContainText('形状未再現・暫定モデル');
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  await expect(page.locator('#inspect-error')).toBeHidden();expect(errors).toEqual([]);
 });

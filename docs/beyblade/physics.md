@@ -1,6 +1,6 @@
 # 6DOF mechanics, evidence and calibration limits
 
-The first planar/scalar-tilt prototype was rejected as insufficient. This revision replaces its mechanics, not just its effects. **It is still an uncalibrated rigid-body approximation, not a verified digital twin.** Manufacturer attack/defense/stamina ratings remain factual catalog values; they are no longer converted into mass, inertia, friction, restitution or spin decay.
+The first planar/scalar-tilt prototype was rejected as insufficient. This revision replaces its mechanics, not just its effects. **It is still an uncalibrated rigid-body approximation, not a verified digital twin.** Manufacturer ratings remain factual catalog values. The current part model uses them, together with source-observed shape and mechanism descriptions, to constrain explicitly estimated geometry, inertia, contact loss and retention parameters. This is a disclosed game-model hypothesis, not a manufacturer SI conversion or an experimentally established relationship.
 
 ## Rigid-body state and integration
 
@@ -12,7 +12,7 @@ The symmetric-top torque-free propagator preserves world angular momentum and ro
 
 * The bowl is a curved height field with its matching surface normal. Flat tips use a finite patch, while rounded/needle/taper proxies use rounded contact with a declared effective torsional patch radius. Coulomb slip, rolling resistance and body-floor contacts transfer/dissipate energy. Tilt changes the real contact position.
 * Lobed blade geometry is transformed by the actual quaternion. Rounded-node contact proxies calculate three-dimensional off-center impulses. The visible outline comes from the shared geometry export, but the rounded contact manifold is **not exact CAD collision detection**.
-* The low gear rail and the outer, higher cover wall are separate surfaces. The blade can overhang the bit's rail; an old single-radius wall clamp must not prevent the gear reaching the rail.
+* The low gear rail and the outer, higher cover wall are separate surfaces. Finite 3D gear/rail solid contact is independent of ideal meshing eligibility; a vertically re-entering gear contacts the rail edge rather than being snapped laterally when mesh criteria become true. The blade can overhang the bit's rail; an old single-radius wall clamp must not prevent the gear reaching the rail.
 * The closed rail follows the official stadium's approximate topology: a rear inward notch and front Xtreme Zone flanked by two Over Zones. Gear contact constrains the tangential contact velocity using the actual transformed bit pitch radius and full effective contact mass. It converts spin energy into travel; release from the notch follows the contact geometry, not a scripted inward steering force. This is smooth pitch contact, not individually resolved gear-tooth phase/impact; visible teeth are an illustrative geometric proxy.
 * Events distinguish gear engagement, release, an actual inward-travelling dash, collision and finish. UI speed, lean, traces and rail contact markers read solver state. A counted event alone is not proof of correct real-world behavior.
 
@@ -26,7 +26,23 @@ Official primary sources inspected:
 - [WizardArrow](https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx03.html): two large circular blades and Ball bit.
 - [KnightShield](https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx04.html): six defensive blades, damper description and Needle bit. The damper itself is not simulated as a measured spring assembly.
 
-`src/beyblade/data/physical-estimates.ts` explicitly separates these qualitative observations from estimated dimensions/material constants. The DranSword leading/trailing bevel uses an estimated 1.5 mm ramp amplitude and dimensionless 0.25 skew to model the published uppercut mechanism, not a measured silhouette. The default 35 g mass, 24 mm nominal radius, 19 mm COM height, 6 mm gear pitch radius, tip radii, friction, inertia and damping are **not manufacturer measurements**. Only the four basic blade counts above are source-observed; other shapes use declared type archetypes. Ratchet product codes and marketing heights are not silently interpreted as SI measurements. Unknown factual physical parameters stay `null` in the downloadable catalog.
+`src/beyblade/data/physical-estimates.ts` separates source facts from the estimated mapping; `shape-facts.ts` records the primary-source observations. Fourteen named blade forms and 28 bit families have source-informed descriptions. The assembly inspector uses the same mesh builder and geometry exports as the battle view, at a fixed common camera scale. Team ownership is indicated by floor rings and trails; the materials use approximate part palettes, not uniform team paint or copied logos.
+
+Full formulas, catalog-equivalence audit and reproducible one-part experiments are in [the part-model report](part-model.md).
+
+## How official performance now affects the solver
+
+The earlier revision ignored ratings in physical parameters; that did not satisfy the requested part-dependent game. The replacement uses raw published scores divided by 100, not normalization to a sum of 100 (which would erase metal-coat differences). Missing scores retain explicit missing-input metadata and a declared fallback prior, never a fabricated official zero.
+
+- Blade attack/defense constrain the estimated protrusion, edge sharpness and thickness. Source descriptions choose asymmetric uppercut, downward smash, single-edge, swept-wing or rounded forms. Stamina and observed outer-weight construction constrain mass distribution and axial inertia.
+- Ratchet protrusion count, height class and source-described asymmetry change lower contact geometry, COM and exposure. Conditional left/right ratings do not change the same physical ratchet's mass; they constrain a fixed asymmetric outline. Height code 60 is **not** asserted to equal a measured 6 mm.
+- Bit shape and attack/defense ratings constrain tip contact radius and friction. Stamina constrains rolling and spin losses. Dash ratings and observed gear geometry constrain pitch/contact coupling; Rush's 10-tooth form and extended-gear families are distinct. Energy still comes from spin and launch, not a dash multiplier.
+- Burst resistance and ratchet defense constrain a directional detent-energy barrier. Published simple-joint conditions are applied separately from the bit's unchanged catalog rating. No score is applied as direct opponent damage or winner selection.
+- Restitution remains a common estimated material constant rather than increasing arbitrarily with attack. All absolute masses, dimensions, inertia, friction and locking constants remain unmeasured estimates. Verified relative height differences are identified separately in the inspector.
+
+The same power setting now supplies the same estimated initial rotational and translational work, not the same RPM regardless of inertia: `E_rot = 0.5 × I_ref × (170 + 440p)^2`, `ω = sqrt(2E_rot/I_axial)`, with `I_ref = 0.55 × 0.035 × 0.024²`. Translational work is `0.5 × 0.035 × ((0.45 + 1.45p)^2 + 0.12^2)`, including the small downward release velocity. Initial gravitational potential can differ with geometry and is not launcher work. These launcher laws are also estimates, not measured pull-string mechanics.
+
+Metadata exposes each selected component's official values, source, missing inputs, unsupported mechanisms and derived estimates. Full descriptions and source URLs stay outside authoritative per-frame snapshots. Unknown shapes are explicitly marked **形状未再現・暫定モデル**. Source-informed does not mean exact CAD: blade bevel dimensions, ratchet teeth, palettes and contact manifolds remain approximations. Free bearings, transforming bits and dampers are not silently claimed as independent simulated mechanisms. Unknown factual physical parameters remain `null` in downloadable official catalog data.
 
 ## Finish rules and limitations
 
@@ -37,7 +53,11 @@ Burst uses exposed lower-ratchet contacts and a directional quasistatic detent-e
 ## Verification and reproducible trajectories
 
 - Unit tests check torque-free momentum/energy, quaternion normalization, gravity/support torque, precession, off-center contact, gear energy transfer, shared geometry, deterministic replay and finish arbitration. These establish software/physics invariants, **not measured equivalence**.
-- `npm run analyze:beyblade -- /tmp/beyblade-trajectories.json` runs a public-default matchup plus twelve ordinary launch cases across the four starter forms. It records actual positions/orientations, energy, speed, lean, gear/release/collision events, round outcome and the core source SHA-256. It never injects special positions or velocities to manufacture a dash.
+- `npm run analyze:beyblade -- /tmp/beyblade-trajectories.json` runs the public-default matchup, its previous-input regression, plus twelve ordinary launch cases across the four starter forms. It records actual positions/orientations, energy, speed, lean, gear/release/collision events, round outcome and the core source SHA-256. It never injects special positions or velocities to manufacture a dash.
 - Browser tests verify real two-client authoritative quaternion/momentum snapshots, customization, interrupted flows, phone layout and online-unavailable behavior.
 
 Before claiming faithful reproduction: obtain measured mass/inertia/geometry and launch distributions; fit contact and gear parameters against high-speed trajectories; compare held-out matchups, rail timing/speed, precession, rebound, finish rates and uncertainty. Public video frames without camera calibration are qualitative evidence, not millimetre/second ground truth.
+
+The current editable launch preset is 80% / +15° / 0°. It was selected from ordinary legal inputs to show the mechanism without scripted forces; the previous 80% / 0° / 8° input remains a regression fixture and can legitimately self-exit. No build-specific demo force or winner rule is used.
+
+Contact stabilization is still a numerical approximation: a discarded 80% / +0.25 rad / 8° input showed a transient +95 µJ total-energy tick during penetration correction. The selected preset and seven representative regression cases did not. This is not a proof of perfect dissipation for all inputs or all estimated geometries; wider parameter sweeps and continuous-contact refinement remain necessary.
