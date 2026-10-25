@@ -8,6 +8,8 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      BUILD_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -21,16 +23,14 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
-        env:
-          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
-        env:
-          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Verify isolated local Durable Object with two real clients
         run: npm run test:worker
+      - name: Assert tested artifact identity before upload
+        run: node -e "const m=require('./dist/deployment.json'); if(m.commit!==process.env.EXPECTED_COMMIT) throw new Error('Tested artifact SHA mismatch'); console.log('Verified build SHA',m.commit)"
         env:
-          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/upload-artifact@v4
         if: github.event_name == 'pull_request' && github.event.number == 7 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/beyblade-x-arena'
         with:
