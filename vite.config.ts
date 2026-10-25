@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  build: { rollupOptions: { input: { main: 'index.html', beyblade: 'beyblade/index.html' } } },
   plugins: [{
     name: 'deployment-version',
     apply: 'build',

@@ -1,0 +1,1548 @@
+{
+  "ux": [
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux01.html",
+      "stock_combination": "ドランバスター1-60A",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux01.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux03.html",
+      "stock_combination": "ウィザードロッド5-70DB",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux03.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux06.html",
+      "stock_combination": "レオンクレスト7-60GN",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux06.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux08.html",
+      "stock_combination": "シルバーウルフ3-80FB",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux08.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux02.html",
+      "stock_combination": "ヘルズハンマー3-70H",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux02.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux05.html",
+      "stock_combination": "シノビシャドウ1-80MN",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux05.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux07.html",
+      "stock_combination": "フェニックスラダー9-70G メタルコート:レッド",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_r.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux09.html",
+      "stock_combination": "サムライセイバー2-70L",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux09.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux10.html",
+      "stock_combination": "ナイトメイル3-85BS",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux10.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux11.html",
+      "stock_combination": "インパクトドレイク9-60LR",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux11.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux12.html",
+      "stock_combination": "ゴーストサークル0-80GB",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux12.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux14.html",
+      "stock_combination": "スコーピオスピア0-70Z",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX14.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+      "stock_combination": "シャークスケイル4-50UF",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux16.html",
+      "stock_combination": "クロックミラージュ9-65B",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX16.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux17.html",
+      "stock_combination": "メテオドラグーン3-70J メタルコート:ホワイト",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX17.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux18.html",
+      "stock_combination": "マミーカース7-55W",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX18.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux19.html",
+      "stock_combination": "バレットグリフォンH",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX19.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux20.html",
+      "stock_combination": "グローリーワルキューレLF メタルコート:ホワイト",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX20.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+      "stock_combination": "ヘルズネザーZ",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+      "stock_combination": "ティラノロア1-70L",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_2.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+      "stock_combination": "ヘルズブレイブJ3-60GF",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_3.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+      "stock_combination": "シルバーウルフ9-70R メタルコート:バイオレット",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21_2.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+      "stock_combination": "ワイバーンホバー8-80B",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21_3.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux07.html",
+      "stock_combination": "ワイバーンゲイル2-60S",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_g.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux07.html",
+      "stock_combination": "スフィンクスカウル1-80GF",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_b.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+      "stock_combination": "ドランバスター3-70N メタルコート:ホワイト",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_db2.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-hs_bc.html",
+      "stock_combination": "ヘルズハンマー3-70H メタルコート:レッド FCバルセロナVer.",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg19.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-samurai.html",
+      "stock_combination": "サムライセイバー5-60K メタルコート:サムライブルー サッカー日本代表Ver.",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG54.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ss.html",
+      "stock_combination": "スコーピオスピア0-70Z メタルコート:マゼンタ",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG61.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-gv.html",
+      "stock_combination": "グローリーワルキューレLF メタルコート:ブルー",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG63.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+      "stock_combination": "ドランダガー9-60LF メタルコート:ホワイト",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_dd.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+      "stock_combination": "ドランソード4-80DB メタルコート:ホワイト",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_ds.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-db_bc.html",
+      "stock_combination": "ドランバスター1-60A メタルコート:ブルー FCバルセロナVer.",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg18.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux13.html",
+      "stock_combination": "ゴーレムロック1-60UN",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux13.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux04.html",
+      "stock_combination": "ドランバスター1-60A スペシャルVer.",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux04A.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux04.html",
+      "stock_combination": "ウィザードロッド5-70DB スペシャルVer.",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux04B.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-nm.html",
+      "stock_combination": "ナイトメイル3-85BS メタルコート:ネイビー",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG42.png"
+    },
+    {
+      "product_page": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ap_red.html",
+      "stock_combination": "エアロペガサス3-70A レッドVer.",
+      "source_image": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG24.png"
+    }
+  ],
+  "cx": [
+    {
+      "product": "CX-01",
+      "stock_combination": "ドランブレイブS6-60V",
+      "blade": "ドランブレイブS",
+      "blade_components": [
+        "ドラン",
+        "ブレイブ",
+        "S"
+      ],
+      "blade_stats": [
+        60,
+        20,
+        20
+      ],
+      "ratchet": "6-60",
+      "ratchet_stats": [
+        14,
+        8,
+        8,
+        60
+      ],
+      "bit": "V",
+      "bit_stats": [
+        45,
+        10,
+        5,
+        40,
+        80
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX01.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-02",
+      "stock_combination": "ウィザードアークR4-55LO",
+      "blade": "ウィザードアークR",
+      "blade_components": [
+        "ウィザード",
+        "アーク",
+        "R"
+      ],
+      "blade_stats": [
+        20,
+        20,
+        60
+      ],
+      "ratchet": "4-55",
+      "ratchet_stats": [
+        7,
+        11,
+        12,
+        55
+      ],
+      "bit": "LO",
+      "bit_stats": [
+        5,
+        25,
+        55,
+        15,
+        30
+      ],
+      "modes": null,
+      "notes": "4-55使用時、ビットのバースト耐性は30になる。LOはOより1mm低い。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX02.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-03",
+      "stock_combination": "ペルセウスダークB6-80W",
+      "blade": "ペルセウスダークB",
+      "blade_components": [
+        "ペルセウス",
+        "ダーク",
+        "B"
+      ],
+      "blade_stats": [
+        20,
+        60,
+        20
+      ],
+      "ratchet": "6-80",
+      "ratchet_stats": [
+        14,
+        6,
+        10,
+        80
+      ],
+      "bit": "W",
+      "bit_stats": [
+        5,
+        55,
+        30,
+        10,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX03.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-04",
+      "stock_combination": "ドランブレイブS6-60V スペシャルVer.",
+      "blade": "ドランブレイブS",
+      "blade_components": [
+        "ドラン",
+        "ブレイブ",
+        "S"
+      ],
+      "blade_stats": [
+        60,
+        20,
+        20
+      ],
+      "ratchet": "6-60",
+      "ratchet_stats": [
+        14,
+        8,
+        8,
+        60
+      ],
+      "bit": "V",
+      "bit_stats": [
+        45,
+        10,
+        5,
+        40,
+        80
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_d.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-04",
+      "stock_combination": "ペルセウスダークB6-80W スペシャルVer.",
+      "blade": "ペルセウスダークB",
+      "blade_components": [
+        "ペルセウス",
+        "ダーク",
+        "B"
+      ],
+      "blade_stats": [
+        20,
+        60,
+        20
+      ],
+      "ratchet": "6-80",
+      "ratchet_stats": [
+        14,
+        6,
+        10,
+        80
+      ],
+      "bit": "W",
+      "bit_stats": [
+        5,
+        55,
+        30,
+        10,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_p.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-05",
+      "stock_combination": "ヘルズリーパーT4-70K",
+      "blade": "ヘルズリーパーT",
+      "blade_components": [
+        "ヘルズ",
+        "リーパー",
+        "T"
+      ],
+      "blade_stats": null,
+      "ratchet": "4-70",
+      "ratchet_stats": null,
+      "bit": "K",
+      "bit_stats": [
+        35,
+        25,
+        15,
+        25,
+        80
+      ],
+      "modes": [
+        {
+          "name": "連撃",
+          "blade_stats": [
+            40,
+            20,
+            40
+          ]
+        },
+        {
+          "name": "受け流し",
+          "blade_stats": [
+            35,
+            20,
+            45
+          ]
+        }
+      ],
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-05",
+      "stock_combination": "ライノリーパーC4-55D",
+      "blade": "ライノリーパーC",
+      "blade_components": [
+        "ライノ",
+        "リーパー",
+        "C"
+      ],
+      "blade_stats": null,
+      "ratchet": "4-55",
+      "ratchet_stats": null,
+      "bit": "D",
+      "bit_stats": null,
+      "modes": null,
+      "notes": "この画像に数値パラメーターなし。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-06",
+      "stock_combination": "フォックスブラッシュJ9-70GR",
+      "blade": "フォックスブラッシュJ",
+      "blade_components": [
+        "フォックス",
+        "ブラッシュ",
+        "J"
+      ],
+      "blade_stats": [
+        60,
+        30,
+        10
+      ],
+      "ratchet": "9-70",
+      "ratchet_stats": [
+        13,
+        10,
+        7,
+        70
+      ],
+      "bit": "GR",
+      "bit_stats": [
+        45,
+        10,
+        10,
+        35,
+        80
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX06.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-07",
+      "stock_combination": "ペガサスブラストATr メタルコート:グリーン",
+      "blade": "ペガサスブラストA メタルコート:グリーン",
+      "blade_components": [
+        "ペガサス",
+        "ブラスト メタルコート:グリーン",
+        "A"
+      ],
+      "blade_stats": [
+        75,
+        20,
+        20
+      ],
+      "ratchet": null,
+      "ratchet_stats": null,
+      "bit": "Tr",
+      "bit_stats": null,
+      "modes": [
+        {
+          "name": "細い軸先（高速回転時）",
+          "integrated_ratchet_bit_stats": [
+            30,
+            30,
+            60,
+            10,
+            30,
+            90
+          ]
+        },
+        {
+          "name": "太い軸先（低速回転時）",
+          "integrated_ratchet_bit_stats": [
+            55,
+            20,
+            10,
+            45,
+            30,
+            65
+          ]
+        }
+      ],
+      "notes": "Trはラチェット一体型ビット。ラチェットとビットに分離不可。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX07.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-08",
+      "stock_combination": "ケルベロスフレイムW5-80WB",
+      "blade": "ケルベロスフレイムW",
+      "blade_components": [
+        "ケルベロス",
+        "フレイム",
+        "W"
+      ],
+      "blade_stats": [
+        10,
+        30,
+        60
+      ],
+      "ratchet": "5-80",
+      "ratchet_stats": null,
+      "bit": "WB",
+      "bit_stats": [
+        15,
+        30,
+        45,
+        10,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-08",
+      "stock_combination": "ホエールフレイムM3-85HT",
+      "blade": "ホエールフレイムM",
+      "blade_components": [
+        "ホエール",
+        "フレイム",
+        "M"
+      ],
+      "blade_stats": null,
+      "ratchet": "3-85",
+      "ratchet_stats": null,
+      "bit": "HT",
+      "bit_stats": null,
+      "modes": null,
+      "notes": "この画像に数値パラメーターなし。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-09",
+      "stock_combination": "ソルエクリプスD5-70TK",
+      "blade": "ソルエクリプスD",
+      "blade_components": [
+        "ソル",
+        "エクリプス",
+        "D"
+      ],
+      "blade_stats": null,
+      "ratchet": "5-70",
+      "ratchet_stats": [
+        12,
+        8.5,
+        9.5,
+        70
+      ],
+      "bit": "TK",
+      "bit_stats": [
+        35,
+        30,
+        20,
+        15,
+        80
+      ],
+      "modes": [
+        {
+          "name": "ダブルアッパー",
+          "blade_stats": [
+            47,
+            33,
+            20
+          ]
+        },
+        {
+          "name": "ダブルスマッシュ",
+          "blade_stats": [
+            33,
+            47,
+            20
+          ]
+        }
+      ],
+      "notes": "メイン・アシスト・ビット各2状態で8モード。中間ブレード組合せの数値は掲載なし。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX09.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-11",
+      "stock_combination": "エンペラーマイトHOp メタルコート:ブラック",
+      "blade": "エンペラーマイトH メタルコート:ブラック",
+      "blade_components": [
+        "エンペラー（メタルロックチップ）",
+        "マイト メタルコート:ブラック",
+        "H"
+      ],
+      "blade_stats": [
+        44,
+        44,
+        37
+      ],
+      "ratchet": null,
+      "ratchet_stats": null,
+      "bit": "Op",
+      "bit_stats": null,
+      "modes": [
+        {
+          "name": "防御",
+          "integrated_ratchet_bit_stats": [
+            20,
+            50,
+            50,
+            10,
+            30,
+            80
+          ]
+        },
+        {
+          "name": "攻撃",
+          "integrated_ratchet_bit_stats": [
+            50,
+            35,
+            10,
+            35,
+            30,
+            85
+          ]
+        }
+      ],
+      "notes": "Opはラチェット一体型ビット。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-11",
+      "stock_combination": "ゴーレムロックM-85HN メタルコート:グリーン",
+      "blade": "ゴーレムロック メタルコート:グリーン",
+      "blade_components": [],
+      "blade_stats": [
+        35,
+        65,
+        15
+      ],
+      "ratchet": "M-85",
+      "ratchet_stats": [
+        8,
+        19,
+        13,
+        85
+      ],
+      "bit": "HN",
+      "bit_stats": [
+        15,
+        55,
+        20,
+        10,
+        30
+      ],
+      "modes": null,
+      "notes": "CX製品同梱UXベイ。M-85はシンプルタイプ：ビットのバースト耐性30固定。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_2.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-11",
+      "stock_combination": "シャークギル5-60FB",
+      "blade": "シャークギル",
+      "blade_components": [],
+      "blade_stats": [
+        20,
+        25,
+        55
+      ],
+      "ratchet": "5-60",
+      "ratchet_stats": [
+        12,
+        9,
+        9,
+        60
+      ],
+      "bit": "FB",
+      "bit_stats": [
+        10,
+        25,
+        60,
+        5,
+        30
+      ],
+      "modes": null,
+      "notes": "CX製品同梱BXベイ。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_3.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-12",
+      "stock_combination": "フェニックスフレアZ9-80WW メタルコート:レッド",
+      "blade": "フェニックスフレアZ メタルコート:レッド",
+      "blade_components": [
+        "フェニックス",
+        "フレア メタルコート:レッド",
+        "Z"
+      ],
+      "blade_stats": [
+        47,
+        55,
+        13
+      ],
+      "ratchet": "9-80",
+      "ratchet_stats": [
+        13,
+        10,
+        7,
+        80
+      ],
+      "bit": "WW",
+      "bit_stats": [
+        5,
+        60,
+        25,
+        10,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX12.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-13",
+      "stock_combination": "バハムートブリッツBK1-50I",
+      "blade": "バハムートブリッツBK",
+      "blade_components": [
+        "バハムート",
+        "ブリッツ",
+        "B",
+        "K"
+      ],
+      "blade_stats": [
+        65,
+        20,
+        15
+      ],
+      "ratchet": "1-50",
+      "ratchet_stats": [
+        18,
+        9,
+        3,
+        50
+      ],
+      "bit": "I",
+      "bit_stats": [
+        50,
+        15,
+        5,
+        30,
+        80
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX13.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "metal_blade",
+        "over_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-14",
+      "stock_combination": "ナイトフォートレスGV8-70UN",
+      "blade": "ナイトフォートレスGV",
+      "blade_components": [
+        "ナイト",
+        "フォートレス",
+        "G",
+        "V"
+      ],
+      "blade_stats": [
+        25,
+        55,
+        20
+      ],
+      "ratchet": "8-70",
+      "ratchet_stats": [
+        8,
+        10,
+        12,
+        70
+      ],
+      "bit": "UN",
+      "bit_stats": [
+        10,
+        60,
+        20,
+        10,
+        30
+      ],
+      "modes": null,
+      "notes": "UNはNより2mm低い。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX14.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "metal_blade",
+        "over_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-15",
+      "stock_combination": "ラグナレイジFE4-55Y",
+      "blade": "ラグナレイジFE",
+      "blade_components": [
+        "ラグナ",
+        "レイジ",
+        "F",
+        "E"
+      ],
+      "blade_stats": [
+        25,
+        20,
+        55
+      ],
+      "ratchet": "4-55",
+      "ratchet_stats": [
+        7,
+        11,
+        12,
+        55
+      ],
+      "bit": "Y",
+      "bit_stats": [
+        10,
+        15,
+        65,
+        10,
+        30
+      ],
+      "modes": null,
+      "notes": "4-55はシンプルタイプ：ビットのバースト耐性30固定。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX15.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "metal_blade",
+        "over_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-16",
+      "stock_combination": "バハムートブリッツBK1-50I スペシャルVer.",
+      "blade": "バハムートブリッツBK",
+      "blade_components": [
+        "バハムート",
+        "ブリッツ",
+        "B",
+        "K"
+      ],
+      "blade_stats": [
+        65,
+        20,
+        15
+      ],
+      "ratchet": "1-50",
+      "ratchet_stats": [
+        18,
+        9,
+        3,
+        50
+      ],
+      "bit": "I",
+      "bit_stats": [
+        50,
+        15,
+        5,
+        30,
+        80
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX16.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "metal_blade",
+        "over_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-17",
+      "stock_combination": "ユニコーンデルタPO3-60GU",
+      "blade": "ユニコーンデルタPO",
+      "blade_components": [
+        "ユニコーン",
+        "デルタ",
+        "P",
+        "O"
+      ],
+      "blade_stats": [
+        40,
+        32,
+        28
+      ],
+      "ratchet": "3-60",
+      "ratchet_stats": null,
+      "bit": "GU",
+      "bit_stats": [
+        30,
+        20,
+        20,
+        30,
+        80
+      ],
+      "modes": null,
+      "notes": "オーバーブレード取付方向で3スタイル。数値は1組のみ掲載。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX17.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "metal_blade",
+        "over_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-18",
+      "stock_combination": "ブラキオウィップOW5-70Nr",
+      "blade": "ブラキオウィップOW",
+      "blade_components": [
+        "ブラキオ",
+        "ウィップ",
+        "O",
+        "W"
+      ],
+      "blade_stats": [
+        13,
+        35,
+        52
+      ],
+      "ratchet": "5-70",
+      "ratchet_stats": [
+        12,
+        8.5,
+        9.5,
+        70
+      ],
+      "bit": "Nr",
+      "bit_stats": [
+        15,
+        20,
+        60,
+        5,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX18.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "metal_blade",
+        "over_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-19",
+      "stock_combination": "クロコトレッドTQ5-50GN",
+      "blade": "クロコトレッドTQ",
+      "blade_components": [
+        "クロコ",
+        "トレッド",
+        "T",
+        "Q"
+      ],
+      "blade_stats": [
+        15,
+        67,
+        18
+      ],
+      "ratchet": "5-50",
+      "ratchet_stats": [
+        10,
+        9,
+        11,
+        50
+      ],
+      "bit": "GN",
+      "bit_stats": [
+        20,
+        40,
+        10,
+        30,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX19.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "metal_blade",
+        "over_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-10",
+      "stock_combination": "ウルフハントF0-60DB",
+      "blade": "ウルフハントF",
+      "blade_components": [
+        "ウルフ",
+        "ハント",
+        "F"
+      ],
+      "blade_stats": [
+        25,
+        30,
+        55
+      ],
+      "ratchet": "0-60",
+      "ratchet_stats": [
+        3,
+        14,
+        13,
+        60
+      ],
+      "bit": "DB",
+      "bit_stats": [
+        15,
+        20,
+        55,
+        10,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX10.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "ウィザードアークR4-55LO メタルコート:ブラック",
+      "blade": "ウィザードアークR メタルコート:ブラック",
+      "blade_components": [
+        "ウィザード",
+        "アーク メタルコート:ブラック",
+        "R"
+      ],
+      "blade_stats": [
+        25,
+        25,
+        65
+      ],
+      "ratchet": "4-55",
+      "ratchet_stats": [
+        7,
+        11,
+        12,
+        55
+      ],
+      "bit": "LO",
+      "bit_stats": [
+        5,
+        25,
+        55,
+        15,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG43.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "ティガレイジFT3-60T",
+      "blade": "ティガレイジFT",
+      "blade_components": [
+        "ティガ",
+        "レイジ",
+        "F",
+        "T"
+      ],
+      "blade_stats": null,
+      "ratchet": "3-60",
+      "ratchet_stats": [
+        15,
+        9,
+        6,
+        60
+      ],
+      "bit": "T",
+      "bit_stats": [
+        35,
+        20,
+        20,
+        25,
+        80
+      ],
+      "modes": [
+        {
+          "name": "連撃",
+          "blade_stats": [
+            30,
+            25,
+            45
+          ]
+        },
+        {
+          "name": "受け流し",
+          "blade_stats": [
+            25,
+            25,
+            50
+          ]
+        }
+      ],
+      "notes": "FおよびTの外側パーツはパープル・レッド各1個、ティガロックチップはレッド・シルバー各1個付属。",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG70.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "metal_blade",
+        "over_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "エヴァブレイブA1-70V 初号機Ver.",
+      "blade": "エヴァブレイブA メタルコート:バイオレット",
+      "blade_components": [
+        "エヴァ",
+        "ブレイブ メタルコート:バイオレット",
+        "A"
+      ],
+      "blade_stats": [
+        70,
+        25,
+        20
+      ],
+      "ratchet": "1-70",
+      "ratchet_stats": [
+        17,
+        6,
+        7,
+        70
+      ],
+      "bit": "V",
+      "bit_stats": [
+        45,
+        10,
+        5,
+        40,
+        80
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_01.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "エヴァアークB0-70E 零号機Ver.",
+      "blade": "エヴァアークB メタルコート:オレンジ",
+      "blade_components": [
+        "エヴァ",
+        "アーク メタルコート:オレンジ",
+        "B"
+      ],
+      "blade_stats": [
+        20,
+        35,
+        60
+      ],
+      "ratchet": "0-70",
+      "ratchet_stats": [
+        3,
+        13,
+        14,
+        70
+      ],
+      "bit": "E",
+      "bit_stats": [
+        30,
+        15,
+        20,
+        35,
+        30
+      ],
+      "modes": null,
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_02.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "エヴァブラッシュT2-70A 2号機Ver.",
+      "blade": "エヴァブラッシュT メタルコート:レッド",
+      "blade_components": [
+        "エヴァ",
+        "ブラッシュ メタルコート:レッド",
+        "T"
+      ],
+      "blade_stats": null,
+      "ratchet": "2-70",
+      "ratchet_stats": [
+        10,
+        12,
+        8,
+        70
+      ],
+      "bit": "A",
+      "bit_stats": [
+        40,
+        10,
+        10,
+        40,
+        80
+      ],
+      "modes": [
+        {
+          "name": "連撃",
+          "blade_stats": [
+            65,
+            25,
+            25
+          ]
+        },
+        {
+          "name": "受け流し",
+          "blade_stats": [
+            50,
+            35,
+            30
+          ]
+        }
+      ],
+      "notes": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_03.png",
+      "verified_date": "2026-10-25",
+      "verification": "image_visually_transcribed",
+      "blade_component_types": [
+        "lock_chip",
+        "main_blade",
+        "assist_blade"
+      ],
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "CX-00 【イベント限定】 ペガサスブラストATr メタルコート:レッド",
+      "blade": null,
+      "blade_components": null,
+      "blade_stats": null,
+      "ratchet": null,
+      "ratchet_stats": null,
+      "bit": null,
+      "bit_stats": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-pb.html",
+      "verified_date": "2026-10-25",
+      "verification": "product_name_only",
+      "notes": "404 Client Error: Not Found for url: https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG45.png",
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "CX-00 【タカラトミーモール・イベント限定】 ドランブレイブS6-60V メタルコート:ブラック",
+      "blade": null,
+      "blade_components": null,
+      "blade_stats": null,
+      "ratchet": null,
+      "ratchet_stats": null,
+      "bit": null,
+      "bit_stats": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-db.html",
+      "verified_date": "2026-10-25",
+      "verification": "product_name_only",
+      "notes": "404 Client Error: Not Found for url: https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG51.png",
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "CX-00 【アプリ・イベント限定】 バックスアントラーズB2-60D メタルコート:オレンジ",
+      "blade": null,
+      "blade_components": null,
+      "blade_stats": null,
+      "ratchet": null,
+      "ratchet_stats": null,
+      "bit": null,
+      "bit_stats": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-ba.html",
+      "verified_date": "2026-10-25",
+      "verification": "product_name_only",
+      "notes": "404 Client Error: Not Found for url: https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG81.png",
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "CX-00 【アプリ・イベント限定】 クラーケンリグルS3-70O メタルコート:ブルー",
+      "blade": null,
+      "blade_components": null,
+      "blade_stats": null,
+      "ratchet": null,
+      "ratchet_stats": null,
+      "bit": null,
+      "bit_stats": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-kw.html",
+      "verified_date": "2026-10-25",
+      "verification": "product_name_only",
+      "notes": "404 Client Error: Not Found for url: https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG80.png",
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "CX-00 【アプリ・イベント限定】 ホーネットフォートR7-60T メタルコート:イエロー",
+      "blade": null,
+      "blade_components": null,
+      "blade_stats": null,
+      "ratchet": null,
+      "ratchet_stats": null,
+      "bit": null,
+      "bit_stats": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-hf.html",
+      "verified_date": "2026-10-25",
+      "verification": "product_name_only",
+      "notes": "404 Client Error: Not Found for url: https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG79.png",
+      "availability": "unknown",
+      "released_by_as_of": true
+    },
+    {
+      "product": "CX-00",
+      "stock_combination": "CX-00 【アプリ・イベント限定】 ドレイクブレイブG4-70I メタルコート:ブルー",
+      "blade": null,
+      "blade_components": null,
+      "blade_stats": null,
+      "ratchet": null,
+      "ratchet_stats": null,
+      "bit": null,
+      "bit_stats": null,
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-drb.html",
+      "verified_date": "2026-10-25",
+      "verification": "product_name_only",
+      "notes": "404 Client Error: Not Found for url: https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXH23.png",
+      "availability": "unknown",
+      "released_by_as_of": true
+    }
+  ],
+  "bx": "products.jsonおよびbx_stock_combinations.json参照（整備中）"
+}

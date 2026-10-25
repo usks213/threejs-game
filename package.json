@@ -12,17 +12,24 @@
     "test": "vitest run",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "server:beyblade": "node --import tsx server/beyblade/run.ts",
+    "smoke:beyblade": "node --import tsx server/beyblade/smoke.ts",
+    "test:worker": "npm run build && node server/beyblade/worker-smoke.mjs"
   },
   "dependencies": {
-    "three": "0.180.0"
+    "three": "0.180.0",
+    "ws": "8.18.3"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
     "@types/node": "22.18.6",
     "@types/three": "0.180.0",
+    "@types/ws": "8.18.1",
+    "tsx": "4.20.6",
     "typescript": "5.9.2",
     "vite": "7.3.6",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "wrangler": "4.152.0"
   }
 }

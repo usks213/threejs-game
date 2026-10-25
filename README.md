@@ -53,3 +53,7 @@ Safe Areaと縦横画面に対応し、描画解像度を抑え、木の繰り�
 既存Workerでも同じゲームを配信できるよう、`wrangler.jsonc` に `dist` の静的配信を設定しています。WorkersのGit連携では対象リポジトリを `usks213/threejs-game`、本番ブランチを `main`、Build commandを `npm run build`、Deploy commandを `npx wrangler deploy` にします。Pagesの設定は上記のまま利用可能です。
 
 ビルドは `deployment.json` にソースコミットを記録します。mainのCI成功後、GitHub Actionsの `verify-production` が既存URLに対象コミットが配信されたことを確認し、公開ゲームへPlaywrightテストを実行します。更新待ちは最大約10分です。デプロイ未完了・バージョン違い・HTTPエラー・E2E失敗を成功として扱いません。Preview URLはCloudflareの実際のデプロイ結果から取得し、公開確認のために本番へ未検証コードを反映しないでください。
+
+## X ARENA（独立したベイブレードXプロトタイプ）
+
+`/beyblade/` に追加。公式値の台帳、カスタマイズ、ローカル練習、サーバー権威型オンライン対戦を備えます。**物理は未校正の近似で、実機同等・カタログ網羅完了とはしていません。** 実行手順・データ範囲・残課題は [docs/beyblade/README.md](docs/beyblade/README.md) を参照してください。既存のゲームは `/` にそのまま残ります。
