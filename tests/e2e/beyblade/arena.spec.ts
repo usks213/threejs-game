@@ -127,11 +127,16 @@ test('part inspection exposes changed physical estimates, source evidence and un
 test('ordinary Burst keeps its score latched while physical pieces continue, then allows the next round',async({page})=>{
   // Pin the round seed (0 = exact inputs) so this legal-launch Burst fixture
   // is deterministic; normal play draws a fresh seed every round.
+  // Fixture reselection (2026-10-31, round 2): the original 50/-50/30 input
+  // now finishes by Spin (10.3 s) under the recalibrated detent — the same
+  // knife-edge fixture family as the unit tests. The 80/+50/10 input below
+  // bursts the stock Sword in ~6.1 simulated seconds with the same build
+  // (Hells/4-60/T), verified headlessly against the app's fixed CPU launch.
   await page.goto('/beyblade/?seed=0');
   await page.locator('select[data-part="blade"]').selectOption({label:'ヘルズサイズ'});
   await page.locator('select[data-part="ratchet"]').selectOption({label:'4-60'});
   await page.locator('select[data-part="bit"]').selectOption({label:'T · テーパー'});
-  await page.locator('#power').fill('50');await page.locator('#angle').fill('-50');await page.locator('#tilt').fill('30');
+  await page.locator('#power').fill('80');await page.locator('#angle').fill('50');await page.locator('#tilt').fill('10');
   await page.evaluate(()=>{
     const phase=document.getElementById('phase')!,launch=document.getElementById('launch') as HTMLButtonElement;
     const state=window as unknown as {settlingObserved:boolean;settlingWasGated:boolean};state.settlingObserved=false;state.settlingWasGated=false;
@@ -139,11 +144,15 @@ test('ordinary Burst keeps its score latched while physical pieces continue, the
     observer.observe(phase,{childList:true,characterData:true,subtree:true});
   });
   await page.locator('#launch').click();
-  await expect.poll(()=>page.evaluate(()=>(window as unknown as {settlingObserved:boolean}).settlingObserved),{timeout:20000}).toBe(true);
+  // Poll bounds raised 20 s -> 30 s (2026-10-31, round 2): battles are longer
+  // by design and the post-finish settling now plays at 0.35x presentation
+  // speed, so the burst (~6.1 s sim) plus 2.5 s of settling takes materially
+  // more wall time under SwiftShader than the old ~2.6 s fixture did.
+  await expect.poll(()=>page.evaluate(()=>(window as unknown as {settlingObserved:boolean}).settlingObserved),{timeout:30000}).toBe(true);
   expect(await page.evaluate(()=>(window as unknown as {settlingWasGated:boolean}).settlingWasGated)).toBe(true);
   const scores=[await page.locator('#score-you').innerText(),await page.locator('#score-other').innerText()];expect(scores.map(Number).sort()).toEqual([0,2]);
   await expect(page.locator('#battle-result')).toBeVisible();await expect(page.locator('#result-finish')).toHaveText('バーストフィニッシュ');await expect(page.locator('#finish-banner')).toHaveText('バーストフィニッシュ');await expect(page.locator('#result-points')).toContainText('+2 pt');await expect(page.locator('#result-score')).toContainText(`YOU ${scores[0]} : ${scores[1]} CPU`);
-  await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:20000});await expect(page.locator('#launch')).toBeEnabled();
+  await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:30000});await expect(page.locator('#launch')).toBeEnabled();
   expect([await page.locator('#score-you').innerText(),await page.locator('#score-other').innerText()]).toEqual(scores);await page.locator('#launch').click();await expect(page.locator('#phase')).toContainText('COUNTDOWN');await expect(page.locator('#battle-result')).toBeHidden();await expect(page.locator('#finish-banner')).toBeHidden();
   await page.locator('#reset-match').click();await expect(page.locator('#phase')).toContainText('READY');await expect(page.locator('#score-you')).toHaveText('0');
 });
@@ -169,7 +178,7 @@ test('ratchet-only swaps change modeled COM and inertia, with an exact-scale ins
 });
 
 test('the reported Sword Needle launch no longer leaves the CPU fenced behind the rail',async({page})=>{
-  test.setTimeout(95000);
+  test.setTimeout(180000);
   await page.goto('/beyblade/');
   await page.locator('select[data-part="blade"]').selectOption({label:'ドランソード'});
   await page.locator('select[data-part="ratchet"]').selectOption('ratchet:3-60');
@@ -180,8 +189,12 @@ test('the reported Sword Needle launch no longer leaves the CPU fenced behind th
   // With observed component masses the equal-work launch ends after 28.4 simulated seconds.
   // Isolated SwiftShader runs take ~50–59 wall seconds for this 30.9 s simulation.
   // The bound includes tracing overhead; performance is reported separately, not inferred from passing.
+  // Round 2 (2026-10-31): the duration recalibration lengthens this same
+  // launch to a ~59.4 s simulated Spin finish (verified headlessly), i.e.
+  // roughly 100-120 wall seconds under SwiftShader, so the bounds below are
+  // raised to fit the longer battle the user asked for; assertions unchanged.
   await page.locator('#launch').click();
-  await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:75000});
+  await expect(page.locator('#phase')).toContainText('ROUND COMPLETE',{timeout:150000});
   const total=Number(await page.locator('#score-you').innerText())+Number(await page.locator('#score-other').innerText());
   expect(total).toBeGreaterThan(0);await expect(page.locator('#launch')).toBeEnabled();
   await page.locator('#reset-match').click();await expect(page.locator('#phase')).toContainText('READY');
