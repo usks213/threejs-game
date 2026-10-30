@@ -145,11 +145,15 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   // a single first contact could accumulate enough ratchet work to release
   // (bursts at 0.5-0.9 s in the trajectory report), while real bursts build
   // over repeated strong hits.
-  const lockStiffness=.0065+.022*effectiveBurst/100+.006*rd,lockReleaseAngle=.24+.085*effectiveBurst/100+.055*rd;
+  // Barrier raised ~2.2x in round 2 (2026-10-31): at the previous ~1.2 mJ a
+  // single capped dash clash (dissipating >=5 mJ at a ratchet node) filled the
+  // detent in one hit and stamina builds burst inside 2 s in ~40% of rounds.
+  // Real bursts need repeated hard ratchet strikes or one exceptional hit.
+  const lockStiffness=.010+.033*effectiveBurst/100+.009*rd,lockReleaseAngle=.28+.09*effectiveBurst/100+.06*rd;
   const palette={...(form?.implemented_geometry?.palette??palettes[name]??{metal:0xaeb9c8,core:0x667488})};
   const coat=blade.part.name.match(/メタルコート[:：]([^\s]+)/)?.[1];if(coat&&namedColors[coat])palette.metal=namedColors[coat];
   const profile:Profile={name:`${blade.part.name} ${ratchet?.part.name??''}${code}`,type:blade.part.type,spin,color,mass,burstSeparationSupported,componentMasses,componentAxialWeights,radius,inertia,transverseInertia,centerOfMassHeight,height,
-    grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.38,burstThreshold:.026,
+    grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.34,burstThreshold:.026,
     lockStiffness,lockReleaseAngle,gearRadius,gearHeight:.007,railEligible:true,railGrip:clamp(.55+.65*dash,.55,.94),gearTeeth,gearEngagementBand,bitHeightOffset,bitDiscRadius,bitDiscHeight:.005,bladeHandedness:form?.facts.spin===-1?-1:form?.facts.spin===1?1:spin,
     ratchetRadius,ratchetCenterHeight,ratchetHalfThickness:.0025+ratchetHeightOffset*.10,ratchetLobes,ratchetLobeDepth,ratchetSkew,
     contactLobes,contactLobeDepth,bladeStyle,bladeEdgeSharpness:clamp(.3+.6*ga-.2*gd,.15,.85),bladeThickness:.0085+(geometry?.massScale??1)*.0005+.001*(gd-.35),

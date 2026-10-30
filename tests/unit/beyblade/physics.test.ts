@@ -13,10 +13,13 @@ const qnorm=(t:Top)=>Math.hypot(t.orientation.x,t.orientation.y,t.orientation.z,
 function run(state:ReturnType<typeof battle>,seconds=12){for(let n=0;n<seconds/STEP&&!state.result;n++)stepBattle(state);return state;}
 
 describe('6DOF quaternion / angular-momentum solver',()=>{
+  // Explicit timeout (2026-10-31): the replay itself is deterministic, but
+  // 1000 solver steps exceed the 5 s default when the full suite runs in
+  // parallel workers; sibling trajectory tests already carry 20-30 s.
   it('uses finite serialized 3D state and deterministic replays',()=>{
     const a=battle(),b=structuredClone(a);for(let i=0;i<500;i++){stepBattle(a);stepBattle(b);}expect(a).toEqual(b);
     for(const t of a.tops){expect(qnorm(t)).toBeCloseTo(1,12);expect(Number.isFinite(t.y)).toBe(true);expect(t.bodyInertia.x).toBeGreaterThan(0);}
-  });
+  },20000);
   it('guards physical constants and launch inputs',()=>{
     const a=createBattle([profile,profile],[{power:NaN,angle:Infinity,tilt:-4},launch]);expect(a.tops[0].tilt).toBe(0);expect(Number.isFinite(a.tops[0].omega)).toBe(true);
     expect(()=>createBattle([{...profile,mass:0},profile],[launch,launch])).toThrow();expect(()=>stepBattle(a,.1)).toThrow();
@@ -73,10 +76,14 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     const energy=kineticEnergy(a)+kineticEnergy(b),p=momentum(a,b);expect(resolveContact(a,b)).toBeGreaterThan(0);
     expect(Math.abs(a.vy)).toBeGreaterThan(.05);expect(a.vy*b.vy).toBeLessThan(0);expect(difference(momentum(a,b),p)).toBeLessThan(1e-12);expect(kineticEnergy(a)+kineticEnergy(b)).toBeLessThanOrEqual(energy+1e-10);
   });
-  it('ratchet detent work is directional, energy-bounded and capped at release',()=>{
+  it('ratchet detent work is directional, energy-bounded and capped per strike and at release',()=>{
     const t=battle().tops[0],before=totalEnergy(t);expect(applyRatchetWork(t,-.001,.1)).toBe(0);expect(t.lock).toBe(0);
     const work=applyRatchetWork(t,.001,.0001);expect(work).toBeLessThanOrEqual(.0001);expect(totalEnergy(t)-before).toBeCloseTo(work,12);
-    applyRatchetWork(t,.001,10);expect(t.lock).toBeCloseTo(t.profile.lockReleaseAngle??.24,12);
+    // Per-strike twist cap (physics round 2, 2026-10-31): one strike advances
+    // the detent by at most 50% of the release angle, however much energy is
+    // offered; repeated strikes still accumulate to a full release.
+    const release=t.profile.lockReleaseAngle??.24;t.lock=0;applyRatchetWork(t,.001,10);expect(t.lock).toBeLessThanOrEqual(.5*release+1e-12);
+    for(let i=0;i<8;i++)applyRatchetWork(t,.001,10);expect(t.lock).toBeCloseTo(release,12);
   });
   it('an exposed lower-ratchet hit can unlock one body without generic damage to both blades',()=>{
     const state=createBattle([profile,profile],[{...launch,tilt:0},{...launch,tilt:0}]),[a,b]=state.tops;
@@ -139,14 +146,18 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     // finish within 45 s). A banked 0.3 rad launch is the ordinary route to
     // the ridge for this stamina build and reaches gearing, a dash and a
     // finish; every assertion below is unchanged.
-    const p=profileFor(build),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id)),state=createBattle([p,cpu],[{power:.9,angle:0,tilt:.3},{power:.76,angle:-.12,tilt:.11}]),events=new Map<string,(typeof state.events)[number]>();let maxRadius=0;
-    for(let n=0;n<240*15&&!state.result;n++){stepBattle(state);for(const t of state.tops)maxRadius=Math.max(maxRadius,Math.hypot(t.x,t.z));for(const e of state.events)events.set(`${e.tick}:${e.kind}:${e.top}`,e);}
+    // Round 2 (same day): power .9 made the banked launch exit by Xtreme in
+    // ~2.4 s before its radius could pass .18 m; at power .8 the same bank
+    // reaches radius .219 m, meshes, and finishes by Spin in ~15.9 s, so the
+    // observation loop below runs to 30 s (was 15 s).
+    const p=profileFor(build),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id)),state=createBattle([p,cpu],[{power:.8,angle:0,tilt:.3},{power:.76,angle:-.12,tilt:.11}]),events=new Map<string,(typeof state.events)[number]>();let maxRadius=0;
+    for(let n=0;n<240*30&&!state.result;n++){stepBattle(state);for(const t of state.tops)maxRadius=Math.max(maxRadius,Math.hypot(t.x,t.z));for(const e of state.events)events.set(`${e.tick}:${e.kind}:${e.top}`,e);}
     const all=[...events.values()],mesh=all.find(e=>e.kind==='rail-engage'&&(e.intensity??0)>0);
     expect(maxRadius).toBeGreaterThan(.18);expect(mesh).toBeDefined();expect(mesh!.energyAfter).toBeLessThanOrEqual(mesh!.energyBefore!+1e-10);
     // The corrected bank changes this trajectory into a legal exit, not a guaranteed collision.
     // The public-default regression above still requires actual opponent contact.
     expect(state.result).not.toBe(null);
-  },20000);
+  },30000);
 });
 
 describe('finish arbitration and replay bounds',()=>{

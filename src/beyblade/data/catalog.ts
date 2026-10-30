@@ -12,6 +12,12 @@ const canonical=(name:string)=>name.replace(/\s*(?:ダブル)?メタルコート
 const leftSpin=/コバルトドラグーン|ラスタードラグーン|ライトニングエルドラゴ|メテオドラグーン|ドラグーンストーム/;
 const simpleRatchets=new Set(['M-85','9-65','7-55','4-55']);
 const cxCategories:PartCategory[]=['lock_chip','main_blade','metal_blade','over_blade','assist_blade'];
+/** CX slots the player may freely recombine in game customization (user request 2026-10-31). Other CX components stay on the source-verified assembly. */
+const swappableCxCategories:PartCategory[]=['assist_blade','over_blade'];
+const jaCollator=new Intl.Collator('ja');
+/** あいうえお順: compare Japanese part names with Japanese collation (digits and Latin codes sort before kana, as in official listings). */
+export function compareKana(a:string,b:string):number {return jaCollator.compare(a,b);}
+export const byKana=(a:Part,b:Part):number=>compareKana(a.canonicalId??a.name,b.canonicalId??b.name);
 const statusNotes:Record<string,string>={source_image_404:'公式指定画像が404のため数値未確認。',source_image_http200_empty_body:'公式指定画像の本文が空のため数値未確認。',published_numeric_source_not_yet_verified:'名称・構成の出典は確認済みですが、数値の一次出典は未検証です。',no_individual_ratings_in_reviewed_official_detail_image:'確認済み公式画像に個別構成部品の数値掲載なし。',no_assembled_ratings_in_reviewed_official_detail_image:'確認済み公式画像にこの完成ブレードの数値掲載なし。'};
 function typeFromSource(raw:OfficialPart):BeyType {
   const linked=officialProducts.find(p=>raw.source_urls.includes(p.source_url));
@@ -66,13 +72,14 @@ export function requiredBuildKeys(build:Build): (keyof Build)[] {
   const blade=byId.get(build.blade),bit=byId.get(build.bit);
   return ['blade',...Object.keys(blade?.components??{}) as PartCategory[],...(!blade?.integratedRatchet&&!bit?.integratedBit?['ratchet' as const]:[]),'bit'];
 }
-/** Conservative compatibility: CX component selection is restricted to source-verified assemblies. */
+/** Conservative compatibility: most CX component selection is restricted to source-verified assemblies.
+ *  Assist and over blades are the exception: the player may recombine them freely (user request 2026-10-31). */
 export function selectableParts(key:keyof Build,build:Build):Part[] {
-  const blade=byId.get(build.blade),locked=blade?.components?.[key as PartCategory];
+  const blade=byId.get(build.blade),locked=swappableCxCategories.includes(key as PartCategory)?undefined:blade?.components?.[key as PartCategory];
   return parts.filter(p=>p.category===key&&isPlayablePart(p)&&(!locked||p.id===locked)
     && !(key==='bit'&&blade?.integratedRatchet&&p.integratedBit)
     && !(key==='bit'&&blade?.requiresSimpleRatchet&&p.integratedBit)
-    && !(key==='ratchet'&&blade?.requiresSimpleRatchet&&!simpleRatchets.has(p.canonicalId??'')));
+    && !(key==='ratchet'&&blade?.requiresSimpleRatchet&&!simpleRatchets.has(p.canonicalId??''))).sort(byKana);
 }
 /** Selecting a different assembled blade fills the verified component list, not guessed combinations. */
 export function buildForBlade(bladeId:string,previous:Build=defaultBuild):Build {
@@ -95,7 +102,7 @@ export function validateBuild(build:Build):string[] {
     if(!part||part.category!==key)errors.push(`${key} が不足または互換性なし`);
     else if(part.release!=='released')errors.push(`${part.name} は発売確認前です`);
   }
-  for(const key of cxCategories){const expected=blade?.components?.[key];if(expected&&build[key]!==expected)errors.push(`${key}: 確認済みの組立構成を選択してください`);if(!expected&&build[key])errors.push(`${key}: このブレードには装着できません`);}
+  for(const key of cxCategories){const expected=blade?.components?.[key];if(expected&&build[key]!==expected&&!swappableCxCategories.includes(key))errors.push(`${key}: 確認済みの組立構成を選択してください`);if(!expected&&build[key])errors.push(`${key}: このブレードには装着できません`);}
   if((blade?.integratedRatchet||bit?.integratedBit)&&build.ratchet)errors.push('一体型に別のラチェットは装着できません');
   if(blade?.integratedRatchet&&bit?.integratedBit)errors.push('ラチェット一体型ブレードと一体型ビットは併用できません');
   if(blade?.requiresSimpleRatchet&&!simpleRatchets.has(byId.get(build.ratchet)?.canonicalId??''))errors.push('クロックミラージュにはシンプルタイプのラチェットが必要です');
@@ -114,11 +121,62 @@ export function validateDeck(builds:Build[]):string[] {
 export function ratingsFor(part:Part,spin:1|-1=1,mode?:string):Ratings|null {
   return part.modes?.find(m=>m.name===mode)?.ratings??part.ratingsVariants?.find(v=>v.condition===(spin===1?'right_spin':'left_spin'))?.ratings??part.ratings;
 }
+/**
+ * Design-intent traits for CX assist/over blades, keyed by their official
+ * one-letter names. Official sources publish no per-component ratings or
+ * physical parameters for these parts, so — following this ledger's rule of
+ * making estimates explicit — each letter's documented role (e.g. スラッシュ =
+ * 連打形状のアタック寄り, ラウンド = 円形のスタミナ寄り, ガード = 防御) is mapped
+ * to a small rating-scale trait. Letters whose role is not confirmed stay
+ * neutral. These are estimates from official names/roles, not measurements.
+ */
+const cxTraitByLetter:Record<string,Partial<Record<keyof Ratings,number>>> = {
+  // assist_blade
+  S:{attack:10}, J:{attack:8,stamina:-3}, A:{attack:9}, C:{attack:6,dash:6}, K:{attack:7,defense:3},
+  E:{attack:5,defense:2}, R:{stamina:9,defense:3}, W:{stamina:8}, H:{defense:5,stamina:5,attack:2},
+  B:{defense:9}, V:{defense:6}, F:{stamina:4,defense:4,burst_resistance:4}, T:{attack:3,defense:3,stamina:3},
+  D:{attack:3,defense:3,stamina:3},
+  // over_blade (letters overlap with assist; applied per category below)
+};
+const cxOverTraitByLetter:Record<string,Partial<Record<keyof Ratings,number>>> = {
+  B:{attack:8}, G:{defense:9}, T:{defense:6,stamina:4}, F:{defense:6,stamina:3}, P:{attack:5,stamina:3}, O:{stamina:6,defense:3},
+};
+function cxTrait(part:Part):Partial<Record<keyof Ratings,number>> {
+  const table=part.category==='over_blade'?cxOverTraitByLetter:cxTraitByLetter;
+  return table[part.canonicalId??'']??{};
+}
+/**
+ * Player-swapped CX assist/over blades shift the assembled blade's ratings by
+ * the difference between the chosen and source-verified components: official
+ * rating differences where both exist, otherwise the design-intent traits
+ * above. Stock assemblies get a zero delta, so their profiles are unchanged.
+ */
+function cxSwapDelta(build:Build,blade:Part):Partial<Record<keyof Ratings,number>> {
+  const delta:Partial<Record<keyof Ratings,number>>={};
+  for(const key of swappableCxCategories){
+    const verifiedId=blade.components?.[key],chosenId=build[key];
+    if(!verifiedId||!chosenId||verifiedId===chosenId)continue;
+    const verified=byId.get(verifiedId),chosen=byId.get(chosenId);
+    if(!verified||!chosen)continue;
+    for(const stat of ['attack','defense','stamina','dash','burst_resistance'] as const){
+      const a=chosen.ratings?.[stat],b=verified.ratings?.[stat];
+      if(typeof a==='number'&&typeof b==='number')delta[stat]=(delta[stat]??0)+(a-b);
+      else {const t=(cxTrait(chosen)[stat]??0)-(cxTrait(verified)[stat]??0);if(t)delta[stat]=(delta[stat]??0)+t;}
+    }
+  }
+  return delta;
+}
 /** Source ratings constrain an explicitly estimated mechanical model; they are not measured SI constants. */
 function modelFor(build:Build,color=0x335dff) {
   const errors=validateBuild(build);if(errors.length)throw new Error(errors.join(' / '));
   const blade=byId.get(build.blade)!,bit=byId.get(build.bit)!,ratchet=byId.get(build.ratchet),spin=blade.spin??1;
-  return estimateAssembly({blade:{part:blade,ratings:ratingsFor(blade,spin,build.bladeMode),mode:build.bladeMode},ratchet:ratchet?{part:ratchet,ratings:ratingsFor(ratchet,spin)}:null,bit:{part:bit,ratings:ratingsFor(bit,spin,build.bitMode),mode:build.bitMode},spin,color});
+  const baseRatings=ratingsFor(blade,spin,build.bladeMode),delta=cxSwapDelta(build,blade);
+  let bladeRatings=baseRatings;
+  if(baseRatings&&Object.keys(delta).length){
+    bladeRatings={...baseRatings};
+    for(const [k,v] of Object.entries(delta))bladeRatings[k as keyof Ratings]=Math.max(0,((baseRatings[k as keyof Ratings] as number|undefined)??0)+(v as number)) as never;
+  }
+  return estimateAssembly({blade:{part:blade,ratings:bladeRatings,mode:build.bladeMode},ratchet:ratchet?{part:ratchet,ratings:ratingsFor(ratchet,spin)}:null,bit:{part:bit,ratings:ratingsFor(bit,spin,build.bitMode),mode:build.bitMode},spin,color});
 }
 export function profileFor(build:Build,color=0x335dff):Profile {return modelFor(build,color).profile;}
 export function modelMetadataFor(build:Build) {return modelFor(build).metadata;}

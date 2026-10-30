@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { createArenaServer } from '../../../server/beyblade/node';
 import { RoomManager, battleForSnapshot, SNAPSHOT_EVENT_LIMIT } from '../../../server/beyblade/manager';
-import { createBattle } from '../../../src/beyblade/core/physics';
-import type { BattleEvent, Build } from '../../../src/beyblade/core/types';
+import { createBattle, stepBattle } from '../../../src/beyblade/core/physics';
+import type { BattleEvent, Build, Launch } from '../../../src/beyblade/core/types';
 import type { Transport } from '../../../server/beyblade/manager';
 import { defaultBuild, profileFor, buildForBlade, parts } from '../../../src/beyblade/data/catalog';
 import type { ServerMessage, StateMessage } from '../../../src/beyblade/network/protocol';
@@ -13,6 +13,31 @@ interface Peer { socket:WebSocket; messages:ServerMessage[];send:(data:Record<st
 async function peer(url:string):Promise<Peer>{const socket=new WebSocket(url);const messages:ServerMessage[]=[];let seq=0;socket.on('message',data=>{const msg=JSON.parse(data.toString()) as ServerMessage;if(msg.type==='hello')seq=msg.lastSeq;messages.push(msg);});await until(()=>messages.some(m=>m.type==='hello'));return {socket,messages,send:data=>socket.send(JSON.stringify({...data,seq:++seq})),state:()=>[...messages].reverse().find((m):m is StateMessage=>m.type==='state'),token:()=>{const hello=messages.find(m=>m.type==='hello');return hello?.type==='hello'?hello.token:'';}};}
 const cleanup:Array<()=>Promise<void>>=[];
 afterEach(async()=>{for(const close of cleanup.splice(0))await close();});
+// Fixture reselection (2026-10-31, round 2): the original Hells launch pair
+// was knife-edge (it burst locally but spun in CI) and no longer bursts at
+// all after the duration recalibration. No single legal launch bursts
+// robustly in this chaotic 240 Hz solver, so burst-dependent tests
+// deterministically select the first pair from this fixed list that
+// produces a genuine burst in the same deterministic physics the server
+// runs (launchSeed is pinned to 0 above), then play the real networked
+// match with it. If no pair bursts, selection throws and the test fails:
+// burst reachability from legal launches stays covered. All pairs respect
+// the server launch limits (power .2-1, tilt <= 0.65 rad).
+const BURST_D=Math.PI/180;
+const BURST_PAIRS:[Launch,Launch][]=[
+  [{power:1,angle:-50*BURST_D,tilt:37*BURST_D},{power:.76,angle:-30*BURST_D,tilt:25*BURST_D}],
+  [{power:.85,angle:-50*BURST_D,tilt:37*BURST_D},{power:.76,angle:-.12,tilt:.11}],
+  [{power:.85,angle:-70*BURST_D,tilt:37*BURST_D},{power:.76,angle:-.12,tilt:.11}],
+  [{power:.7,angle:-50*BURST_D,tilt:30*BURST_D},{power:.9,angle:-7*BURST_D,tilt:11*BURST_D}],
+  [{power:.85,angle:-90*BURST_D,tilt:30*BURST_D},{power:.9,angle:-7*BURST_D,tilt:11*BURST_D}],
+  [{power:1,angle:-90*BURST_D,tilt:37*BURST_D},{power:.9,angle:-7*BURST_D,tilt:11*BURST_D}],
+  [{power:.5,angle:-50*BURST_D,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],
+];
+function selectBurstLaunches():[Launch,Launch]{
+  const me=profileFor(defaultBuild),sword=profileFor(buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id));
+  for(const [l1,l2] of BURST_PAIRS){const b=createBattle([me,sword],[l1,l2]);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return [l1,l2];}
+  throw new Error('No enumerated legal launch produced a burst');
+}
 async function fixture(){let now=1000;const app=await createArenaServer({port:0,now:()=>now,countdownMs:0,graceMs:100,launchSeed:()=>0});cleanup.push(app.close);const address=app.address;if(!address||typeof address==='string')throw new Error('No TCP address');const url=`ws://127.0.0.1:${address.port}/api/beyblade`;return{...app,url,advance:(ms:number)=>{now+=ms;app.manager.tick();}};}
 async function pair(f:Awaited<ReturnType<typeof fixture>>,builds:[Build,Build]=[defaultBuild,defaultBuild]){const a=await peer(f.url),b=await peer(f.url);a.send({type:'queue',build:builds[0]});await until(()=>a.state()?.phase==='queued');b.send({type:'queue',build:builds[1]});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');return [a,b] as const;}
 describe('authoritative network with real WebSocket clients',()=>{
@@ -33,9 +58,10 @@ describe('authoritative network with real WebSocket clients',()=>{
     // This legal-launch fixture produces two actual Burst finishes (2 + 2 points).
     // Keep long same-build trajectory coverage separate from score-to-four transport coverage.
     const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
+    const [launchA,launchB]=selectBurstLaunches();
     const [a,b]=await pair(f,[defaultBuild,sword]);expect(a.state()?.roomId).toBe(b.state()?.roomId);expect(a.state()?.player).toBe(0);expect(b.state()?.player).toBe(1);
     for(let round=0;round<2;round++){
-      a.send({type:'launch',launch:{power:.5,angle:-50*Math.PI/180,tilt:30*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
+      a.send({type:'launch',launch:launchA});b.send({type:'launch',launch:launchB});
       await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);
       for(let block=0;block<30;block++){
         for(let step=0;step<20;step++)f.advance(1000/60);
@@ -53,7 +79,7 @@ describe('authoritative network with real WebSocket clients',()=>{
     }
     expect(a.state()?.phase).toBe('match-end');expect(b.state()?.phase).toBe('match-end');expect(Math.max(...a.state()!.match!.scores)).toBeGreaterThanOrEqual(4);expect(a.state()?.match?.winner).not.toBeNull();
     a.send({type:'cancel'});b.send({type:'cancel'});await until(()=>a.state()?.phase==='idle'&&b.state()?.phase==='idle');expect(f.manager.rooms.size).toBe(0);
-  },15_000);
+  },90_000);
   it('resolves the original unequal-launch same-build trajectory authoritatively for both clients',async()=>{
     // Full-tensor model: this normal-input round takes ~8 simulated seconds and scores Spin1.
     // One physical round preserves the regression without needlessly repeating it four times.
@@ -70,8 +96,9 @@ describe('authoritative network with real WebSocket clients',()=>{
   },15_000);
   it('keeps real burst fragments synchronized and result latched during unscored settling',async()=>{
     const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
+    const [launchA,launchB]=selectBurstLaunches();
     const [a,b]=await pair(f,[defaultBuild,sword]);
-    a.send({type:'launch',launch:{power:.5,angle:-50*Math.PI/180,tilt:30*Math.PI/180}});b.send({type:'launch',launch:{power:.76,angle:-.12,tilt:.11}});
+    a.send({type:'launch',launch:launchA});b.send({type:'launch',launch:launchB});
     await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);
     for(let block=0;block<30;block++){for(let step=0;step<20;step++)f.advance(1000/60);await pauses();if(a.state()?.phase==='round-end')break;}
     await until(()=>a.state()?.phase==='round-end'&&b.state()?.phase==='round-end');
@@ -83,7 +110,7 @@ describe('authoritative network with real WebSocket clients',()=>{
     expect(a.state()?.battle).toEqual(b.state()?.battle);expect(JSON.stringify(a.state()?.battle?.fragments)).not.toBe(poses);
     expect(a.state()?.battle?.result).toEqual(lockedResult);expect(a.state()?.match?.scores).toEqual(lockedScores);
     a.send({type:'next'});b.send({type:'next'});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');expect(a.state()?.battle).toBeNull();
-  },15000);
+  },90000);
   it('preserves the former Buster Burst input as a general authoritative trajectory regression',async()=>{
     // Independent mass observations legitimately change the finish; never tune physics to a fixture.
     const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);

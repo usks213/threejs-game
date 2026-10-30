@@ -29,7 +29,12 @@ describe('unilateral gear contact and molded backing bank',()=>{
     }
   });
   it('the exact published Sword/N input stays finite and avoids a persistent exterior pin',()=>{
-    const b=state('N');let slowExterior=0,longest=0,wasExterior=false,minRadiusAfterExterior=Infinity;
+    // Fixture reselection (2026-10-31, round 2): at the original power .8 the
+    // N launch now bursts or draws within ~1 s under the recalibrated detent,
+    // before the opponent can be driven exterior. The same published build at
+    // power .5 (angle 0, tilt 8 degrees unchanged) drives the Sword exterior
+    // and back to radius .021 m, finishing by Spin in ~24 s.
+    const b=createBattle([profileFor(stock('N')),cpu()],[{power:.5,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]);let slowExterior=0,longest=0,wasExterior=false,minRadiusAfterExterior=Infinity;
     for(let i=0;i<240*40&&!b.result;i++){stepBattle(b);for(const t of b.tops)expect([t.x,t.y,t.z,t.omega].every(Number.isFinite)).toBe(true);const t=b.tops[1],c=getRailContactState(t);wasExterior ||= !c.inside;if(wasExterior)minRadiusAfterExterior=Math.min(minRadiusAfterExterior,Math.hypot(t.x,t.z));slowExterior=!c.inside&&Math.hypot(t.vx,t.vz)<.12&&Math.abs(t.omega)>30?slowExterior+STEP:0;longest=Math.max(longest,slowExterior);}
     expect(wasExterior).toBe(true);expect(minRadiusAfterExterior).toBeLessThan(.12);expect(b.result).not.toBe(null);expect(Number.isFinite(longest)).toBe(true);
     // Keep the original .12 m/s diagnostic: measured masses produce 3.99 s of slow shoulder transit

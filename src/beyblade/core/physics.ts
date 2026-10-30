@@ -252,9 +252,21 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // Only a fraction of the energy dissipated at a ratchet contact twists the
   // detent toward release; the rest leaves as heat, sound and deformation.
   // Without this partition a single hard clash (dissipating ~10 mJ) always
-  // filled the ~1-3 mJ barrier and produced sub-second bursts.
-  const work=Math.min(availableDissipation*.4,release*release/(2*relativeInertia),remaining);
-  t.lock=Math.sqrt(t.lock*t.lock+2*work/stiffness);return work;
+  // filled the ~1-3 mJ barrier and produced sub-second bursts. The fraction
+  // was lowered .4 -> .22 on 2026-10-31 (round 2) against tick-by-tick grind
+  // accumulation, then set to .35 later the same day: with band-level strikes
+  // (see resolveContact) the coupling is more direct, per-call dissipation in
+  // this solver is usually microjoules, and .22 left bursts practically
+  // unreachable (0 in ~90 searched legal launches across five matchups).
+  let work=Math.min(availableDissipation*.35,release*release/(2*relativeInertia),remaining);
+  // Per-strike twist cap (round 2, 2026-10-31): one strike can advance the
+  // detent by at most 50% of the release angle, however large the clash.
+  // Without it, a single dash-speed ratchet hit dissipating >=15 mJ filled
+  // even the raised barrier at once (traced vs WizardArrow seed 4:
+  // lock .067 -> full in one collision at t=1.29 s). A real pawl strike is
+  // geometrically bounded; bursts should need repeated hard strikes.
+  const newLock=Math.min(Math.sqrt(t.lock*t.lock+2*work/stiffness),t.lock+.5*releaseAngle);
+  work=.5*stiffness*(newLock*newLock-t.lock*t.lock);t.lock=newLock;return work;
 }
 export function contactRadius(t:Top,angle:number):number{const direction=inverseRotate(t.orientation,V(Math.cos(angle),0,Math.sin(angle)));const a=Math.atan2(direction.z,direction.x);return bladeRadiusAt(t.profile,a);}
 /** Detent twist is about the physical stem, unlike rigid-body torque about the COM. */
@@ -269,27 +281,58 @@ export function resolveContact(a:Top,b:Top,loadLocks=true):number{
   let distance=Infinity,reach=0,deepest=0,nodeA:CollisionNode|null=null,nodeB:CollisionNode|null=null;
   for(const x of shapeA)for(const y of shapeB){const d=norm(sub(y.point,x.point)),overlap=x.radius+y.radius-d;if(overlap>deepest){deepest=overlap;distance=d;reach=x.radius+y.radius;nodeA=x;nodeB=y;}}
   if(!nodeA||!nodeB)return 0;const pa=nodeA.point,pb=nodeB.point,energyBefore=kineticEnergy(a)+kineticEnergy(b);
-  const n=unit(sub(pb,pa),unit(delta,V(1,0,0))),contact=scale(add(pa,pb),.5);
+  // Round-2 contact-normal clamp (2026-10-31): the deepest node pair can be a
+  // high blade node against a low bit node, giving a near-vertical normal and
+  // a full-body vertical impulse — traced tops leaving the floor at y=0.23 m,
+  // above the cover roof, and dropping into pockets for ~0.7 s draws. Blade
+  // ramps do lift opponents, but a single-node rigid solve overstates it;
+  // clamp the normal's vertical tilt to 30 degrees so such contacts glance.
+  const rawN=unit(sub(pb,pa),unit(delta,V(1,0,0)));
+  if(Math.abs(rawN.y)>.5){const s=Math.sign(rawN.y),h=Math.hypot(rawN.x,rawN.z)||1,nh=Math.sqrt(1-.25);rawN.x=rawN.x/h*nh;rawN.z=rawN.z/h*nh;rawN.y=.5*s;}
+  const n=rawN,contact=scale(add(pa,pb),.5);
   const originA=position(a),originB=position(b),ra=sub(contact,originA),rb=sub(contact,originB),invA=1/a.profile.mass,invB=1/b.profile.mass;
   const correction=(reach-distance)*.8;
   a.x-=n.x*correction*invA/(invA+invB);a.y-=n.y*correction*invA/(invA+invB);a.z-=n.z*correction*invA/(invA+invB);
   b.x+=n.x*correction*invB/(invA+invB);b.y+=n.y*correction*invB/(invA+invB);b.z+=n.z*correction*invB/(invA+invB);
   const relative=sub(pointVelocity(b,rb),pointVelocity(a,ra)),vn=dot(relative,n);
   if(vn>=0)return 0;
-  const jn=-(1+clamp(Math.min(a.profile.restitution,b.profile.restitution),0,1))*vn/(contactMass(a,ra,n)+contactMass(b,rb,n));
+  // Single-strike impulse cap (round-2 addition, 2026-10-31): the rigid solve
+  // uses point velocities, so a blade-tip strike can see ~15 m/s of closing
+  // surface speed and one call dissipated 1.15 J — the pair's whole spin
+  // budget — collapsing both tops' spin in a single substep (traced: omega
+  // 420 -> 116 in one call). A real lobe strike is a glancing, patch-limited
+  // contact; its transmitted impulse is bounded well below the rigid value.
+  // The cap 0.06 N*s is an explicit estimate: ordinary clashes measure
+  // ~0.007 N*s and hard dash impacts stay under it, while the pathological
+  // tip-strike value was 0.22 N*s.
+  const jn=Math.min(-(1+clamp(Math.min(a.profile.restitution,b.profile.restitution),0,1))*vn/(contactMass(a,ra,n)+contactMass(b,rb,n)),.06);
   let impulse=scale(n,jn);applyImpulse(a,scale(impulse,-1),ra);applyImpulse(b,impulse,rb);
   const after=sub(pointVelocity(b,rb),pointVelocity(a,ra)),vt=sub(after,scale(n,dot(after,n))),speed=norm(vt);
   // Blade-to-blade friction cap recalibrated 2026-10-31: at .25 of the normal
   // impulse a single clash could cancel most of the relative surface slip and
   // erase ~80% of a top's spin, while real metal blade clashes are brief,
   // elastic and typically cost only a few to ~15% of spin. Smooth die-cast
-  // contact is modelled with a .07 cap; this is an estimate tuned toward
-  // measured battle durations, not a measured friction coefficient.
-  if(speed>1e-9){const tangent=scale(vt,1/speed),jt=Math.min(speed/(contactMass(a,ra,tangent)+contactMass(b,rb,tangent)),.07*jn),friction=scale(tangent,-jt);applyImpulse(a,scale(friction,-1),ra);applyImpulse(b,friction,rb);impulse=add(impulse,friction);}
+  // contact is modelled with a .05 cap (round 2, was .07 in round 1); this is
+  // an estimate tuned toward measured battle durations, not a measured
+  // friction coefficient.
+  if(speed>1e-9){const tangent=scale(vt,1/speed),jt=Math.min(speed/(contactMass(a,ra,tangent)+contactMass(b,rb,tangent)),.05*jn),friction=scale(tangent,-jt);applyImpulse(a,scale(friction,-1),ra);applyImpulse(b,friction,rb);impulse=add(impulse,friction);}
   let dissipated=Math.max(0,energyBefore-kineticEnergy(a)-kineticEnergy(b));
-  // Blade impacts do not become generic burst damage. Only actual exposed lower-ratchet contacts load the detent.
-  if(loadLocks&&nodeA.kind==='ratchet'&&!isFragment(a)){const work=applyRatchetWork(a,-ratchetImpulseTwist(a,contact,scale(impulse,-1),originA),nodeB.kind==='ratchet'?dissipated/2:dissipated);dissipated-=work;}
-  if(loadLocks&&nodeB.kind==='ratchet'&&!isFragment(b))applyRatchetWork(b,-ratchetImpulseTwist(b,contact,impulse,originB),dissipated);
+  // Blade impacts do not become generic burst damage. The detent is loaded
+  // only by strikes that land at ratchet level: either the deepest pair is an
+  // exposed ratchet node, or the contact point lies within the victim's
+  // ratchet band height (round-2 broadening, 2026-10-31). Measured Hells vs
+  // Sword battles produced ZERO ratchet-node deepest pairs in 30 s — blades
+  // always overlap deeper — so the node-only rule made legal-launch bursts
+  // practically impossible, while real bursts are core Beyblade X mechanics
+  // driven by low strikes transmitted to the lock through the assembly.
+  // High blade hits above the band still never load the detent. There is no
+  // per-event dissipation gate: per-call dissipation is usually far below
+  // 0.15 mJ even in long battles (only one call in a traced 30 s battle
+  // exceeded it), so accumulation across many band strikes — bounded by the
+  // per-strike twist cap — is the intended path to release.
+  const atRatchetBand=(victim:Top,kind:string)=>{if(kind==='ratchet')return true;const g=getRatchetGeometry(victim.profile),centre=add(position(victim),rotate(victim.orientation,geometryToCOM(victim.profile,V(0,g.centerHeight,0))));return Math.abs(contact.y-centre.y)<=g.halfThickness+.008;};
+  if(loadLocks&&atRatchetBand(a,nodeA.kind)&&!isFragment(a)){const work=applyRatchetWork(a,-ratchetImpulseTwist(a,contact,scale(impulse,-1),originA),nodeB.kind==='ratchet'?dissipated/2:dissipated);dissipated-=work;}
+  if(loadLocks&&atRatchetBand(b,nodeB.kind)&&!isFragment(b))applyRatchetWork(b,-ratchetImpulseTwist(b,contact,impulse,originB),dissipated);
   return jn;
 }
 
@@ -376,7 +419,15 @@ export function resolveRailSolid(t:Top):boolean{
 function resolveRail(t:Top,battle:Battle,index:number,eventTick:number,dt:number,meshAllowed=true):void{
   if(Math.hypot(t.x,t.z)<.14&&!t.rail.engaged)return;
   const before=totalEnergy(t),spinBefore=t.omega,velocityBefore=velocity(t),speedBefore=Math.hypot(t.vx,t.vz);
-  const c=nearestRail(t),manifold=gearManifold(t,c),eligible=meshAllowed&&eligibleAt(t,c),contact=applyRailContact(t,manifold,eligible);
+  const c=nearestRail(t),manifold=gearManifold(t,c);
+  // Round-2 rail tuning (2026-10-31): traces showed one rail engagement draining
+  // ~75% of a top's spin (omega 430 -> 82) because the partial-grip gear solve
+  // keeps braking the huge spin surface slip tick after tick, and the resulting
+  // dash or spin-collapse ended most battles within ~3 s. A real X-dash costs
+  // only part of the spin. Meshing therefore stops once the top's spin falls
+  // below 70% of its engagement-start value; solid rail contact still applies.
+  const spinCapOk=!t.rail.engaged||Math.abs(t.omega)>=.7*Math.abs(t.rail.spinBefore||t.omega);
+  const eligible=meshAllowed&&eligibleAt(t,c)&&spinCapOk,contact=applyRailContact(t,manifold,eligible);
   if(contact.mesh){
     const j=contact.gearImpulse;
     if(!t.rail.engaged){t.rail.engaged=true;t.rail.travel=0;t.rail.translationWork=0;t.rail.rotationWork=0;t.rail.speedBefore=speedBefore;t.rail.spinBefore=spinBefore;t.rail.energyBefore=before;battle.events.push({tick:eventTick,kind:'rail-engage',top:index,intensity:j,position:position(t),energyBefore:before,energyAfter:totalEnergy(t),spinBefore,spinAfter:t.omega,velocityBefore,velocityAfter:velocity(t)});}
@@ -493,7 +544,12 @@ export function stepBattle(b:Battle,dt=STEP):Battle{
   const substeps=Math.min(64,Math.max(4,Math.ceil(fastest*dt/.12),Math.ceil(speed*dt/.0015))),h=dt/substeps;
   for(let i=0;i<substeps&&!b.result;i++){
     const tick=b.tick-1+(i+1)/substeps,tops=b.tops as [PhysicsTop,PhysicsTop];
-    for(const t of tops)if(!t.eliminated){syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-.25*h);integrateFree(t,h);resolveFloor(t);}
+    // Detent twist decay: tau was 4 s, which erased accumulated twist between
+    // clashes. A real burst lock does not heal between hits; loosening
+    // accumulates over the round. Round 2 (2026-10-31) slows the decay to
+    // tau ~60 s so repeated strikes across a long battle can reach release,
+    // while the per-strike cap still prevents any single hit from bursting.
+    for(const t of tops)if(!t.eliminated){syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-h/60);integrateFree(t,h);resolveFloor(t);}
     if(!tops[0].eliminated&&!tops[1].eliminated){const j=resolveContact(tops[0],tops[1]);if(j>0)b.events.push({tick,kind:'collision',intensity:j,position:scale(add(position(tops[0]),position(tops[1])),.5)});}
     for(let n=0;n<2;n++){
       const t=tops[n];if(t.eliminated)continue;
