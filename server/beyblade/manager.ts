@@ -7,7 +7,7 @@ import type { Phase, ServerMessage, StateMessage } from '../../src/beyblade/netw
 export interface Transport { send(message:ServerMessage):void; close():void }
 interface Session { token:string; transport:Transport|null; build:Build|null; roomId:string|null; queued:boolean; disconnectedAt:number|null; lastSeen:number; lastSeq:number; rateStart:number; rateCount:number }
 interface Room { id:string; players:[Session,Session]; names:[string,string]; phase:Phase; priorPhase:Phase; match:Match; battle:Battle|null; launches:[Launch|null,Launch|null]; ready:[boolean,boolean]; countdownEndsAt:number; lastTick:number; accumulator:number; lastBroadcast:number; endedAt:number|null; reason?:string }
-export interface ManagerOptions { now?:()=>number; countdownMs?:number; graceMs?:number; maxSessions?:number; maxActiveRooms?:number }
+export interface ManagerOptions { now?:()=>number; countdownMs?:number; graceMs?:number; maxSessions?:number; maxActiveRooms?:number; /** Seed source for per-round launch micro-variation. Defaults to random per round; tests inject a fixed seed for deterministic fixtures. */ launchSeed?:()=>number }
 const SESSION_TTL=300_000;
 export const SNAPSHOT_EVENT_LIMIT=32;
 export const SNAPSHOT_EVENT_WINDOW_TICKS=240;
@@ -37,8 +37,8 @@ function parseLaunch(value:unknown,player:0|1):Launch|null {
 /** All scoring, legal builds, simulation time and phase transitions live on the server. */
 export class RoomManager {
   readonly sessions=new Map<string,Session>(); readonly rooms=new Map<string,Room>();
-  private queue:string[]=[]; private now:()=>number; private countdownMs:number; private graceMs:number; private maxSessions:number;private maxActiveRooms:number;
-  constructor(options:ManagerOptions={}){this.now=options.now??Date.now;this.countdownMs=options.countdownMs??2000;this.graceMs=options.graceMs??15_000;this.maxSessions=options.maxSessions??128;this.maxActiveRooms=Math.max(1,Math.floor(options.maxActiveRooms??2));}
+  private queue:string[]=[]; private now:()=>number; private countdownMs:number; private graceMs:number; private maxSessions:number;private maxActiveRooms:number;private launchSeed:()=>number;
+  constructor(options:ManagerOptions={}){this.now=options.now??Date.now;this.countdownMs=options.countdownMs??2000;this.graceMs=options.graceMs??15_000;this.maxSessions=options.maxSessions??128;this.maxActiveRooms=Math.max(1,Math.floor(options.maxActiveRooms??2));this.launchSeed=options.launchSeed??(()=> (Math.random()*0x7fffffff|0)||1);}
   connect(transport:Transport,resumeToken?:string):string|null {
     const now=this.now(); let session=resumeToken?this.sessions.get(resumeToken):undefined;
     if(!session){if(this.sessions.size>=this.maxSessions){transport.send({type:'error',message:'サーバーが混み合っています。時間をおいてお試しください。'});transport.close();return null;}const token=crypto.randomUUID()+crypto.randomUUID();session={token,transport:null,build:null,roomId:null,queued:false,disconnectedAt:null,lastSeen:now,lastSeq:0,rateStart:now,rateCount:0};this.sessions.set(token,session);}
@@ -92,7 +92,7 @@ export class RoomManager {
       if(absent!==-1){const other=absent===0?1:0;room.match={...room.match,winner:room.players[other].transport?other:null};room.phase='match-end';room.reason='disconnect-forfeit';room.endedAt=now;this.broadcast(room);continue;}
       if(room.phase==='opponent-disconnected')continue;
       if(room.phase==='round-end'){this.advanceSettling(room,now);continue;}
-      if(room.phase==='countdown'&&now>=room.countdownEndsAt){room.battle=createBattle([profileFor(room.players[0].build!,0x335dff),profileFor(room.players[1].build!,0xff7858)],[room.launches[0]!,room.launches[1]!]);room.phase='battle';room.lastTick=now;room.accumulator=0;this.broadcast(room);}
+      if(room.phase==='countdown'&&now>=room.countdownEndsAt){room.battle=createBattle([profileFor(room.players[0].build!,0x335dff),profileFor(room.players[1].build!,0xff7858)],[room.launches[0]!,room.launches[1]!],this.launchSeed());room.phase='battle';room.lastTick=now;room.accumulator=0;this.broadcast(room);}
       if(room.phase!=='battle'||!room.battle)continue;
       room.accumulator+=Math.min(.1,Math.max(0,(now-room.lastTick)/1000));room.lastTick=now;
       while(room.accumulator>=STEP&&!room.battle.result){stepBattle(room.battle,STEP);room.accumulator-=STEP;}

@@ -103,8 +103,26 @@ const pointVelocity=(t:Top,r:Vec3)=>add(velocity(t),cross(t.angularVelocity,r));
 const contactMass=(t:Top,r:Vec3,n:Vec3)=>1/t.profile.mass+dot(cross(inverseInertia(t,cross(r,n)),r),n);
 function angularFriction(t:Top,axis:Vec3,maxImpulse:number):void{const speed=dot(t.angularVelocity,axis),effective=dot(axis,inverseInertia(t,axis));const j=-Math.sign(speed)*Math.min(Math.abs(speed)/effective,Math.max(0,maxImpulse));t.angularMomentum=add(t.angularMomentum,scale(axis,j));syncDerived(t);}
 
-export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]):Battle{
+/**
+ * Deterministic integer PRNG (mulberry32). Integer arithmetic only, so a
+ * given seed reproduces the same micro-variation across runtimes.
+ */
+function mulberry32(seed:number):()=>number{let a=seed>>>0;return()=>{a=a+0x6d2b79f5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/**
+ * Real launches never repeat exactly: measured solo-spin studies of the
+ * physical game show 5-15% run-to-run spread from launch power, initial
+ * tilt, blade phase and seating. With seed !== 0, createBattle samples that
+ * micro-variation ONCE at creation (power ±3%, angle ±1°, tilt ±0.8°,
+ * default-spawn position ±2 mm, yaw phase uniform) and bakes it into the
+ * initial state. A player-chosen launch position is never jittered.
+ * so stepping, snapshots, reconnects and settling stay fully deterministic
+ * for a given seed. seed = 0 (default) preserves the exact legacy inputs,
+ * which existing compatibility tests rely on.
+ */
+export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch],seed=0):Battle{
   for (const i of [0,1] as const) if (launches[i].position !== undefined && !validLaunchPosition(launches[i].position,i)) throw new Error('Invalid launch position');
+  const random=Number.isFinite(seed)&&seed!==0?mulberry32(seed):null;
   const tops=profiles.map((p,i):PhysicsTop=>{
     if(![p.mass,p.radius,p.inertia,p.burstThreshold,p.gearRadius].every(n=>Number.isFinite(n)&&n>0)||p.radius>=STADIUM.radius/2||p.gearRadius>=p.radius||![p.drag,p.grip,p.height,p.railGrip,p.contactLobes,p.contactLobeDepth,p.gearHeight].every(Number.isFinite)||![1,-1].includes(p.spin))throw new Error('Invalid physical profile');
     const optionalPositive=[p.transverseInertia,p.centerOfMassHeight,p.tipRadius,p.lockStiffness,p.lockReleaseAngle,p.bladeThickness,p.bladeEdgeSharpness,p.ratchetRadius,p.ratchetHalfThickness,p.gearEngagementBand];
@@ -114,18 +132,25 @@ export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]
     if(p.massComponents?.some(c=>!Number.isFinite(c.mass)||c.mass<=0||!Object.values(c.center).every(Number.isFinite)||!positiveDefinite(c.inertia)))throw new Error('Invalid component mass tensor');
     if(p.massComponents){const combined=combineMassComponents(p.massComponents),c=getCenterOfMass(p),tensor=p.inertiaTensor;
       if(Math.abs(combined.mass-p.mass)>p.mass*1e-9||norm(sub(combined.center,c))>1e-9||!tensor||Object.keys(tensor).some(k=>Math.abs(combined.inertia[k as keyof SymmetricTensor]-tensor[k as keyof SymmetricTensor])>Math.max(tensor.xx,tensor.yy,tensor.zz)*1e-8))throw new Error('Component mass/COM/tensor must reproduce assembly');}
-    const l=launches[i],power=clamp(finite(l.power,.75),.05,1),angle=clamp(finite(l.angle,0),-Math.PI,Math.PI),tilt=clamp(finite(l.tilt,.12),0,.65),direction=angle+(i===0?0:Math.PI);
+    const l=launches[i];
+    const jitter=random?{power:1+(random()*2-1)*.03,angle:(random()*2-1)*.017,tilt:(random()*2-1)*.014,yaw:random()*Math.PI*2,dx:(random()*2-1)*.002,dz:(random()*2-1)*.002}:null;
+    const power=clamp(finite(l.power,.75)*(jitter?.power??1),.05,1),angle=clamp(finite(l.angle,0)+(jitter?.angle??0),-Math.PI,Math.PI),tilt=clamp(finite(l.tilt,.12)+(jitter?.tilt??0),0,.65),direction=angle+(i===0?0:Math.PI);
     const speed=(.45+power*1.45)*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass);
     const angularSpeed=(170+power*440)*Math.sqrt(LAUNCH_REFERENCE.axialInertia/(p.inertiaTensor?.yy??p.inertia));
-    const yaw=i*Math.PI,tiltAxis=V(Math.sin(direction),0,-Math.cos(direction));
+    const yaw=i*Math.PI+(jitter?.yaw??0),tiltAxis=V(Math.sin(direction),0,-Math.cos(direction));
     const q=multiply(rotationVector(scale(tiltAxis,tilt)),rotationVector(V(0,yaw,0)));
     const center=comHeight(p),tip=p.tipRadius??.0015,transverse=p.transverseInertia??(.5*p.inertia+p.mass*(p.height*.35)**2/12);
-    const spawn=l.position??defaultLaunchPosition(i as 0|1);
+    const baseSpawn=l.position??defaultLaunchPosition(i as 0|1);
+    // A player-chosen position is an exact input and is never jittered (the
+    // server regression suite requires accepted coordinates to be reflected
+    // verbatim). Only the default spawn receives seating variation.
+    const jitteredSpawn=jitter&&l.position===undefined?{x:baseSpawn.x+jitter.dx,z:baseSpawn.z+jitter.dz}:baseSpawn;
+    const spawn=jitter&&l.position===undefined&&validLaunchPosition(jitteredSpawn,i as 0|1)?jitteredSpawn:baseSpawn;
     const t:PhysicsTop={profile:{...p},x:spawn.x,y:0,z:spawn.z,vx:Math.cos(direction)*speed,vy:-.12*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass),vz:Math.sin(direction)*speed,orientation:q,angularMomentum:V(),angularVelocity:V(),bodyInertia:V(p.inertiaTensor?.xx??transverse,p.inertiaTensor?.yy??p.inertia,p.inertiaTensor?.zz??transverse),bodyInertiaTensor:p.inertiaTensor?{...p.inertiaTensor}:undefined,centerOfMassHeight:center,tipRadius:tip,omega:p.spin*angularSpeed,phase:yaw,tilt,tiltVelocity:0,lock:0,railCooldown:0,eliminated:null,rail:{engaged:false,travel:0,translationWork:0,rotationWork:0,contactPoint:null,tangent:null,lastContactTick:-1,lastReleaseTick:-1,dashCount:0,speedBefore:0,spinBefore:0,energyBefore:0}};
     const tipR=rotate(q,geometryToCOM(p,V(0,tip,0)));t.y=bowlHeightAt(t.x+tipR.x,t.z+tipR.z)-tipR.y+tip+.001;
     t.angularMomentum=inertia(t,scale(bodyAxis(t),t.omega));syncDerived(t);return t;
   }) as [PhysicsTop,PhysicsTop];
-  return{tick:0,tops,events:[],result:null,fragments:[],settling:null};
+  return{tick:0,tops,events:[],result:null,fragments:[],settling:null,...(random?{seed}:{})};
 }
 
 /** Torque-free midpoint quaternion update: world L is fixed; ω follows changing R I⁻¹ Rᵀ. */
@@ -158,8 +183,12 @@ function floorContact(t:Top,local:Vec3,sphereRadius:number,patchRadius:number,mu
   // Height-field vertical gap becomes signed normal distance on the local tangent plane.
   const penetration=(bowlHeightAt(world.x,world.z)-world.y)*normal.y;
   if(penetration<-.00008)return 0;
-  if(penetration>0){const correction=Math.min(penetration,.004);t.x+=normal.x*correction;t.y+=normal.y*correction;t.z+=normal.z*correction;}
   const vn=dot(pointVelocity(t,r),normal);if(vn>=0)return 0;
+  // Positional correction only for approaching contacts. Correcting a
+  // separating (e.g. wobbling) vertex lifted the body along the normal with
+  // no impulse behind it, injecting up to ~0.2 mJ of potential in one tick
+  // on the bank; approaching contacts pay for the lift through the impulse.
+  if(penetration>0){const correction=Math.min(penetration,.002);t.x+=normal.x*correction;t.y+=normal.y*correction;t.z+=normal.z*correction;}
   const jn=-(1+(vn<-.8?.08:0))*vn/contactMass(t,r,normal);
   applyImpulse(t,scale(normal,jn),r);
   const cv=pointVelocity(t,r),tangentV=sub(cv,scale(normal,dot(cv,normal))),speed=norm(tangentV);
@@ -173,16 +202,26 @@ function floorContact(t:Top,local:Vec3,sphereRadius:number,patchRadius:number,mu
 export function resolveFloor(t:Top):number{
   const p=t.profile,mu=clamp(p.tipFriction??p.grip,0,1.5),shape=p.tipShape??'taper',tip=t.tipRadius;
   let impulse=0;
+  // Effective torsional patch radii are declared estimates. They were reduced
+  // 2026-10-31 because the earlier values drained a Flat top solo in ~18 s,
+  // versus ~60-90 s measured for real Flat combinations (Ball ~140-170 s).
   if(shape==='flat'){
     // Rim points are a finite planar patch. Orientation itself decides which ones touch.
-    for(let i=0;i<4;i++){const a=i*Math.PI/2;impulse+=floorContact(t,geometryToCOM(p,V(tip*Math.cos(a),0,tip*Math.sin(a))),0,tip*.12,mu);}
-    impulse+=floorContact(t,geometryToCOM(p,V(0,0,0)),0,tip*.3,mu);
-  }else impulse+=floorContact(t,geometryToCOM(p,V(0,tip,0)),tip,tip*(shape==='needle'?.15:shape==='ball'?.12:.45),mu);
+    for(let i=0;i<4;i++){const a=i*Math.PI/2;impulse+=floorContact(t,geometryToCOM(p,V(tip*Math.cos(a),0,tip*Math.sin(a))),0,tip*.06,mu);}
+    impulse+=floorContact(t,geometryToCOM(p,V(0,0,0)),0,tip*.15,mu);
+  }else impulse+=floorContact(t,geometryToCOM(p,V(0,tip,0)),tip,tip*(shape==='needle'?.10:shape==='ball'?.08:.28),mu);
   // The metal body can scrape the floor when tilted. Contact torque causes wobble/fall naturally.
-  if(t.tilt>.22||Math.hypot(t.x,t.z)+p.radius*(1+p.contactLobeDepth)>STADIUM.railRadius-STADIUM.railNotchDepth){const vertices=getBladeVertices(p,12);for(const vertex of vertices)impulse+=floorContact(t,vertex,0,.0005,.28);
-    const ratchet=getRatchetGeometry(p);for(const point of getRatchetOutline(p,8))impulse+=floorContact(t,geometryToCOM(p,V(point.x,ratchet.centerHeight-ratchet.halfThickness,point.z)),0,.0003,.25);
+  // Scrape friction recalibrated 2026-10-31: at the previous .28/.25 a 20°
+  // launch preset lost ~58% of its spin in the first second and solo spin at
+  // 6.3° tilt lasted ~22 s, versus roughly 60-170 s of measured solo spin for
+  // real Beyblade X combinations. Blade/ratchet edges mostly slide on the
+  // plastic bowl, so their scrape coefficients now sit near .10/.09; the
+  // contact geometry and trigger are unchanged. This is an estimate tuned
+  // toward measured durations, not a measured friction coefficient.
+  if(t.tilt>.22||Math.hypot(t.x,t.z)+p.radius*(1+p.contactLobeDepth)>STADIUM.railRadius-STADIUM.railNotchDepth){const vertices=getBladeVertices(p,12);for(const vertex of vertices)impulse+=floorContact(t,vertex,0,.0005,.10);
+    const ratchet=getRatchetGeometry(p);for(const point of getRatchetOutline(p,8))impulse+=floorContact(t,geometryToCOM(p,V(point.x,ratchet.centerHeight-ratchet.halfThickness,point.z)),0,.0003,.09);
     const bit=getBitGeometry(p);if(bit.discRadius>0)for(let i=0;i<8;i++){const a=i*Math.PI/4;impulse+=floorContact(t,geometryToCOM(p,V(bit.discRadius*Math.cos(a),bit.discHeight-bit.discHalfThickness,bit.discRadius*Math.sin(a))),0,.0004,p.tipFriction??p.grip);}
-    impulse+=floorContact(t,geometryToCOM(p,V(0,p.height*.82+bitHeightOffset(p)+.01,0)),0,.0005,.28);
+    impulse+=floorContact(t,geometryToCOM(p,V(0,p.height*.82+bitHeightOffset(p)+.01,0)),0,.0005,.10);
   }
   syncDerived(t);return impulse;
 }
@@ -210,7 +249,11 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   const release=angularImpulse*t.profile.spin;if(release<=0||availableDissipation<=0)return 0;
   const ratchet=getRatchetGeometry(t.profile),component=t.profile.massComponents?.find(c=>c.component==='ratchet'),relativeInertia=component?component.inertia.yy+component.mass*(component.center.x**2+component.center.z**2):.5*(t.profile.mass*.12)*ratchet.radius**2;
   const stiffness=t.profile.lockStiffness??.014,releaseAngle=t.profile.lockReleaseAngle??.24,remaining=Math.max(0,.5*stiffness*(releaseAngle*releaseAngle-t.lock*t.lock));
-  const work=Math.min(availableDissipation,release*release/(2*relativeInertia),remaining);
+  // Only a fraction of the energy dissipated at a ratchet contact twists the
+  // detent toward release; the rest leaves as heat, sound and deformation.
+  // Without this partition a single hard clash (dissipating ~10 mJ) always
+  // filled the ~1-3 mJ barrier and produced sub-second bursts.
+  const work=Math.min(availableDissipation*.4,release*release/(2*relativeInertia),remaining);
   t.lock=Math.sqrt(t.lock*t.lock+2*work/stiffness);return work;
 }
 export function contactRadius(t:Top,angle:number):number{const direction=inverseRotate(t.orientation,V(Math.cos(angle),0,Math.sin(angle)));const a=Math.atan2(direction.z,direction.x);return bladeRadiusAt(t.profile,a);}
@@ -236,7 +279,13 @@ export function resolveContact(a:Top,b:Top,loadLocks=true):number{
   const jn=-(1+clamp(Math.min(a.profile.restitution,b.profile.restitution),0,1))*vn/(contactMass(a,ra,n)+contactMass(b,rb,n));
   let impulse=scale(n,jn);applyImpulse(a,scale(impulse,-1),ra);applyImpulse(b,impulse,rb);
   const after=sub(pointVelocity(b,rb),pointVelocity(a,ra)),vt=sub(after,scale(n,dot(after,n))),speed=norm(vt);
-  if(speed>1e-9){const tangent=scale(vt,1/speed),jt=Math.min(speed/(contactMass(a,ra,tangent)+contactMass(b,rb,tangent)),.25*jn),friction=scale(tangent,-jt);applyImpulse(a,scale(friction,-1),ra);applyImpulse(b,friction,rb);impulse=add(impulse,friction);}
+  // Blade-to-blade friction cap recalibrated 2026-10-31: at .25 of the normal
+  // impulse a single clash could cancel most of the relative surface slip and
+  // erase ~80% of a top's spin, while real metal blade clashes are brief,
+  // elastic and typically cost only a few to ~15% of spin. Smooth die-cast
+  // contact is modelled with a .07 cap; this is an estimate tuned toward
+  // measured battle durations, not a measured friction coefficient.
+  if(speed>1e-9){const tangent=scale(vt,1/speed),jt=Math.min(speed/(contactMass(a,ra,tangent)+contactMass(b,rb,tangent)),.07*jn),friction=scale(tangent,-jt);applyImpulse(a,scale(friction,-1),ra);applyImpulse(b,friction,rb);impulse=add(impulse,friction);}
   let dissipated=Math.max(0,energyBefore-kineticEnergy(a)-kineticEnergy(b));
   // Blade impacts do not become generic burst damage. Only actual exposed lower-ratchet contacts load the detent.
   if(loadLocks&&nodeA.kind==='ratchet'&&!isFragment(a)){const work=applyRatchetWork(a,-ratchetImpulseTwist(a,contact,scale(impulse,-1),originA),nodeB.kind==='ratchet'?dissipated/2:dissipated);dissipated-=work;}

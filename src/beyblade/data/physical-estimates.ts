@@ -14,6 +14,8 @@ export interface ModelMetadata {
   derived:{key:string;label:string;value:number;unit:string;provenance:'estimated'|'official-relative'|'measurement-informed';inputs:string[]}[];
 }
 const clamp=(x:number,min:number,max:number)=>Math.min(max,Math.max(min,x));
+/** Blend two 0xRRGGBB colours; used to give each assembly a tinted resin ratchet instead of one shared grey. */
+const mixHex=(a:number,b:number,t:number)=>{const channel=(shift:number)=>Math.round(((a>>shift&255)*(1-t)+(b>>shift&255)*t));return channel(16)<<16|channel(8)<<8|channel(0);};
 const clean=(name:string)=>name.replace(/\s*(?:ダブル)?メタルコート(?:[:：].*)?$/,'').replace(/[（）()]/g,'').trim();
 interface BladeShapeFact {
   name_ja:string;row_ids?:readonly string[];source_url:string;source_image_url?:string|null;
@@ -132,21 +134,28 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const gearRadius=.006*(gearTeeth/12)*(code==='A'?1.18:1)*clamp(.975+.1*dash,.97,1.04);
   const gearEngagementBand=/^G[FBNP]$/.test(code)?.0065:.0045;
   const rollingDrag=.000004+.000028*(1-clamp(ts,0,1));
-  const drag=.010+.009*(1-clamp(bs,0,1))+.006*(1-clamp(ts,0,1));
+  // Spin-loss rate lowered 2026-10-31 toward measured solo-spin durations
+  // (real combinations spin ~60-170 s solo); still an estimate from ratings.
+  const drag=.007+.006*(1-clamp(bs,0,1))+.004*(1-clamp(ts,0,1));
   const simpleJoint=['4-55','M-85','9-65','7-55'].includes(ratchetCode);
   const publishedBurst=score(bit,'burst_resistance',50,'bit')*100;
   const effectiveBurst=code==='DS'?20:simpleJoint?30:publishedBurst;
-  const lockStiffness=.006+.020*effectiveBurst/100+.006*rd,lockReleaseAngle=.20+.08*effectiveBurst/100+.05*rd;
+  // Burst barrier raised 2026-10-31 (energy scales as k * angle^2, ~1.4x,
+  // combined with the detent work partition in applyRatchetWork): previously
+  // a single first contact could accumulate enough ratchet work to release
+  // (bursts at 0.5-0.9 s in the trajectory report), while real bursts build
+  // over repeated strong hits.
+  const lockStiffness=.0065+.022*effectiveBurst/100+.006*rd,lockReleaseAngle=.24+.085*effectiveBurst/100+.055*rd;
   const palette={...(form?.implemented_geometry?.palette??palettes[name]??{metal:0xaeb9c8,core:0x667488})};
   const coat=blade.part.name.match(/メタルコート[:：]([^\s]+)/)?.[1];if(coat&&namedColors[coat])palette.metal=namedColors[coat];
   const profile:Profile={name:`${blade.part.name} ${ratchet?.part.name??''}${code}`,type:blade.part.type,spin,color,mass,burstSeparationSupported,componentMasses,componentAxialWeights,radius,inertia,transverseInertia,centerOfMassHeight,height,
-    grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.48,burstThreshold:.026,
+    grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.38,burstThreshold:.026,
     lockStiffness,lockReleaseAngle,gearRadius,gearHeight:.007,railEligible:true,railGrip:clamp(.55+.65*dash,.55,.94),gearTeeth,gearEngagementBand,bitHeightOffset,bitDiscRadius,bitDiscHeight:.005,bladeHandedness:form?.facts.spin===-1?-1:form?.facts.spin===1?1:spin,
     ratchetRadius,ratchetCenterHeight,ratchetHalfThickness:.0025+ratchetHeightOffset*.10,ratchetLobes,ratchetLobeDepth,ratchetSkew,
     contactLobes,contactLobeDepth,bladeStyle,bladeEdgeSharpness:clamp(.3+.6*ga-.2*gd,.15,.85),bladeThickness:.0085+(geometry?.massScale??1)*.0005+.001*(gd-.35),
     bladeRampAmplitude:typeof geometry?.rakeSign==='number'?geometry.rakeSign*(.0011+.0012*ga):0,
     bladeSkew:bladeStyle==='round-wing'?.06:bladeStyle==='single-sword'?.35:.15+.20*ga,
-    modelPalette:{...palette,ratchet:0x69798b,bit:nominalBitColors[code]??palette.core}};
+    modelPalette:{...palette,ratchet:mixHex(palette.core,0xdde6ee,.45),bit:nominalBitColors[code]??palette.core}};
   const distribution=deriveAssemblyMass(profile,componentMasses,outerFraction);
   profile.centerOfMass=distribution.center;profile.inertiaTensor=distribution.inertia;profile.massComponents=distribution.components;
   profile.inertia=distribution.inertia.yy;profile.transverseInertia=(distribution.inertia.xx+distribution.inertia.zz)/2;

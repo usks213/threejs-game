@@ -56,6 +56,6 @@ export interface BurstFragment extends Top {
   /** Component COM in the original assembly's COM-local frame. Shared mesh subtracts this offset. */
   componentLocalCenter:Vec3;
 }
-export interface Battle { tick: number; tops: [Top, Top]; events: BattleEvent[]; result: BattleResult | null; fragments:BurstFragment[];settling:{elapsed:number;remaining:number}|null }
+export interface Battle { tick: number; tops: [Top, Top]; events: BattleEvent[]; result: BattleResult | null; fragments:BurstFragment[];settling:{elapsed:number;remaining:number}|null; /** Round seed used for launch micro-variation at creation; 0/absent = exact legacy behaviour. */ seed?: number }
 export type Format = 'basic' | 'three-on-three';
 export interface Match { format: Format; target: number; scores: [number, number]; round: number; winner: 0 | 1 | null; last: BattleResult | null }

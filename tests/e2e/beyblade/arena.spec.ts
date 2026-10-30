@@ -125,7 +125,9 @@ test('part inspection exposes changed physical estimates, source evidence and un
 });
 
 test('ordinary Burst keeps its score latched while physical pieces continue, then allows the next round',async({page})=>{
-  await page.goto('/beyblade/');
+  // Pin the round seed (0 = exact inputs) so this legal-launch Burst fixture
+  // is deterministic; normal play draws a fresh seed every round.
+  await page.goto('/beyblade/?seed=0');
   await page.locator('select[data-part="blade"]').selectOption({label:'ヘルズサイズ'});
   await page.locator('select[data-part="ratchet"]').selectOption({label:'4-60'});
   await page.locator('select[data-part="bit"]').selectOption({label:'T · テーパー'});

@@ -4,7 +4,7 @@ import {parts,buildForBlade,profileFor,defaultBuild} from '../../../src/beyblade
 const id=(name:string,category:string)=>parts.find(p=>p.canonicalId===name&&p.category===category&&p.release==='released')!.id;
 const stock=(bit:string)=>({...buildForBlade(id('ドランソード','blade')),ratchet:id('3-60','ratchet'),bit:id(bit,'bit')});
 const cpu=()=>profileFor(buildForBlade(id('ドランソード','blade')));
-const state=(bit:string)=>createBattle([profileFor(stock(bit)),cpu()],[{power:.8,angle:0,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]);
+const state=(bit:string,angle=0)=>createBattle([profileFor(stock(bit)),cpu()],[{power:.8,angle,tilt:8*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]);
 describe('unilateral gear contact and molded backing bank',()=>{
   it('rejects separating, axial and back-side tooth engagement',()=>{
     const t=state('F').tops[0],p=t.profile;setOrientation(t,{x:0,y:0,z:0,w:1});setAngularVelocity(t,{x:0,y:400,z:0});
@@ -46,8 +46,12 @@ describe('unilateral gear contact and molded backing bank',()=>{
     let returned=false,collided=false;for(let i=0;i<240*3&&!b.result&&!returned;i++){stepBattle(b);collided ||= b.events.some(e=>e.kind==='collision');returned=getRailContactState(t).inside&&Math.hypot(t.x,t.z)<getRailRadiusAt(Math.atan2(t.z,t.x))-.015;}
     expect(collided).toBe(false);expect(returned).toBe(true);
   },20000);
-  it.each(['F','R','GF'])('%s transfers rotation into translation and subsequently returns inward',bit=>{
-    const b=state(bit),events:typeof b.events=[];let contactSeen=false,minAfter=Infinity;
+  // Fixture reselected 2026-10-31 after the duration recalibration: at angle 0
+  // the Rush build now phase-locks into a non-contact orbit and never meets
+  // the opponent, so it cannot demonstrate the transfer. An 0.2 rad aim makes
+  // the same build cross the opponent's line; F/GF keep the original input.
+  it.each([['F',0],['R',.2],['GF',0]] as const)('%s transfers rotation into translation and subsequently returns inward',(bit,angle)=>{
+    const b=state(bit,angle),events:typeof b.events=[];let contactSeen=false,minAfter=Infinity;
     for(let i=0;i<240*15&&!b.result;i++){stepBattle(b);events.push(...b.events.filter(e=>e.tick>b.tick-1));contactSeen ||= b.events.some(e=>e.kind==='rail-engage'&&e.top===0);if(contactSeen)minAfter=Math.min(minAfter,Math.hypot(b.tops[0].x,b.tops[0].z));}
     const powered=events.some(e=>e.kind==='rail-engage'&&e.top===0&&Math.hypot(e.velocityAfter!.x,e.velocityAfter!.z)>Math.hypot(e.velocityBefore!.x,e.velocityBefore!.z)+.1&&Math.abs(e.spinAfter!)<Math.abs(e.spinBefore!));expect(powered).toBe(true);expect(minAfter).toBeLessThan(.14);expect(events.some(e=>e.kind==='collision')).toBe(true);
     const release=events.find(e=>e.kind==='rail-release'&&e.top===0&&(e.translationWork??0)>1e-6&&(e.rotationWork??0)<-1e-6);expect(release).toBeDefined();expect(release!.translationWork!+release!.rotationWork!).toBeLessThanOrEqual(1e-9);

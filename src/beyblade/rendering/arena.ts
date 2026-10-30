@@ -5,6 +5,7 @@ import { buildTopComponents, setComponentPose } from './top-mesh';
 import { STADIUM, bowlHeightAt, comHeight, getRailPath } from '../core/physics';
 
 import { buildStadiumSurfaceGeometry, floorTint } from './stadium-surface';
+import { setupStudioLighting, makeBlobShadowTexture } from './environment';
 export { buildStadiumSurfaceGeometry } from './stadium-surface';
 
 /** Render the solver's geometry and pose. No invented wobble, rail boost or burst motion. */
@@ -15,14 +16,18 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.setClearColor(0xeff2f8, 1);
   const scene = new THREE.Scene();
+  const environmentTexture = setupStudioLighting(renderer, scene, .8);
   const camera = new THREE.PerspectiveCamera(37, 1, .01, 5);
   camera.position.set(0, .58, .65); camera.lookAt(0, .018, 0);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x687b9d, 3));
-  const sun = new THREE.DirectionalLight(0xffffff, 3.2); sun.position.set(-.8, 1.5, .4); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x687b9d, 1.15));
+  const sun = new THREE.DirectionalLight(0xffffff, 2.3); sun.position.set(-.8, 1.5, .4); scene.add(sun);
   const materials = new Set<THREE.Material>(), geometries = new Set<THREE.BufferGeometry>();
-  function mesh(geometry: THREE.BufferGeometry, color: number, roughness = .5, metalness = .1) {
+  function mesh(geometry: THREE.BufferGeometry, color: number, roughness = .5, metalness = .1, clearcoat = 0) {
     geometries.add(geometry);
-    const material = new THREE.MeshStandardMaterial({ color, roughness, metalness }); materials.add(material);
+    const material = clearcoat > 0
+      ? new THREE.MeshPhysicalMaterial({ color, roughness, metalness, clearcoat, clearcoatRoughness: .28 })
+      : new THREE.MeshStandardMaterial({ color, roughness, metalness });
+    materials.add(material);
     return new THREE.Mesh(geometry, material);
   }
   function freeTree(object: THREE.Object3D) {
@@ -112,8 +117,11 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
     const geometry = new THREE.BufferGeometry().setFromPoints(points), material = new THREE.LineBasicMaterial({ color: 0xc1ccdf }); geometries.add(geometry); materials.add(material); scene.add(new THREE.Line(geometry, material));
   }
   const groups: [THREE.Group, THREE.Group] = [new THREE.Group(), new THREE.Group()]; groups.forEach(group => scene.add(group));
+  const shadowTexture = makeBlobShadowTexture();
   const shadows = groups.map(() => {
-    const shadow = mesh(new THREE.CircleGeometry(.025, 32), 0x52647b); shadow.rotation.x = -Math.PI / 2; shadow.material.transparent = true; shadow.material.opacity = .13; shadow.material.depthWrite = false; scene.add(shadow); return shadow;
+    const shadow = mesh(new THREE.CircleGeometry(.025, 32), 0xffffff); shadow.rotation.x = -Math.PI / 2;
+    shadow.material.map = shadowTexture; shadow.material.transparent = true; shadow.material.opacity = .5; shadow.material.depthWrite = false; shadow.material.needsUpdate = true;
+    scene.add(shadow); return shadow;
   });
   const ownershipRings = groups.map((_, i) => {
     const ring = mesh(new THREE.TorusGeometry(.026, .0007, 5, 40), i === 0 ? 0x335dff : 0xf5785a); ring.rotation.x = Math.PI / 2; ring.material.transparent = true; ring.material.opacity = .62; ring.material.depthWrite = false; scene.add(ring); return ring;
@@ -192,7 +200,7 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
         const x = group.position.x, z = group.position.z, floor = bowlHeightAt(x, z);
         if (separated) { group.position.set(0, 0, 0); group.quaternion.identity(); }
         shadows[i].visible = !separated && Math.hypot(x, z) <= STADIUM.pocketOuterRadius; shadows[i].position.set(x, floor + .0005, z);
-        shadows[i].scale.setScalar(profile.radius / .025); shadows[i].material.opacity = Math.max(.025, .15 - Math.max(0, group.position.y - floor - comHeight(profile)) * 1.6);
+        shadows[i].scale.setScalar(profile.radius / .025); shadows[i].material.opacity = Math.max(.08, .52 - Math.max(0, group.position.y - floor - comHeight(profile)) * 4.5);
         ownershipRings[i].position.set(x, floor + .0008, z); ownershipRings[i].scale.setScalar(profile.radius / .024); ownershipRings[i].visible = !top?.eliminated;
         const trail = trails[i];
         if (resetTrail) { trail.count = 0; trail.geometry.setDrawRange(0, 0); }
@@ -207,6 +215,6 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
       });
       lastTick = battle?.tick ?? -1; renderer.render(scene, camera);
     },
-    dispose() { observer.disconnect(); canvas.removeEventListener('webglcontextlost', lost); geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose()); renderer.dispose(); },
+    dispose() { observer.disconnect(); canvas.removeEventListener('webglcontextlost', lost); geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose()); environmentTexture.dispose(); shadowTexture.dispose(); scene.environment = null; renderer.dispose(); },
   };
 }

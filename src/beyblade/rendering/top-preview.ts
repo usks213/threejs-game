@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Profile } from '../core/types';
 import { getCenterOfMass, getCanonicalBladeVertices } from '../core/physics';
 import { buildTopMesh } from './top-mesh';
+import { setupStudioLighting } from './environment';
 
 /** Static inspection uses exactly the arena assembly, fixed camera/scale, and no animation loop. */
 export function createTopPreview(canvas: HTMLCanvasElement, onError: (message: string) => void) {
@@ -10,12 +11,17 @@ export function createTopPreview(canvas: HTMLCanvasElement, onError: (message: s
   catch { onError('パーツの3Dプレビューを表示できません。'); return null; }
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setClearColor(0xf6f8fc, 1);
   const scene = new THREE.Scene(), camera = new THREE.OrthographicCamera(-.05, .05, .0375, -.0375, .001, 1);
+  const environmentTexture = setupStudioLighting(renderer, scene, .9);
   camera.position.set(.060, .065, .100); camera.lookAt(0, .001, 0);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x60728b, 2.6));
-  const light = new THREE.DirectionalLight(0xffffff, 3.2); light.position.set(-.1, .16, .1); scene.add(light);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x60728b, 1.1));
+  const light = new THREE.DirectionalLight(0xffffff, 2.3); light.position.set(-.1, .16, .1); scene.add(light);
   const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
-  function mesh(geometry: THREE.BufferGeometry, color: number, roughness = .5, metalness = .1) {
-    geometries.add(geometry); const material = new THREE.MeshStandardMaterial({ color, roughness, metalness }); materials.add(material); return new THREE.Mesh(geometry, material);
+  function mesh(geometry: THREE.BufferGeometry, color: number, roughness = .5, metalness = .1, clearcoat = 0) {
+    geometries.add(geometry);
+    const material = clearcoat > 0
+      ? new THREE.MeshPhysicalMaterial({ color, roughness, metalness, clearcoat, clearcoatRoughness: .28 })
+      : new THREE.MeshStandardMaterial({ color, roughness, metalness });
+    materials.add(material); return new THREE.Mesh(geometry, material);
   }
   const stage = new THREE.Group(); stage.rotation.y = .55; scene.add(stage);
   const floor = mesh(new THREE.CircleGeometry(.033, 64), 0xe3e9f2, .85, 0); floor.rotation.x = -Math.PI / 2; scene.add(floor);
@@ -75,6 +81,6 @@ export function createTopPreview(canvas: HTMLCanvasElement, onError: (message: s
     },
     rotate(deltaRadians: number) { if (Number.isFinite(deltaRadians)) { stage.rotation.y += deltaRadians; draw(); } },
     setAngle(yaw: number) { if (Number.isFinite(yaw)) { stage.rotation.y = yaw; draw(); } },
-    dispose() { disposed = true; observer.disconnect(); canvas.removeEventListener('webglcontextlost', lost); geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose()); renderer.dispose(); },
+    dispose() { disposed = true; observer.disconnect(); canvas.removeEventListener('webglcontextlost', lost); geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose()); environmentTexture.dispose(); scene.environment = null; renderer.dispose(); },
   };
 }
