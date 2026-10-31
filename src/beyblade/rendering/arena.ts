@@ -8,6 +8,12 @@ import { buildStadiumSurfaceGeometry, floorTint } from './stadium-surface';
 import { setupStudioLighting, makeBlobShadowTexture } from './environment';
 export { buildStadiumSurfaceGeometry } from './stadium-surface';
 
+/** Idle (pre-launch) yaw of a waiting top. Spin direction is a property of
+ * the BLADE (profile.spin: +1 right, -1 left), never of the player slot —
+ * the previous slot-based idle turned the two default right-spin beys in
+ * opposite directions and turned every left-spin bey the wrong way. */
+export const idleSpinYaw = (spin: 1 | -1, time: number) => time * .35 * spin;
+
 /** Render the solver's geometry and pose. No invented wobble, rail boost or burst motion. */
 export function createArena(canvas: HTMLCanvasElement, onError: (message: string) => void) {
   let renderer: THREE.WebGLRenderer;
@@ -188,7 +194,7 @@ export function createArena(canvas: HTMLCanvasElement, onError: (message: string
         if (!profile) { group.visible = false; shadows[i].visible = false; return; }
         group.visible = true;
         if (top) { group.position.set(top.x, top.y, top.z); group.quaternion.set(top.orientation.x, top.orientation.y, top.orientation.z, top.orientation.w); }
-        else { const {x,z}=i===0?launchPosition:defaultLaunchPosition(launchPlayer===0?1:0); group.position.set(x, bowlHeightAt(x,z) + comHeight(profile),z); group.rotation.set(0, time * (i === 0 ? .35 : -.35), 0); }
+        else { const {x,z}=i===0?launchPosition:defaultLaunchPosition(launchPlayer===0?1:0); group.position.set(x, bowlHeightAt(x,z) + comHeight(profile),z); group.rotation.set(0, idleSpinYaw(profile.spin, time), 0); }
         // Each fragment inherits a solver COM and quaternion. Reuse the assembled mesh with
         // precisely its component COM offset removed; never invent a burst trajectory.
         const separated = Boolean(top?.separated);
