@@ -66,6 +66,12 @@ describe('physical burst partition and unscored observation',()=>{
       // rounds the game itself plays provide. Seeded candidates measured
       // bursting under the current physics are tried after the seedless
       // pairs (mirror seed 14 at ~2.5 s, seed 8 at ~4.3 s).
+      // Reselected again (round-3 follow-up, deepened center dish + 30%
+      // loading window): the seed 14/8/9/1 candidates no longer burst.
+      // Verified bursting now: mirror seed 24 at ~3.3 s and the .9-power
+      // seeded pair seed 7 at ~7.8 s (scan of seeds 1-40, this matchup).
+      {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:24},
+      {launches:[{power:.9,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:7},
       {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:14},
       {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:8},
       {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:9},

@@ -135,11 +135,15 @@ test('ordinary Burst keeps its score latched while physical pieces continue, the
   // launch and default spawn) bursts at ~2.2 s sim. A mid-battle fixture
   // carries more FP-divergence risk in CI than the old first-clash one;
   // that trade-off is inherent to the longer-battle physics.
+  // Reselected again (round-3 follow-up: deepened center dish + 30%
+  // loading window): the 76/-7/12 seed-9 round no longer bursts. The
+  // fixture below (100/-20/20, seed 9, same verification method) bursts
+  // the player at ~2.9 s sim.
   await page.goto('/beyblade/?seed=9');
   await page.locator('select[data-part="blade"]').selectOption({label:'ヘルズサイズ'});
   await page.locator('select[data-part="ratchet"]').selectOption({label:'4-60'});
   await page.locator('select[data-part="bit"]').selectOption({label:'T · テーパー'});
-  await page.locator('#power').fill('76');await page.locator('#angle').fill('-7');await page.locator('#tilt').fill('12');
+  await page.locator('#power').fill('100');await page.locator('#angle').fill('-20');await page.locator('#tilt').fill('20');
   await page.evaluate(()=>{
     const phase=document.getElementById('phase')!,launch=document.getElementById('launch') as HTMLButtonElement;
     const state=window as unknown as {settlingObserved:boolean;settlingWasGated:boolean};state.settlingObserved=false;state.settlingWasGated=false;

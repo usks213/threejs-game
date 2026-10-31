@@ -38,7 +38,10 @@ describe('6DOF quaternion / angular-momentum solver',()=>{
     expect(t.vy).toBeCloseTo(-.00981,12);expect(t.vx).toBe(0);expect(t.vz).toBe(0);expect(t.angularMomentum).toEqual(oldL);
   });
   it('actual off-center tip contact transfers support torque into world angular momentum',()=>{
-    const t=battle().tops[0];t.x=0;t.z=0;t.y=comHeight(t.profile)*Math.cos(t.tilt)-.001;t.vx=t.vz=0;t.vy=-.3;
+    // Placement is relative to the actual floor: the center dish was
+    // deepened by the bowl boost (2026-10-31), so an absolute height
+    // leaves the tip floating above the deepened floor.
+    const t=battle().tops[0];t.x=0;t.z=0;t.y=bowlHeightAt(0,0)+comHeight(t.profile)*Math.cos(t.tilt)-.001;t.vx=t.vz=0;t.vy=-.3;
     const before={...t.angularMomentum};expect(resolveFloor(t)).toBeGreaterThan(0);expect(difference(before,t.angularMomentum)).toBeGreaterThan(1e-7);expect(t.vy).toBeGreaterThan(-.3);
   });
   it('tilted spinning top precesses from support torque, not a prescribed scalar tilt target',()=>{
@@ -298,7 +301,9 @@ describe('component-informed geometry and equal-work launch contract',()=>{
   });
   it('provides a supported Disc Ball contact shape instead of a decorative-only disc',()=>{
     const base=battle().tops[0],disc=structuredClone(base);disc.profile.bitDiscRadius=.015;disc.profile.bitDiscHeight=.003;
-    for(const top of [base,disc]){setOrientation(top,{x:0,y:0,z:Math.sin(.2),w:Math.cos(.2)});top.x=top.z=0;top.y=.018;top.vx=top.vz=0;top.vy=-.2;resolveFloor(top);}
+    // Floor-relative placement, as in the off-center tip contact test
+    // above: the deepened center dish (bowl boost) drops the floor here.
+    for(const top of [base,disc]){setOrientation(top,{x:0,y:0,z:Math.sin(.2),w:Math.cos(.2)});top.x=top.z=0;top.y=bowlHeightAt(0,0)+.018;top.vx=top.vz=0;top.vy=-.2;resolveFloor(top);}
     expect(getBitGeometry(disc.profile).discRadius).toBe(.015);expect(difference(base.angularMomentum,disc.angularMomentum)).toBeGreaterThan(1e-8);
   });
 });

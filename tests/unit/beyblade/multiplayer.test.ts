@@ -40,6 +40,12 @@ const BURST_PAIRS:[Launch,Launch][]=[
 // (the server draws a launch seed per round), so the selection also tries
 // seeded legal launches and pins the winning seed on the fixture server.
 const SEEDED_BURST_CANDIDATES:{launches:[Launch,Launch],seed:number}[]=[
+  // Reselected (round-3 follow-up, deepened center dish + 30% loading
+  // window): seeds 14/8/9/1 below no longer burst; verified bursting
+  // under the current physics are mirror seed 24 (~3.3 s) and the
+  // .9-power pair seed 7 (~7.8 s), tried first.
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:24},
+  {launches:[{power:.9,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:7},
   {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:14},
   {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:8},
   {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:9},

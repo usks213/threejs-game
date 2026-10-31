@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import type {Profile,SymmetricTensor,MassComponent} from '../../../src/beyblade/core/types';
 import {combineMassComponents,diagonalTensor,multiplyTensor,inverseTensor,positiveDefinite} from '../../../src/beyblade/core/inertia';
-import {createBattle,integrateFree,kineticEnergy,resolveFloor,ratchetImpulseTwist,setAngularVelocity,setOrientation,geometryToCOM,getCanonicalBladeVertices,getBladeVertices,inverseInertia} from '../../../src/beyblade/core/physics';
+import {createBattle,integrateFree,kineticEnergy,resolveFloor,ratchetImpulseTwist,setAngularVelocity,setOrientation,geometryToCOM,getCanonicalBladeVertices,getBladeVertices,inverseInertia,bowlHeightAt} from '../../../src/beyblade/core/physics';
 const p:Profile={name:'analytical',type:'balance',spin:1,mass:.035,radius:.024,inertia:1.3e-5,transverseInertia:8e-6,centerOfMassHeight:.02,height:.028,grip:0,drag:0,restitution:.4,burstThreshold:.03,railGrip:.7,gearRadius:.006,gearHeight:.007,railEligible:true,contactLobes:4,contactLobeDepth:.05,color:0,tipShape:'ball',tipRadius:.001,tipFriction:0,rollingDrag:0};
 const make=(profile=p)=>createBattle([profile,profile],[{power:.8,angle:0,tilt:0},{power:.8,angle:0,tilt:0}]).tops[0];
 describe('canonical COM and full symmetric inertia',()=>{
@@ -22,7 +22,9 @@ describe('canonical COM and full symmetric inertia',()=>{
     expect(local[0].x).toBeCloseTo(canonical[0].x-.003,14);expect(local[0].z).toBeCloseTo(canonical[0].z+.002,14);
   });
   it('uses lateral COM in the support impulse lever arm',()=>{
-    const top=make({...p,centerOfMass:{x:.003,y:.02,z:0}});setOrientation(top,{x:0,y:0,z:0,w:1});setAngularVelocity(top,{x:0,y:0,z:0});top.x=.003;top.y=.02;top.z=0;top.vx=top.vz=0;top.vy=-.1;
+    // Floor-relative height: the center dish was deepened (bowl boost,
+    // 2026-10-31), so the previous absolute .02 left the tip floating.
+    const top=make({...p,centerOfMass:{x:.003,y:.02,z:0}});setOrientation(top,{x:0,y:0,z:0,w:1});setAngularVelocity(top,{x:0,y:0,z:0});top.x=.003;top.y=bowlHeightAt(.003,0)+.02;top.z=0;top.vx=top.vz=0;top.vy=-.1;
     const before=top.angularMomentum.z,j=resolveFloor(top);expect(j).toBeGreaterThan(0);expect(top.angularMomentum.z-before).toBeCloseTo(-.003*j,12);
   });
   it('loads detent twist about the physical stem, not the displaced COM',()=>{

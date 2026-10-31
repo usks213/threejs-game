@@ -51,29 +51,48 @@ export const bodyAxis=(t:Top)=>rotate(t.orientation,V(0,1,0));
 /** Estimated delivered work at a reference launcher setting; not an OEM launcher calibration. */
 export const LAUNCH_REFERENCE={mass:.035,axialInertia:.55*.035*.024**2};
 export function launchEnergyAt(power:number){const p=clamp(finite(power,.75),.05,1);return{rotational:.5*LAUNCH_REFERENCE.axialInertia*(170+440*p)**2,translational:.5*LAUNCH_REFERENCE.mass*((.92*(.45+1.45*p))**2+.12**2)};}
+/** Bowl profile (2026-10-31, round 3 follow-up): the outer profile is
+ * the round-3 saturating shape the rail/bank/pocket geometry was tuned
+ * against (parabolic to u=.55, slope easing to a 50% residual, heights
+ * unchanged for r >= .13 m). The center is deepened by a smooth boost
+ * inside r < .13 m, after the real BX-10 Xtreme Stadium (Beyblade Wiki:
+ * battle zone diameter 36.5 cm, tornado ridge diameter 21 cm -- the real
+ * dish is a center feature, not a 44 cm-wide saucer). Diagnosis it fixes:
+ * the un-boosted slope at r = 5 cm is ~2.4 deg, below the tip friction
+ * angle of Ball (~5.4 deg) and Needle bits, and the contact solver's
+ * Coulomb friction can fully arrest slow drift, so a slowed stamina top
+ * froze on the slope wherever it stopped; stamina mirrors then orbited
+ * at different radii for a whole round with zero contact (measured:
+ * 0 collisions in 53 s, one top parked at r = .18). The boost adds
+ * ~10 mm of depth at the center and lifts the slope at r = 4-6 cm to
+ * ~6-8 deg, above the friction angles, so slowed tops keep migrating
+ * into the middle and stamina battles actually meet. The boost and its
+ * derivative vanish at r = .13 m, so height and gradient stay C1 and the
+ * outer stadium is bit-identical to before. Depths remain estimates (no
+ * published cross-section); the diameters are the published ones. */
+export const BOWL_BOOST_RADIUS=.13,BOWL_BOOST_DEPTH=.010;
+export function bowlProfile(r:number):{h:number,dhdr:number}{
+  const R=STADIUM.radius,u=Math.min(r*r/(R*R),1);
+  const w=clamp((u-.55)/.2,0,1),ss=w*w*(3-2*w);
+  const gIntegral=u<=.55?u:u>=.75?.70+.5*(u-.75):.55+.2*(w-.5*(w**3-.5*w**4));
+  const gSlope=r>=R?0:u<=.55?1:u>=.75?.5:1-.5*ss;
+  let h=STADIUM.bowlDepth*gIntegral,dhdr=2*STADIUM.bowlDepth*gSlope*r/(R*R);
+  if(r<BOWL_BOOST_RADIUS){const q=r/BOWL_BOOST_RADIUS,omq=1-q*q;h-=BOWL_BOOST_DEPTH*omq*omq;dhdr+=4*BOWL_BOOST_DEPTH*r*omq/(BOWL_BOOST_RADIUS*BOWL_BOOST_RADIUS);}
+  return{h,dhdr};
+}
 /** Pure bowl profile height (no bank or pockets); getRailPath needs it
  * before the rail table exists, so it cannot go through floorSurface. */
 export function bowlBaseHeight(x:number,z:number):number{
-  const u=Math.min((x*x+z*z)/(STADIUM.radius*STADIUM.radius),1);
-  if(u<=.55)return STADIUM.bowlDepth*u;
-  if(u>=.75)return STADIUM.bowlDepth*(.70+.5*(u-.75));
-  const w=(u-.55)/.2;return STADIUM.bowlDepth*(.55+.2*(w-.5*(w**3-.5*w**4)));
+  return bowlProfile(Math.min(Math.hypot(x,z),STADIUM.radius)).h;
 }
 interface SurfaceSample{height:number;dx:number;dz:number;inPocket:boolean}
 function floorSurface(x:number,z:number):SurfaceSample{
-  const r2=x*x+z*z,R=STADIUM.radius,u=Math.min(r2/(R*R),1);
-  // Bowl profile (2026-10-31, round 3): parabolic through the middle
-  // (u<.55) so slowing tops gather at the center, then the rise saturates
-  // smoothly toward the rail lane (u .55-.75, flat beyond), keeping blade
-  // and ratchet clearance for an upright top meshed with the rail -- in the
-  // real stadium the dish is a center feature and the outer lane is the
-  // bank's own slope. G is the exact integral of the slope scale 1-ss, so
-  // height and analytic gradient stay consistent.
-  const w=clamp((u-.55)/.2,0,1),ss=w*w*(3-2*w);
-  // The outer lane keeps a residual 50% slope so a top knocked to the wall
-  // still drains back instead of parking on a flat ring for a whole round.
-  const gIntegral=u<=.55?u:u>=.75?.70+.5*(u-.75):.55+.2*(w-.5*(w**3-.5*w**4)),gSlope=r2>=R*R?0:u<=.55?1:u>=.75?.5:1-.5*ss;
-  let base=STADIUM.bowlDepth*gIntegral,baseX=2*STADIUM.bowlDepth*gSlope*x/(R*R),baseZ=2*STADIUM.bowlDepth*gSlope*z/(R*R);
+  const r2=x*x+z*z,R=STADIUM.radius;
+  // Bowl shape comes from bowlProfile (see its note): the round-3 outer
+  // profile plus a smooth center-deepening boost inside r < .13 m, so the
+  // gradient here is exactly the profile derivative and sight/physics agree.
+  const r=Math.sqrt(r2),profile=bowlProfile(Math.min(r,R));
+  let base=profile.h,baseX=r>1e-9?profile.dhdr*x/r:0,baseZ=r>1e-9?profile.dhdr*z/r:0;
   // Molded backing shoulder: a continuous surface behind, not a free-standing rail above a flat lane.
   if(r2>(STADIUM.railRadius-STADIUM.railNotchDepth)**2&&Math.sqrt(r2)>getRailRadiusAt(Math.atan2(z,x))){
     const c=nearestRailPlanar(x,z),d=-c.signedDistance;
@@ -249,7 +268,7 @@ export function resolveFloor(t:Top):number{
   // bleeds in proportion to the normal impulse (rolling-resistance style),
   // ~0.04 m/s^2 at rest load. Impulse-proportional, so it needs no dt and
   // stays consistent for direct resolveFloor callers.
-  if(impulse>0){const sp=Math.hypot(t.vx,t.vz);if(sp>1e-6){const dv=Math.min(sp,.004*impulse/p.mass),f=(sp-dv)/sp;t.vx*=f;t.vz*=f;}}
+  if(impulse>0){const sp=Math.hypot(t.vx,t.vz);if(sp>1e-6){const dv=Math.min(sp,.006*impulse/p.mass),f=(sp-dv)/sp;t.vx*=f;t.vz*=f;}}
   // The metal body can scrape the floor when tilted. Contact torque causes wobble/fall naturally.
   // Scrape friction recalibrated 2026-10-31: at the previous .28/.25 a 20°
   // launch preset lost ~58% of its spin in the first second and solo spin at
@@ -332,8 +351,11 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // above keeps sustained strikes accumulating instead of asymptoting.
   let newLock=Math.min(t.lock+work/resistingTorque,t.lock+.5*(releaseAngle-t.lock),releaseAngle);
   // Loading rate limit (round 3, 2026-10-31): when the caller supplies the
-  // battle tick, the detent can gain at most 45% of the release angle per
-  // 0.5 s window. A continuous contact calls this solver every tick, so
+  // battle tick, the detent can gain at most 30% of the release angle per
+  // 0.5 s window (lowered from 45% in the round-3 follow-up: with the
+  // deepened center dish, stamina mirrors now clash head-on at the bottom
+  // and two max-budget windows burst a Ball build in ~2 s; at 30% a burst
+  // needs hard engagements across roughly 1.5 s or more). A continuous contact calls this solver every tick, so
   // per-call caps alone cannot distinguish one long clash from many
   // separate strikes -- with the window, a single clash loads at most
   // ~45% however long it grinds, and a burst needs engagements spread
@@ -342,7 +364,7 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // and keep the un-windowed per-call behaviour.
   if(tick!==undefined){
     if(t.lockWindowTick===undefined||tick-t.lockWindowTick>=120||tick<t.lockWindowTick){t.lockWindowTick=tick;t.lockWindowGain=0;}
-    const budget=Math.max(0,.45*releaseAngle-(t.lockWindowGain??0));
+    const budget=Math.max(0,.30*releaseAngle-(t.lockWindowGain??0));
     newLock=Math.min(newLock,t.lock+budget);
     t.lockWindowGain=(t.lockWindowGain??0)+Math.max(0,newLock-t.lock);
   }
@@ -351,12 +373,13 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // work are all fractions of it), and traced locks asymptote at
   // 94-99% of release -- the last click is held by a fraction of a
   // millijoule that late, weak strikes never quite deliver. A real pawl
-  // at >80% engagement slips the final clicks under continued vibration,
-  // so a strike that pushes the lock past 80% of release completes it.
-  // The window budget (45% per 0.5 s) bounds any first clash to ~45%, so
-  // the 80% threshold still requires engagements across two or more
-  // windows; traced peaks in aggressive matchups reach 84-99%.
-  if(newLock>.80*releaseAngle)newLock=releaseAngle;
+  // at >85% engagement slips the final clicks under continued vibration,
+  // so a strike that pushes the lock past 85% of release completes it
+  // (raised from 80% with the 30% window above). The window budget bounds
+  // any first clash to ~30%, so the 85% threshold still requires
+  // engagements across three or more windows; traced peaks in aggressive
+  // matchups reach 84-99%.
+  if(newLock>.85*releaseAngle)newLock=releaseAngle;
   work=resistingTorque*(newLock-t.lock);t.lock=newLock;return work;
 }
 export function contactRadius(t:Top,angle:number):number{const direction=inverseRotate(t.orientation,V(Math.cos(angle),0,Math.sin(angle)));const a=Math.atan2(direction.z,direction.x);return bladeRadiusAt(t.profile,a);}

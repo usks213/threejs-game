@@ -52,7 +52,12 @@ const palettes:Record<string,{metal:number;core:number}>={
 const namedColors:Record<string,number>={ブラック:0x30343d,ブルー:0x2e73cf,レッド:0xca3c4a,ホワイト:0xe7eaf0,ゴールド:0xd2aa48,パープル:0x8650b2,グリーン:0x329174};
 const nominalBitColors:Record<string,number>={F:0x228dce,T:0xc7384b,B:0xe5b927,N:0x287e59};
 const baseTipRadius={flat:.0028,ball:.0015,needle:.00045,taper:.0015};
-const baseTipFriction={flat:.24,ball:.17,needle:.14,taper:.20};
+// Ball base friction lowered .17 -> .12 on 2026-10-31 (round 3 follow-up):
+// a polished ball tip on smooth plastic scrubs continuously under
+// precession, so its kinetic (not static) coefficient governs; at .17 the
+// derived Ball mu (~.14) exceeded the real dish's slope over most of the
+// center and slowed Ball tops froze on the slope instead of migrating.
+const baseTipFriction={flat:.24,ball:.12,needle:.14,taper:.20};
 const ratingKeys=['attack','defense','stamina'] as const;
 
 /** Explicit estimated model: published scores constrain properties, but are not SI measurements.

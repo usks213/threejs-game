@@ -76,6 +76,26 @@ export function buildStadiumSurfaceGeometry() {
       }
     }
     if (marked.size === 0) break;
+    // Seam symmetry: the polar grid closes on itself (the angle-0 and
+    // angle-2pi columns are geometrically coincident but index-distinct),
+    // so an edge on the seam has a twin edge with identical endpoints.
+    // Refinement decisions can differ across the seam (the adjacent strips
+    // have different widths), and splitting only one twin leaves a crack
+    // along the seam -- exposed when the deepened center dish (2026-10-31)
+    // started refining the innermost faces. Mark every geometric twin of
+    // a marked edge so both sides split together.
+    const posKey = (index: number) => `${Math.round(vertices[index].x * 1e7)}:${Math.round(vertices[index].z * 1e7)}`;
+    const byPosition = new Map<string, [number, number][]>();
+    for (const face of faces) for (let side = 0; side < 3; side++) {
+      const a = face[side], b = face[(side + 1) % 3], pa = posKey(a), pb = posKey(b);
+      if (pa === pb) continue;
+      const key = pa < pb ? `${pa}/${pb}` : `${pb}/${pa}`, list = byPosition.get(key);
+      if (list) list.push([a, b]); else byPosition.set(key, [[a, b]]);
+    }
+    for (const [a, b] of [...marked.values()]) {
+      const pa = posKey(a), pb = posKey(b), key = pa < pb ? `${pa}/${pb}` : `${pb}/${pa}`;
+      for (const [ta, tb] of byPosition.get(key) ?? []) marked.set(edgeKey(ta, tb), [ta, tb]);
+    }
     const midpoints = new Map<string, number>();
     for (const [key, [a, b]] of marked) midpoints.set(key, point((vertices[a].x + vertices[b].x) / 2, (vertices[a].z + vertices[b].z) / 2));
     const next: Face[] = [];
