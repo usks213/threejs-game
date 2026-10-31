@@ -33,33 +33,116 @@ const BURST_PAIRS:[Launch,Launch][]=[
   [{power:1,angle:-90*BURST_D,tilt:37*BURST_D},{power:.9,angle:-7*BURST_D,tilt:11*BURST_D}],
   [{power:.5,angle:-50*BURST_D,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],
 ];
-// Seeded candidates (2026-10-31, round 4): the round-4 physics (upright
-// righting, gentle-meeting softening, detent recalibration with a 35%
-// loading window) killed every previous candidate; an intermediate
-// detent state produced zero bursts in 144 scanned battles before the
-// ratchet band zone was re-broadened. Bursts are occasional by design
-// now (measured in this matchup: .76/-7/12 bursts 4/24 seeds,
-// .9/-30/25 3/16), so the selection tries eight independently verified
-// seeded candidates FIRST (the seedless pairs below are unverified
-// fallbacks that cost a full 15 s sim each when they fail) and CI needs
-// only one candidate to survive its FP environment. Re-verified
-// against the final round-4 detent calibration: seed 9 bursts at
-// ~6.5 s, seed 23 at ~6.3 s, seed 24 at ~12.8 s (the remaining
-// candidates burst under the same round's earlier calibration and
-// are kept as fallbacks).
+// Seeded candidates (2026-11-01, exterior fix round): CI flipped every
+// candidate of the previous lists twice -- seeded Hells vs Sword burst
+// trajectories are long chaotic accumulation chains, and no single seed
+// is robust across FP environments. Measured on the FINAL round-5
+// physics (frozen tree, 10 s cap, 24 seeds per shape): base .76/-7/12
+// vs CPU 1/24 (seed 7 @ ~7.5 s), grind .35/0/30 vs CPU 1/24 (seed 22
+// @ ~5.0 s), mirror .5/0/35 1/24 (seed 14 @ ~9.3 s). The selection
+// scans the verified hitters first, then all three shapes interleaved
+// across seeds 1..32; it needs only one in-environment burst.
 const SEEDED_BURST_CANDIDATES:{launches:[Launch,Launch],seed:number}[]=[
-  {launches:[{power:.9,angle:-30*BURST_D,tilt:25*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:9},
-  {launches:[{power:1,angle:-20*BURST_D,tilt:20*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:23},
-  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:24},
-  {launches:[{power:.9,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:2},
-  {launches:[{power:.9,angle:-30*BURST_D,tilt:25*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:16},
-  {launches:[{power:.9,angle:-30*BURST_D,tilt:25*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:6},
-  {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:17},
   {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:7},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:22},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:14},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:19},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:20},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:1},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:1},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:1},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:2},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:2},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:2},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:3},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:3},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:3},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:4},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:4},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:4},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:5},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:5},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:5},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:6},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:6},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:6},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:7},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:7},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:8},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:8},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:8},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:9},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:9},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:9},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:10},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:10},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:10},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:11},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:11},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:11},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:12},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:12},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:12},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:13},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:13},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:13},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:14},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:14},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:15},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:15},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:15},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:16},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:16},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:16},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:17},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:17},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:17},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:18},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:18},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:18},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:19},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:19},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:20},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:20},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:21},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:21},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:21},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:22},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:22},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:23},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:23},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:23},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:24},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:24},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:24},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:25},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:25},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:25},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:26},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:26},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:26},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:27},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:27},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:27},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:28},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:28},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:28},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:29},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:29},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:29},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:30},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:30},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:30},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:31},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:31},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:31},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:32},
+  {launches:[{power:.35,angle:0,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:32},
+  {launches:[{power:.5,angle:0,tilt:35*BURST_D},{power:.5,angle:0,tilt:35*BURST_D}],seed:32},
 ];
 function selectBurstLaunches():{launches:[Launch,Launch],seed:number}{
   const me=profileFor(defaultBuild),sword=profileFor(buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id));
-  for(const c of SEEDED_BURST_CANDIDATES){const b=createBattle([me,sword],c.launches,c.seed);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return c;}
+  for(const c of SEEDED_BURST_CANDIDATES){const b=createBattle([me,sword],c.launches,c.seed);for(let i=0;i<240*10&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return c;}
   for(const [l1,l2] of BURST_PAIRS){const b=createBattle([me,sword],[l1,l2]);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return {launches:[l1,l2],seed:0};}
   throw new Error('No enumerated legal launch produced a burst');
 }

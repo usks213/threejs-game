@@ -53,27 +53,123 @@ describe('physical burst partition and unscored observation',()=>{
     // list that produces a genuine burst in the current physics, then
     // asserts on that real battle exactly as before. If none bursts, the
     // test fails: burst reachability from legal launches stays covered.
-    // Measured burst rates in this matchup (24 seeds/pair): .76/-7/12
-    // 4/24, .9/-30/25 3/16 -- bursts are occasional by design now, so the
-    // candidate list carries eight seeds; CI needs only one to survive
-    // its FP environment. Re-verified against the final round-4 detent
-    // calibration: seed 9 bursts at ~6.5 s, seed 23 at ~6.3 s, seed 24
-    // at ~12.8 s (the remaining candidates burst under the same round's
-    // earlier calibration and are kept as fallbacks).
+    // Measured burst rates in this matchup on the FINAL round-5
+    // physics (frozen tree, 10 s cap, 24 seeds per shape): base
+    // .76/-7/12 vs CPU 1/24 (seed 7 @ ~7.5 s), grind .35/0/30 vs CPU
+    // 1/24 (seed 22 @ ~5.0 s), mirror .5/0/35 1/24 (seed 14 @ ~9.3 s).
+    // Hells vs Sword bursts are occasional by design (Hells is
+    // burst-resistant). No single seed is robust across FP
+    // environments -- CI flipped every candidate of two previous
+    // lists -- so the selection scans the verified hitters first and
+    // then all three shapes interleaved across seeds 1..32, needing
+    // only one in-environment burst. If none bursts, the test fails:
+    // burst reachability from legal launches stays covered. (Process
+    // lesson: an earlier pool was built from a scan that ran while
+    // physics.ts was being edited concurrently; its rates were
+    // irreproducible on any frozen tree. Never measure fixtures
+    // against a moving tree.)
     const D=Math.PI/180,pairs:{launches:[{power:number,angle:number,tilt:number},{power:number,angle:number,tilt:number}],seed?:number}[]=[
-      {launches:[{power:.9,angle:-30*D,tilt:25*D},{power:.76,angle:-.12,tilt:.11}],seed:9},
-      {launches:[{power:1,angle:-20*D,tilt:20*D},{power:.76,angle:-.12,tilt:.11}],seed:23},
-      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:24},
-      {launches:[{power:.9,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:2},
-      {launches:[{power:.9,angle:-30*D,tilt:25*D},{power:.76,angle:-.12,tilt:.11}],seed:16},
-      {launches:[{power:.9,angle:-30*D,tilt:25*D},{power:.76,angle:-.12,tilt:.11}],seed:6},
-      {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:17},
       {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:7},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:22},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:14},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:19},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:20},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:1},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:1},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:1},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:2},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:2},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:2},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:3},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:3},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:3},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:4},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:4},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:4},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:5},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:5},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:5},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:6},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:6},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:6},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:7},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:7},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:8},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:8},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:8},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:9},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:9},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:9},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:10},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:10},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:10},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:11},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:11},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:11},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:12},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:12},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:12},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:13},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:13},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:13},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:14},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:14},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:15},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:15},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:15},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:16},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:16},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:16},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:17},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:17},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:17},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:18},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:18},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:18},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:19},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:19},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:20},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:20},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:21},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:21},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:21},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:22},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:22},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:23},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:23},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:23},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:24},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:24},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:24},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:25},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:25},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:25},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:26},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:26},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:26},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:27},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:27},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:27},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:28},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:28},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:28},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:29},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:29},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:29},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:30},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:30},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:30},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:31},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:31},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:31},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:32},
+      {launches:[{power:.35,angle:0,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],seed:32},
+      {launches:[{power:.5,angle:0,tilt:35*D},{power:.5,angle:0,tilt:35*D}],seed:32},
       {launches:[{power:1,angle:-50*D,tilt:37*D},{power:.76,angle:-30*D,tilt:25*D}]},
       {launches:[{power:.85,angle:-50*D,tilt:37*D},{power:.76,angle:-.12,tilt:.11}]},
     ];
     let b:ReturnType<typeof createBattle>|null=null;
-    for(const c of pairs){const candidate=createBattle([profileFor(defaultBuild),cpu],c.launches,c.seed??0);for(let i=0;i<240*15&&!candidate.result;i++)stepBattle(candidate);if(candidate.result?.finish==='burst'){b=candidate;break;}}
+    for(const c of pairs){const candidate=createBattle([profileFor(defaultBuild),cpu],c.launches,c.seed??0);for(let i=0;i<240*10&&!candidate.result;i++)stepBattle(candidate);if(candidate.result?.finish==='burst'){b=candidate;break;}}
     expect(b).not.toBe(null);
     expect(b!.result?.finish).toBe('burst');expect(b!.fragments.length).toBeGreaterThan(0);
     const before=b!.fragments.map(f=>({x:f.x,y:f.y,z:f.z}));for(let i=0;i<240;i++)stepSettlingBattle(b!);

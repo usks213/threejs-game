@@ -117,9 +117,15 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     // dash, per-tick energy accounting), then asserts on that battle. If
     // no preset qualifies, the test fails: gearing, dash and energy
     // coverage is preserved without a knife-edge fixture.
+    // Exterior round (2026-11-01): the apron/gutter changes re-rolled
+    // trajectories; measured on the final physics, .85/-10/16 finishes
+    // by Spin with engage+dash, .75 and .9 (-10/16) finish by Xtreme
+    // with engage+dash, while the old head .7/-10/16 no longer dashes
+    // -- the list is reordered to the measured qualifiers so selection
+    // succeeds on the first candidate instead of timing out.
     const p=profileFor(defaultBuild),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
     const D=Math.PI/180,cpuLaunch={power:.76,angle:-.12,tilt:.11};
-    const presets=[{power:.7,angle:-10*D,tilt:16*D},{power:.7,angle:0,tilt:16*D},{power:.75,angle:-20*D,tilt:20*D},{power:.65,angle:-10*D,tilt:24*D},{power:.8,angle:-30*D,tilt:16*D},{power:.7,angle:-10*D,tilt:10*D},{power:.85,angle:-10*D,tilt:16*D},{power:.6,angle:0,tilt:20*D}];
+    const presets=[{power:.85,angle:-10*D,tilt:16*D},{power:.75,angle:-10*D,tilt:16*D},{power:.9,angle:-10*D,tilt:16*D},{power:.7,angle:-10*D,tilt:16*D},{power:.7,angle:0,tilt:16*D},{power:.75,angle:-20*D,tilt:20*D},{power:.65,angle:-10*D,tilt:24*D},{power:.8,angle:-30*D,tilt:16*D},{power:.7,angle:-10*D,tilt:10*D},{power:.6,angle:0,tilt:20*D}];
     const run=(launch:{power:number,angle:number,tilt:number})=>{
       const state=createBattle([p,cpu],[launch,cpuLaunch]),events:(typeof state.events)=[];
       let energy=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);
@@ -173,13 +179,30 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     // meshes (radius .215 m) but no longer finishes within the loop; the
     // steeper bank tilt .4 rad at the same power reaches radius .218 m,
     // meshes, and finishes by Spin in ~5.2 s. Assertions unchanged.
-    const p=profileFor(build),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id)),state=createBattle([p,cpu],[{power:.8,angle:0,tilt:.4},{power:.76,angle:-.12,tilt:.11}]),events=new Map<string,(typeof state.events)[number]>();let maxRadius=0;
-    for(let n=0;n<240*30&&!state.result;n++){stepBattle(state);for(const t of state.tops)maxRadius=Math.max(maxRadius,Math.hypot(t.x,t.z));for(const e of state.events)events.set(`${e.tick}:${e.kind}:${e.top}`,e);}
+    // Round 5 (2026-11-01): the exterior package re-rolled this fixed
+    // trajectory too (meshes, never finishes in 30 s). Measured grid on
+    // the final physics (power x tilt, all mesh and reach r .219 m):
+    // finishes only at .75/.5 (Spin ~6.8 s), .85/.35 (Xtreme ~1.5 s)
+    // and .85/.5 (Burst ~13.3 s). Following the preset/burst pattern,
+    // the test now selects deterministically in-test from the measured
+    // candidates (qualifiers first); every assertion below is unchanged
+    // and runs on the selected battle. If none qualifies, the test
+    // fails: gearing + legitimate-finish coverage is preserved.
+    const p=profileFor(build),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
+    const candidates=[{power:.75,tilt:.5},{power:.85,tilt:.35},{power:.85,tilt:.5},{power:.8,tilt:.5},{power:.85,tilt:.4},{power:.75,tilt:.45}];
+    let state:ReturnType<typeof createBattle>|null=null,events=new Map<string,(ReturnType<typeof createBattle>)['events'][number]>(),maxRadius=0;
+    for(const c of candidates){
+      const trial=createBattle([p,cpu],[{power:c.power,angle:0,tilt:c.tilt},{power:.76,angle:-.12,tilt:.11}]),trialEvents=new Map<string,(typeof trial.events)[number]>();let trialMax=0;
+      for(let n=0;n<240*30&&!trial.result;n++){stepBattle(trial);for(const t of trial.tops)trialMax=Math.max(trialMax,Math.hypot(t.x,t.z));for(const e of trial.events)trialEvents.set(`${e.tick}:${e.kind}:${e.top}`,e);}
+      const trialMesh=[...trialEvents.values()].find(e=>e.kind==='rail-engage'&&(e.intensity??0)>0);
+      if(trialMax>.18&&trialMesh&&trial.result){state=trial;events=trialEvents;maxRadius=trialMax;break;}
+    }
+    expect(state).not.toBe(null);
     const all=[...events.values()],mesh=all.find(e=>e.kind==='rail-engage'&&(e.intensity??0)>0);
     expect(maxRadius).toBeGreaterThan(.18);expect(mesh).toBeDefined();expect(mesh!.energyAfter).toBeLessThanOrEqual(mesh!.energyBefore!+1e-10);
     // The corrected bank changes this trajectory into a legal exit, not a guaranteed collision.
     // The public-default regression above still requires actual opponent contact.
-    expect(state.result).not.toBe(null);
+    expect(state!.result).not.toBe(null);
   },30000);
 });
 

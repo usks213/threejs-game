@@ -84,10 +84,36 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
   ], { x: 0, y: deckY + .0010, z: 0 }), palette.core, .3, .18, .6);
   group.add(deck);
 
+  // Metal petal plates (2026-11-01 model pass): on real blades the metal
+  // wraps up over the deck at each blade, with the coloured plastic
+  // showing in the gaps between blades. One plate per contact lobe,
+  // hugging the deck slope (three rows offset +.0007 above the deck
+  // profile), so from above the bey reads as metal blades over a
+  // coloured core instead of a two-tone cone.
+  {
+    const lobeCount = Math.max(1, Math.min(12, Math.round(profile.contactLobes)));
+    const N = outline.length, halfSpan = Math.max(3, Math.round(N / lobeCount * .46)), steps = Math.min(14, halfSpan * 2);
+    for (let lobe = 0; lobe < lobeCount; lobe++) {
+      const peak = lobe / lobeCount * Math.PI * 2, rows: Vec3[][] = [[], [], []];
+      for (let s = 0; s <= steps; s++) {
+        const idx = ((Math.round(lobe * N / lobeCount) - halfSpan + Math.round(s / steps * halfSpan * 2)) % N + N) % N;
+        const p = outline[idx], a = peak - Math.PI * 2 / lobeCount * .46 + (s / steps) * Math.PI * 2 / lobeCount * .92;
+        const c = canonicalBladeCenterHeightAt(profile, a);
+        rows[0].push({ x: p.x, y: c + half * .30 + .0007, z: p.z });
+        rows[1].push({ x: p.x * .885, y: c + half + .0007, z: p.z * .885 });
+        rows[2].push({ x: p.x * .72, y: deckY + .0007, z: p.z * .72 });
+      }
+      const petal = mesh(stackedSolid(rows), palette.metal, .27, .92, .25);
+      petal.material.flatShading = true; group.add(petal);
+    }
+  }
+
   // Deck furniture: recessed center inset and three assembly screws, the
   // visual grammar of the real parts (no logos or copied artwork).
-  const inset = mesh(new THREE.CylinderGeometry(coreRadius * .60, coreRadius * .66, .0009, 40), 0x263449, .32, .25);
+  const inset = mesh(new THREE.CylinderGeometry(coreRadius * .60, coreRadius * .66, .0009, 40), new THREE.Color(palette.core).multiplyScalar(.55).getHex(), .32, .25);
   inset.position.y = deckY + .0009; group.add(inset);
+  const emblem = mesh(new THREE.CylinderGeometry(coreRadius * .30, coreRadius * .34, .0008, 32), new THREE.Color(palette.core).lerp(new THREE.Color(0xffffff), .35).getHex(), .3, .3, .5);
+  emblem.position.y = deckY + .0016; group.add(emblem);
   for (let i = 0; i < 3; i++) {
     const a = i / 3 * Math.PI * 2 + .5, screw = mesh(new THREE.CylinderGeometry(.0011, .0011, .0007, 12), 0xd7dee9, .25, .9);
     screw.position.set(Math.cos(a) * coreRadius * .40, deckY + .0011, Math.sin(a) * coreRadius * .40); group.add(screw);
@@ -122,6 +148,9 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
   const ratchet = mesh(stackedSolid([
     ratchetRing(.93, rc - rh), ratchetRing(1, rc - rh + .0007), ratchetRing(1, rc + rh - .0007), ratchetRing(.93, rc + rh),
   ], { x: 0, y: rc + rh, z: 0 }, { x: 0, y: rc - rh, z: 0 }), palette.ratchet, .34, .05, .7);
+  // Frosted-resin read: slight transparency with depth writing kept on,
+  // so the ratchet looks like translucent plastic without sorting artefacts.
+  ratchet.material.transparent = true; ratchet.material.opacity = .88;
   group.add(ratchet);
   // Thin darker waist ring: the shadow gap between ratchet and blade.
   const waist = mesh(new THREE.CylinderGeometry(ratchetGeometry.radius * .97, ratchetGeometry.radius * .99, .0008, 64), new THREE.Color(palette.ratchet).multiplyScalar(.72).getHex(), .4, .05);
@@ -147,7 +176,8 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
   gearShape.closePath();
   const gearGeometry = new THREE.ExtrudeGeometry(gearShape, { depth: gearThickness, bevelEnabled: true, bevelThickness: .0002, bevelSize: .0002, bevelSegments: 1 });
   gearGeometry.rotateX(-Math.PI / 2); gearGeometry.translate(0, bit.gearHeight - gearThickness / 2, 0);
-  group.add(mesh(gearGeometry, palette.bit, .42, .1));
+  // The shaft gear reads as darker steel than the coloured tip resin.
+  group.add(mesh(gearGeometry, new THREE.Color(palette.bit).multiplyScalar(.62).getHex(), .42, .35));
   if (bit.discRadius && bit.discHeight !== undefined) {
     const discShape = new THREE.Shape(); discShape.absarc(0, 0, bit.discRadius, 0, Math.PI * 2, false);
     for (let i = 0; i < 3; i++) {

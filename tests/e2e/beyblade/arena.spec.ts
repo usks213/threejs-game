@@ -144,11 +144,15 @@ test('ordinary Burst keeps its score latched while physical pieces continue, the
   // Same launches at seed 23 burst the player (Hells/4-60/T vs stock
   // Sword) at ~6.3 s sim, verified headlessly against the app's fixed
   // CPU launch and default spawn.
-  await page.goto('/beyblade/?seed=23');
+  // Reselected again (round 5: exterior gutter loss + pocket residence
+  // re-rolled trajectories): 100/-20/20 at seed 23 now spins out at
+  // ~9.4 s. The fixture below (90/-30/25, seed 9, same verification
+  // method) bursts the player at ~6.5 s sim.
+  await page.goto('/beyblade/?seed=9');
   await page.locator('select[data-part="blade"]').selectOption({label:'ヘルズサイズ'});
   await page.locator('select[data-part="ratchet"]').selectOption({label:'4-60'});
   await page.locator('select[data-part="bit"]').selectOption({label:'T · テーパー'});
-  await page.locator('#power').fill('100');await page.locator('#angle').fill('-20');await page.locator('#tilt').fill('20');
+  await page.locator('#power').fill('90');await page.locator('#angle').fill('-30');await page.locator('#tilt').fill('25');
   await page.evaluate(()=>{
     const phase=document.getElementById('phase')!,launch=document.getElementById('launch') as HTMLButtonElement;
     const state=window as unknown as {settlingObserved:boolean;settlingWasGated:boolean};state.settlingObserved=false;state.settlingWasGated=false;

@@ -97,6 +97,16 @@ function floorSurface(x:number,z:number):SurfaceSample{
   if(r2>(STADIUM.railRadius-STADIUM.railNotchDepth)**2&&Math.sqrt(r2)>getRailRadiusAt(Math.atan2(z,x))){
     const c=nearestRailPlanar(x,z),d=-c.signedDistance;
     if(d>0){const u=clamp(d/STADIUM.bankTransitionWidth,0,1),blend=u*u*(3-2*u),derivative=6*u*(1-u)/STADIUM.bankTransitionWidth;
+      // Bank profile restored to the round-4 shape (crest, flat plateau,
+      // outer rise). An outward-falling apron was tried first for the
+      // exterior-pin report and REJECTED on measurement: it made the
+      // cover wall the lowest point outside the line, so any top that
+      // crossed out slid to the wall and could never re-enter -- the
+      // default matchup's median collapsed 24.0 s -> 7.2 s with most
+      // battles ending collision-free as the stranded top ground down.
+      // The pin is instead handled by the speed-gated gutter loss in
+      // applyExteriorGutterLoss, which leaves fast exterior tops (the
+      // ones that return or pocket) on this unchanged surface.
       const outer=Math.max(0,d-STADIUM.bankOuterSlopeStart),outerU=clamp(outer/STADIUM.bankTransitionWidth,0,1),outerBlend=outerU*outerU*(3-2*outerU),outerDerivative=6*outerU*(1-outerU)/STADIUM.bankTransitionWidth;
       const rise=blend*STADIUM.bankHeight+STADIUM.bankSlope*outer*outerBlend,gradient=derivative*STADIUM.bankHeight+STADIUM.bankSlope*(outerBlend+outer*outerDerivative);
       base+=rise;baseX-=c.normal.x*gradient;baseZ-=c.normal.z*gradient;}
@@ -404,6 +414,11 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // over roughly 1 s or more (band contact is concentrated early, while
   // the tops still carry tilt and closing speed). Direct callers (unit tests) omit the tick
   // and keep the un-windowed per-call behaviour.
+  // Exterior round tried 45% again and reverted it on measurement: in
+  // the app-default matchup (60% / 0 deg / 20 deg launches) it produced
+  // five bursts in 12 seeds, four of them under 5 s, and cut the median
+  // to ~10 s. The burst fixtures no longer need the higher rate -- they
+  // scan 48 seeds in-environment.
   if(tick!==undefined){
     if(t.lockWindowTick===undefined||tick-t.lockWindowTick>=120||tick<t.lockWindowTick){t.lockWindowTick=tick;t.lockWindowGain=0;}
     const budget=Math.max(0,.35*releaseAngle-(t.lockWindowGain??0));
@@ -682,11 +697,19 @@ function coverCenter(t:Top):Vec3{
   let local=geometryToCOM(p,V(0,y,0));if(isFragment(t))local=sub(local,t.componentLocalCenter);
   return add(position(t),rotate(t.orientation,local));
 }
-function staticCoverContact(t:Top,nearest:Vec3,envelope:number,restitution:number):void{
+function staticCoverContact(t:Top,nearest:Vec3,envelope:number,restitution:number,friction=0):void{
   const center=coverCenter(t),difference=sub(center,nearest),distance=norm(difference);if(distance>=envelope)return;
   const normal=unit(difference,V(0,t.vy>0?-1:1,0)),penetration=envelope-distance;
   t.x+=normal.x*penetration;t.y+=normal.y*penetration;t.z+=normal.z*penetration;
-  const r=sub(sub(coverCenter(t),position(t)),scale(normal,envelope)),vn=dot(pointVelocity(t,r),normal);if(vn<0)applyImpulse(t,scale(normal,-(1+restitution)*vn/contactMass(t,r,normal)),r);
+  const r=sub(sub(coverCenter(t),position(t)),scale(normal,envelope)),vn=dot(pointVelocity(t,r),normal);
+  if(vn<0){const jn=-(1+restitution)*vn/contactMass(t,r,normal);applyImpulse(t,scale(normal,jn),r);
+    // Tangential wall friction was tried at .18 for the exterior pin
+    // and REVERTED: wall contact is part of normal exterior play (a
+    // crossing top's blade ring brushes the wall), and braking it
+    // pulled wall-riders into early center clashes that tumbled them
+    // dead -- it cost the default matchup seconds per battle. The
+    // speed-gated gutter loss handles genuinely stranded tops alone.
+    if(friction>0){const after=pointVelocity(t,r),vt=sub(after,scale(normal,dot(after,normal))),speed=norm(vt);if(speed>1e-9){const direction=scale(vt,1/speed),jf=Math.min(speed/contactMass(t,r,direction),friction*jn);applyImpulse(t,scale(direction,-jf),r);}}}
 }
 function pocketSideContacts(t:Top,envelope:number):void{
   for(const p of STADIUM.pockets){
@@ -732,7 +755,15 @@ function stadium(t:PhysicsTop,battle:Battle,index:number,dt:number,eventTick:num
     const nearest=V(radial.x*STADIUM.coverRadius,clamp(center.y,STADIUM.bowlDepth,STADIUM.coverRoofHeight),radial.z*STADIUM.coverRadius);
     staticCoverContact(t,nearest,envelope,.35);
   }
-  if(t.pendingFinish){t.pocketRestTime=(t.pocketRestTime??0)+(Math.hypot(t.vx,t.vz)<.06?dt:0);if((t.pocketRestTime??0)>.12||t.rotationStopped)eliminated(t,t.pendingFinish,t.pocketEnteredTick??eventTick);}
+  if(t.pendingFinish){t.pocketRestTime=(t.pocketRestTime??0)+(Math.hypot(t.vx,t.vz)<.06?dt:0);
+    // Pocket residence (exterior fix): a body that entered whole and
+    // STAYS in the pocket is out, even if it keeps rattling -- the old
+    // rest-only timer let a top circle inside a pocket for 30+ s at
+    // full spin without ever being eliminated. One second of continuous
+    // residence (the entry itself already required the whole body past
+    // the rim at floor level) settles it; a top that pops back out
+    // within the second escapes, as before.
+    if((t.pocketRestTime??0)>.12||t.rotationStopped||eventTick-(t.pocketEnteredTick??eventTick)>=240)eliminated(t,t.pendingFinish,t.pocketEnteredTick??eventTick);}
   // Finite annular roof: the opening edge has a diagonal/radial normal, not an artificial vertical snap.
   const roofRadius=clamp(Math.hypot(center.x,center.z),STADIUM.launchOpeningRadius,STADIUM.coverRadius),radial=unit(V(center.x,0,center.z),V(1,0,0));
   staticCoverContact(t,V(radial.x*roofRadius,STADIUM.coverRoofHeight,radial.z*roofRadius),envelope,.15);
@@ -758,10 +789,32 @@ export function stepIsolatedTop(top:Top,dt=STEP):Top{
   for(let i=0;i<substeps&&!t.eliminated;i++){
     syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;
     t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-.25*h);
-    integrateFree(t,h);resolveFloor(t);applyTipRighting(t,h);
+    integrateFree(t,h);resolveFloor(t);applyTipRighting(t,h);applyExteriorGutterLoss(t,h);
     if(t.rotationStopped||t.omega*t.profile.spin<=0){t.rotationStopped=true;t.eliminated='spin';}
   }
   return t;
+}
+
+/** Exterior gutter loss (user report 2026-11-01: beys catch on the
+ * outside of the Xtreme Line): the measured pin was a SLOW top parked
+ * on the flat bank plateau -- friction arrest held it indefinitely
+ * (placed at r .213 it never resolved). Fast exterior tops were never
+ * the problem: on the round-4 bank they return over the crest or find
+ * a pocket mouth, and an outward-falling apron that drained them to
+ * the wall collapsed the default matchup's median from 24.0 s to
+ * 7.2 s (most battles ended collision-free). The loss is therefore
+ * SPEED-GATED: it applies only while the body's centre is outside the
+ * line AND its planar speed is under .25 m/s (genuinely stranded, not
+ * passing through), as a constant rub torque of 25 rad/s per second.
+ * A parked top is finished in ~10-15 s; a top still travelling keeps
+ * the round-4 exterior behaviour untouched. Pocket residents are
+ * handled by the residence rule instead. */
+function applyExteriorGutterLoss(t:PhysicsTop,h:number):void{
+  if(t.pendingFinish||t.rail.engaged)return;
+  if(Math.hypot(t.x,t.z)<=getRailRadiusAt(Math.atan2(t.z,t.x)))return;
+  if(Math.hypot(t.vx,t.vz)>.25)return;
+  const aw=Math.abs(t.omega);if(aw<1e-9)return;
+  const f=Math.max(0,aw-25*h)/aw;t.angularMomentum=scale(t.angularMomentum,f);syncDerived(t);
 }
 
 /** Sub-grid tip righting (round 4, 2026-10-31): a real rounded tip rolls
@@ -808,7 +861,7 @@ export function stepBattle(b:Battle,dt=STEP):Battle{
     // hard attack sequences still accumulate across clashes, while locks
     // loaded by soft meetings heal between them. The per-strike cap still
     // prevents any single hit from bursting.
-    for(const t of tops)if(!t.eliminated){syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-h/30);integrateFree(t,h);resolveFloor(t);applyTipRighting(t,h);}
+    for(const t of tops)if(!t.eliminated){syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-h/30);integrateFree(t,h);resolveFloor(t);applyTipRighting(t,h);applyExteriorGutterLoss(t,h);}
     if(!tops[0].eliminated&&!tops[1].eliminated){const j=resolveContact(tops[0],tops[1],true,b.tick);if(j>0)b.events.push({tick,kind:'collision',intensity:j,position:scale(add(position(tops[0]),position(tops[1])),.5)});}
     for(let n=0;n<2;n++){
       const t=tops[n];if(t.eliminated)continue;
