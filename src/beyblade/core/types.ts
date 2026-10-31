@@ -25,6 +25,8 @@ export interface Profile { name: string; type: BeyType; spin: 1 | -1; mass: numb
   bladeEdgeSharpness?:number; bladeThickness?:number; bladeHandedness?:1|-1;
   ratchetRadius?:number; ratchetCenterHeight?:number; ratchetHalfThickness?:number; ratchetLobes?:number; ratchetLobeDepth?:number; ratchetSkew?:number;
   bitHeightOffset?:number; gearTeeth?:number; gearEngagementBand?:number; bitDiscRadius?:number; bitDiscHeight?:number;
+  /** Gear Flat family: the gear teeth run down to the tip face (star tip). */
+  bitGearToTip?:boolean;
   /** False when actual integrated structure breakup is not modeled; never fabricate removable parts. */
   burstSeparationSupported?:boolean;
   componentMasses?:{blade:number;ratchet:number;bit:number};
@@ -48,6 +50,10 @@ export interface Top {
   lock:number; railCooldown:number; profile:Profile; eliminated:Finish|null;
   /** Detent loading rate-limit window (battle tick + radians gained inside it); see applyRatchetWork. */
   lockWindowTick?:number; lockWindowGain?:number;
+  /** Battle tick of this top's last blade contact (episode damping). */
+  contactTick?:number;
+  /** Battle tick when the current continuous contact episode began. */
+  contactStartTick?:number;
 }
 export type Finish = 'spin' | 'over' | 'burst' | 'xtreme';
 export interface BattleEvent { translationWork?:number;rotationWork?:number; tick: number; kind: 'collision' | 'rail' | 'rail-engage' | 'rail-release' | 'dash' | 'finish' | 'burst-split'; top?: number; intensity?: number; finish?: Finish; position?:Vec3; velocity?:Vec3; energyBefore?:number; energyAfter?:number; spinBefore?:number; spinAfter?:number; velocityBefore?:Vec3; velocityAfter?:Vec3; travel?:number }

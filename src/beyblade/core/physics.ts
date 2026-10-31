@@ -206,6 +206,11 @@ export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]
 /** Torque-free midpoint quaternion update: world L is fixed; ω follows changing R I⁻¹ Rᵀ. */
 export function integrateFree(t:Top,dt:number,gravity=true,drag=true):void{
   if(gravity)t.vy-=G*dt;
+  // Flight ceiling (round 4): nothing in this stadium legitimately sustains
+  // upward flight faster than ~1.6 m/s (a ~13 cm hop, near the cover roof);
+  // uncapped, rail/floor solves pumped tops to y ~ .19 m and held them
+  // there. Applied to fragments too (burst debris stays lively but sane).
+  if(t.vy>1.6)t.vy=1.6;
   if(drag)t.angularMomentum=scale(t.angularMomentum,Math.exp(-Math.max(0,t.profile.drag)*dt));
   const tensor=bodyTensor(t),tensorScale=Math.max(tensor.xx,tensor.yy,tensor.zz),symmetric=Math.abs(tensor.xx-tensor.zz)<=tensorScale*1e-12&&Math.max(Math.abs(tensor.xy),Math.abs(tensor.xz),Math.abs(tensor.yz))<=tensorScale*1e-12;
   if(symmetric){
@@ -268,7 +273,7 @@ export function resolveFloor(t:Top):number{
   // bleeds in proportion to the normal impulse (rolling-resistance style),
   // ~0.04 m/s^2 at rest load. Impulse-proportional, so it needs no dt and
   // stays consistent for direct resolveFloor callers.
-  if(impulse>0){const sp=Math.hypot(t.vx,t.vz);if(sp>1e-6){const dv=Math.min(sp,.006*impulse/p.mass),f=(sp-dv)/sp;t.vx*=f;t.vz*=f;}}
+  if(impulse>0){const sp=Math.hypot(t.vx,t.vz);if(sp>1e-6){const dv=Math.min(sp,.009*impulse/p.mass),f=(sp-dv)/sp;t.vx*=f;t.vz*=f;}}
   // The metal body can scrape the floor when tilted. Contact torque causes wobble/fall naturally.
   // Scrape friction recalibrated 2026-10-31: at the previous .28/.25 a 20°
   // launch preset lost ~58% of its spin in the first second and solo spin at
@@ -277,11 +282,25 @@ export function resolveFloor(t:Top):number{
   // plastic bowl, so their scrape coefficients now sit near .10/.09; the
   // contact geometry and trigger are unchanged. This is an estimate tuned
   // toward measured durations, not a measured friction coefficient.
-  if(t.tilt>.22||Math.hypot(t.x,t.z)+p.radius*(1+p.contactLobeDepth)>STADIUM.railRadius-STADIUM.railNotchDepth){const vertices=getBladeVertices(p,12);for(const vertex of vertices)impulse+=floorContact(t,vertex,0,.0005,.10);
-    const ratchet=getRatchetGeometry(p);for(const point of getRatchetOutline(p,8))impulse+=floorContact(t,geometryToCOM(p,V(point.x,ratchet.centerHeight-ratchet.halfThickness,point.z)),0,.0003,.09);
-    const bit=getBitGeometry(p);if(bit.discRadius>0)for(let i=0;i<8;i++){const a=i*Math.PI/4;impulse+=floorContact(t,geometryToCOM(p,V(bit.discRadius*Math.cos(a),bit.discHeight-bit.discHalfThickness,bit.discRadius*Math.sin(a))),0,.0004,p.tipFriction??p.grip);}
+  // Scrape engages only past ~26 deg of tilt, or when the blade envelope
+  // actually reaches the rail line (round 4 changes): the solver sustains
+  // 10-25 deg of precession tilt that a real top settles out of, and at
+  // the old triggers the blade vertices dragged almost continuously --
+  // spin accounting for a stamina mirror traced 304 of 420 rad/s lost in
+  // the wall zone (r > .17) via this branch's old radius trigger
+  // (railRadius - notchDepth), plus ~15 rad/s/s of mid-field tilt scrape.
+  // Below the triggers the edge is modelled as kissing the floor (the
+  // sampled vertices overstate penetration for a precessing top); a
+  // genuinely falling top still scrapes and dies.
+  if(t.tilt>.45||Math.hypot(t.x,t.z)+p.radius*(1+p.contactLobeDepth)>STADIUM.railRadius-.006){const vertices=getBladeVertices(p,12);for(const vertex of vertices)impulse+=floorContact(t,vertex,0,.0005,.05);
+    const ratchet=getRatchetGeometry(p);for(const point of getRatchetOutline(p,8))impulse+=floorContact(t,geometryToCOM(p,V(point.x,ratchet.centerHeight-ratchet.halfThickness,point.z)),0,.0003,.05);
     impulse+=floorContact(t,geometryToCOM(p,V(0,p.height*.82+bitHeightOffset(p)+.01,0)),0,.0005,.10);
   }
+  // Disc bits (DB/DS) are SUPPORTED by their disc at moderate tilt -- that
+  // is the part's purpose -- so the disc contact runs outside the scrape
+  // trigger above; its own penetration check gates it (round 4 fix: the
+  // raised scrape trigger had silently removed Disc Ball support).
+  {const bit=getBitGeometry(p);if(bit.discRadius>0)for(let i=0;i<8;i++){const a=i*Math.PI/4;impulse+=floorContact(t,geometryToCOM(p,V(bit.discRadius*Math.cos(a),bit.discHeight-bit.discHalfThickness,bit.discRadius*Math.sin(a))),0,.0004,p.tipFriction??p.grip);}}
   syncDerived(t);return impulse;
 }
 
@@ -304,7 +323,7 @@ function collisionNodes(t:Top):CollisionNode[]{
   return nodes;
 }
 /** Detent potential E=tau*theta with tau=.5*k*releaseAngle (constant-torque clicks; total barrier .5*k*releaseAngle² matches the lockBarrier estimate). Only dissipated contact work may enter this internal coordinate. */
-export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipation:number,tick?:number):number{
+export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipation:number,tick?:number,attackerSharpness=1):number{
   const release=angularImpulse*t.profile.spin;if(release<=0||availableDissipation<=0)return 0;
   const ratchet=getRatchetGeometry(t.profile),component=t.profile.massComponents?.find(c=>c.component==='ratchet'),relativeInertia=component?component.inertia.yy+component.mass*(component.center.x**2+component.center.z**2):.5*(t.profile.mass*.12)*ratchet.radius**2;
   const stiffness=t.profile.lockStiffness??.014,releaseAngle=t.profile.lockReleaseAngle??.24;
@@ -335,6 +354,24 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // strikes accumulate to a burst while the per-call cap
   // still bounds any single call.
   let work=Math.min(availableDissipation*.70,2.5*release*release/(2*relativeInertia),remaining);
+  // Strike-intensity scaling (round 4, 2026-10-31): the min() terms above
+  // saturate, so a gentle band graze twisted the lock as much as a dash
+  // slam and stamina mirrors burst each other in ~5 s of center contact.
+  // Scale the delivered work by the strike's dissipated energy against a
+  // 20 mJ reference (round 4 recalibration: the gentle-meeting softening
+  // had already cut band-strike dissipation to ~10-80 mJ, so the earlier
+  // 120 mJ reference double-counted the reduction and made bursts
+  // unreachable -- max lock peaked at 16-31% in attack matchups. Grazes
+  // at ~3-10 mJ still scale to .15-.5), floored at .15 so repeated real
+  // contacts still accumulate.
+  work*=clamp(availableDissipation/.02,.15,1);
+  // Attacker-geometry scaling (round 4): a burst is driven by the
+  // ATTACKING blade's recoil character. Smooth round stamina blades
+  // (edge sharpness ~.3) mostly glance and trade spin; sharp attack
+  // blades (~.7+) bite the lock. Scale by the attacker's sharpness so
+  // stamina mirrors stop bursting each other while attack builds keep
+  // their burst threat. Direct unit callers omit it (factor 1).
+  work*=clamp((attackerSharpness-.30)/.45,.08,1);
   // Per-strike twist cap (round 2, 2026-10-31): one strike can advance the
   // detent by at most 50% of the release angle, however large the clash.
   // Without it, a single dash-speed ratchet hit dissipating >=15 mJ filled
@@ -351,11 +388,16 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // above keeps sustained strikes accumulating instead of asymptoting.
   let newLock=Math.min(t.lock+work/resistingTorque,t.lock+.5*(releaseAngle-t.lock),releaseAngle);
   // Loading rate limit (round 3, 2026-10-31): when the caller supplies the
-  // battle tick, the detent can gain at most 30% of the release angle per
-  // 0.5 s window (lowered from 45% in the round-3 follow-up: with the
-  // deepened center dish, stamina mirrors now clash head-on at the bottom
-  // and two max-budget windows burst a Ball build in ~2 s; at 30% a burst
-  // needs hard engagements across roughly 1.5 s or more). A continuous contact calls this solver every tick, so
+  // battle tick, the detent can gain at most 12% of the release angle per
+  // 0.5 s window (round 4 final: 35%, after excursions to 45/30/20/16/12%:
+  // stamina mirrors kept bursting each other after ~10 s of repeated
+  // center meetings at the higher budgets, while at 12-22% bursts became
+  // unreachable everywhere -- traced attack battles loaded exactly one
+  // window's worth (22%) and never more, because the window binds only
+  // when strike work is plentiful. At 35% a burst needs ~3 hard-clash
+  // windows; gentle meetings stay protected by the work-size scaling
+  // (intensity + attacker sharpness) and tau ~30 s healing, not by the
+  // cap). A continuous contact calls this solver every tick, so
   // per-call caps alone cannot distinguish one long clash from many
   // separate strikes -- with the window, a single clash loads at most
   // ~45% however long it grinds, and a burst needs engagements spread
@@ -364,7 +406,7 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // and keep the un-windowed per-call behaviour.
   if(tick!==undefined){
     if(t.lockWindowTick===undefined||tick-t.lockWindowTick>=120||tick<t.lockWindowTick){t.lockWindowTick=tick;t.lockWindowGain=0;}
-    const budget=Math.max(0,.30*releaseAngle-(t.lockWindowGain??0));
+    const budget=Math.max(0,.35*releaseAngle-(t.lockWindowGain??0));
     newLock=Math.min(newLock,t.lock+budget);
     t.lockWindowGain=(t.lockWindowGain??0)+Math.max(0,newLock-t.lock);
   }
@@ -373,13 +415,12 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // work are all fractions of it), and traced locks asymptote at
   // 94-99% of release -- the last click is held by a fraction of a
   // millijoule that late, weak strikes never quite deliver. A real pawl
-  // at >85% engagement slips the final clicks under continued vibration,
-  // so a strike that pushes the lock past 85% of release completes it
-  // (raised from 80% with the 30% window above). The window budget bounds
-  // any first clash to ~30%, so the 85% threshold still requires
-  // engagements across three or more windows; traced peaks in aggressive
-  // matchups reach 84-99%.
-  if(newLock>.85*releaseAngle)newLock=releaseAngle;
+  // at high engagement slips the final clicks under continued vibration,
+  // so a strike that pushes the lock past 75% of release completes it
+  // (round 4: lowered from 85% via 80%; with the 35% window a first clash
+  // loads at most ~35%, so the threshold still requires engagements
+  // across at least three windows).
+  if(newLock>.75*releaseAngle)newLock=releaseAngle;
   work=resistingTorque*(newLock-t.lock);t.lock=newLock;return work;
 }
 export function contactRadius(t:Top,angle:number):number{const direction=inverseRotate(t.orientation,V(Math.cos(angle),0,Math.sin(angle)));const a=Math.atan2(direction.z,direction.x);return bladeRadiusAt(t.profile,a);}
@@ -405,11 +446,50 @@ export function resolveContact(a:Top,b:Top,loadLocks=true,tick?:number):number{
   if(Math.abs(rawN.y)>.5){const s=Math.sign(rawN.y),h=Math.hypot(rawN.x,rawN.z)||1,nh=Math.sqrt(1-.25);rawN.x=rawN.x/h*nh;rawN.z=rawN.z/h*nh;rawN.y=.5*s;}
   const n=rawN,contact=scale(add(pa,pb),.5);
   const originA=position(a),originB=position(b),ra=sub(contact,originA),rb=sub(contact,originB),invA=1/a.profile.mass,invB=1/b.profile.mass;
-  const correction=(reach-distance)*.8;
+  // Positional correction capped at 2 mm per call (round 4): the uncapped
+  // .8 * overlap form teleported deeply-overlapped tops apart at dash
+  // speeds, including vertical pops that launched tops to y ~ .19 m.
+  const correction=Math.min((reach-distance)*.8,.002);
   a.x-=n.x*correction*invA/(invA+invB);a.y-=n.y*correction*invA/(invA+invB);a.z-=n.z*correction*invA/(invA+invB);
   b.x+=n.x*correction*invB/(invA+invB);b.y+=n.y*correction*invB/(invA+invB);b.z+=n.z*correction*invB/(invA+invB);
   const relative=sub(pointVelocity(b,rb),pointVelocity(a,ra)),vn=dot(relative,n);
   if(vn>=0)return 0;
+  // Pre-contact state for the per-call violence caps below.
+  const preA={L:{...a.angularMomentum},vy:a.vy,grounded:a.y-bowlHeightAt(a.x,a.z)<.06},preB={L:{...b.angularMomentum},vy:b.vy,grounded:b.y-bowlHeightAt(b.x,b.z)<.06};
+  // Gentle-meeting softening (round 4, 2026-10-31): two stamina beys that
+  // have gathered at the center meet with centre-of-mass closing speeds
+  // under ~1.5 m/s, yet the rigid solve treated those grazes like dash
+  // slams -- measured 80-150 mJ dissipated per band call and stamina
+  // mirrors bursting in ~5 s. Restitution and blade friction below scale
+  // with the COM closing speed (full strength for genuine slams above
+  // ~2 m/s), so gentle meetings mostly graze while real attacks still hit.
+  const vnCom=dot(sub(velocity(b),velocity(a)),n),meetScale=clamp(Math.abs(vnCom)/2,.15,1);
+  // Contact-episode damping (round 4): a sustained contact is re-solved
+  // every substep, and each solve re-applied full friction -- measured
+  // ticks with contact draining 40-50% of a top's spin, where a real
+  // clash costs a few percent. Within an ongoing episode (pair contact
+  // within the last ~30 ms) friction is damped to .35x, and restitution
+  // only engages above 1.5 m/s of point normal speed (below that the
+  // contact is inelastic, so micro-bounces stop re-impulsing).
+  const episode=tick!==undefined&&a.contactTick!==undefined&&tick-a.contactTick<=7;
+  // Sustained gentle contact (an ongoing episode at low COM closing
+  // speed) is a bearing-like grind, not a series of impacts: two stamina
+  // beys resting against each other at the center exchanged almost no
+  // spin in reality, but the re-solved micro-impulses drained ~40 rad/s/s
+  // and killed stamina rounds in ~11 s. Such contacts get strongly
+  // damped friction and a softened normal impulse.
+  // Episode age: a contact that has been continuous for >~0.25 s is a
+  // resting grind; its impulses soften with age (see gentle below).
+  if(tick!==undefined&&(a.contactStartTick===undefined||tick-a.contactStartTick>7||(a.contactTick!==undefined&&tick-a.contactTick>7))){a.contactStartTick=tick;b.contactStartTick=tick;}
+  const episodeAge=tick!==undefined&&a.contactStartTick!==undefined?(tick-a.contactStartTick)/240:0;
+  const gentle=episode&&meetScale<.5,gentleAge=gentle?clamp(1-episodeAge*2.0,.3,1):1;
+  // Blade friction also scales with the pair's edge character (round 4):
+  // polished round stamina blades (sharpness ~.3) slide over each other,
+  // while sharp attack edges (~.7+) bite. Friction between two Arrow-class
+  // blades halves; attack matchups are unchanged.
+  const sharpScale=clamp(((a.profile.bladeEdgeSharpness??.5)+(b.profile.bladeEdgeSharpness??.5))/2/.6,.35,1);
+  const frictionScale=(gentle?.12*gentleAge:episode?.35:1)*sharpScale,restScale=clamp(Math.abs(vn)/1.5,0,1);
+  if(tick!==undefined){a.contactTick=tick;b.contactTick=tick;}
   // Single-strike impulse cap (round-2 addition, 2026-10-31): the rigid solve
   // uses point velocities, so a blade-tip strike can see ~15 m/s of closing
   // surface speed and one call dissipated 1.15 J — the pair's whole spin
@@ -419,7 +499,7 @@ export function resolveContact(a:Top,b:Top,loadLocks=true,tick?:number):number{
   // The cap 0.06 N*s is an explicit estimate: ordinary clashes measure
   // ~0.007 N*s and hard dash impacts stay under it, while the pathological
   // tip-strike value was 0.22 N*s.
-  const jn=Math.min(-(1+clamp(Math.min(a.profile.restitution,b.profile.restitution),0,1))*vn/(contactMass(a,ra,n)+contactMass(b,rb,n)),.06);
+  const jn=Math.min(-(1+clamp(Math.min(a.profile.restitution,b.profile.restitution),0,1)*meetScale*restScale)*vn/(contactMass(a,ra,n)+contactMass(b,rb,n)),.06)*(gentle?.55*gentleAge:1);
   let impulse=scale(n,jn);applyImpulse(a,scale(impulse,-1),ra);applyImpulse(b,impulse,rb);
   const after=sub(pointVelocity(b,rb),pointVelocity(a,ra)),vt=sub(after,scale(n,dot(after,n))),speed=norm(vt);
   // Blade-to-blade friction cap recalibrated 2026-10-31: at .25 of the normal
@@ -429,7 +509,20 @@ export function resolveContact(a:Top,b:Top,loadLocks=true,tick?:number):number{
   // contact is modelled with a .05 cap (round 2, was .07 in round 1); this is
   // an estimate tuned toward measured battle durations, not a measured
   // friction coefficient.
-  if(speed>1e-9){const tangent=scale(vt,1/speed),jt=Math.min(speed/(contactMass(a,ra,tangent)+contactMass(b,rb,tangent)),.05*jn),friction=scale(tangent,-jt);applyImpulse(a,scale(friction,-1),ra);applyImpulse(b,friction,rb);impulse=add(impulse,friction);}
+  if(speed>1e-9){const tangent=scale(vt,1/speed),jt=Math.min(speed/(contactMass(a,ra,tangent)+contactMass(b,rb,tangent)),.03*meetScale*frictionScale*jn),friction=scale(tangent,-jt);applyImpulse(a,scale(friction,-1),ra);applyImpulse(b,friction,rb);impulse=add(impulse,friction);}
+  // Per-call violence caps (round 4, 2026-10-31): a single node contact is
+  // a patch-limited strike; it cannot flip a top or throw it skyward.
+  // Traced failures without these caps: one clash flipped a top to 94 deg
+  // tilt and cut its spin 354 -> 74 rad/s (a 2.0 s 'spin' finish), and
+  // dash-speed overlaps popped a top toward y ~ .19 m (a 1.1 s double-exit
+  // draw). Cap the angular-velocity change per call at 100 rad/s, and a
+  // floor-supported top's upward velocity after the call at 1.2 m/s
+  // (~7 cm hop). Estimates, documented here and in physics.md.
+  for(const [t,pre] of [[a,preA],[b,preB]] as const){
+    const w0=inverseInertia(t,pre.L),w1=inverseInertia(t,t.angularMomentum),d=sub(w1,w0),dn=norm(d);
+    if(dn>100)t.angularMomentum=add(pre.L,scale(sub(t.angularMomentum,pre.L),100/dn));
+    if(pre.grounded)t.vy=Math.min(t.vy,1.2);
+  }
   let dissipated=Math.max(0,energyBefore-kineticEnergy(a)-kineticEnergy(b));
   // Blade impacts do not become generic burst damage. The detent is loaded
   // only by strikes that land at ratchet level: either the deepest pair is an
@@ -439,14 +532,28 @@ export function resolveContact(a:Top,b:Top,loadLocks=true,tick?:number):number{
   // always overlap deeper — so the node-only rule made legal-launch bursts
   // practically impossible, while real bursts are core Beyblade X mechanics
   // driven by low strikes transmitted to the lock through the assembly.
-  // High blade hits above the band still never load the detent. There is no
-  // per-event dissipation gate: per-call dissipation is usually far below
-  // 0.15 mJ even in long battles (only one call in a traced 30 s battle
-  // exceeded it), so accumulation across many band strikes — bounded by the
-  // per-strike twist cap — is the intended path to release.
-  const atRatchetBand=(victim:Top,kind:string)=>{if(kind==='ratchet')return true;const g=getRatchetGeometry(victim.profile),centre=add(position(victim),rotate(victim.orientation,geometryToCOM(victim.profile,V(0,g.centerHeight,0))));return Math.abs(contact.y-centre.y)<=g.halfThickness+.008;};
-  if(loadLocks&&atRatchetBand(a,nodeA.kind)&&!isFragment(a)){const work=applyRatchetWork(a,-ratchetImpulseTwist(a,contact,scale(impulse,-1),originA),nodeB.kind==='ratchet'?dissipated/2:dissipated,tick);dissipated-=work;}
-  if(loadLocks&&atRatchetBand(b,nodeB.kind)&&!isFragment(b))applyRatchetWork(b,-ratchetImpulseTwist(b,contact,impulse,originB),dissipated,tick);
+  // High blade hits above the band still never load the detent. Lock work
+  // is intensity-scaled inside applyRatchetWork (round 4): measured
+  // per-call dissipation spans ~3 mJ (gentle center grazes, after the
+  // meetScale softening) to ~600 mJ (dash slams), and the twist a strike
+  // delivers scales across that range instead of saturating on any touch.
+  // Band test returns 0 (no load), 1 (core band: at the ratchet's own
+  // height) or 2 (extended zone: up to the blade's lower half). Round 4
+  // re-broadened the zone: with tops now running upright (tip righting),
+  // blade contacts sit at blade height and the old +-10.5 mm band around
+  // the ratchet centre almost never triggered -- 2 band calls in a 30 s
+  // attack battle, max lock 22%, bursts unreachable. Real bursts ARE
+  // driven by strikes transmitted through the assembly, so extended-zone
+  // hits load the lock at a .55 transmission factor.
+  const atRatchetBand=(victim:Top,kind:string)=>{if(kind==='ratchet')return 1;const g=getRatchetGeometry(victim.profile),centre=add(position(victim),rotate(victim.orientation,geometryToCOM(victim.profile,V(0,g.centerHeight,0))));const dy=contact.y-centre.y;if(Math.abs(dy)<=g.halfThickness+.008)return 1;return dy>0&&dy<=g.halfThickness+.016?2:0;};
+  const bandA=atRatchetBand(a,nodeA.kind),bandB=atRatchetBand(b,nodeB.kind);
+  // Extended-zone transmission is gated on strike intensity (>= 40 mJ
+  // dissipated): dash slams transmit through the assembly, gentle center
+  // meetings do not -- ungated transmission made stamina mirrors burst
+  // each other again within ~5-12 s (round-4 regression check).
+  const extA=bandA===2?(dissipated>=.04?.55:0):1,extB=bandB===2?(dissipated>=.04?.55:0):1;
+  if(loadLocks&&bandA&&extA>0&&!isFragment(a)){const work=applyRatchetWork(a,-ratchetImpulseTwist(a,contact,scale(impulse,-1),originA),(nodeB.kind==='ratchet'?dissipated/2:dissipated)*extA,tick,b.profile.bladeEdgeSharpness??1);dissipated-=work;}
+  if(loadLocks&&bandB&&extB>0&&!isFragment(b))applyRatchetWork(b,-ratchetImpulseTwist(b,contact,impulse,originB),dissipated*extB,tick,a.profile.bladeEdgeSharpness??1);
   return jn;
 }
 
@@ -507,7 +614,10 @@ export function engageRail(t:Top,nx:number,nz:number):number{
  */
 function applyRailContact(t:Top,m:GearManifold,meshRequested:boolean):{mesh:boolean;gearImpulse:number;translationWork:number;rotationWork:number}{
   if(m.gap>.00005)return{mesh:false,gearImpulse:0,translationWork:0,rotationWork:0};
-  if(m.gap<0){t.x-=m.normal.x*m.gap;t.y-=m.normal.y*m.gap;t.z-=m.normal.z*m.gap;}
+  // Correction capped at 2 mm per call (round 4), as in resolveContact:
+  // deep gear overlaps at dash speed otherwise teleport the top, with a
+  // large vertical pop from the bank normal.
+  if(m.gap<0){const c=Math.min(-m.gap,.002);t.x+=m.normal.x*c;t.y+=m.normal.y*c;t.z+=m.normal.z*c;}
   const n=m.normal,r=m.r,v=pointVelocity(t,r),vn=dot(v,n),knn=contactMass(t,r,n);let jn=Math.max(0,-vn/knn),jt=0;
   const tangent=unit(sub(m.rail.tangent,scale(n,dot(m.rail.tangent,n))));
   if(meshRequested){
@@ -524,7 +634,7 @@ function applyRailContact(t:Top,m:GearManifold,meshRequested:boolean):{mesh:bool
     // Geometric rolling contact persists even when matched velocity needs zero impulse.
     return{mesh:true,gearImpulse:Math.abs(jt),translationWork:translationAfter-translationBefore,rotationWork:rotationAfter-rotationBefore};
   }
-  if(jn>0){applyImpulse(t,scale(n,jn),r);const after=pointVelocity(t,r),vt=sub(after,scale(n,dot(after,n))),speed=norm(vt);if(speed>1e-9){const direction=scale(vt,1/speed),friction=Math.min(speed/contactMass(t,r,direction),.25*jn);applyImpulse(t,scale(direction,-friction),r);}}
+  if(jn>0){applyImpulse(t,scale(n,jn),r);const after=pointVelocity(t,r),vt=sub(after,scale(n,dot(after,n))),speed=norm(vt);if(speed>1e-9){const direction=scale(vt,1/speed),friction=Math.min(speed/contactMass(t,r,direction),.12*jn);applyImpulse(t,scale(direction,-friction),r);}}
   return{mesh:false,gearImpulse:0,translationWork:0,rotationWork:0};
 }
 export function resolveRailSolid(t:Top):boolean{
@@ -609,7 +719,11 @@ function stadium(t:PhysicsTop,battle:Battle,index:number,dt:number,eventTick:num
   }
   if(pocket){
     const outward=V(Math.cos(pocket.angle),0,Math.sin(pocket.angle)),along=center.x*outward.x+center.z*outward.z,across=-center.x*outward.z+center.z*outward.x,width=STADIUM.radius*Math.sin(pocket.halfWidth);
-    if(along>STADIUM.radius&&!t.pendingFinish&&getWorldBodyVertices(t).every(v=>v.x*outward.x+v.z*outward.z>STADIUM.radius&&Math.abs(-v.x*outward.z+v.z*outward.x)<=width+.0001)){t.pendingFinish=pocket.finish;t.pocketEnteredTick=eventTick;t.pocketRestTime=0;}
+    // Pocket entry is a floor-level event (round 4): the whole body must be
+    // past the rim AND the body's lowest point within 30 mm of the local
+    // floor. The planar-only test let tops sailing at y ~ .15-.19 m score
+    // over finishes mid-flight, producing ~1 s double-exit draws.
+    if(along>STADIUM.radius&&!t.pendingFinish){const vertices=getWorldBodyVertices(t),floorY=pocketFloorAt(center.x,center.z)??bowlHeightAt(center.x,center.z),lowY=Math.min(...vertices.map(v=>v.y));if(lowY<=floorY+.03&&vertices.every(v=>v.x*outward.x+v.z*outward.z>STADIUM.radius&&Math.abs(-v.x*outward.z+v.z*outward.x)<=width+.0001)){t.pendingFinish=pocket.finish;t.pocketEnteredTick=eventTick;t.pocketRestTime=0;}}
     // A physical pocket has an outer back wall. Changing azimuth never warps a body to the bowl rim.
     if(along+envelope>STADIUM.pocketOuterRadius){const correction=along+envelope-STADIUM.pocketOuterRadius;t.x-=outward.x*correction;t.z-=outward.z*correction;const normal=scale(outward,-1),r=add(sub(coverCenter(t),position(t)),scale(outward,envelope)),vn=dot(pointVelocity(t,r),normal);if(vn<0)applyImpulse(t,scale(normal,-1.25*vn/contactMass(t,r,normal)),r);}
   }else{
@@ -644,12 +758,42 @@ export function stepIsolatedTop(top:Top,dt=STEP):Top{
   for(let i=0;i<substeps&&!t.eliminated;i++){
     syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;
     t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-.25*h);
-    integrateFree(t,h);resolveFloor(t);
+    integrateFree(t,h);resolveFloor(t);applyTipRighting(t,h);
     if(t.rotationStopped||t.omega*t.profile.spin<=0){t.rotationStopped=true;t.eliminated='spin';}
   }
   return t;
 }
 
+/** Sub-grid tip righting (round 4, 2026-10-31): a real rounded tip rolls
+ * the body axis back toward vertical while the top sleeps -- measured real
+ * beys settle from a banked launch to within a few degrees in ~2 s. The
+ * rigid solver instead held 10-30 deg of tilt indefinitely (a solo top
+ * stuck at ~10 deg on the dish slope; stamina beys at 15-30 deg all
+ * battle), and the tilted running scraped spin away at ~15 rad/s/s, so
+ * stamina rounds died in ~10 s despite >400 s of solo spin. While a top
+ * is floor-supported and spinning, rotate its axis toward vertical with
+ * a ~0.25 s time constant scaled by spin (rate 4.0/s: the solver's own
+ * precession attractor holds 10-30 deg even at the flat center, so the
+ * sub-grid term has to be assertive to reproduce the measured settling;
+ * clashes still re-tilt freely between calm phases). World angular
+ * momentum is kept; this models the tip geometry the point/patch
+ * contact cannot express. */
+export function applyTipRighting(t:Top,dt:number):void{
+  if(Math.abs(t.omega)<50||t.vy>1.5||t.y-bowlHeightAt(t.x,t.z)>.06)return;
+  const axis=bodyAxis(t),tiltAngle=Math.acos(clamp(axis.y,-1,1));
+  if(tiltAngle<.005)return;
+  const strength=clamp(Math.abs(t.omega)/350,.2,1),dA=tiltAngle*(1-Math.exp(-dt*4.0*strength));
+  const k=cross(axis,V(0,1,0)),kn=norm(k);if(kn<1e-6)return;
+  // Energy-neutral: rotating the axis at fixed world L would change the
+  // kinetic energy of an anisotropic body (the preset energy-closure
+  // test caught a ~1.3% injection). Rescale L so the rotation itself
+  // does no work; the floor contact remains the only energy source/sink.
+  const keBefore=.5*dot(t.angularMomentum,inverseInertia(t,t.angularMomentum));
+  t.orientation=normalized(multiply(rotationVector(scale(k,dA/kn)),t.orientation));
+  syncDerived(t);
+  const keAfter=.5*dot(t.angularMomentum,inverseInertia(t,t.angularMomentum));
+  if(keBefore>1e-12&&keAfter>1e-12){t.angularMomentum=scale(t.angularMomentum,Math.sqrt(keBefore/keAfter));syncDerived(t);}
+}
 export function stepBattle(b:Battle,dt=STEP):Battle{
   if(!Number.isFinite(dt)||dt<=0||dt>STEP+1e-10)throw new Error('Use fixed steps <= STEP');if(b.result)return stepSettlingBattle(b,dt);
   b.tick++;
@@ -659,11 +803,12 @@ export function stepBattle(b:Battle,dt=STEP):Battle{
   for(let i=0;i<substeps&&!b.result;i++){
     const tick=b.tick-1+(i+1)/substeps,tops=b.tops as [PhysicsTop,PhysicsTop];
     // Detent twist decay: tau was 4 s, which erased accumulated twist between
-    // clashes. A real burst lock does not heal between hits; loosening
-    // accumulates over the round. Round 2 (2026-10-31) slows the decay to
-    // tau ~60 s so repeated strikes across a long battle can reach release,
-    // while the per-strike cap still prevents any single hit from bursting.
-    for(const t of tops)if(!t.eliminated){syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-h/60);integrateFree(t,h);resolveFloor(t);}
+    // clashes, then ~60 s (round 2), which let gentle stamina meetings
+    // accumulate to a burst over ~10 s of contact. Round 4 sets tau ~30 s:
+    // hard attack sequences still accumulate across clashes, while locks
+    // loaded by soft meetings heal between them. The per-strike cap still
+    // prevents any single hit from bursting.
+    for(const t of tops)if(!t.eliminated){syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-h/30);integrateFree(t,h);resolveFloor(t);applyTipRighting(t,h);}
     if(!tops[0].eliminated&&!tops[1].eliminated){const j=resolveContact(tops[0],tops[1],true,b.tick);if(j>0)b.events.push({tick,kind:'collision',intensity:j,position:scale(add(position(tops[0]),position(tops[1])),.5)});}
     for(let n=0;n<2;n++){
       const t=tops[n];if(t.eliminated)continue;

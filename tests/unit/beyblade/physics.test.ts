@@ -210,7 +210,13 @@ describe('finish arbitration and replay bounds',()=>{
       const next=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);expect(next).toBeLessThanOrEqual(energy+state.tops.reduce((m,t)=>m+t.profile.mass,0)*9.81*.001);energy=next;
     }
     expect(state.result).not.toBe(null);
-  },20000);
+    // Timeout 20 s -> 40 s (2026-10-31, round 4): the assertion set is
+    // unchanged, but round-4 battles run longer by design, so this
+    // per-tick movement/energy audit simulates more ticks and exceeded
+    // 20 s of wall time under full-suite parallel load (23.3 s locally;
+    // it passes standalone). Same adjustment as the opposite-spin test
+    // below.
+  },40000);
   it('pocket drop and reverse climb follow a continuous surface with its actual slope normal',()=>{
     // This sample lies at a C1 bank/ramp join. Refine the finite difference rather than relax tolerance.
     const z=STADIUM.pocketEntryRadius+STADIUM.pocketRampLength/2,e=.0000001;
@@ -235,7 +241,10 @@ describe('finish arbitration and replay bounds',()=>{
       for(const t of state.tops){for(const key of ['x','y','z','vx','vy','vz','omega','tilt']as const)expect(Number.isFinite(t[key])).toBe(true);expect(qnorm(t)).toBeCloseTo(1,11);expect(t.y).toBeLessThan(.17);}
       if(state.events.some(e=>e.finish==='burst'))expect(state.events.some(e=>e.kind==='collision')).toBe(true);
     }
-  },20000);
+    // Timeout 20 s -> 40 s (2026-10-31, round 4): assertions unchanged;
+    // six 8 s simulations exceeded 20 s wall under full-suite load with
+    // the longer round-4 battles (passes standalone).
+  },40000);
 });
 
 

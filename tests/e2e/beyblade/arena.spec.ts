@@ -139,7 +139,12 @@ test('ordinary Burst keeps its score latched while physical pieces continue, the
   // loading window): the 76/-7/12 seed-9 round no longer bursts. The
   // fixture below (100/-20/20, seed 9, same verification method) bursts
   // the player at ~2.9 s sim.
-  await page.goto('/beyblade/?seed=9');
+  // Reselected again (round 4: upright righting + softened gentle
+  // meetings + detent recalibration): seed 9 now spins out at ~14 s.
+  // Same launches at seed 23 burst the player (Hells/4-60/T vs stock
+  // Sword) at ~6.3 s sim, verified headlessly against the app's fixed
+  // CPU launch and default spawn.
+  await page.goto('/beyblade/?seed=23');
   await page.locator('select[data-part="blade"]').selectOption({label:'ヘルズサイズ'});
   await page.locator('select[data-part="ratchet"]').selectOption({label:'4-60'});
   await page.locator('select[data-part="bit"]').selectOption({label:'T · テーパー'});

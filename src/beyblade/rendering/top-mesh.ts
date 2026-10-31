@@ -159,6 +159,21 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
     }
     const geometry = new THREE.ExtrudeGeometry(discShape, { depth: bit.discHalfThickness * 2 - .0004, bevelEnabled: true, bevelThickness: .0002, bevelSize: .0002, bevelSegments: 1, curveSegments: 24 }); geometry.rotateX(-Math.PI / 2); geometry.translate(0, bit.discHeight - bit.discHalfThickness + .0002, 0); group.add(mesh(geometry, palette.bit, .4, .1));
   }
+  // Gear Flat (round 4): the gear teeth run all the way down to the tip
+  // face, so the tip itself is a star prism instead of a clean disc --
+  // the real GF's most recognisable silhouette feature.
+  if (profile.bitGearToTip) {
+    const starShape = new THREE.Shape();
+    for (let tooth = 0; tooth < bit.gearTeeth; tooth++) {
+      const pitch = Math.PI * 2 / bit.gearTeeth, a0 = tooth * pitch;
+      const corners: [number, number][] = [[a0, bit.tipRadius * .78], [a0 + pitch * .34, bit.tipRadius], [a0 + pitch * .66, bit.tipRadius], [a0 + pitch * .80, bit.tipRadius * .78]];
+      for (const [a, r] of corners) { const x = Math.cos(a) * r, y = Math.sin(a) * r; if (tooth === 0 && a === a0 && starShape.curves.length === 0) starShape.moveTo(x, y); else starShape.lineTo(x, y); }
+    }
+    starShape.closePath();
+    const starGeometry = new THREE.ExtrudeGeometry(starShape, { depth: .0018, bevelEnabled: false });
+    starGeometry.rotateX(-Math.PI / 2); starGeometry.translate(0, .0018, 0);
+    group.add(mesh(starGeometry, palette.bit, .42, .1));
+  }
   // Shaft and tip as one lathe per tip family, from the floor up to the gear.
   const gearBottom = bit.gearHeight - gearThickness / 2, L = bit.tipLength, tipR = bit.tipRadius, bodyR = bit.bodyRadius;
   if (bit.tipShape === 'ball') {
@@ -166,7 +181,7 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
     const neck = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius * .75, Math.max(.0005, gearBottom - bit.tipRadius * .8), 28), palette.bit, .4, .08); neck.position.y = (gearBottom + bit.tipRadius * .8) / 2; group.add(neck);
   } else {
     const profiles: Record<string, [number, number][]> = {
-      flat: [[tipR, 0], [tipR, .0015], [bodyR * .8, L * .6], [bodyR, L], [bodyR, gearBottom]],
+      flat: profile.bitGearToTip ? [[tipR * .8, .0018], [tipR * .8, .0026], [bodyR * .8, L * .6], [bodyR, L], [bodyR, gearBottom]] : [[tipR, 0], [tipR, .0015], [bodyR * .8, L * .6], [bodyR, L], [bodyR, gearBottom]],
       needle: [[.00035, 0], [tipR * .9, .0018], [bodyR * .72, L * .7], [bodyR, L], [bodyR, gearBottom]],
       taper: [[tipR, 0], [tipR * 1.1, L * .3], [bodyR * .82, L * .75], [bodyR, L], [bodyR, gearBottom]],
     };

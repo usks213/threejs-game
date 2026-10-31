@@ -43,39 +43,34 @@ describe('physical burst partition and unscored observation',()=>{
   },30000);
   it('splits an actual legal-launch burst and visibly separates component centres under physics',()=>{
     const cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
-    // Fixture reselection (2026-10-31, round 2): the previous single launch
-    // pair was knife-edge — it burst locally but spun in CI under the old
-    // physics, and after the duration recalibration it no longer bursts at
-    // all (the two tops meet only once in 30 s, while a burst now needs
-    // repeated ratchet-band strikes). No single legal launch bursts robustly
-    // in this chaotic 240 Hz solver, so the test deterministically selects
-    // the first pair from this fixed list of legal launches that produces a
-    // genuine burst in the current physics, then asserts on that real
-    // battle exactly as before. If no pair bursts, the test fails: burst
-    // reachability from legal launches stays covered.
+    // Fixture reselection (2026-10-31, round 4): the round-4 physics
+    // (upright righting, gentle-meeting softening, detent recalibration)
+    // killed every previous candidate -- an intermediate detent state
+    // produced ZERO bursts in 144 scanned battles before the band zone
+    // was re-broadened and the loading window restored to 35%. No single
+    // legal launch bursts robustly in this chaotic 240 Hz solver, so the
+    // test deterministically selects the first candidate from this fixed
+    // list that produces a genuine burst in the current physics, then
+    // asserts on that real battle exactly as before. If none bursts, the
+    // test fails: burst reachability from legal launches stays covered.
+    // Measured burst rates in this matchup (24 seeds/pair): .76/-7/12
+    // 4/24, .9/-30/25 3/16 -- bursts are occasional by design now, so the
+    // candidate list carries eight seeds; CI needs only one to survive
+    // its FP environment. Re-verified against the final round-4 detent
+    // calibration: seed 9 bursts at ~6.5 s, seed 23 at ~6.3 s, seed 24
+    // at ~12.8 s (the remaining candidates burst under the same round's
+    // earlier calibration and are kept as fallbacks).
     const D=Math.PI/180,pairs:{launches:[{power:number,angle:number,tilt:number},{power:number,angle:number,tilt:number}],seed?:number}[]=[
+      {launches:[{power:.9,angle:-30*D,tilt:25*D},{power:.76,angle:-.12,tilt:.11}],seed:9},
+      {launches:[{power:1,angle:-20*D,tilt:20*D},{power:.76,angle:-.12,tilt:.11}],seed:23},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:24},
+      {launches:[{power:.9,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:2},
+      {launches:[{power:.9,angle:-30*D,tilt:25*D},{power:.76,angle:-.12,tilt:.11}],seed:16},
+      {launches:[{power:.9,angle:-30*D,tilt:25*D},{power:.76,angle:-.12,tilt:.11}],seed:6},
+      {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:17},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:7},
       {launches:[{power:1,angle:-50*D,tilt:37*D},{power:.76,angle:-30*D,tilt:25*D}]},
       {launches:[{power:.85,angle:-50*D,tilt:37*D},{power:.76,angle:-.12,tilt:.11}]},
-      {launches:[{power:.85,angle:-70*D,tilt:37*D},{power:.76,angle:-.12,tilt:.11}]},
-      {launches:[{power:.7,angle:-50*D,tilt:30*D},{power:.9,angle:-7*D,tilt:11*D}]},
-      {launches:[{power:.85,angle:-90*D,tilt:30*D},{power:.9,angle:-7*D,tilt:11*D}]},
-      {launches:[{power:1,angle:-90*D,tilt:37*D},{power:.9,angle:-7*D,tilt:11*D}]},
-      {launches:[{power:.5,angle:-50*D,tilt:30*D},{power:.76,angle:-.12,tilt:.11}]},
-      // Round-3 detent (rate-limited lock loading): bursts now need band
-      // engagements spread over several 0.5 s windows, which the seeded
-      // rounds the game itself plays provide. Seeded candidates measured
-      // bursting under the current physics are tried after the seedless
-      // pairs (mirror seed 14 at ~2.5 s, seed 8 at ~4.3 s).
-      // Reselected again (round-3 follow-up, deepened center dish + 30%
-      // loading window): the seed 14/8/9/1 candidates no longer burst.
-      // Verified bursting now: mirror seed 24 at ~3.3 s and the .9-power
-      // seeded pair seed 7 at ~7.8 s (scan of seeds 1-40, this matchup).
-      {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:24},
-      {launches:[{power:.9,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:7},
-      {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:14},
-      {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:8},
-      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:9},
-      {launches:[{power:.9,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:1},
     ];
     let b:ReturnType<typeof createBattle>|null=null;
     for(const c of pairs){const candidate=createBattle([profileFor(defaultBuild),cpu],c.launches,c.seed??0);for(let i=0;i<240*15&&!candidate.result;i++)stepBattle(candidate);if(candidate.result?.finish==='burst'){b=candidate;break;}}

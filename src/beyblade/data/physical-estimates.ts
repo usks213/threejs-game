@@ -109,7 +109,16 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const sharedBusterOutline=['blade:ad2b5f965feb','blade:8ee8d8c3477d'].includes(blade.part.id);
   const ga=sharedBusterOutline?.70:ba,gd=sharedBusterOutline?.20:bd,gs=sharedBusterOutline?.10:bs;
   const contactLobes=(shapeImplemented?form?.implemented_geometry?.contactLobes??form?.facts.contact_count:null)??geometry?.primaryAttackPoints??({attack:3,defense:6,stamina:2,balance:4}[blade.part.type]);
-  const contactLobeDepth=form?.implemented_geometry?.smoothCircle&&shapeImplemented?0:clamp((geometry?.lobeDepthRatio??.10)+.10*(ga-.33)-.035*(gd-.33),.025,.30);
+  let contactLobeDepth=form?.implemented_geometry?.smoothCircle&&shapeImplemented?0:clamp((geometry?.lobeDepthRatio??.10)+.10*(ga-.33)-.035*(gd-.33),.025,.30);
+  // Researched silhouette depths (round 4, 2026-10-31; Beyblade Wiki part
+  // descriptions): the ratings-derived depth made the flagship blades read
+  // as generic wavy discs -- Wizard Arrow's two main blades were only 5%
+  // deep. These overrides set the radial gap depth per blade from its
+  // real silhouette (Arrow: two large blades; Sword/Phoenix: deep attack
+  // gaps; Hells: round body with moderate blade relief; Rod: near-circle;
+  // Knight Shield: near-circle with six bumps).
+  const lobeDepthOverride:Record<string,number>={'ウィザードアロー':.12,'ヘルズサイズ':.11,'ドランソード':.20,'フェニックスウイング':.20,'ウィザードロッド':.035,'ナイトシールド':.05};
+  if(blade.part.canonicalId&&lobeDepthOverride[blade.part.canonicalId]!==undefined)contactLobeDepth=lobeDepthOverride[blade.part.canonicalId];
   const outerRadius=.0265*(geometry?.radiusScale??1)*clamp(.97+.04*ga+.04*gs,.96,1.08);
   const radius=outerRadius/(1+contactLobeDepth);
   const bladeMass=bladeMeasured?bladeMeasured.adoptedGrams/1000:clamp((.026+.004*(bd-.35)+.002*(ba-.30)+.0015*(bs-.35))*(geometry?.massScale??1),.023,.035);
@@ -122,7 +131,9 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const ratchetLobes=lobesMatch?Number(lobesMatch[1]):4;
   const ratchetKnown=Boolean(ratchet&&ratchetShapeFacts.some(f=>f.count===ratchetLobes));
   const ratchetRadius=clamp(.0153+.004*(ra-.11)-.002*(rd-.13)+(ratchetLobes===5?.001:ratchetLobes===8?.0013:0),.014,.019);
-  const ratchetLobeDepth=ratchetLobes===0?0:clamp(.035+.45*ra-.16*rd,.025,.15);
+  // 9-60 override (round 4): only 3 of its 9 points protrude materially;
+  // the real disc reads as a near-round ring, not a 9-point star.
+  const ratchetLobeDepth=ratchetCode==='9-60'?.03:ratchetLobes===0?0:clamp(.035+.45*ra-.16*rd,.025,.15);
   const left=ratchet?.part.ratingsVariants?.find(v=>v.condition==='left_spin')?.ratings;
   const right=ratchet?.part.ratingsVariants?.find(v=>v.condition==='right_spin')?.ratings;
   const ratchetSkew=left?.attack!=null&&right?.attack!=null?clamp((left.attack-right.attack)/100,-.15,.15):.08;
@@ -165,7 +176,7 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const coat=blade.part.name.match(/メタルコート[:：]([^\s]+)/)?.[1];if(coat&&namedColors[coat])palette.metal=namedColors[coat];
   const profile:Profile={name:`${blade.part.name} ${ratchet?.part.name??''}${code}`,type:blade.part.type,spin,color,mass,burstSeparationSupported,componentMasses,componentAxialWeights,radius,inertia,transverseInertia,centerOfMassHeight,height,
     grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.30,burstThreshold:.026,
-    lockStiffness,lockReleaseAngle,gearRadius,gearHeight:.007,railEligible:true,railGrip:clamp(.55+.65*dash,.55,.94),gearTeeth,gearEngagementBand,bitHeightOffset,bitDiscRadius,bitDiscHeight:.005,bladeHandedness:form?.facts.spin===-1?-1:form?.facts.spin===1?1:spin,
+    lockStiffness,lockReleaseAngle,gearRadius,gearHeight:.007,railEligible:true,railGrip:clamp(.55+.65*dash,.55,.94),gearTeeth,gearEngagementBand,bitHeightOffset,bitDiscRadius,bitDiscHeight:.005,bitGearToTip:code==='GF',bladeHandedness:form?.facts.spin===-1?-1:form?.facts.spin===1?1:spin,
     ratchetRadius,ratchetCenterHeight,ratchetHalfThickness:.0025+ratchetHeightOffset*.10,ratchetLobes,ratchetLobeDepth,ratchetSkew,
     contactLobes,contactLobeDepth,bladeStyle,bladeEdgeSharpness:clamp(.3+.6*ga-.2*gd,.15,.85),bladeThickness:.0085+(geometry?.massScale??1)*.0005+.001*(gd-.35),
     bladeRampAmplitude:typeof geometry?.rakeSign==='number'?geometry.rakeSign*(.0011+.0012*ga):0,

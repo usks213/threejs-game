@@ -19,9 +19,19 @@ export function bladeRadiusAt(profile:Profile,angle:number):number{
   // Source-informed families, explicitly estimated contours. The same function drives display and contact samples.
   switch(profile.bladeStyle){
     case 'single-sword':wave=contourAt(phase,[[-Math.PI,-.35],[-2.35,.15],[-1.7,-.55],[-.78,.35],[-.4,-1],[0,1],[.4,-1],[.78,.35],[1.7,-.55],[2.35,.15],[Math.PI,-.35]]);break;
-    case 'sword':case 'uppercut':wave=contourAt(phase,[[-Math.PI,-.65],[-2.1,-.8],[-.8,-.5],[.15,.15],[.85,1],[1.05,-.75],[2.1,-.95],[Math.PI,-.65]]);break;
-    case 'scythe':case 'smash':wave=contourAt(phase,[[-Math.PI,-.55],[-2.0,-.8],[-.6,-.15],[.35,.6],[1.0,1],[1.25,-.65],[2.4,-.75],[Math.PI,-.55]]);break;
-    case 'broad-wing':wave=contourAt(phase,[[-Math.PI,-.75],[-2.2,-.65],[-1,.15],[.35,.8],[1,1],[1.15,-.9],[2.4,-.85],[Math.PI,-.75]]);break;
+    // Sword family (round 4, from Beyblade Wiki part descriptions): a broad
+    // sword body rising to a plateau, then a small protruding sub-blade at
+    // the leading edge (the real main contact) with a sheer drop behind it.
+    case 'sword':case 'uppercut':wave=contourAt(phase,[[-Math.PI,-.7],[-2.2,-.85],[-1.1,-.45],[-.2,.3],[.45,.55],[.8,1],[1.0,-.7],[2.2,-.95],[Math.PI,-.7]]);break;
+    // Scythe family (round 4): a mostly round body, one blade peak per
+    // lobe, and the small notch at the blade's base on its trailing side
+    // (the hook that gives Hells Scythe its recoil), then a long shallow
+    // fall back to the round body.
+    case 'scythe':case 'smash':wave=contourAt(phase,[[-Math.PI,-.5],[-2.0,-.7],[-.7,-.1],[.3,.55],[.95,1],[1.15,.45],[1.3,.62],[2.4,-.7],[Math.PI,-.5]]);break;
+    // Broad-wing (round 4, Phoenix Wing): the peak extends into a launcher
+    // hook that protrudes past the blade, followed by two smaller bumps
+    // along the blade before the perimeter gap.
+    case 'broad-wing':wave=contourAt(phase,[[-Math.PI,-.7],[-2.2,-.6],[-1,.1],[.3,.7],[.85,.92],[1.05,1],[1.22,.35],[1.5,.55],[1.8,.3],[2.4,-.8],[Math.PI,-.7]]);break;
     case 'shield':wave=clamp(wave*1.5,-1,1);break;
     case 'round-wing':wave=.65*wave+.35*Math.cos(2*phase);break;
   }

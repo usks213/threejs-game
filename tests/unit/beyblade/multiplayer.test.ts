@@ -33,28 +33,34 @@ const BURST_PAIRS:[Launch,Launch][]=[
   [{power:1,angle:-90*BURST_D,tilt:37*BURST_D},{power:.9,angle:-7*BURST_D,tilt:11*BURST_D}],
   [{power:.5,angle:-50*BURST_D,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],
 ];
-// Seeded candidates (2026-10-31, round 3): the detent rework rate-limits
-// lock loading per 0.5 s window, so a burst now needs band engagements
-// spread over several windows; the seedless extreme pairs above end by
-// Xtreme/Spin before that. Seeded rounds are what the game itself plays
-// (the server draws a launch seed per round), so the selection also tries
-// seeded legal launches and pins the winning seed on the fixture server.
+// Seeded candidates (2026-10-31, round 4): the round-4 physics (upright
+// righting, gentle-meeting softening, detent recalibration with a 35%
+// loading window) killed every previous candidate; an intermediate
+// detent state produced zero bursts in 144 scanned battles before the
+// ratchet band zone was re-broadened. Bursts are occasional by design
+// now (measured in this matchup: .76/-7/12 bursts 4/24 seeds,
+// .9/-30/25 3/16), so the selection tries eight independently verified
+// seeded candidates FIRST (the seedless pairs below are unverified
+// fallbacks that cost a full 15 s sim each when they fail) and CI needs
+// only one candidate to survive its FP environment. Re-verified
+// against the final round-4 detent calibration: seed 9 bursts at
+// ~6.5 s, seed 23 at ~6.3 s, seed 24 at ~12.8 s (the remaining
+// candidates burst under the same round's earlier calibration and
+// are kept as fallbacks).
 const SEEDED_BURST_CANDIDATES:{launches:[Launch,Launch],seed:number}[]=[
-  // Reselected (round-3 follow-up, deepened center dish + 30% loading
-  // window): seeds 14/8/9/1 below no longer burst; verified bursting
-  // under the current physics are mirror seed 24 (~3.3 s) and the
-  // .9-power pair seed 7 (~7.8 s), tried first.
-  {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:24},
-  {launches:[{power:.9,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:7},
-  {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:14},
-  {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:8},
-  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:9},
-  {launches:[{power:.9,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:1},
+  {launches:[{power:.9,angle:-30*BURST_D,tilt:25*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:9},
+  {launches:[{power:1,angle:-20*BURST_D,tilt:20*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:23},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:24},
+  {launches:[{power:.9,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:2},
+  {launches:[{power:.9,angle:-30*BURST_D,tilt:25*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:16},
+  {launches:[{power:.9,angle:-30*BURST_D,tilt:25*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:6},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:17},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:7},
 ];
 function selectBurstLaunches():{launches:[Launch,Launch],seed:number}{
   const me=profileFor(defaultBuild),sword=profileFor(buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id));
-  for(const [l1,l2] of BURST_PAIRS){const b=createBattle([me,sword],[l1,l2]);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return {launches:[l1,l2],seed:0};}
   for(const c of SEEDED_BURST_CANDIDATES){const b=createBattle([me,sword],c.launches,c.seed);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return c;}
+  for(const [l1,l2] of BURST_PAIRS){const b=createBattle([me,sword],[l1,l2]);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return {launches:[l1,l2],seed:0};}
   throw new Error('No enumerated legal launch produced a burst');
 }
 async function fixture(launchSeed=0){let now=1000;const app=await createArenaServer({port:0,now:()=>now,countdownMs:0,graceMs:100,launchSeed:()=>launchSeed});cleanup.push(app.close);const address=app.address;if(!address||typeof address==='string')throw new Error('No TCP address');const url=`ws://127.0.0.1:${address.port}/api/beyblade`;return{...app,url,advance:(ms:number)=>{now+=ms;app.manager.tick();}};}
