@@ -10,7 +10,13 @@ export const STEP=1/240;
 const G=9.81;
 /** Topology from official BX-17 manual p7. Dimensions remain explicit estimates, not CAD. */
 export const STADIUM={
-  radius:.22, coverRadius:.245, launchOpeningRadius:.155, coverRoofHeight:.16, bowlDepth:.012, bowlStiffness:2*G*.012/(.22*.22), wallHeight:.12,
+  // Bowl depth raised .012 -> .020 on 2026-10-31 (round 3): at 12 mm a
+  // stamina top orbited at r .11-.16 m for 40+ s without ever gathering to
+  // the center, while the real X stadium's dish visibly pulls beys inward
+  // as they slow. 20 mm (rim slope ~10 deg) is still an estimate, not CAD,
+  // and the rendered floor uses the same bowlHeightAt, so sight and physics
+  // stay in agreement.
+  radius:.22, coverRadius:.245, launchOpeningRadius:.155, coverRoofHeight:.16, bowlDepth:.020, bowlStiffness:2*G*.020/(.22*.22), wallHeight:.12,
   railRadius:.201,railHeightMin:.002,railHeightMax:.013,railMaxTilt:.65,
   railNotchDepth:.037,railNotchHalfAngle:.24,bankTransitionWidth:.006,bankHeight:.007,bankSlope:.25,bankOuterSlopeStart:.028,pocketOuterRadius:.325,pocketEntryRadius:.22,pocketRampLength:.03,pocketFloorHeight:-.006,
   pockets:[
@@ -44,11 +50,30 @@ function rotationVector(v:Vec3):Quaternion{const angle=norm(v);if(angle<1e-12)re
 export const bodyAxis=(t:Top)=>rotate(t.orientation,V(0,1,0));
 /** Estimated delivered work at a reference launcher setting; not an OEM launcher calibration. */
 export const LAUNCH_REFERENCE={mass:.035,axialInertia:.55*.035*.024**2};
-export function launchEnergyAt(power:number){const p=clamp(finite(power,.75),.05,1);return{rotational:.5*LAUNCH_REFERENCE.axialInertia*(170+440*p)**2,translational:.5*LAUNCH_REFERENCE.mass*((.45+1.45*p)**2+.12**2)};}
+export function launchEnergyAt(power:number){const p=clamp(finite(power,.75),.05,1);return{rotational:.5*LAUNCH_REFERENCE.axialInertia*(170+440*p)**2,translational:.5*LAUNCH_REFERENCE.mass*((.92*(.45+1.45*p))**2+.12**2)};}
+/** Pure bowl profile height (no bank or pockets); getRailPath needs it
+ * before the rail table exists, so it cannot go through floorSurface. */
+export function bowlBaseHeight(x:number,z:number):number{
+  const u=Math.min((x*x+z*z)/(STADIUM.radius*STADIUM.radius),1);
+  if(u<=.55)return STADIUM.bowlDepth*u;
+  if(u>=.75)return STADIUM.bowlDepth*(.70+.5*(u-.75));
+  const w=(u-.55)/.2;return STADIUM.bowlDepth*(.55+.2*(w-.5*(w**3-.5*w**4)));
+}
 interface SurfaceSample{height:number;dx:number;dz:number;inPocket:boolean}
 function floorSurface(x:number,z:number):SurfaceSample{
-  const r2=x*x+z*z,R=STADIUM.radius,inside=r2<R*R,slope=inside?2*STADIUM.bowlDepth/(R*R):0;
-  let base=STADIUM.bowlDepth*Math.min(r2/(R*R),1),baseX=slope*x,baseZ=slope*z;
+  const r2=x*x+z*z,R=STADIUM.radius,u=Math.min(r2/(R*R),1);
+  // Bowl profile (2026-10-31, round 3): parabolic through the middle
+  // (u<.55) so slowing tops gather at the center, then the rise saturates
+  // smoothly toward the rail lane (u .55-.75, flat beyond), keeping blade
+  // and ratchet clearance for an upright top meshed with the rail -- in the
+  // real stadium the dish is a center feature and the outer lane is the
+  // bank's own slope. G is the exact integral of the slope scale 1-ss, so
+  // height and analytic gradient stay consistent.
+  const w=clamp((u-.55)/.2,0,1),ss=w*w*(3-2*w);
+  // The outer lane keeps a residual 50% slope so a top knocked to the wall
+  // still drains back instead of parking on a flat ring for a whole round.
+  const gIntegral=u<=.55?u:u>=.75?.70+.5*(u-.75):.55+.2*(w-.5*(w**3-.5*w**4)),gSlope=r2>=R*R?0:u<=.55?1:u>=.75?.5:1-.5*ss;
+  let base=STADIUM.bowlDepth*gIntegral,baseX=2*STADIUM.bowlDepth*gSlope*x/(R*R),baseZ=2*STADIUM.bowlDepth*gSlope*z/(R*R);
   // Molded backing shoulder: a continuous surface behind, not a free-standing rail above a flat lane.
   if(r2>(STADIUM.railRadius-STADIUM.railNotchDepth)**2&&Math.sqrt(r2)>getRailRadiusAt(Math.atan2(z,x))){
     const c=nearestRailPlanar(x,z),d=-c.signedDistance;
@@ -84,7 +109,7 @@ export function getRailPath(samples=128):Vec3[]{
     const d=Math.abs(angleDifference(a,rear));
     const notch=d>=h?0:d<=h*.35?1:(h-d)/(h*.65);
     const r=STADIUM.railRadius-STADIUM.railNotchDepth*notch,x=Math.cos(a)*r,z=Math.sin(a)*r;
-    return V(x,STADIUM.bowlDepth*Math.min((x*x+z*z)/(STADIUM.radius**2),1)+.007,z);
+    return V(x,bowlBaseHeight(x,z)+.007,z);
   });
 }
 const RAIL=getRailPath(),RAIL_ANGLES=RAIL.map(p=>Math.atan2(p.z,p.x));
@@ -135,7 +160,13 @@ export function createBattle(profiles:[Profile,Profile],launches:[Launch,Launch]
     const l=launches[i];
     const jitter=random?{power:1+(random()*2-1)*.03,angle:(random()*2-1)*.017,tilt:(random()*2-1)*.014,yaw:random()*Math.PI*2,dx:(random()*2-1)*.002,dz:(random()*2-1)*.002}:null;
     const power=clamp(finite(l.power,.75)*(jitter?.power??1),.05,1),angle=clamp(finite(l.angle,0)+(jitter?.angle??0),-Math.PI,Math.PI),tilt=clamp(finite(l.tilt,.12)+(jitter?.tilt??0),0,.65),direction=angle+(i===0?0:Math.PI);
-    const speed=(.45+power*1.45)*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass);
+    // Translational launch speed scaled by .92 on 2026-10-31 (round 3):
+    // with the center-gathering bowl, full legacy speed still produced
+    // first-seconds pocket ejections (mirror matches median ~10 s, mostly
+    // Over finishes) while real rounds run ~17-60 s. Spin speed is the
+    // stamina currency and is unchanged; only the translational share,
+    // which drives ejections, is trimmed. Estimate, not a launcher spec.
+    const speed=(.45+power*1.45)*.92*Math.sqrt(LAUNCH_REFERENCE.mass/p.mass);
     const angularSpeed=(170+power*440)*Math.sqrt(LAUNCH_REFERENCE.axialInertia/(p.inertiaTensor?.yy??p.inertia));
     const yaw=i*Math.PI+(jitter?.yaw??0),tiltAxis=V(Math.sin(direction),0,-Math.cos(direction));
     const q=multiply(rotationVector(scale(tiltAxis,tilt)),rotationVector(V(0,yaw,0)));
@@ -210,6 +241,15 @@ export function resolveFloor(t:Top):number{
     for(let i=0;i<4;i++){const a=i*Math.PI/2;impulse+=floorContact(t,geometryToCOM(p,V(tip*Math.cos(a),0,tip*Math.sin(a))),0,tip*.06,mu);}
     impulse+=floorContact(t,geometryToCOM(p,V(0,0,0)),0,tip*.15,mu);
   }else impulse+=floorContact(t,geometryToCOM(p,V(0,tip,0)),tip,tip*(shape==='needle'?.10:shape==='ball'?.08:.28),mu);
+  // Translational rolling resistance (2026-10-31, round 3): the tip friction
+  // above opposes total slip, which the spin surface velocity dominates, so
+  // planar orbital motion was effectively undamped -- a top launched into
+  // the dish kept its orbit radius for 40+ s instead of spiralling to the
+  // center as real beys do. While the tip carries load, planar momentum
+  // bleeds in proportion to the normal impulse (rolling-resistance style),
+  // ~0.04 m/s^2 at rest load. Impulse-proportional, so it needs no dt and
+  // stays consistent for direct resolveFloor callers.
+  if(impulse>0){const sp=Math.hypot(t.vx,t.vz);if(sp>1e-6){const dv=Math.min(sp,.004*impulse/p.mass),f=(sp-dv)/sp;t.vx*=f;t.vz*=f;}}
   // The metal body can scrape the floor when tilted. Contact torque causes wobble/fall naturally.
   // Scrape friction recalibrated 2026-10-31: at the previous .28/.25 a 20°
   // launch preset lost ~58% of its spin in the first second and solo spin at

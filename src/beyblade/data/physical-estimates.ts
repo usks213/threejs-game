@@ -153,7 +153,7 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   const palette={...(form?.implemented_geometry?.palette??palettes[name]??{metal:0xaeb9c8,core:0x667488})};
   const coat=blade.part.name.match(/メタルコート[:：]([^\s]+)/)?.[1];if(coat&&namedColors[coat])palette.metal=namedColors[coat];
   const profile:Profile={name:`${blade.part.name} ${ratchet?.part.name??''}${code}`,type:blade.part.type,spin,color,mass,burstSeparationSupported,componentMasses,componentAxialWeights,radius,inertia,transverseInertia,centerOfMassHeight,height,
-    grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.34,burstThreshold:.026,
+    grip:tipFriction,tipFriction,tipRadius,tipShape,rollingDrag,drag,restitution:.30,burstThreshold:.026,
     lockStiffness,lockReleaseAngle,gearRadius,gearHeight:.007,railEligible:true,railGrip:clamp(.55+.65*dash,.55,.94),gearTeeth,gearEngagementBand,bitHeightOffset,bitDiscRadius,bitDiscHeight:.005,bladeHandedness:form?.facts.spin===-1?-1:form?.facts.spin===1?1:spin,
     ratchetRadius,ratchetCenterHeight,ratchetHalfThickness:.0025+ratchetHeightOffset*.10,ratchetLobes,ratchetLobeDepth,ratchetSkew,
     contactLobes,contactLobeDepth,bladeStyle,bladeEdgeSharpness:clamp(.3+.6*ga-.2*gd,.15,.85),bladeThickness:.0085+(geometry?.massScale??1)*.0005+.001*(gd-.35),

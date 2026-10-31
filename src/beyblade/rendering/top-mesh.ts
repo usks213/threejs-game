@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Profile, Vec3, Quaternion } from '../core/types';
-import { getCenterOfMass, getCanonicalBladeVertices, getCanonicalRatchetVertices, getBitGeometry, getBladeMaterialGeometry } from '../core/physics';
+import { getCenterOfMass, getBitGeometry, getBladeMaterialGeometry, getBladeOutline, getRatchetOutline, getRatchetGeometry, canonicalBladeCenterHeightAt } from '../core/physics';
 
 export type TopMeshFactory = (geometry: THREE.BufferGeometry, color: number, roughness?: number, metalness?: number, clearcoat?: number) => THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
 
@@ -12,27 +12,35 @@ export type TopMeshFactory = (geometry: THREE.BufferGeometry, color: number, rou
  */
 const RENDER_CONTOUR_SAMPLES = 128;
 
-/** Two contour rings from the physics model; preserve its contact surface, including handed ramps. */
-function ringSolid(vertices: Vec3[]): THREE.BufferGeometry {
-  const count = vertices.length / 2, positions = vertices.flatMap(v => [v.x, v.y, v.z]), indices: number[] = [];
-  for (let i = 0; i < count; i++) { const next = (i + 1) % count; indices.push(i, count + i, count + next, i, count + next, next); }
-  const faces = THREE.ShapeUtils.triangulateShape(vertices.slice(0, count).map(v => new THREE.Vector2(v.x, v.z)), []);
-  for (const [a, b, c] of faces) indices.push(a, b, c, count + a, count + c, count + b);
-  const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return toCreasedNormals(geometry, Math.PI / 3);
-}
-
-/** Open metal perimeter: the outer coordinates remain identical to the contact rings. */
-function bladeRim(vertices: Vec3[], innerScale = .63): THREE.BufferGeometry {
-  const n = vertices.length / 2, all = [...vertices, ...vertices.map(v => ({ x: v.x * innerScale, y: v.y, z: v.z * innerScale }))];
-  const indices: number[] = [];
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n, lo = i, nextLo = j, hi = n + i, nextHi = n + j, innerLo = n * 2 + i, innerNextLo = n * 2 + j, innerHi = n * 3 + i, innerNextHi = n * 3 + j;
-    indices.push(lo, hi, nextHi, lo, nextHi, nextLo);
-    indices.push(innerLo, innerNextLo, innerNextHi, innerLo, innerNextHi, innerHi);
-    indices.push(hi, innerHi, innerNextHi, hi, innerNextHi, nextHi);
-    indices.push(lo, innerNextLo, innerLo, lo, nextLo, innerNextLo);
+/**
+ * Layered solid from stacked contour rings (round 3 model rebuild,
+ * 2026-10-31). The previous model was a flat two-ring band, which read as a
+ * washer; real blades have a beveled metal contact band, a sloped plastic
+ * deck and a raised center. Each ring is the physics outline at a scale and
+ * height offset, so the simulated silhouette is preserved exactly at the
+ * contact band (scale 1) while the vertical profile gains depth. Caps fan
+ * to a single center point.
+ */
+function stackedSolid(rings: Vec3[][], capTop?: Vec3, capBottom?: Vec3): THREE.BufferGeometry {
+  const positions: number[] = [], indices: number[] = [];
+  for (const ring of rings) for (const v of ring) positions.push(v.x, v.y, v.z);
+  const n = rings[0].length;
+  for (let r = 0; r < rings.length - 1; r++) for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n, a = r * n + i, b = r * n + j, c = (r + 1) * n + i, d = (r + 1) * n + j;
+    indices.push(a, c, d, a, d, b);
   }
-  const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(all.flatMap(v => [v.x, v.y, v.z]), 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); return toCreasedNormals(geometry, Math.PI / 3);
+  if (capBottom) {
+    const center = positions.length / 3; positions.push(capBottom.x, capBottom.y, capBottom.z);
+    for (let i = 0; i < n; i++) indices.push(center, (i + 1) % n, i);
+  }
+  if (capTop) {
+    const center = positions.length / 3, base = (rings.length - 1) * n; positions.push(capTop.x, capTop.y, capTop.z);
+    for (let i = 0; i < n; i++) indices.push(center, base + i, base + (i + 1) % n);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices); geometry.computeVertexNormals();
+  return toCreasedNormals(geometry, Math.PI / 3);
 }
 
 /** Canonical stem-frame content is translated by the complete COM exactly once. */
@@ -47,48 +55,99 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
   let group = content.blade;
   // All procedural vertices below are canonical, measured from the bit tip.
   const palette = profile.modelPalette ?? { metal: 0xa9b5c6, core: 0x52647a, ratchet: 0x8595a9, bit: 0x6b7b90 };
-  const bladeVertices = getCanonicalBladeVertices(profile, RENDER_CONTOUR_SAMPLES), materialGeometry = getBladeMaterialGeometry(profile);
-  const { topY, coreRadius } = materialGeometry;
-  // Die-cast zinc-alloy blade: high metalness only reads as metal once the
-  // scene has an environment map (see rendering/environment.ts).
-  const metal = mesh(bladeRim(bladeVertices, materialGeometry.rimInnerScale), palette.metal, .27, .92, .25); metal.material.flatShading = true; group.add(metal);
+  const materialGeometry = getBladeMaterialGeometry(profile);
+  const { coreRadius } = materialGeometry;
+  const outline = getBladeOutline(profile, RENDER_CONTOUR_SAMPLES);
+  const half = (profile.bladeThickness ?? .009) / 2;
+  const ringAt = (scale: number, dy: (center: number) => number) => outline.map((p, i) => {
+    const center = canonicalBladeCenterHeightAt(profile, i / outline.length * Math.PI * 2);
+    return { x: p.x * scale, y: dy(center), z: p.z * scale };
+  });
+  const minCenter = Math.min(...outline.map((_, i) => canonicalBladeCenterHeightAt(profile, i / outline.length * Math.PI * 2)));
+  const deckY = profile.height * .82 + (profile.bitHeightOffset ?? 0) + half + .0018;
 
-  // Small material-coloured hub leaves the actual contact silhouette exposed. No logos or copied artwork.
-  const coreZone = materialGeometry.core, hubZone = materialGeometry.hub;
-  const core = mesh(new THREE.CylinderGeometry(coreZone.radiusTop, coreZone.radiusBottom, coreZone.yMax - coreZone.yMin, 48), palette.core, .3, .18, .6); core.position.y = (coreZone.yMin + coreZone.yMax) / 2; group.add(core);
-  const hub = mesh(new THREE.CylinderGeometry(hubZone.radiusTop, hubZone.radiusBottom, hubZone.yMax - hubZone.yMin, 32), palette.core, .25, .25, .6); hub.position.y = (hubZone.yMin + hubZone.yMax) / 2; group.add(hub);
-  const hubRing = mesh(new THREE.TorusGeometry(coreRadius * .66, .0007, 6, 40), 0xe2e9f3, .24, .9); hubRing.rotation.x = Math.PI / 2; hubRing.position.y = topY + .0032; group.add(hubRing);
-  const inset = mesh(new THREE.CylinderGeometry(coreRadius * .39, coreRadius * .39, .0008, 28), 0x263449, .32, .25); inset.position.y = topY + .0045; group.add(inset);
+  // Die-cast metal contact band: inset bottom, full contour through the
+  // contact zone. The outline coordinates are the physics silhouette.
+  const metal = mesh(stackedSolid([
+    ringAt(.94, c => c - half),
+    ringAt(1, c => c - half + .0010),
+    ringAt(1, c => c + half * .30),
+  ], undefined, { x: 0, y: minCenter - half, z: 0 }), palette.metal, .27, .92, .25);
+  metal.material.flatShading = true; group.add(metal);
+
+  // Coloured plastic deck: bevels in from the band to a flat raised top,
+  // like the real two-material blade construction.
+  const deck = mesh(stackedSolid([
+    ringAt(1, c => c + half * .30),
+    ringAt(.885, c => c + half),
+    ringAt(.68, () => deckY),
+  ], { x: 0, y: deckY + .0010, z: 0 }), palette.core, .3, .18, .6);
+  group.add(deck);
+
+  // Deck furniture: recessed center inset and three assembly screws, the
+  // visual grammar of the real parts (no logos or copied artwork).
+  const inset = mesh(new THREE.CylinderGeometry(coreRadius * .60, coreRadius * .66, .0009, 40), 0x263449, .32, .25);
+  inset.position.y = deckY + .0009; group.add(inset);
+  for (let i = 0; i < 3; i++) {
+    const a = i / 3 * Math.PI * 2 + .5, screw = mesh(new THREE.CylinderGeometry(.0011, .0011, .0007, 12), 0xd7dee9, .25, .9);
+    screw.position.set(Math.cos(a) * coreRadius * .40, deckY + .0011, Math.sin(a) * coreRadius * .40); group.add(screw);
+  }
 
   const count = Math.max(1, Math.min(12, Math.round(profile.contactLobes)));
   const accent = new THREE.Color(palette.core).lerp(new THREE.Color(0xffffff), .28).getHex();
   for (let i = 0; i < count; i++) {
     const angle = i / count * Math.PI * 2, direction = profile.bladeHandedness ?? profile.spin;
-    const inner = coreRadius * .76, outer = profile.radius * (profile.bladeStyle === 'single-sword' ? .78 : .70);
-    const half = Math.min(.32, Math.PI / count * .34), sweep = profile.bladeStyle === 'round-wing' ? .03 : .18 * direction;
+    const inner = coreRadius * .76, outer = profile.radius * .60;
+    const half2 = Math.min(.32, Math.PI / count * .34), sweep = profile.bladeStyle === 'round-wing' ? .03 : .18 * direction;
     const polar = (r: number, a: number) => new THREE.Vector2(r * Math.cos(a), -r * Math.sin(a));
-    const points = [polar(inner, angle - half), polar(outer, angle + sweep), polar(inner * 1.18, angle + half), polar(inner * .86, angle + half * .2)];
-    const shape = new THREE.Shape(points), geometry = new THREE.ExtrudeGeometry(shape, { depth: .0011, bevelEnabled: true, bevelThickness: .0002, bevelSize: .0002, bevelSegments: 1 }); geometry.rotateX(-Math.PI / 2); geometry.translate(0, topY + .0003, 0);
+    const points = [polar(inner, angle - half2), polar(outer, angle + sweep), polar(inner * 1.18, angle + half2), polar(inner * .86, angle + half2 * .2)];
+    const shape = new THREE.Shape(points), geometry = new THREE.ExtrudeGeometry(shape, { depth: .0011, bevelEnabled: true, bevelThickness: .0002, bevelSize: .0002, bevelSegments: 1 });
+    geometry.rotateX(-Math.PI / 2); geometry.translate(0, deckY + .0004, 0);
     group.add(mesh(geometry, accent, .35, .22, .5));
-    // Broad perimeter assemblies have their own repeated recessed mechanical pads, not identical spokes.
+    // Broad perimeter assemblies keep their recessed mechanical pads, now
+    // seated on the upper bevel instead of a flat washer top.
     if (profile.bladeStyle === 'round-wing') {
       const pad = mesh(new THREE.CylinderGeometry(.0017, .0022, .0008, 14), 0x425267, .4, .5);
-      pad.position.set(Math.cos(angle) * profile.radius * .80, topY + .0007, Math.sin(angle) * profile.radius * .80); group.add(pad);
+      pad.position.set(Math.cos(angle) * profile.radius * .80, canonicalBladeCenterHeightAt(profile, angle) + half + .0003, Math.sin(angle) * profile.radius * .80); group.add(pad);
     }
   }
 
   group = content.ratchet;
   // Ratchet resin is translucent coloured plastic on real parts; clearcoat
-  // over a lighter tint approximates that without a transmission pass.
-  const ratchet = mesh(ringSolid(getCanonicalRatchetVertices(profile, RENDER_CONTOUR_SAMPLES)), palette.ratchet, .34, .05, .7); group.add(ratchet);
+  // over a lighter tint approximates that without a transmission pass. The
+  // body is now a beveled stack over its lobed outline, not a flat slab.
+  const ratchetGeometry = getRatchetGeometry(profile), ratchetOutline = getRatchetOutline(profile, RENDER_CONTOUR_SAMPLES);
+  const ratchetRing = (scale: number, y: number) => ratchetOutline.map(p => ({ x: p.x * scale, y, z: p.z * scale }));
+  const rc = ratchetGeometry.centerHeight, rh = ratchetGeometry.halfThickness;
+  const ratchet = mesh(stackedSolid([
+    ratchetRing(.93, rc - rh), ratchetRing(1, rc - rh + .0007), ratchetRing(1, rc + rh - .0007), ratchetRing(.93, rc + rh),
+  ], { x: 0, y: rc + rh, z: 0 }, { x: 0, y: rc - rh, z: 0 }), palette.ratchet, .34, .05, .7);
+  group.add(ratchet);
+  // Thin darker waist ring: the shadow gap between ratchet and blade.
+  const waist = mesh(new THREE.CylinderGeometry(ratchetGeometry.radius * .97, ratchetGeometry.radius * .99, .0008, 64), new THREE.Color(palette.ratchet).multiplyScalar(.72).getHex(), .4, .05);
+  waist.position.y = rc + rh + .0004; group.add(waist);
+
   group = content.bit;
   const bit = getBitGeometry(profile), gearThickness = 2 * bit.engagementBand;
-  const gear = mesh(new THREE.CylinderGeometry(bit.gearRadius * .85, bit.gearRadius * .85, gearThickness, 48), palette.bit, .42, .1); gear.position.y = bit.gearHeight; group.add(gear);
-  const toothWidth = 2 * Math.PI * bit.gearRadius / bit.gearTeeth * .58;
+  // A true gear outline (root and tip radii per tooth) extruded, replacing
+  // the old cylinder with glued-on boxes.
+  const gearShape = new THREE.Shape();
   for (let tooth = 0; tooth < bit.gearTeeth; tooth++) {
-    const angle = tooth / bit.gearTeeth * Math.PI * 2, part = mesh(new THREE.BoxGeometry(bit.gearRadius * .22, gearThickness, toothWidth), palette.bit, .43, .1);
-    part.position.set(Math.cos(angle) * bit.gearRadius * .90, bit.gearHeight, Math.sin(angle) * bit.gearRadius * .90); part.rotation.y = -angle; group.add(part);
+    const pitch = Math.PI * 2 / bit.gearTeeth, a0 = tooth * pitch;
+    const corners: [number, number][] = [
+      [a0, bit.gearRadius * .80], [a0 + pitch * .20, bit.gearRadius * .80],
+      [a0 + pitch * .34, bit.gearRadius], [a0 + pitch * .66, bit.gearRadius],
+      [a0 + pitch * .80, bit.gearRadius * .80],
+    ];
+    for (const [a, r] of corners) {
+      const x = Math.cos(a) * r, y = Math.sin(a) * r;
+      if (tooth === 0 && a === a0 && gearShape.curves.length === 0) gearShape.moveTo(x, y); else gearShape.lineTo(x, y);
+    }
   }
+  gearShape.closePath();
+  const gearGeometry = new THREE.ExtrudeGeometry(gearShape, { depth: gearThickness, bevelEnabled: true, bevelThickness: .0002, bevelSize: .0002, bevelSegments: 1 });
+  gearGeometry.rotateX(-Math.PI / 2); gearGeometry.translate(0, bit.gearHeight - gearThickness / 2, 0);
+  group.add(mesh(gearGeometry, palette.bit, .42, .1));
   if (bit.discRadius && bit.discHeight !== undefined) {
     const discShape = new THREE.Shape(); discShape.absarc(0, 0, bit.discRadius, 0, Math.PI * 2, false);
     for (let i = 0; i < 3; i++) {
@@ -100,11 +159,19 @@ export function buildTopComponents(profile: Profile, mesh: TopMeshFactory) {
     }
     const geometry = new THREE.ExtrudeGeometry(discShape, { depth: bit.discHalfThickness * 2 - .0004, bevelEnabled: true, bevelThickness: .0002, bevelSize: .0002, bevelSegments: 1, curveSegments: 24 }); geometry.rotateX(-Math.PI / 2); geometry.translate(0, bit.discHeight - bit.discHalfThickness + .0002, 0); group.add(mesh(geometry, palette.bit, .4, .1));
   }
+  // Shaft and tip as one lathe per tip family, from the floor up to the gear.
+  const gearBottom = bit.gearHeight - gearThickness / 2, L = bit.tipLength, tipR = bit.tipRadius, bodyR = bit.bodyRadius;
   if (bit.tipShape === 'ball') {
     const ball = mesh(new THREE.SphereGeometry(bit.tipRadius, 32, 20), palette.bit, .37, .08); ball.position.y = bit.tipRadius; group.add(ball);
-    const neck = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius * .8, Math.max(.0005, bit.tipLength - bit.tipRadius), 28), palette.bit, .4, .08); neck.position.y = (bit.tipLength + bit.tipRadius) / 2; group.add(neck);
+    const neck = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius * .75, Math.max(.0005, gearBottom - bit.tipRadius * .8), 28), palette.bit, .4, .08); neck.position.y = (gearBottom + bit.tipRadius * .8) / 2; group.add(neck);
   } else {
-    const tip = mesh(new THREE.CylinderGeometry(bit.bodyRadius, bit.tipRadius, bit.tipLength, 32), palette.bit, .4, .08); tip.position.y = bit.tipLength / 2; group.add(tip);
+    const profiles: Record<string, [number, number][]> = {
+      flat: [[tipR, 0], [tipR, .0015], [bodyR * .8, L * .6], [bodyR, L], [bodyR, gearBottom]],
+      needle: [[.00035, 0], [tipR * .9, .0018], [bodyR * .72, L * .7], [bodyR, L], [bodyR, gearBottom]],
+      taper: [[tipR, 0], [tipR * 1.1, L * .3], [bodyR * .82, L * .75], [bodyR, L], [bodyR, gearBottom]],
+    };
+    const points = (profiles[bit.tipShape] ?? profiles.taper).map(([r, y]) => new THREE.Vector2(r, y));
+    group.add(mesh(new THREE.LatheGeometry(points, 48), palette.bit, .4, .08));
   }
   return components;
 }

@@ -27,6 +27,7 @@
 </div>
 <button class="arena-focus" id="arena-focus" aria-pressed="false">アリーナを拡大</button>
 <div id="finish-banner" class="finish-banner" hidden></div>
+<div id="countdown" class="countdown" hidden aria-hidden="true"><span id="countdown-text"></span></div>
 <div class="motion-state" id="motion-state" aria-live="off">6DOF · 3次元の姿勢と接触を計算</div>
 <div class="stage-error" id="arena-error" role="alert" hidden>
 </div>
@@ -61,7 +62,7 @@
 <h2>シュートセッティング</h2>
 <span class="micro">LAUNCH CONTROL</span>
 </div>
-<label class="cpu-picker" id="cpu-picker">練習相手 <select id="cpu-blade" aria-label="練習相手のブレード"></select></label>
+<div class="cpu-picker" id="cpu-picker"><span class="cpu-picker-title">練習相手 / CPUカスタム</span><div id="cpu-part-selects"></div></div>
 <div class="position-controls">
 <button class="ghost" id="pick-position" aria-pressed="false">ポインターで位置を選ぶ</button>
 <button class="ghost" id="reset-position">位置を初期値に戻す</button>

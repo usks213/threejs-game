@@ -129,14 +129,17 @@ test('ordinary Burst keeps its score latched while physical pieces continue, the
   // is deterministic; normal play draws a fresh seed every round.
   // Fixture reselection (2026-10-31, round 2): the original 50/-50/30 input
   // now finishes by Spin (10.3 s) under the recalibrated detent — the same
-  // knife-edge fixture family as the unit tests. The 80/+50/10 input below
-  // bursts the stock Sword in ~6.1 simulated seconds with the same build
-  // (Hells/4-60/T), verified headlessly against the app's fixed CPU launch.
+  // knife-edge fixture family as the unit tests. A mid-battle burst fixture
+  // (80/+50/10, burst at ~6.1 s sim headlessly) still flipped in CI, where
+  // the browser's FP environment diverges over thousands of solver steps;
+  // the 90/+50/30 input below bursts on the first clash (~0.1 s sim,
+  // verified headlessly against the app's fixed CPU launch and default
+  // spawn positions), leaving almost no trajectory for divergence to grow.
   await page.goto('/beyblade/?seed=0');
   await page.locator('select[data-part="blade"]').selectOption({label:'ヘルズサイズ'});
   await page.locator('select[data-part="ratchet"]').selectOption({label:'4-60'});
   await page.locator('select[data-part="bit"]').selectOption({label:'T · テーパー'});
-  await page.locator('#power').fill('80');await page.locator('#angle').fill('50');await page.locator('#tilt').fill('10');
+  await page.locator('#power').fill('90');await page.locator('#angle').fill('50');await page.locator('#tilt').fill('30');
   await page.evaluate(()=>{
     const phase=document.getElementById('phase')!,launch=document.getElementById('launch') as HTMLButtonElement;
     const state=window as unknown as {settlingObserved:boolean;settlingWasGated:boolean};state.settlingObserved=false;state.settlingWasGated=false;

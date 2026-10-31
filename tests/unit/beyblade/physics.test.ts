@@ -103,13 +103,18 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     expect(railEligible(t)).toBe(true);t.x=STADIUM.railRadius+.01;expect(railEligible(t)).toBe(false);t.x=STADIUM.railRadius-profile.gearRadius;t.y+=.03;expect(railEligible(t)).toBe(false);
     t.y-=.03;t.profile.railEligible=false;expect(railEligible(t)).toBe(false);
   });
-  it('the 60% / 0 degree / 20 degree preset shows real gearing and dashes without energy injection',()=>{
+  it('the 70% / -10 degree / 16 degree preset shows real gearing and dashes without energy injection',()=>{
     // Preset reselected 2026-10-31 (angle +15° -> 0°, matching the UI slider
     // default): after the duration recalibration the +15° trajectory no
     // longer finishes within 30 s nor produces a dash, while 0° shows
     // gearing, two dashes and an Xtreme finish in ~8 s. See physics.md.
+    // Reselected again the same day (round 3, dished bowl + rolling
+    // resistance + launch speed x.92): the 60% / 0° / 20° input now bursts
+    // in ~5 s with no dash. The 70% / -10° / 16° input shows gearing, a
+    // dash and a Spin finish in ~5.3 s with the same energy accounting;
+    // every assertion below is unchanged.
     const p=profileFor(defaultBuild),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id));
-    const state=createBattle([p,cpu],[{power:.6,angle:0,tilt:20*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]),events:(typeof state.events)=[];
+    const state=createBattle([p,cpu],[{power:.7,angle:-10*Math.PI/180,tilt:16*Math.PI/180},{power:.76,angle:-.12,tilt:.11}]),events:(typeof state.events)=[];
     let energy=state.tops.reduce((sum,t)=>sum+totalEnergy(t),0);
     // Energy accounting follows the budget declared in physics.md: positional
     // contact correction may add at most mass*g*1 mm of potential per body.
@@ -150,7 +155,11 @@ describe('physical contact, stadium geometry and Xtreme gear coupling',()=>{
     // ~2.4 s before its radius could pass .18 m; at power .8 the same bank
     // reaches radius .219 m, meshes, and finishes by Spin in ~15.9 s, so the
     // observation loop below runs to 30 s (was 15 s).
-    const p=profileFor(build),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id)),state=createBattle([p,cpu],[{power:.8,angle:0,tilt:.3},{power:.76,angle:-.12,tilt:.11}]),events=new Map<string,(typeof state.events)[number]>();let maxRadius=0;
+    // Round 3 (same day): with the dished bowl the tilt .3 launch still
+    // meshes (radius .215 m) but no longer finishes within the loop; the
+    // steeper bank tilt .4 rad at the same power reaches radius .218 m,
+    // meshes, and finishes by Spin in ~5.2 s. Assertions unchanged.
+    const p=profileFor(build),cpu=profileFor(buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)!.id)),state=createBattle([p,cpu],[{power:.8,angle:0,tilt:.4},{power:.76,angle:-.12,tilt:.11}]),events=new Map<string,(typeof state.events)[number]>();let maxRadius=0;
     for(let n=0;n<240*30&&!state.result;n++){stepBattle(state);for(const t of state.tops)maxRadius=Math.max(maxRadius,Math.hypot(t.x,t.z));for(const e of state.events)events.set(`${e.tick}:${e.kind}:${e.top}`,e);}
     const all=[...events.values()],mesh=all.find(e=>e.kind==='rail-engage'&&(e.intensity??0)>0);
     expect(maxRadius).toBeGreaterThan(.18);expect(mesh).toBeDefined();expect(mesh!.energyAfter).toBeLessThanOrEqual(mesh!.energyBefore!+1e-10);

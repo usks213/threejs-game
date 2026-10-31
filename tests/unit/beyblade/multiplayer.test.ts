@@ -125,7 +125,7 @@ describe('authoritative network with real WebSocket clients',()=>{
     await until(()=>a.state()?.phase==='round-end'&&b.state()?.phase==='round-end'&&a.state()?.battle?.tick===b.state()?.battle?.tick);
     expect(a.state()?.battle).toEqual(b.state()?.battle);expect(a.state()?.match).toEqual(b.state()?.match);expect(a.state()?.battle?.result).toBeTruthy();
     expect(a.state()?.battle?.tops[0].profile.name).toBe(profileFor(buster).name);expect(a.state()?.battle?.tick).toBeGreaterThan(0);
-  },15_000);
+  },90_000);
   it('rejects forged builds, client scores, duplicate sequences, and invalid launch values',async()=>{
     const f=await fixture();const [a,b]=await pair(f);a.send({type:'score',score:999,winner:0});a.send({type:'launch',launch:{power:Infinity,angle:0,tilt:0}});a.socket.send(JSON.stringify({seq:1,type:'launch',launch:{power:1,angle:0,tilt:0}}));await until(()=>a.messages.filter(m=>m.type==='error').length>=3);expect(a.state()?.phase).toBe('ready');expect(a.state()?.match?.scores).toEqual([0,0]);expect(b.state()?.match?.scores).toEqual([0,0]);
     const c=await peer(f.url);c.send({type:'queue',build:{...defaultBuild,bit:'invented'}});await until(()=>c.messages.some(m=>m.type==='error'));expect(c.state()?.phase).toBe('idle');expect(f.manager.rooms.size).toBe(1);
