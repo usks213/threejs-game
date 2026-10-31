@@ -53,17 +53,26 @@ describe('physical burst partition and unscored observation',()=>{
     // genuine burst in the current physics, then asserts on that real
     // battle exactly as before. If no pair bursts, the test fails: burst
     // reachability from legal launches stays covered.
-    const D=Math.PI/180,pairs:[{power:number,angle:number,tilt:number},{power:number,angle:number,tilt:number}][]=[
-      [{power:1,angle:-50*D,tilt:37*D},{power:.76,angle:-30*D,tilt:25*D}],
-      [{power:.85,angle:-50*D,tilt:37*D},{power:.76,angle:-.12,tilt:.11}],
-      [{power:.85,angle:-70*D,tilt:37*D},{power:.76,angle:-.12,tilt:.11}],
-      [{power:.7,angle:-50*D,tilt:30*D},{power:.9,angle:-7*D,tilt:11*D}],
-      [{power:.85,angle:-90*D,tilt:30*D},{power:.9,angle:-7*D,tilt:11*D}],
-      [{power:1,angle:-90*D,tilt:37*D},{power:.9,angle:-7*D,tilt:11*D}],
-      [{power:.5,angle:-50*D,tilt:30*D},{power:.76,angle:-.12,tilt:.11}],
+    const D=Math.PI/180,pairs:{launches:[{power:number,angle:number,tilt:number},{power:number,angle:number,tilt:number}],seed?:number}[]=[
+      {launches:[{power:1,angle:-50*D,tilt:37*D},{power:.76,angle:-30*D,tilt:25*D}]},
+      {launches:[{power:.85,angle:-50*D,tilt:37*D},{power:.76,angle:-.12,tilt:.11}]},
+      {launches:[{power:.85,angle:-70*D,tilt:37*D},{power:.76,angle:-.12,tilt:.11}]},
+      {launches:[{power:.7,angle:-50*D,tilt:30*D},{power:.9,angle:-7*D,tilt:11*D}]},
+      {launches:[{power:.85,angle:-90*D,tilt:30*D},{power:.9,angle:-7*D,tilt:11*D}]},
+      {launches:[{power:1,angle:-90*D,tilt:37*D},{power:.9,angle:-7*D,tilt:11*D}]},
+      {launches:[{power:.5,angle:-50*D,tilt:30*D},{power:.76,angle:-.12,tilt:.11}]},
+      // Round-3 detent (rate-limited lock loading): bursts now need band
+      // engagements spread over several 0.5 s windows, which the seeded
+      // rounds the game itself plays provide. Seeded candidates measured
+      // bursting under the current physics are tried after the seedless
+      // pairs (mirror seed 14 at ~2.5 s, seed 8 at ~4.3 s).
+      {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:14},
+      {launches:[{power:.76,angle:-7*D,tilt:6*D},{power:.76,angle:-7*D,tilt:6*D}],seed:8},
+      {launches:[{power:.76,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:9},
+      {launches:[{power:.9,angle:-7*D,tilt:12*D},{power:.76,angle:-.12,tilt:.11}],seed:1},
     ];
     let b:ReturnType<typeof createBattle>|null=null;
-    for(const [l1,l2] of pairs){const candidate=createBattle([profileFor(defaultBuild),cpu],[l1,l2]);for(let i=0;i<240*15&&!candidate.result;i++)stepBattle(candidate);if(candidate.result?.finish==='burst'){b=candidate;break;}}
+    for(const c of pairs){const candidate=createBattle([profileFor(defaultBuild),cpu],c.launches,c.seed??0);for(let i=0;i<240*15&&!candidate.result;i++)stepBattle(candidate);if(candidate.result?.finish==='burst'){b=candidate;break;}}
     expect(b).not.toBe(null);
     expect(b!.result?.finish).toBe('burst');expect(b!.fragments.length).toBeGreaterThan(0);
     const before=b!.fragments.map(f=>({x:f.x,y:f.y,z:f.z}));for(let i=0;i<240;i++)stepSettlingBattle(b!);

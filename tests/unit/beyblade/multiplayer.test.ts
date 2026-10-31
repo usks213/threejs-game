@@ -19,8 +19,8 @@ afterEach(async()=>{for(const close of cleanup.splice(0))await close();});
 // robustly in this chaotic 240 Hz solver, so burst-dependent tests
 // deterministically select the first pair from this fixed list that
 // produces a genuine burst in the same deterministic physics the server
-// runs (launchSeed is pinned to 0 above), then play the real networked
-// match with it. If no pair bursts, selection throws and the test fails:
+// runs (the fixture pins the selected launch seed), then play the real
+// networked match with it. If no pair bursts, selection throws and the test fails:
 // burst reachability from legal launches stays covered. All pairs respect
 // the server launch limits (power .2-1, tilt <= 0.65 rad).
 const BURST_D=Math.PI/180;
@@ -33,12 +33,25 @@ const BURST_PAIRS:[Launch,Launch][]=[
   [{power:1,angle:-90*BURST_D,tilt:37*BURST_D},{power:.9,angle:-7*BURST_D,tilt:11*BURST_D}],
   [{power:.5,angle:-50*BURST_D,tilt:30*BURST_D},{power:.76,angle:-.12,tilt:.11}],
 ];
-function selectBurstLaunches():[Launch,Launch]{
+// Seeded candidates (2026-10-31, round 3): the detent rework rate-limits
+// lock loading per 0.5 s window, so a burst now needs band engagements
+// spread over several windows; the seedless extreme pairs above end by
+// Xtreme/Spin before that. Seeded rounds are what the game itself plays
+// (the server draws a launch seed per round), so the selection also tries
+// seeded legal launches and pins the winning seed on the fixture server.
+const SEEDED_BURST_CANDIDATES:{launches:[Launch,Launch],seed:number}[]=[
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:14},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:6*BURST_D},{power:.76,angle:-7*BURST_D,tilt:6*BURST_D}],seed:8},
+  {launches:[{power:.76,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:9},
+  {launches:[{power:.9,angle:-7*BURST_D,tilt:12*BURST_D},{power:.76,angle:-.12,tilt:.11}],seed:1},
+];
+function selectBurstLaunches():{launches:[Launch,Launch],seed:number}{
   const me=profileFor(defaultBuild),sword=profileFor(buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id));
-  for(const [l1,l2] of BURST_PAIRS){const b=createBattle([me,sword],[l1,l2]);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return [l1,l2];}
+  for(const [l1,l2] of BURST_PAIRS){const b=createBattle([me,sword],[l1,l2]);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return {launches:[l1,l2],seed:0};}
+  for(const c of SEEDED_BURST_CANDIDATES){const b=createBattle([me,sword],c.launches,c.seed);for(let i=0;i<240*15&&!b.result;i++)stepBattle(b);if(b.result?.finish==='burst')return c;}
   throw new Error('No enumerated legal launch produced a burst');
 }
-async function fixture(){let now=1000;const app=await createArenaServer({port:0,now:()=>now,countdownMs:0,graceMs:100,launchSeed:()=>0});cleanup.push(app.close);const address=app.address;if(!address||typeof address==='string')throw new Error('No TCP address');const url=`ws://127.0.0.1:${address.port}/api/beyblade`;return{...app,url,advance:(ms:number)=>{now+=ms;app.manager.tick();}};}
+async function fixture(launchSeed=0){let now=1000;const app=await createArenaServer({port:0,now:()=>now,countdownMs:0,graceMs:100,launchSeed:()=>launchSeed});cleanup.push(app.close);const address=app.address;if(!address||typeof address==='string')throw new Error('No TCP address');const url=`ws://127.0.0.1:${address.port}/api/beyblade`;return{...app,url,advance:(ms:number)=>{now+=ms;app.manager.tick();}};}
 async function pair(f:Awaited<ReturnType<typeof fixture>>,builds:[Build,Build]=[defaultBuild,defaultBuild]){const a=await peer(f.url),b=await peer(f.url);a.send({type:'queue',build:builds[0]});await until(()=>a.state()?.phase==='queued');b.send({type:'queue',build:builds[1]});await until(()=>a.state()?.phase==='ready'&&b.state()?.phase==='ready');return [a,b] as const;}
 describe('authoritative network with real WebSocket clients',()=>{
   it('validates launch positions on the server and preserves accepted coordinates',async()=>{
@@ -57,8 +70,8 @@ describe('authoritative network with real WebSocket clients',()=>{
   it('matches two independent clients and scores a finite real two-round match identically',async()=>{
     // This legal-launch fixture produces two actual Burst finishes (2 + 2 points).
     // Keep long same-build trajectory coverage separate from score-to-four transport coverage.
-    const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
-    const [launchA,launchB]=selectBurstLaunches();
+    const {launches:[launchA,launchB],seed}=selectBurstLaunches();
+    const f=await fixture(seed);const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
     const [a,b]=await pair(f,[defaultBuild,sword]);expect(a.state()?.roomId).toBe(b.state()?.roomId);expect(a.state()?.player).toBe(0);expect(b.state()?.player).toBe(1);
     for(let round=0;round<2;round++){
       a.send({type:'launch',launch:launchA});b.send({type:'launch',launch:launchB});
@@ -95,8 +108,8 @@ describe('authoritative network with real WebSocket clients',()=>{
     expect(a.state()?.battle?.tops[0].profile.name).toBe(a.state()?.battle?.tops[1].profile.name);
   },15_000);
   it('keeps real burst fragments synchronized and result latched during unscored settling',async()=>{
-    const f=await fixture();const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
-    const [launchA,launchB]=selectBurstLaunches();
+    const {launches:[launchA,launchB],seed}=selectBurstLaunches();
+    const f=await fixture(seed);const sword=buildForBlade(parts.find(p=>p.canonicalId==='ドランソード'&&p.category==='blade')!.id);
     const [a,b]=await pair(f,[defaultBuild,sword]);
     a.send({type:'launch',launch:launchA});b.send({type:'launch',launch:launchB});
     await until(()=>a.state()?.phase==='countdown'||a.state()?.phase==='battle');f.advance(1);

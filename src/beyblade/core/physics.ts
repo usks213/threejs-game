@@ -122,7 +122,7 @@ export function syncDerived(t:Top):void{t.angularVelocity=inverseInertia(t,t.ang
 export function setAngularVelocity(t:Top,world:Vec3):void{t.angularMomentum=inertia(t,world);syncDerived(t);}
 export function setOrientation(t:Top,q:Quaternion,preserveBodySpin=true):void{const spin=t.omega;t.orientation=normalized(q);if(preserveBodySpin)t.angularMomentum=inertia(t,scale(bodyAxis(t),spin));syncDerived(t);}
 export function kineticEnergy(t:Top):number{return .5*t.profile.mass*(t.vx*t.vx+t.vy*t.vy+t.vz*t.vz)+.5*dot(t.angularMomentum,inverseInertia(t,t.angularMomentum));}
-export function totalEnergy(t:Top):number{return kineticEnergy(t)+t.profile.mass*G*t.y+.5*(t.profile.lockStiffness??.014)*t.lock*t.lock;}
+export function totalEnergy(t:Top):number{return kineticEnergy(t)+t.profile.mass*G*t.y+.5*(t.profile.lockStiffness??.014)*(t.profile.lockReleaseAngle??.24)*t.lock;}
 function applyImpulse(t:Top,j:Vec3,r:Vec3):void{t.vx+=j.x/t.profile.mass;t.vy+=j.y/t.profile.mass;t.vz+=j.z/t.profile.mass;t.angularMomentum=add(t.angularMomentum,cross(r,j));syncDerived(t);}
 const pointVelocity=(t:Top,r:Vec3)=>add(velocity(t),cross(t.angularVelocity,r));
 const contactMass=(t:Top,r:Vec3,n:Vec3)=>1/t.profile.mass+dot(cross(inverseInertia(t,cross(r,n)),r),n);
@@ -284,11 +284,21 @@ function collisionNodes(t:Top):CollisionNode[]{
   if(bit.discRadius>0)for(let i=0;i<16;i++){const a=i*Math.PI/8,r=bit.discRadius-bit.discHalfThickness;nodes.push({point:add(position(t),rotate(t.orientation,geometryToCOM(t.profile,V(r*Math.cos(a),bit.discHeight,r*Math.sin(a))))),radius:bit.discHalfThickness,kind:'bit'});}
   return nodes;
 }
-/** Detent potential E=.5*k*theta². Only dissipated contact work may enter this internal coordinate. */
-export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipation:number):number{
+/** Detent potential E=tau*theta with tau=.5*k*releaseAngle (constant-torque clicks; total barrier .5*k*releaseAngle² matches the lockBarrier estimate). Only dissipated contact work may enter this internal coordinate. */
+export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipation:number,tick?:number):number{
   const release=angularImpulse*t.profile.spin;if(release<=0||availableDissipation<=0)return 0;
   const ratchet=getRatchetGeometry(t.profile),component=t.profile.massComponents?.find(c=>c.component==='ratchet'),relativeInertia=component?component.inertia.yy+component.mass*(component.center.x**2+component.center.z**2):.5*(t.profile.mass*.12)*ratchet.radius**2;
-  const stiffness=t.profile.lockStiffness??.014,releaseAngle=t.profile.lockReleaseAngle??.24,remaining=Math.max(0,.5*stiffness*(releaseAngle*releaseAngle-t.lock*t.lock));
+  const stiffness=t.profile.lockStiffness??.014,releaseAngle=t.profile.lockReleaseAngle??.24;
+  // Constant-torque detent (round 3 fix, 2026-10-31): a real burst lock is
+  // a series of clicks with roughly constant resisting torque, not a
+  // quadratic energy well. The well form made accumulation asymptotic --
+  // per-call work was capped by the remaining barrier energy, so traced
+  // locks stalled at 87-95% of the release angle in every matchup and
+  // bursts became unreachable no matter how the fraction was tuned. With
+  // a constant resisting torque tau = .5*k*releaseAngle the TOTAL barrier
+  // (.5*k*releaseAngle^2) is unchanged, but each joule of strike work buys
+  // the same twist near the last click as near the first.
+  const resistingTorque=.5*stiffness*releaseAngle,remaining=Math.max(0,resistingTorque*(releaseAngle-t.lock));
   // Only a fraction of the energy dissipated at a ratchet contact twists the
   // detent toward release; the rest leaves as heat, sound and deformation.
   // Without this partition a single hard clash (dissipating ~10 mJ) always
@@ -298,15 +308,56 @@ export function applyRatchetWork(t:Top,angularImpulse:number,availableDissipatio
   // (see resolveContact) the coupling is more direct, per-call dissipation in
   // this solver is usually microjoules, and .22 left bursts practically
   // unreachable (0 in ~90 searched legal launches across five matchups).
-  let work=Math.min(availableDissipation*.35,release*release/(2*relativeInertia),remaining);
+  // The angular-impulse term below was the binding cap in every traced
+  // battle (lock traces were bit-identical for dissipation fractions
+  // .28-.70): a band strike twists the whole lock stack, not only the
+  // ratchet component's own inertia share, so the term carries a coupling
+  // factor of 2.5 (estimate, 2026-10-31 round 3) calibrated so sustained
+  // strikes accumulate to a burst while the per-call cap
+  // still bounds any single call.
+  let work=Math.min(availableDissipation*.70,2.5*release*release/(2*relativeInertia),remaining);
   // Per-strike twist cap (round 2, 2026-10-31): one strike can advance the
   // detent by at most 50% of the release angle, however large the clash.
   // Without it, a single dash-speed ratchet hit dissipating >=15 mJ filled
   // even the raised barrier at once (traced vs WizardArrow seed 4:
   // lock .067 -> full in one collision at t=1.29 s). A real pawl strike is
   // geometrically bounded; bursts should need repeated hard strikes.
-  const newLock=Math.min(Math.sqrt(t.lock*t.lock+2*work/stiffness),t.lock+.5*releaseAngle);
-  work=.5*stiffness*(newLock*newLock-t.lock*t.lock);t.lock=newLock;return work;
+  // Round 3 (same day): the cap is now 50% of the REMAINING angle per
+  // call and the work fraction is .70. At 50% of the full angle (round 2),
+  // one head-on clash spanning two solver calls filled the barrier
+  // (measured: stock Sword burst at 0.9 s on its first clash in 2 of 12
+  // seeded rounds vs Hells). The remaining-angle form bounds any single
+  // call to half the remaining gap; the rate-limit window below is what
+  // now keeps first-clash bursts out, while the constant-torque conversion
+  // above keeps sustained strikes accumulating instead of asymptoting.
+  let newLock=Math.min(t.lock+work/resistingTorque,t.lock+.5*(releaseAngle-t.lock),releaseAngle);
+  // Loading rate limit (round 3, 2026-10-31): when the caller supplies the
+  // battle tick, the detent can gain at most 45% of the release angle per
+  // 0.5 s window. A continuous contact calls this solver every tick, so
+  // per-call caps alone cannot distinguish one long clash from many
+  // separate strikes -- with the window, a single clash loads at most
+  // ~45% however long it grinds, and a burst needs engagements spread
+  // over roughly 1 s or more (band contact is concentrated early, while
+  // the tops still carry tilt and closing speed). Direct callers (unit tests) omit the tick
+  // and keep the un-windowed per-call behaviour.
+  if(tick!==undefined){
+    if(t.lockWindowTick===undefined||tick-t.lockWindowTick>=120||tick<t.lockWindowTick){t.lockWindowTick=tick;t.lockWindowGain=0;}
+    const budget=Math.max(0,.45*releaseAngle-(t.lockWindowGain??0));
+    newLock=Math.min(newLock,t.lock+budget);
+    t.lockWindowGain=(t.lockWindowGain??0)+Math.max(0,newLock-t.lock);
+  }
+  // Final-click slip (round 3, 2026-10-31): the lock system is nearly
+  // scale-invariant in the release angle (per-call caps and remaining
+  // work are all fractions of it), and traced locks asymptote at
+  // 94-99% of release -- the last click is held by a fraction of a
+  // millijoule that late, weak strikes never quite deliver. A real pawl
+  // at >80% engagement slips the final clicks under continued vibration,
+  // so a strike that pushes the lock past 80% of release completes it.
+  // The window budget (45% per 0.5 s) bounds any first clash to ~45%, so
+  // the 80% threshold still requires engagements across two or more
+  // windows; traced peaks in aggressive matchups reach 84-99%.
+  if(newLock>.80*releaseAngle)newLock=releaseAngle;
+  work=resistingTorque*(newLock-t.lock);t.lock=newLock;return work;
 }
 export function contactRadius(t:Top,angle:number):number{const direction=inverseRotate(t.orientation,V(Math.cos(angle),0,Math.sin(angle)));const a=Math.atan2(direction.z,direction.x);return bladeRadiusAt(t.profile,a);}
 /** Detent twist is about the physical stem, unlike rigid-body torque about the COM. */
@@ -314,7 +365,7 @@ export function ratchetImpulseTwist(t:Top,contact:Vec3,impulse:Vec3,origin=posit
   const pivot=add(origin,rotate(t.orientation,geometryToCOM(t.profile,V(0,getRatchetGeometry(t.profile).centerHeight,0))));
   return dot(cross(sub(contact,pivot),impulse),bodyAxis(t));
 }
-export function resolveContact(a:Top,b:Top,loadLocks=true):number{
+export function resolveContact(a:Top,b:Top,loadLocks=true,tick?:number):number{
   const delta=sub(position(b),position(a));
   if(norm(delta)>a.profile.radius*(1+a.profile.contactLobeDepth)+b.profile.radius*(1+b.profile.contactLobeDepth)+norm(getCenterOfMass(a.profile))+norm(getCenterOfMass(b.profile))+.012)return 0;
   const shapeA=collisionNodes(a),shapeB=collisionNodes(b);
@@ -371,8 +422,8 @@ export function resolveContact(a:Top,b:Top,loadLocks=true):number{
   // exceeded it), so accumulation across many band strikes — bounded by the
   // per-strike twist cap — is the intended path to release.
   const atRatchetBand=(victim:Top,kind:string)=>{if(kind==='ratchet')return true;const g=getRatchetGeometry(victim.profile),centre=add(position(victim),rotate(victim.orientation,geometryToCOM(victim.profile,V(0,g.centerHeight,0))));return Math.abs(contact.y-centre.y)<=g.halfThickness+.008;};
-  if(loadLocks&&atRatchetBand(a,nodeA.kind)&&!isFragment(a)){const work=applyRatchetWork(a,-ratchetImpulseTwist(a,contact,scale(impulse,-1),originA),nodeB.kind==='ratchet'?dissipated/2:dissipated);dissipated-=work;}
-  if(loadLocks&&atRatchetBand(b,nodeB.kind)&&!isFragment(b))applyRatchetWork(b,-ratchetImpulseTwist(b,contact,impulse,originB),dissipated);
+  if(loadLocks&&atRatchetBand(a,nodeA.kind)&&!isFragment(a)){const work=applyRatchetWork(a,-ratchetImpulseTwist(a,contact,scale(impulse,-1),originA),nodeB.kind==='ratchet'?dissipated/2:dissipated,tick);dissipated-=work;}
+  if(loadLocks&&atRatchetBand(b,nodeB.kind)&&!isFragment(b))applyRatchetWork(b,-ratchetImpulseTwist(b,contact,impulse,originB),dissipated,tick);
   return jn;
 }
 
@@ -590,7 +641,7 @@ export function stepBattle(b:Battle,dt=STEP):Battle{
     // tau ~60 s so repeated strikes across a long battle can reach release,
     // while the per-strike cap still prevents any single hit from bursting.
     for(const t of tops)if(!t.eliminated){syncDerived(t);if(t.omega*t.profile.spin<=0)t.rotationStopped=true;t.railCooldown=Math.max(0,t.railCooldown-h);t.lock*=Math.exp(-h/60);integrateFree(t,h);resolveFloor(t);}
-    if(!tops[0].eliminated&&!tops[1].eliminated){const j=resolveContact(tops[0],tops[1]);if(j>0)b.events.push({tick,kind:'collision',intensity:j,position:scale(add(position(tops[0]),position(tops[1])),.5)});}
+    if(!tops[0].eliminated&&!tops[1].eliminated){const j=resolveContact(tops[0],tops[1],true,b.tick);if(j>0)b.events.push({tick,kind:'collision',intensity:j,position:scale(add(position(tops[0]),position(tops[1])),.5)});}
     for(let n=0;n<2;n++){
       const t=tops[n];if(t.eliminated)continue;
       if(t.lock>=(t.profile.lockReleaseAngle??.24)-1e-12){splitBurstTop(b,n as 0|1,tick);eliminated(t,'burst',tick);}

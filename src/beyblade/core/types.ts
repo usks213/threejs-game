@@ -46,6 +46,8 @@ export interface Top {
   /** Quasistatic internal detent deflection in radians, driven only by exposed-ratchet work. */
   separated?:boolean;
   lock:number; railCooldown:number; profile:Profile; eliminated:Finish|null;
+  /** Detent loading rate-limit window (battle tick + radians gained inside it); see applyRatchetWork. */
+  lockWindowTick?:number; lockWindowGain?:number;
 }
 export type Finish = 'spin' | 'over' | 'burst' | 'xtreme';
 export interface BattleEvent { translationWork?:number;rotationWork?:number; tick: number; kind: 'collision' | 'rail' | 'rail-engage' | 'rail-release' | 'dash' | 'finish' | 'burst-split'; top?: number; intensity?: number; finish?: Finish; position?:Vec3; velocity?:Vec3; energyBefore?:number; energyAfter?:number; spinBefore?:number; spinAfter?:number; velocityBefore?:Vec3; velocityAfter?:Vec3; travel?:number }

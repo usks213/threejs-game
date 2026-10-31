@@ -149,7 +149,13 @@ export function estimateAssembly(input:AssemblyModelInput):{profile:Profile;meta
   // single capped dash clash (dissipating >=5 mJ at a ratchet node) filled the
   // detent in one hit and stamina builds burst inside 2 s in ~40% of rounds.
   // Real bursts need repeated hard ratchet strikes or one exceptional hit.
-  const lockStiffness=.010+.033*effectiveBurst/100+.009*rd,lockReleaseAngle=.28+.09*effectiveBurst/100+.06*rd;
+  // Release angle lowered .28+.09e+.06r -> .22+.08e+.05r on 2026-10-31
+  // (round 3): with the remaining-angle per-strike cap, traced locks in
+  // long grind battles stall at 0.31-0.33 rad against the former ~0.36 rad
+  // release, so bursts had become unreachable outside fixtures; the lower
+  // release lets sustained band strikes finish the last click while the
+  // cap form still bounds any single call to half the remaining gap.
+  const lockStiffness=.010+.033*effectiveBurst/100+.009*rd,lockReleaseAngle=.22+.08*effectiveBurst/100+.05*rd;
   const palette={...(form?.implemented_geometry?.palette??palettes[name]??{metal:0xaeb9c8,core:0x667488})};
   const coat=blade.part.name.match(/メタルコート[:：]([^\s]+)/)?.[1];if(coat&&namedColors[coat])palette.metal=namedColors[coat];
   const profile:Profile={name:`${blade.part.name} ${ratchet?.part.name??''}${code}`,type:blade.part.type,spin,color,mass,burstSeparationSupported,componentMasses,componentAxialWeights,radius,inertia,transverseInertia,centerOfMassHeight,height,
