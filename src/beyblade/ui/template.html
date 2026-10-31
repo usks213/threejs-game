@@ -1,0 +1,210 @@
+<header class="topbar">
+<div class="brand">
+<b>X</b> ARENA<small>THE SPIN LAB</small>
+</div>
+<div class="toplinks">
+<span>
+<i class="online-dot">
+</i>PART MODEL LAB · v0.3</span>
+<button class="ghost" id="catalog-link">パーツ図鑑 ↗</button>
+</div>
+</header>
+<div class="layout">
+<section class="battle-column">
+<div class="intro">
+<div>
+<div class="eyebrow">BUILD. LAUNCH. DISCOVER.</div>
+<h1>バトルアリーナ</h1>
+</div>
+<span class="pill">XTREME STADIUM</span>
+</div>
+<div class="stage">
+<canvas id="arena-canvas" tabindex="0" aria-describedby="position-help" aria-label="ベイブレードの3Dスタジアム">
+</canvas>
+<div class="stage-top">
+<span class="tag">01 / TRAINING ARENA</span>
+<span class="tag live" id="phase">● READY TO LAUNCH</span>
+</div>
+<button class="arena-focus" id="arena-focus" aria-pressed="false">アリーナを拡大</button>
+<div id="finish-banner" class="finish-banner" hidden></div>
+<div id="countdown" class="countdown" hidden aria-hidden="true"><span id="countdown-text"></span></div>
+<div class="motion-state" id="motion-state" aria-live="off">6DOF · 3次元の姿勢と接触を計算</div>
+<div class="stage-error" id="arena-error" role="alert" hidden>
+</div>
+<div class="scoreboard">
+<div>
+<div class="player-label blue">YOU / BLUE</div>
+<div class="player-name" id="your-name">ヘルズサイズ</div>
+</div>
+<div>
+<div class="scores">
+<span id="score-you">0</span> <i>:</i> <span id="score-other">0</span>
+</div>
+<div class="round-label" id="round-label">FIRST TO 4 POINTS</div>
+</div>
+<div style="text-align:right">
+<div class="player-label red" id="opponent-label">CPU / CORAL</div>
+<div class="player-name" id="other-name">ヘルズサイズ</div>
+</div>
+</div>
+</div>
+<section id="battle-result" class="battle-result" role="status" aria-live="polite" aria-atomic="true" hidden>
+<div class="eyebrow" id="result-match"></div><h2 id="result-title"></h2><p id="result-finish"></p><strong id="result-points"></strong><p id="result-score"></p>
+</section>
+<div class="model-warning"><strong>公式性能・形状を反映した、未校正の物理モデルです。</strong><br>公式の評価値と形状説明から物理係数を推定し、重力・姿勢・角運動量・接触・ギアの噛み合いを計算します。実機測定に基づく一致検証は未実施です。</div>
+<div class="status" role="status">
+<i class="indicator">
+</i>
+<span id="message">パーツを選んで、最初のシュートを決めよう。</span>
+</div>
+<section class="launch-panel">
+<div class="section-heading">
+<h2>シュートセッティング</h2>
+<span class="micro">LAUNCH CONTROL</span>
+</div>
+<div class="cpu-picker" id="cpu-picker"><span class="cpu-picker-title">練習相手 / CPUカスタム</span><div id="cpu-part-selects"></div></div>
+<div class="position-controls">
+<button class="ghost" id="pick-position" aria-pressed="false">ポインターで位置を選ぶ</button>
+<button class="ghost" id="reset-position">位置を初期値に戻す</button>
+<output id="position-value"></output>
+</div>
+<p class="note" id="position-help">「位置を選ぶ」を押して、スタジアムの青い範囲をクリック・タップ。ドラッグで微調整できます。キーボードは矢印キーで移動、Enterで確定。相手との重なりを避けるため自分側の範囲から選びます。</p>
+<div class="launch-controls">
+<label>パワー <output id="power-value">60%</output>
+<input id="power" type="range" min="20" max="100" value="60" aria-label="シュートパワー">
+</label>
+<label>狙う角度 <output id="angle-value">0°</output>
+<input id="angle" type="range" min="-50" max="50" value="0" aria-label="シュート角度">
+</label>
+<label>傾き <output id="tilt-value">20°</output>
+<input id="tilt" type="range" min="0" max="30" value="20" aria-label="シュートの傾き">
+</label>
+</div>
+<details class="speech-controls"><summary>話してシュート設定を入力</summary>
+<p class="note">例:「パワー80、角度マイナス10、傾き5」。認識内容を確認して反映します。音声認識はブラウザーのサービスへ音声を送信する場合があります。文字入力も使えます。</p>
+<label for="spoken-command">音声・文字によるシュート指示</label><input id="spoken-command" type="text" maxlength="200" placeholder="パワー80、角度0、傾き5">
+<div class="speech-actions"><button class="ghost" id="speech-start" aria-pressed="false">音声入力</button><button class="ghost" id="speech-preview">内容を確認</button><button id="speech-apply" disabled>設定に反映</button></div>
+<p id="speech-status" role="status">認識した内容はここで確認できます。</p>
+</details>
+<div class="actions">
+<button class="primary" id="launch">3, 2, 1 — GO SHOOT!</button>
+<button class="ghost" id="reset-match" aria-label="試合をリセット">↻ リセット</button>
+</div>
+<div class="telemetry">
+<span id="rpm">BLUE — rpm / CORAL — rpm</span>
+<span id="sim-time">SIM 0.00s</span>
+<span>240 Hz · 毎ラウンド微妙に違うシュート再現</span>
+</div>
+</section>
+</section>
+<aside class="sidebar">
+<section class="panel">
+<div class="tabs" role="tablist" aria-label="ゲームモード">
+<button class="selected" id="local-tab" role="tab" aria-selected="true">ひとりで練習</button>
+<button id="online-tab" role="tab" aria-selected="false">オンライン</button>
+</div>
+<div class="eyebrow">YOUR CUSTOM BEY</div>
+<div class="build-name" id="build-name">ヘルズサイズ</div>
+<div class="build-subtitle" id="build-subtitle">BALANCE TYPE / RIGHT SPIN</div>
+<div class="bey-inspection">
+<canvas id="bey-inspect-canvas" aria-label="選択中のベイの立体モデル"></canvas>
+<p id="inspect-error" class="note" role="status" hidden></p>
+<button id="inspect-view" class="ghost" aria-pressed="false">裏側・ビットを見る</button>
+<button id="inspect-mass" class="ghost" aria-pressed="false">重心とビット軸を表示</button>
+<p id="mass-reference-legend" class="note" hidden>紫: 推定重心 / 灰: ビット軸（位置は実寸・透視表示）。外周の重量配分による慣性差とは別です。</p>
+<div class="inspect-controls"><button id="inspect-left" class="ghost" aria-label="モデルを左へ回す">↶</button><span>対戦と同じ近似形状<br>共通の縮尺で比較</span><button id="inspect-right" class="ghost" aria-label="モデルを右へ回す">↷</button></div>
+</div>
+<p class="model-status" id="shape-description"></p>
+<div id="part-selects">
+</div>
+<div class="stats" id="ratings">
+</div>
+<p class="note">バーはメーカー公表の評価値です。質量・摩擦などの実測値ではありません。</p>
+<section class="derived-model" aria-label="推定した物理特性">
+<h3>この構成の物理モデル <span>根拠と推定を区別</span></h3>
+<div id="mass-summary" class="mass-summary"></div>
+<div id="mass-calibration" class="mass-calibration" hidden></div>
+<div id="model-values" class="model-values"></div>
+<p class="note">公式評価・形状説明からの推定に、部品が一致する独立測定の質量資料だけを区別して反映します。重心・慣性・摩擦は未校正の推定で、メーカーの測定物性ではありません。シュートのパワーは推定発射エネルギーです。</p>
+<details class="model-evidence"><summary>公式値と推定への反映を確認</summary><div id="model-evidence"></div></details>
+<div id="model-gaps" class="model-gaps"></div>
+</section>
+<p class="note" id="build-error" role="alert">
+</p>
+</section>
+<section class="panel online-panel" id="online-panel" hidden>
+<div class="section-heading">
+<h2>オンライン対戦</h2>
+<span class="micro">SERVER AUTHORITATIVE</span>
+</div>
+<p class="note">同じサーバーのプレイヤーとマッチング。サーバーが軌道と得点を判定します。</p>
+<details><summary>開発用の接続設定</summary>
+<label for="server-url">開発用サーバー URL</label>
+<input id="server-url" placeholder="同一オリジン /api/beyblade" aria-label="対戦サーバーURL">
+</details>
+<button class="dark" id="queue">対戦相手を探す</button>
+<button class="ghost" id="cancel-queue">キャンセル / 退出</button>
+<p class="note" id="connection">オンライン対戦の公開状態を確認します。</p>
+</section>
+<section class="panel">
+<div class="section-heading">
+<h2>バトルルール</h2>
+<span class="micro">JP OFFICIAL / v12</span>
+</div>
+<div class="rule-grid">
+<div class="rule">SPIN <b>1 pt</b>
+</div>
+<div class="rule">OVER <b>2 pt</b>
+</div>
+<div class="rule">BURST <b>2 pt</b>
+</div>
+<div class="rule">XTREME <b>3 pt</b>
+</div>
+</div>
+<p class="note">2人・1ベイ / 4ポイント先取。先に発生したフィニッシュを採用。同時は再シュート。試合中のパーツ変更はできません。</p>
+<a class="note" href="https://beyblade.takaratomy.co.jp/beyblade-x/_image/regulation.pdf" target="_blank" rel="noreferrer">公式レギュレーションを見る ↗</a>
+</section>
+</aside>
+</div>
+<section class="catalog" id="catalog">
+<div class="catalog-head">
+<div>
+<div class="eyebrow">THE PARTS ARCHIVE</div>
+<h2 style="margin-top:7px">公式パラメーター図鑑 <span id="catalog-count" class="micro">
+</span>
+</h2>
+</div>
+<input type="search" id="catalog-search" placeholder="パーツ名・種類で検索" aria-label="パーツを検索">
+</div>
+<p class="note">不明な値は「未確認」。発売済と発売予定は区別しています。店頭在庫・販売継続は未確認です。発売予定パーツは対戦に使用できません。</p>
+<div class="archive-downloads"><a href="/beyblade-data/parts.csv" download>部品表 CSV ↓</a><a href="/beyblade-data/parts.json" download>部品 JSON ↓</a><a href="/beyblade-data/products.csv" download>公式掲載商品 CSV ↓</a><a href="/beyblade-data/coverage.md" target="_blank">調査範囲・未確認事項 ↗</a></div>
+<p class="table-hint">横スクロールで全パラメーターを確認 →</p>
+<div class="catalog-scroll">
+<table>
+<thead>
+<tr>
+<th>パーツ</th>
+<th>分類</th>
+<th>シリーズ</th>
+<th>攻撃</th>
+<th>防御</th>
+<th>持久</th>
+<th>ダッシュ</th>
+<th>バースト耐性</th>
+<th>高さ (公式コード)</th>
+<th>評価範囲 / 注記</th>
+<th>状態</th>
+<th>出典</th>
+</tr>
+</thead>
+<tbody id="catalog-body">
+</tbody>
+</table>
+</div>
+<details><summary id="product-count">公式掲載商品を見る</summary><p class="note">これは公式一覧の掲載履歴です。現在の在庫を表すものではありません。</p><div class="catalog-scroll"><table><thead><tr><th>製品名</th><th>公式発売日</th><th>状態</th><th>出典</th></tr></thead><tbody id="product-body"></tbody></table></div></details>
+</section>
+<footer>
+<span>非公式ファン制作 · BEYBLADE X は権利者の商標です。<br>画像・ロゴを転載せず、オリジナルの幾何形状で表示しています。</span>
+<span>物理モデルは未校正の近似です。実機と同じ挙動・勝率は保証しません。<br>日本向け公式情報 / 確認日 2026.10.25 · <a href="/">既存のゲームへ戻る ↗</a>
+</span>
+</footer>

@@ -1,0 +1,10 @@
+{
+  // NOT DEPLOYED. Use only after separate explicit approval and account/free-plan verification.
+  // This is intentionally not named "threejs-game" and does not bind production namespaces.
+  "name": "threejs-game-beyblade-pr7",
+  "main": "server/beyblade/worker.ts",
+  "compatibility_date": "2026-10-02",
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/beyblade", "/api/beyblade/*"] },
+  "durable_objects": { "bindings": [{ "name": "ARENA", "class_name": "BeybladeArena" }] },
+  "migrations": [{ "tag": "beyblade-pr7-v1", "new_sqlite_classes": ["BeybladeArena"] }]
+}

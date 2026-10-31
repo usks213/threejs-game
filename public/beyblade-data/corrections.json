@@ -1,0 +1,22 @@
+[
+  {
+    "id": "blade:2cfb276eb045",
+    "reason": "source filename correction: correct HellsChain image is _p, not KnightLance _y"
+  },
+  {
+    "id": "bit:HT",
+    "reason": "source filename correction: correct HellsChain image is _p, not KnightLance _y"
+  },
+  {
+    "id": "ratchet_integrated_blade:8f6bf7fe20d5",
+    "reason": "populate product_url already verified in UX transcription; source image case differs from page link"
+  },
+  {
+    "id": "blade:8d47151a5b57",
+    "reason": "populate product_url already verified in UX transcription; source image case differs from page link"
+  },
+  {
+    "id": "bit:UN",
+    "reason": "populate product_url already verified in UX transcription; source image case differs from page link"
+  }
+]

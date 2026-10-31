@@ -1,0 +1,147 @@
+import template from './template.html?raw';
+import { parts, defaultBuild, profileFor, modelMetadataFor, validateBuild, buildForBlade, selectableParts, requiredBuildKeys, ratingsFor, officialProducts, byKana, compareKana } from '../data/catalog';
+import { createBattle, stepBattle, stepSettlingBattle, STEP } from '../core/physics';
+import { createMatch, scoreRound } from '../core/rules';
+import { createArena } from '../rendering/arena';
+import { createTopPreview } from '../rendering/top-preview';
+import { ArenaClient } from '../network/client';
+import type { StateMessage } from '../network/protocol';
+import type { Battle, Build, Launch, PartCategory } from '../core/types';
+import { setupLaunchPointer } from './launch-pointer';
+import { setupLaunchSpeech } from './launch-speech';
+import { setupBattleResult, finishLabel } from './battle-result';
+const escape=(value:unknown)=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+export function startArena(){
+  const root=document.querySelector<HTMLElement>('#arena-app')!;
+  root.innerHTML=template;
+  const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
+  const abort=new AbortController();const signal=abort.signal;
+  let build:Build={...defaultBuild};
+  let opponentBuild=buildForBlade(parts.find(p=>p.category==='blade'&&p.release==='released'&&p.id!==defaultBuild.blade)?.id??defaultBuild.blade);
+  try{const saved=JSON.parse(localStorage.getItem('x-arena-build-v1')??'null');if(saved && validateBuild(saved).length===0)build=saved;}catch{/* unavailable storage */}
+  let battle:Battle|null=null;let match=createMatch();let matchStarted=false;let client:ArenaClient|null=null;let networkState:StateMessage|null=null;let queuedOnConnect=false;let networkGeneration=0;let backendAvailable=false;let healthController:AbortController|null=null;let healthGeneration=0;let running=false;let launchDeadline=0;let mode:'local'|'online'='local';let disposed=false;let last=0;let accumulator=0;let lastHud=0;let frame=0;
+  const arena=createArena(el<HTMLCanvasElement>('arena-canvas'),message=>{el('arena-error').hidden=false;el('arena-error').textContent=message;});
+  const inspection=createTopPreview(el<HTMLCanvasElement>('bey-inspect-canvas'),message=>{el('inspect-error').hidden=false;el('inspect-error').textContent=message;});
+  let massReference=false;el('inspect-mass').addEventListener('click',()=>{massReference=!massReference;inspection?.setMassReferenceVisible(massReference);el('inspect-mass').setAttribute('aria-pressed',String(massReference));el('mass-reference-legend').hidden=!massReference;},{signal});
+  let underside=false;el('inspect-view').addEventListener('click',()=>{underside=!underside;inspection?.setView(underside?'underside':'top');el('inspect-view').setAttribute('aria-pressed',String(underside));el('inspect-view').textContent=underside?'表側・ブレードを見る':'裏側・ビットを見る';},{signal});
+  el('inspect-left').addEventListener('click',()=>inspection?.rotate(-Math.PI/6),{signal});el('inspect-right').addEventListener('click',()=>inspection?.rotate(Math.PI/6),{signal});
+  const isSettling=(state:Battle|null)=>Boolean(state?.result&&state.settling&&state.settling.remaining>0);
+  // Finish presentation (2026-10-31, after the Switch Beyblade X XONE
+  // reference): the post-finish settling plays at 0.35x slow motion so a
+  // decided round reads as a dramatic finish instead of fast-forward. The
+  // battle simulation itself always runs at real-time fixed steps.
+  const setMessage=(message:string)=>{el('message').textContent=message;};
+  let pendingLaunch:Launch|null=null;let launchSent=false;
+  // Round seed for launch micro-variation: random every round in normal
+  // play. A ?seed=N URL parameter pins it (including 0 = exact legacy
+  // inputs) so a specific battle can be replayed or regression-tested.
+  const pinnedSeed=(()=>{const raw=new URLSearchParams(location.search).get('seed');if(raw===null)return null;const value=Number(raw);return Number.isSafeInteger(value)&&value>=0?value:null;})();
+  const roundSeed=()=>pinnedSeed??((Math.random()*0x7fffffff|0)||1);
+  // Staged countdown presentation (2026-10-31, round 3): the 3 s launch
+  // deadline always existed, but only as a status-line text. The overlay
+  // now shows each beat -- 3, 2, 1 -- as a large pop over the stadium and
+  // flashes GO SHOOT! as the battle is created, anime/game style. Timing
+  // stays wall-clock (launchDeadline), so slow frames cannot stretch it.
+  let countdownShown='';let goShootUntil=0;
+  function showCountdown(text:string,go=false){const box=el('countdown'),span=el('countdown-text');box.hidden=false;span.textContent=text;box.classList.toggle('go',go);span.classList.remove('pop');void span.offsetWidth;span.classList.add('pop');countdownShown=text;}
+  function hideCountdown(){el('countdown').hidden=true;countdownShown='';goShootUntil=0;}
+  const results=setupBattleResult(root);
+  const pointer=setupLaunchPointer(root,arena,signal);
+  const canEdit=()=>!launchSent&&!running&&!launchDeadline&&!isSettling(battle)&&(mode==='local'||networkState?.phase==='ready'&&!networkState.ready[networkState.player??0]);
+  const speech=setupLaunchSpeech(root,settings=>{for(const [key,value] of Object.entries(settings)){el<HTMLInputElement>(key).value=String(value);el(`${key}-value`).textContent=`${value}${key==='power'?'%':'°'}`;}},canEdit,signal);
+  function syncControls(){const editable=canEdit();pointer.sync(editable,mode==='online'?networkState?.player??0:0);speech.lock(!editable);for(const name of ['power','angle','tilt'])el<HTMLInputElement>(name).disabled=!editable;}
+  const launchInput=():Launch=>({position:pointer.value(),power:Number(el<HTMLInputElement>('power').value)/100,angle:Number(el<HTMLInputElement>('angle').value)*Math.PI/180,tilt:Number(el<HTMLInputElement>('tilt').value)*Math.PI/180});
+  const categories: [keyof Build,PartCategory,string][]=[['blade','blade','BLADE / ブレード'],['lock_chip','lock_chip','LOCK CHIP / ロックチップ'],['main_blade','main_blade','MAIN BLADE / メインブレード'],['metal_blade','metal_blade','METAL / メタルブレード'],['assist_blade','assist_blade','ASSIST / アシストブレード'],['over_blade','over_blade','OVER / オーバーブレード'],['ratchet','ratchet','RATCHET / ラチェット'],['bit','bit','BIT / ビット']];
+  function updateBuild(){
+    const blade=parts.find(p=>p.id===build.blade)!;
+    el('build-name').textContent=blade.name;el('your-name').textContent=blade.name;el('build-subtitle').textContent=`${blade.type.toUpperCase()} TYPE / ${blade.spin===-1?'LEFT':'RIGHT'} SPIN${blade.spinVerification==='unverified_model_default'?' · 回転方向未確認':''}`;
+    const keys=requiredBuildKeys(build);
+    const wanted=categories.filter(([key])=>keys.includes(key));
+    el('part-selects').innerHTML=wanted.map(([key,,label])=>{const options=selectableParts(key,build);return `<label class="part-select"><span>${label}</span><select data-part="${key}" aria-label="${label}" ${matchStarted||running||launchDeadline?'disabled':''}>${options.map(p=>`<option value="${escape(p.id)}" ${p.id===build[key]?'selected':''}>${escape(p.name)}</option>`).join('')}</select></label>`;}).join('');
+    for(const [key,id] of [['bladeMode',build.blade],['bitMode',build.bit]] as const){const part=parts.find(p=>p.id===id);if(part?.modes?.length)el('part-selects').insertAdjacentHTML('beforeend',`<label class="part-select"><span>${key==='bladeMode'?'ブレード':'ビット'} / モード</span><select data-part="${key}" aria-label="${key}" ${matchStarted?'disabled':''}>${part.modes.map(m=>`<option ${m.name===build[key]?'selected':''} value="${escape(m.name)}">${escape(m.name)}</option>`).join('')}</select></label>`);}
+    // Opponent (CPU) customization (2026-10-31, round 3): the opponent was
+    // blade-only before; it now gets the same part slots as the player --
+    // blade, CX internals where the family uses them, ratchet and bit,
+    // plus mode selects -- rendered into #cpu-part-selects with data-cpu-part.
+    const cpuKeys=requiredBuildKeys(opponentBuild);
+    const cpuWanted=categories.filter(([key])=>cpuKeys.includes(key));
+    el('cpu-part-selects').innerHTML=cpuWanted.map(([key,,label])=>{const options=selectableParts(key,opponentBuild);return `<label class="part-select"><span>${label}</span><select data-cpu-part="${key}" aria-label="相手の${label}" ${matchStarted||running||launchDeadline?'disabled':''}>${options.map(p=>`<option value="${escape(p.id)}" ${p.id===opponentBuild[key]?'selected':''}>${escape(p.name)}</option>`).join('')}</select></label>`;}).join('');
+    for(const [key,id] of [['bladeMode',opponentBuild.blade],['bitMode',opponentBuild.bit]] as const){const part=parts.find(p=>p.id===id);if(part?.modes?.length)el('cpu-part-selects').insertAdjacentHTML('beforeend',`<label class="part-select"><span>${key==='bladeMode'?'ブレード':'ビット'} / モード</span><select data-cpu-part="${key}" aria-label="相手の${key}" ${matchStarted?'disabled':''}>${part.modes.map(m=>`<option ${m.name===opponentBuild[key]?'selected':''} value="${escape(m.name)}">${escape(m.name)}</option>`).join('')}</select></label>`);}
+    el('other-name').textContent=parts.find(p=>p.id===opponentBuild.blade)?.name??'CPU';
+    const currentRatings=ratingsFor(blade,blade.spin??1,build.bladeMode);
+    el('ratings').innerHTML=([['attack','攻撃'],['defense','防御'],['stamina','持久']] as const).map(([key,label])=>`<div class="stat"><span>${label}</span><div class="bar"><i style="width:${currentRatings?.[key]??0}%"></i></div><b>${currentRatings?.[key]??'—'}</b></div>`).join('');
+    const errors=[...validateBuild(build),...validateBuild(opponentBuild).map(e=>`相手: ${e}`)];el('build-error').textContent=errors.join(' / ');el<HTMLButtonElement>('launch').disabled=errors.length>0||!arena||running||launchDeadline>0||isSettling(battle)||(mode==='online'&&!['ready','round-end'].includes(networkState?.phase??''));
+    if(!errors.length){const profile=profileFor(build),metadata=modelMetadataFor(build);arena?.setProfiles([profile,profileFor(opponentBuild,0xf5785a)]);inspection?.setProfile(profile);
+      const center=profile.centerOfMass??{x:0,y:profile.centerOfMassHeight??0,z:0},tensor=profile.inertiaTensor;
+      el('mass-summary').dataset.center=JSON.stringify(center);el('mass-summary').dataset.inertia=JSON.stringify(tensor??null);
+      el('mass-summary').innerHTML=`<strong>重心と慣性（推定）</strong><p>軸先からの高さ ${(center.y*1000).toFixed(2)} mm · 横偏心 ${(Math.hypot(center.x,center.z)*1000).toFixed(3)} mm</p><p>X ${(center.x*1000).toFixed(3)} / Z ${(center.z*1000).toFixed(3)} mm · 自転軸慣性 ${(tensor?.yy??profile.inertia).toExponential(3)} kg·m²</p><small>左右対称なら横偏心はほぼ0でも、重心高さや外周重量による慣性は変わります。実物の測定値ではありません。</small>`;
+      const observations=metadata.massCalibration??[];
+      el('mass-calibration').hidden=false;
+      el('mass-calibration').innerHTML=`<p><strong>質量の根拠</strong> · ${(profile.massComponents??[]).map(c=>`${({blade:'ブレード組立',ratchet:'ラチェット',bit:'ビット'} as const)[c.component]}: ${observations.some(m=>m.component===c.component)?'独立測定を参照':'推定（未採用）'}`).join(' / ')}</p>`+(observations.length?`<h4>質量の独立測定資料（公式仕様ではありません）</h4><p>${observations.length}部品に公開された秤量値をモデルの代表値として採用。組立質量は各部の合計で、完成個体を測った値ではありません。未掲載部品の質量は推定です。</p>${observations.map(m=>`<details data-mass-part="${escape(m.partId)}"><summary>${escape(m.name)} · 採用 ${m.adoptedGrams} g</summary><p>掲載値の範囲 ${m.observedRangeGrams[0]}–${m.observedRangeGrams[1]} g / 掲載数 ${m.reportedReadingCount} / 確認個体数 ${m.sampleCount??'不明'}</p><p>${escape(m.matchedVariant)}</p><p>${escape(m.method)}</p><p>${escape(m.uncertaintyNote)}</p><a href="${escape(m.sourceUrl)}" target="_blank" rel="noreferrer">独立測定の出典 ↗</a></details>`).join('')}<p>重心・慣性テンソルは、採用質量と推定形状・密度配分からの計算値です。実測重心でも、校正済みの再現保証でもありません。</p>`:'<p>この構成に採用した独立質量資料はありません。質量・重心・慣性は推定です。資料のある構成と同等の裏付けや性能精度を意味しません。</p>');
+      el('shape-description').textContent=metadata.label;el('shape-description').classList.toggle('provisional',metadata.status==='partial-estimate');
+      const valueText=(value:number,unit:string)=>unit==='kg'?`${(value*1000).toFixed(2)} g`:unit==='m'?`${(value*1000).toFixed(2)} mm`:`${Number(value.toPrecision(4))} ${unit}`;
+      el('model-values').innerHTML=metadata.derived.filter(d=>! /^(com-|lateral-com|tensor-|principal-|component-)/.test(d.key)).map(d=>`<div><span>${escape(d.label)}</span><b>${escape(valueText(d.value,d.unit))}</b><small>${d.provenance==='official-relative'?'公式の相対寸法':d.provenance==='measurement-informed'?'独立測定を参照した部品値の合計':'推定'}</small></div>`).join('');
+      el('model-evidence').innerHTML=metadata.components.map(c=>`<section><h4>${escape(c.name)}</h4><p>${c.shapeStatus==='unmodeled'?'形状未再現・暫定モデル':'公式の形状説明を反映した近似'}</p><p>${c.officialRatings?Object.entries(c.officialRatings).map(([k,v])=>`${escape(k)} ${v==null?'未公表 / 未確認':escape(v)}`).join(' · '):'公式評価は未確認'}</p><ul>${c.notes.map(n=>`<li>${escape(n)}</li>`).join('')}</ul><a href="${escape(c.source)}" target="_blank" rel="noreferrer">公式出典 ↗</a></section>`).join('')+`<h4>推定に使った入力</h4><ul>${metadata.derived.map(d=>`<li><b>${escape(d.label)}: ${escape(valueText(d.value,d.unit))}</b> — ${d.inputs.map(escape).join(' / ')}</li>`).join('')}</ul>`;
+      el('model-gaps').textContent=[...metadata.components.filter(c=>c.shapeStatus==='unmodeled').map(c=>`${c.name}: 形状未再現・暫定モデル`),...metadata.missingInputs.map(k=>`公式値未確認: ${k}`),...metadata.unsupportedMechanisms].join(' / ');
+      try{localStorage.setItem('x-arena-build-v1',JSON.stringify(build));}catch{/* optional persistence */}}
+  }
+  function scoreHud(){el('score-you').textContent=String(match.scores[0]);el('score-other').textContent=String(match.scores[1]);el('round-label').textContent=match.winner===null?`ROUND ${match.round} · FIRST TO 4`:match.winner===0?'YOU WIN':mode==='local'?'CPU WINS':'OPPONENT WINS';}
+  function renderCatalog(){const query=el<HTMLInputElement>('catalog-search').value.toLowerCase();const found=parts.filter(p=>`${p.name} ${p.category} ${p.family}`.toLowerCase().includes(query)).sort(byKana);el('catalog-count').textContent=`${found.length} PARTS`;el('catalog-body').innerHTML=found.map(p=>`<tr><td>${escape(p.name)}</td><td>${escape(p.sourceCategory??p.category)}</td><td>${p.family}</td>${['attack','defense','stamina','dash','burst_resistance','height'].map(k=>`<td>${p.ratings?.[k as keyof typeof p.ratings]??'未確認'}</td>`).join('')}<td class="rating-note">${escape(p.ratingScope??'')} ${escape(p.notes??'')}${p.ratingsVariants?.length?`<br>${p.ratingsVariants.map(v=>escape(`${v.condition}: ATK ${v.ratings.attack??'—'} / DEF ${v.ratings.defense??'—'} / STA ${v.ratings.stamina??'—'}`)).join('<br>')}`:''}${p.modes?.length?`<br>${p.modes.map(m=>escape(`${m.name}: ATK ${m.ratings.attack??'—'} / DEF ${m.ratings.defense??'—'} / STA ${m.ratings.stamina??'—'}`)).join('<br>')}`:''}</td><td>${p.release==='released'?'発売済':p.release==='upcoming'?'発売予定':'発売未確認'}</td><td><a href="${escape(p.source)}" target="_blank" rel="noreferrer">公式 ↗</a></td></tr>`).join('');}
+  el('part-selects').addEventListener('change',e=>{const select=e.target as HTMLSelectElement;if(!select.dataset.part||running||launchDeadline||matchStarted)return;if(select.dataset.part==='blade')build=buildForBlade(select.value,build);else {build={...build,[select.dataset.part]:select.value};if(select.dataset.part==='bit')build=buildForBlade(build.blade,build);}updateBuild();},{signal});
+  el('cpu-part-selects').addEventListener('change',e=>{const select=e.target as HTMLSelectElement;const key=select.dataset.cpuPart as keyof Build|undefined;if(!key||running||launchDeadline||matchStarted)return;if(key==='blade')opponentBuild=buildForBlade(select.value,opponentBuild);else {opponentBuild={...opponentBuild,[key]:select.value};if(key==='bit')opponentBuild=buildForBlade(opponentBuild.blade,opponentBuild);}updateBuild();},{signal});
+  for(const name of ['power','angle','tilt'])el(name).addEventListener('input',()=>{el(`${name}-value`).textContent=`${el<HTMLInputElement>(name).value}${name==='power'?'%':'°'}`;},{signal});
+  function reset(){results.hide();speech.cancel();hideCountdown();pendingLaunch=null;launchSent=false;running=false;matchStarted=false;launchDeadline=0;accumulator=0;battle=null;match=createMatch();scoreHud();updateBuild();el('launch').textContent='3, 2, 1 — GO SHOOT!';el('phase').textContent='● READY TO LAUNCH';setMessage('新しい試合。カスタマイズとシュートを調整できます。');syncControls();}
+  function launchLocal(){if(running||launchDeadline||isSettling(battle)||validateBuild(build).length||validateBuild(opponentBuild).length)return;if(match.winner!==null)reset();pointer.stop();pendingLaunch=launchInput();results.hide();matchStarted=true;launchDeadline=performance.now()+3000;showCountdown('3');syncControls();el('arena-canvas').closest('.stage')?.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});el<HTMLButtonElement>('launch').disabled=true;setMessage('3, 2, 1… GO SHOOT!');el('phase').textContent='● LAUNCH COUNTDOWN';updateBuild();}
+  el('launch').addEventListener('click',()=>{if(mode==='local')launchLocal();else if(networkState?.phase==='ready'){if(client?.launch(launchInput())){launchSent=true;pointer.stop();syncControls();el<HTMLButtonElement>('launch').disabled=true;}}else if(networkState?.phase==='round-end'){if(client?.next())el<HTMLButtonElement>('launch').disabled=true;}else setMessage('先に対戦相手と接続してください。');},{signal});
+  el('reset-match').addEventListener('click',()=>{if(mode==='online'){client?.cancel();networkState=null;}reset();},{signal});
+  el('local-tab').addEventListener('click',()=>setMode('local'),{signal});el('online-tab').addEventListener('click',()=>setMode('online'),{signal});
+  async function checkBackend(){
+    const generation=++healthGeneration;healthController?.abort();backendAvailable=false;
+    if(mode!=='online'||el<HTMLInputElement>('server-url').value.trim())return;
+    const controller=new AbortController();healthController=controller;const timeout=setTimeout(()=>controller.abort(),3000);
+    el<HTMLButtonElement>('queue').disabled=true;el('connection').textContent='オンライン対戦の公開状態を確認しています…';
+    try{const response=await fetch('/api/beyblade/health',{cache:'no-store',signal:controller.signal});if(!response.ok||!response.headers.get('content-type')?.includes('application/json'))throw new Error('no service');const status=await response.json() as {service?:string;online?:boolean};if(status.service!=='beyblade-authoritative'||status.online!==true)throw new Error('wrong service');if(generation!==healthGeneration||mode!=='online'||disposed)return;backendAvailable=true;el<HTMLButtonElement>('queue').disabled=false;el('connection').textContent='オンライン対戦サーバーを利用できます。';}
+    catch{if(generation!==healthGeneration||mode!=='online'||disposed)return;const message='この公開版ではオンライン対戦はまだ利用できません。CPU戦を利用できます。';el('connection').textContent=message;setMessage(message);el<HTMLButtonElement>('queue').disabled=true;}
+    finally{clearTimeout(timeout);}
+  }
+  el('server-url').addEventListener('input',()=>{healthGeneration++;healthController?.abort();if(el<HTMLInputElement>('server-url').value.trim()){el<HTMLButtonElement>('queue').disabled=false;el('connection').textContent='開発用サーバーを指定しました。';}else void checkBackend();},{signal});
+  function setMode(next:'local'|'online'){if(mode===next)return;healthGeneration++;healthController?.abort();networkGeneration++;client?.cancel();client?.dispose();client=null;networkState=null;mode=next;reset();el('online-panel').hidden=mode!=='online';el('cpu-picker').hidden=mode==='online';for(const id of ['local','online']){el(`${id}-tab`).classList.toggle('selected',id===mode);el(`${id}-tab`).setAttribute('aria-selected',String(id===mode));}el('opponent-label').textContent=mode==='local'?'CPU / CORAL':'OPPONENT / CORAL';setMessage(mode==='local'?'練習モード。シュートを調整してバトル。':'対戦サーバーの公開状態を確認します。');if(mode==='online')void checkBackend();}
+  el('arena-focus').addEventListener('click',()=>{const expanded=el('arena-canvas').closest('.stage')!.classList.toggle('focused');el('arena-focus').setAttribute('aria-pressed',String(expanded));el('arena-focus').textContent=expanded?'通常の表示':'アリーナを拡大';},{signal});
+  el('catalog-link').addEventListener('click',()=>el('catalog').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}),{signal});el('catalog-search').addEventListener('input',renderCatalog,{signal});
+  function onNetwork(state:StateMessage){
+    launchSent=false;networkState=state;running=false;launchDeadline=0;matchStarted=!['idle'].includes(state.phase);if(state.phase==='idle'||state.phase==='queued'){match=createMatch();battle=null;scoreHud();}
+    const player=state.player??0,other=player===0?1:0;
+    if(state.match){match={...state.match,scores:[state.match.scores[player],state.match.scores[other]],winner:state.match.winner===null?null:state.match.winner===player?0:1};scoreHud();}
+    if(!state.battle&&['ready','countdown'].includes(state.phase))battle=null;
+    if(state.battle){battle={...state.battle,result:state.battle.result?{...state.battle.result,winner:state.battle.result.winner===null?null:state.battle.result.winner===player?0:1}:null,tops:[state.battle.tops[player],state.battle.tops[other]],fragments:state.battle.fragments?.map(fragment=>({...fragment,sourceTop:(fragment.sourceTop===player?0:1) as 0|1}))??[]};arena?.setProfiles([{...battle.tops[0].profile,color:0x335dff},{...battle.tops[1].profile,color:0xf5785a}]);el('other-name').textContent=battle.tops[1].profile.name;}
+    const text:Record<StateMessage['phase'],string>={idle:'接続完了。対戦相手を探せます。',queued:'対戦相手を探しています… 別のプレイヤーの参加を待っています。',ready:'マッチ成立！ シュート準備を送信してください。',countdown:'両者の準備完了。3, 2, 1…',battle:'オンライン対戦中 · サーバーが物理と得点を計算しています。','round-end':'ラウンド終了。両者が「次のラウンド」で再開します。','match-end':`試合終了 · ${match.winner===0?'あなたの勝利':'相手の勝利'}`,'opponent-disconnected':'相手の接続が中断。再接続を待っています。'};
+    let message=text[state.phase];if(state.phase==='round-end'&&state.battle?.result){const r=state.battle.result;message=`${finishLabel[r.finish]} · ${r.winner===null?'再シュート':`${r.winner===player?'YOU':'OPPONENT'} +${r.points} pt`} — 次のラウンドへ`;}
+    if(isSettling(battle))message+=' · 結果確定・余動を計算中';setMessage(state.reason?`${message} (${state.reason})`:message);el('connection').textContent=`接続中 / ${state.phase}`;el('phase').textContent=`● ONLINE ${state.phase.toUpperCase()}`;
+    el('launch').textContent=state.phase==='round-end'?'次のラウンドへ':state.phase==='ready'?'シュート準備を送信':'相手を待っています';
+    el<HTMLButtonElement>('launch').disabled=!['ready','round-end'].includes(state.phase)||state.ready[player]||isSettling(battle);
+    el<HTMLButtonElement>('queue').disabled=!['idle','match-end'].includes(state.phase);
+    el('part-selects').querySelectorAll('select').forEach(select=>select.disabled=matchStarted);
+    syncControls();
+    if(state.phase==='match-end'&&state.reason)results.forfeit(match.winner,match.scores);
+    else if(battle?.result)results.show(battle.result,match,'OPPONENT');else results.hide();
+  }
+  el('queue').addEventListener('click',()=>{
+    if(validateBuild(build).length)return;
+    if(!el<HTMLInputElement>('server-url').value.trim()&&!backendAvailable){setMessage('この公開版ではオンライン対戦はまだ利用できません。CPU戦を利用できます。');return;}
+    if(client&&networkState?.phase==='idle'){client.queue(build);return;}
+    client?.cancel();client?.dispose();networkState=null;queuedOnConnect=true;
+    const entered=el<HTMLInputElement>('server-url').value.trim();const endpoint=entered||`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/api/beyblade`;
+    try{const url=new URL(endpoint);if(!['ws:','wss:','https:','http:'].includes(url.protocol)||url.username||url.password)throw new Error('URL形式が正しくありません');const generation=++networkGeneration;client=new ArenaClient(endpoint,msg=>{if(disposed||mode!=='online'||generation!==networkGeneration)return;if(msg.type==='hello'){el('connection').textContent='接続完了';if(queuedOnConnect){queuedOnConnect=false;client?.queue(build);}}else if(msg.type==='state')onNetwork(msg);else if(msg.type==='error'){launchSent=false;syncControls();if(networkState?.phase==='ready')el<HTMLButtonElement>('launch').disabled=networkState.ready[networkState.player??0];const unavailable=!el<HTMLInputElement>('server-url').value.trim()&&msg.message.includes('サーバーに接続できません');const message=unavailable?'この公開版ではオンライン対戦はまだ利用できません。CPU戦を利用できます。':msg.message;el('connection').textContent=message;setMessage(message);el<HTMLButtonElement>('queue').disabled=unavailable;}});client.connect();el('connection').textContent='接続しています…';el<HTMLButtonElement>('queue').disabled=true;}catch{el('connection').textContent='有効な ws:// または wss:// サーバーURLを入力してください。';el<HTMLButtonElement>('queue').disabled=false;}
+  },{signal});
+  el('cancel-queue').addEventListener('click',()=>{queuedOnConnect=false;networkGeneration++;client?.cancel();client?.dispose();client=null;networkState=null;reset();el('connection').textContent='接続を終了しました。';el<HTMLButtonElement>('queue').disabled=!backendAvailable&&!el<HTMLInputElement>('server-url').value.trim();},{signal});
+  function animate(now:number){if(disposed)return;const dt=last?Math.min((now-last)/1000,.1):0;last=now;const settlingAtFrameStart=isSettling(battle);if(goShootUntil&&now>=goShootUntil)hideCountdown();if(launchDeadline>0){if(now>=launchDeadline){launchDeadline=0;battle=createBattle([profileFor(build),profileFor(opponentBuild,0xf5785a)],[pendingLaunch??launchInput(),{power:.76,angle:-.12,tilt:.11}],roundSeed());pendingLaunch=null;running=true;accumulator=0;syncControls();el('phase').textContent='● BATTLE LIVE';setMessage('自転・摩擦・衝突から軌道を計算中。操作はシュート時のみ。');showCountdown('GO SHOOT!',true);goShootUntil=now+700;}else{const remaining=launchDeadline-now,digit=remaining>2000?'3':remaining>1000?'2':'1';if(digit!==countdownShown)showCountdown(digit);}}
+    if(running&&battle){accumulator+=dt;while(accumulator>=STEP&&!battle.result){stepBattle(battle,STEP);accumulator-=STEP;}if(battle.result){running=false;match=scoreRound(match,battle.result);scoreHud();results.show(battle.result,match,'CPU');const r=battle.result;setMessage(`${finishLabel[r.finish]}${r.winner===null?'':` · ${r.winner===0?'YOU':'CPU'} +${r.points} pt`}${match.winner!==null?' — 試合終了':''}`);el('phase').textContent=isSettling(battle)?'● RESULT LOCKED · SETTLING':'● ROUND COMPLETE';el<HTMLButtonElement>('launch').disabled=isSettling(battle);el('launch').textContent=match.winner!==null?'もう一度対戦する':'次のラウンドへ';updateBuild();syncControls();}}
+    if(mode==='local'&&!running&&settlingAtFrameStart&&isSettling(battle)&&battle){accumulator+=dt*.35;while(accumulator>=STEP&&isSettling(battle)){stepSettlingBattle(battle,STEP);accumulator-=STEP;}el('phase').textContent=isSettling(battle)?'● RESULT LOCKED · SETTLING':'● ROUND COMPLETE';el<HTMLButtonElement>('launch').disabled=isSettling(battle);if(!isSettling(battle))syncControls();}
+    arena?.draw(battle,now/1000);if(now-lastHud>100){lastHud=now;el('rpm').textContent=battle?`BLUE ${Math.round(Math.abs(battle.tops[0].omega)*60/(2*Math.PI))} rpm ${battle.tops[0].profile.spin===-1?'左回転':'右回転'} / CORAL ${Math.round(Math.abs(battle.tops[1].omega)*60/(2*Math.PI))} rpm ${battle.tops[1].profile.spin===-1?'左回転':'右回転'}`:'BLUE — rpm / CORAL — rpm';el('sim-time').textContent=`SIM ${((battle?.tick??0)*STEP).toFixed(2)}s`;if(battle){const t=battle.tops[0],events=battle.events.filter(e=>battle!.tick-e.tick<240);const action=events.some(e=>e.kind==='dash')?'X DASH · ギア接触からの射出':events.some(e=>e.kind==='rail-engage')?'GEAR CONTACT · レール噛み合い':events.some(e=>e.kind==='collision')?'CONTACT · 衝突 / 反動':'6DOF · 自転 / 歳差';el('motion-state').textContent=`${action} | ${Math.hypot(t.vx,t.vy??0,t.vz).toFixed(2)} m/s · 傾き ${(t.tilt*180/Math.PI).toFixed(0)}°`;}else el('motion-state').textContent='6DOF · 3次元の姿勢と接触を計算';}
+    frame=requestAnimationFrame(animate);
+  }
+  el('product-count').textContent=`公式掲載商品 ${officialProducts.length} 件（発売予定を含む）`;
+  el('product-body').innerHTML=[...officialProducts].sort((a,b)=>compareKana(a.name_ja,b.name_ja)).map(p=>`<tr><td>${escape(p.name_ja)}</td><td>${escape(p.release_date??'未確認')}</td><td>${p.date_status==='upcoming'?'発売予定':p.date_status==='dated_on_or_before_cutoff'?'発売済':'発売日未確認'}</td><td><a href="${escape(p.source_url)}" target="_blank" rel="noreferrer">公式 ↗</a></td></tr>`).join('');
+  updateBuild();renderCatalog();scoreHud();syncControls();frame=requestAnimationFrame(animate);
+  return()=>{disposed=true;healthGeneration++;healthController?.abort();client?.dispose();abort.abort();cancelAnimationFrame(frame);arena?.dispose();inspection?.dispose();};
+}

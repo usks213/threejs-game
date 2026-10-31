@@ -8,9 +8,13 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      BUILD_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -21,6 +25,18 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
+      - name: Verify isolated local Durable Object with two real clients
+        run: npm run test:worker
+      - name: Assert tested artifact identity before upload
+        run: node -e "const m=require('./dist/deployment.json'); if(m.commit!==process.env.EXPECTED_COMMIT) throw new Error('Tested artifact SHA mismatch'); console.log('Verified build SHA',m.commit)"
+        env:
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' && github.event.number == 7 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/beyblade-x-arena'
+        with:
+          name: beyblade-tested-dist
+          path: dist/
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -59,4 +75,41 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          retention-days: 7
+
+  # Held after account subscriptions HTTP403 (run40173718018).
+  # Do not retry denied billing reads until new free-plan evidence/authorization resolves it.
+  # Only this PR7 dedicated publication is paused; static Git-linked previews remain unchanged.
+  publish-beyblade-preview:
+    if: false && github.event_name == 'pull_request' && github.event.number == 7 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/beyblade-x-arena'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: beyblade-pr7-preview
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: beyblade-tested-dist
+          path: dist
+      - name: Verify free account, publish isolated PR7, confirm exact SHA
+        run: node scripts/publish-beyblade.mjs
+        env:
+          EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beyblade-release-receipt
+          path: beyblade-release.json
+          if-no-files-found: ignore
           retention-days: 7

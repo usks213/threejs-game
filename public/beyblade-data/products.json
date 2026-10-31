@@ -1,0 +1,4431 @@
+[
+  {
+    "product_key": "bx01",
+    "product_code": "BX-01",
+    "name_ja": "BX-01ドランソード3-60F",
+    "category_ja": "スターター",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,980（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx01.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910381/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx01.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-01_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx01.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx02",
+    "product_code": "BX-02",
+    "name_ja": "BX-02ヘルズサイズ4-60T",
+    "category_ja": "スターター",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,980（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx02.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910398/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx02.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-02_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx02.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx03",
+    "product_code": "BX-03",
+    "name_ja": "BX-03ウィザードアロー4-80B",
+    "category_ja": "スターター",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,980（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx03.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910473/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter stamina seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx03.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-03_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx03.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx04",
+    "product_code": "BX-04",
+    "name_ja": "BX-04ナイトシールド3-80N",
+    "category_ja": "スターター",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,980（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx04.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910404/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter defence seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx04.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-04_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx04.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx05",
+    "product_code": "BX-05",
+    "name_ja": "BX-05ウィザードアロー4-80B",
+    "category_ja": "ブースター",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx05.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910497/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster stamina seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx05.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-05_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx05.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx06",
+    "product_code": "BX-06",
+    "name_ja": "BX-06ナイトシールド3-80N",
+    "category_ja": "ブースター",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx06.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910480/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx06.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-06_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx06.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx07",
+    "product_code": "BX-07",
+    "name_ja": "BX-07スタートダッシュセット",
+    "category_ja": "セット",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥5,720（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx07.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910589/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set atack seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx07.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-07_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx07.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx08",
+    "product_code": "BX-08",
+    "name_ja": "BX-083on3デッキセット",
+    "category_ja": "セット",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥3,960（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx08.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910572/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx08_y.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx08_g.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx08_r.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-08_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx08_y.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx08_g.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx08_r.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx09",
+    "product_code": "BX-09",
+    "name_ja": "BX-09ベイバトルパス",
+    "category_ja": "ツール",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥3,300（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx09.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810905240/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-09_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx10",
+    "product_code": "BX-10",
+    "name_ja": "BX-10エクストリームスタジアム",
+    "category_ja": "ツール",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,750（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx10.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910596/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx first",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx11",
+    "product_code": "BX-11",
+    "name_ja": "BX-11ランチャーグリップ",
+    "category_ja": "ツール",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥700（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx11.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910787/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx12",
+    "product_code": "BX-12",
+    "name_ja": "BX-123on3デッキケース",
+    "category_ja": "ツール",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥990（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx12.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910602/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-es",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【タカラトミーモール限定】 エクストリームスタジアム ライトパッケージ",
+    "category_ja": "ツール",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,980（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-es.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913009/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-ds",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ドランザースパイラル3-80T",
+    "category_ja": "ブースター",
+    "release_date": "2023-07-15",
+    "release_text": "2023.7.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910503/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg01.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-00_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg01.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx13",
+    "product_code": "BX-13",
+    "name_ja": "BX-13ナイトランス4-80HN",
+    "category_ja": "ブースター",
+    "release_date": "2023-08-10",
+    "release_text": "2023.8.10発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx13.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810910565/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx13.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-13_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx13.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx14",
+    "product_code": "BX-14",
+    "name_ja": "BX-14ランダムブースターVol.1",
+    "category_ja": "ランダムブースター",
+    "release_date": "2023-09-09",
+    "release_text": "2023.9.9発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx14.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810912965/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx14.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-14_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx14.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-hc",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ヘルズサイズ4-60T メタルコート:ゴールド",
+    "category_ja": "ブースター",
+    "release_date": "2023-09-11",
+    "release_text": "2023.9.11発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-hc.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG03.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG03.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx15",
+    "product_code": "BX-15",
+    "name_ja": "BX-15レオンクロー5-60P",
+    "category_ja": "スターター",
+    "release_date": "2023-10-07",
+    "release_text": "2023.10.7発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,980（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx15.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913030/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx15.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-15_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx15.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx16",
+    "product_code": "BX-16",
+    "name_ja": "BX-16ランダムブースター ヴァイパーテイルセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2023-10-07",
+    "release_text": "2023.10.7発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx16.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810912972/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx16.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-16_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx16.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx17",
+    "product_code": "BX-17",
+    "name_ja": "BX-17バトルエントリーセット",
+    "category_ja": "セット",
+    "release_date": "2023-10-07",
+    "release_text": "2023.10.7発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥6,050（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx17.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913047/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx17A.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx17B.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-17_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx17A.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx17B.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx18",
+    "product_code": "BX-18",
+    "name_ja": "BX-18ストリングランチャー",
+    "category_ja": "ツール",
+    "release_date": "2023-10-07",
+    "release_text": "2023.10.7発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥990（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx18.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913054/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx19",
+    "product_code": "BX-19",
+    "name_ja": "BX-19ライノホーン3-80S",
+    "category_ja": "ブースター",
+    "release_date": "2023-11-02",
+    "release_text": "2023.11.2発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx19.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913061/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx19.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-19_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx19.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx20",
+    "product_code": "BX-20",
+    "name_ja": "BX-20ドランダガーデッキセット",
+    "category_ja": "セット",
+    "release_date": "2023-11-02",
+    "release_text": "2023.11.2発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥3,960（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx20.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913078/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx20B.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx20G.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx20P.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-20_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx20B.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx20G.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx20P.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx21",
+    "product_code": "BX-21",
+    "name_ja": "BX-21ヘルズチェインデッキセット",
+    "category_ja": "セット",
+    "release_date": "2023-11-02",
+    "release_text": "2023.11.2発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥3,960（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx21.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913085/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx21_p.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx21_y.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx21_o.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-21_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx21_p.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx21_y.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx21_o.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx22",
+    "product_code": "BX-22",
+    "name_ja": "BX-22ドランソード3-60F エントリーパッケージ",
+    "category_ja": "スターター",
+    "release_date": "2023-12-02",
+    "release_text": "2023.12.2発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx22.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913139/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx22.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-22_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx22.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx23",
+    "product_code": "BX-23",
+    "name_ja": "BX-23フェニックスウイング9-60GF",
+    "category_ja": "スターター",
+    "release_date": "2023-12-27",
+    "release_text": "2023.12.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,420（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx23.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913092/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx23.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-23_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx23.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx24",
+    "product_code": "BX-24",
+    "name_ja": "BX-24ランダムブースターVol.2",
+    "category_ja": "ランダムブースター",
+    "release_date": "2023-12-27",
+    "release_text": "2023.12.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx24.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913108/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx24.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-24_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx24.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx25",
+    "product_code": "BX-25",
+    "name_ja": "BX-25ギアケース",
+    "category_ja": "ツール",
+    "release_date": "2023-12-27",
+    "release_text": "2023.12.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,000（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx25.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913320/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx26",
+    "product_code": "BX-26",
+    "name_ja": "BX-26ユニコーンスティング5-60GP",
+    "category_ja": "ブースター",
+    "release_date": "2024-01-27",
+    "release_text": "2024.1.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx26.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914464/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx26.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-26_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx26.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx27",
+    "product_code": "BX-27",
+    "name_ja": "BX-27ランダムブースター スフィンクスカウルセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2024-02-22",
+    "release_text": "2024.2.22発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx27.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810913115/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx27.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-27_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx27.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-lc",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 レオンクロー5-60P メタルコート:ゴールド",
+    "category_ja": "ブースター",
+    "release_date": "2024-02-22",
+    "release_text": "2024.2.22発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-lc.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG05.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG05.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-se",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】 シャークエッジ5-60GF メタルコート:ブルー",
+    "category_ja": "ブースター",
+    "release_date": "2024-03-23",
+    "release_text": "2024.3.23発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-se.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atack seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG06.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-06_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG06.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx28",
+    "product_code": "BX-28",
+    "name_ja": "BX-28ストリングランチャー ホワイトVer.",
+    "category_ja": "ツール",
+    "release_date": "2024-03-30",
+    "release_text": "2024.3.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥990（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx28.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914518/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx29",
+    "product_code": "BX-29",
+    "name_ja": "BX-29カスタムグリップ ホワイトVer.",
+    "category_ja": "ツール",
+    "release_date": "2024-03-30",
+    "release_text": "2024.3.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,100（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx29.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914525/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx30",
+    "product_code": "BX-30",
+    "name_ja": "BX-30カスタムグリップ レッドVer.",
+    "category_ja": "ツール",
+    "release_date": "2024-03-30",
+    "release_text": "2024.3.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,100（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx30.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810926702/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "ux01",
+    "product_code": "UX-01",
+    "name_ja": "UX-01ドランバスター1-60A",
+    "category_ja": "スターター",
+    "release_date": "2024-03-30",
+    "release_text": "2024.3.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,980（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux01.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914471/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux01.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-01_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux01.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux02",
+    "product_code": "UX-02",
+    "name_ja": "UX-02ヘルズハンマー3-70H",
+    "category_ja": "スターター",
+    "release_date": "2024-03-30",
+    "release_text": "2024.3.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,980（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux02.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914488/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux02.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-02_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux02.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux03",
+    "product_code": "UX-03",
+    "name_ja": "UX-03ウィザードロッド5-70DB",
+    "category_ja": "ブースター",
+    "release_date": "2024-03-30",
+    "release_text": "2024.3.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux03.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914495/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster stamina seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux03.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-03_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux03.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux04",
+    "product_code": "UX-04",
+    "name_ja": "UX-04バトルエントリーセットU",
+    "category_ja": "セット",
+    "release_date": "2024-04-27",
+    "release_text": "2024.4.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥6,050（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux04.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914501/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux04A.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux04B.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-04_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux04A.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux04B.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-drs",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ドライガースラッシュ4-80P",
+    "category_ja": "ブースター",
+    "release_date": "2024-04-27",
+    "release_text": "2024.4.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drs.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810930341/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg04.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-04_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg04.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx31",
+    "product_code": "BX-31",
+    "name_ja": "BX-31ランダムブースターVol.3",
+    "category_ja": "ランダムブースター",
+    "release_date": "2024-04-27",
+    "release_text": "2024.4.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx31.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914532/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx31.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-31_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx31.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-hch",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ヘルズチェイン5-60HT メタルコート:ブラック",
+    "category_ja": "ブースター",
+    "release_date": "2024-05-16",
+    "release_text": "2024.5.16発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-hch.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG08.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG08.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "ux05",
+    "product_code": "UX-05",
+    "name_ja": "UX-05ランダムブースター シノビシャドウセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2024-05-18",
+    "release_text": "2024.5.18発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux05.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914549/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux05.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-05_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux05.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-cg",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【イベント限定】 カスタムグリップ クリアブラックVer.",
+    "category_ja": "ツール",
+    "release_date": "2024-06-01",
+    "release_text": "2024.6.1発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cg.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx33",
+    "product_code": "BX-33",
+    "name_ja": "BX-33 ヴァイスタイガー3-60U",
+    "category_ja": "ブースター",
+    "release_date": "2024-06-15",
+    "release_text": "2024.6.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx33.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914556/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx33.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-33_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx33.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx32",
+    "product_code": "BX-32",
+    "name_ja": "BX-32ワイドエクストリームスタジアム",
+    "category_ja": "ツール",
+    "release_date": "2024-07-13",
+    "release_text": "2024.7.13発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx32.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810926719/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx34",
+    "product_code": "BX-34",
+    "name_ja": "BX-34コバルトドラグーン2-60C",
+    "category_ja": "スターター",
+    "release_date": "2024-07-13",
+    "release_text": "2024.7.13発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,321（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx34.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914563/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atackL seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx34.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-34_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx34.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx35",
+    "product_code": "BX-35",
+    "name_ja": "BX-35ランダムブースターVol.4",
+    "category_ja": "ランダムブースター",
+    "release_date": "2024-07-13",
+    "release_text": "2024.7.13発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx35.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914570/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx35.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-35_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx35.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-st01",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ベイブレードステッカー 01",
+    "category_ja": "ツール",
+    "release_date": "2024-07-30",
+    "release_text": "2024.7.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-st01.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-st02",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ベイブレードステッカー 02",
+    "category_ja": "ツール",
+    "release_date": "2024-07-30",
+    "release_text": "2024.7.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-st02.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-st03",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ベイブレードステッカー 03",
+    "category_ja": "ツール",
+    "release_date": "2024-07-30",
+    "release_text": "2024.7.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-st03.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-bit01",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ビットセット F/T/B/N ゴールド×ブラック",
+    "category_ja": "セット",
+    "release_date": "2024-07-30",
+    "release_text": "2024.7.30発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥990（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-bit01.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-dd",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】 ドランダガー2-80GP メタルコート:ブラック ジャイアンツVer.",
+    "category_ja": "スターター",
+    "release_date": "2024-08-03",
+    "release_text": "2024.8.3発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-dd.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg09.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-09_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg09.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-ds3",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ドランザースパイラル3-80T ブラックVer.",
+    "category_ja": "ブースター",
+    "release_date": "2024-08-10",
+    "release_text": "2024.8.10発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds3.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "ux06",
+    "product_code": "UX-06",
+    "name_ja": "UX-06レオンクレスト7-60GN",
+    "category_ja": "ブースター",
+    "release_date": "2024-08-10",
+    "release_text": "2024.8.10発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux06.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914600/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux06.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-06_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux06.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux07",
+    "product_code": "UX-07",
+    "name_ja": "UX-07フェニックスラダーデッキセット",
+    "category_ja": "セット",
+    "release_date": "2024-08-10",
+    "release_text": "2024.8.10発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,100（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux07.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914594/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_r.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_g.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_b.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-07_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_r.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_g.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux07_b.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-cd",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【イベント限定】 コバルトドラグーン2-60C メタルコート:ブラック",
+    "category_ja": "スターター",
+    "release_date": "2024-08-31",
+    "release_text": "2024.8.31発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,420（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cd.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atackL seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-ld",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ランダムブースター ライトニングエルドラゴ1-60F",
+    "category_ja": "ランダムブースター",
+    "release_date": "2024-09-14",
+    "release_text": "2024.9.14発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ld.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810930358/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg_07_1.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg_07_2.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-07_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg_07_1.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg_07_2.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx36",
+    "product_code": "BX-36",
+    "name_ja": "BX-36ランダムブースター ホエールウェーブセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2024-09-14",
+    "release_text": "2024.9.14発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx36.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810914617/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx36.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-36_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx36.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux08",
+    "product_code": "UX-08",
+    "name_ja": "UX-08シルバーウルフ3-80FB",
+    "category_ja": "スターター",
+    "release_date": "2024-10-12",
+    "release_text": "2024.10.12発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,080（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux08.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939498/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter stamina seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux08.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-08_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux08.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx37",
+    "product_code": "BX-37",
+    "name_ja": "BX-37ダブルエクストリームスタジアムセット",
+    "category_ja": "セット",
+    "release_date": "2024-10-12",
+    "release_text": "2024.10.12発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥8,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx37.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939481/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx37.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-37_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx37.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx38",
+    "product_code": "BX-38",
+    "name_ja": "BX-38 クリムゾンガルーダ4-70TP",
+    "category_ja": "ブースター",
+    "release_date": "2024-11-02",
+    "release_text": "2024.11.2発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx38.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939504/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx38.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-38_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx38.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux09",
+    "product_code": "UX-09",
+    "name_ja": "UX-09サムライセイバー2-70L",
+    "category_ja": "スターター",
+    "release_date": "2024-11-02",
+    "release_text": "2024.11.2発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥3,300（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux09.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939535/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux09.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-09_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux09.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux10",
+    "product_code": "UX-10",
+    "name_ja": "UX-10カスタマイズセットU",
+    "category_ja": "セット",
+    "release_date": "2024-11-02",
+    "release_text": "2024.11.2発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥5,700（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux10.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939542/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux10.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-10_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux10.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bxa02",
+    "product_code": "UX-00",
+    "name_ja": "UX-00【タカラトミーモール先行販売】 アジアチャンピオンシップ開催記念 ドランデッキスターター",
+    "category_ja": "スターター",
+    "release_date": "2024-11-16",
+    "release_text": "2024.11.16発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,950（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810953982",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesux b4_ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_db2.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_dd.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_ds.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_db2.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_dd.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxa_02_ds.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-cdr",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 コバルトドレイク4-60F クリアVer.",
+    "category_ja": "ブースター",
+    "release_date": "2024-11-28",
+    "release_text": "2024.11.28発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cdr.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atack seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-cc",
+    "product_code": "BX-00",
+    "name_ja": "UX-00【イベント限定】 ドランバスター1-60A",
+    "category_ja": "カラーチョイスブースター",
+    "release_date": "2024-12-27",
+    "release_text": "2024.12.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cc.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atack seriesux b4_ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg31.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg31.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-mt",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 マンモスタスク2-80E メタルコート:ブラック",
+    "category_ja": "ブースター",
+    "release_date": "2024-12-27",
+    "release_text": "2024.12.27発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mt.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg32.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg32.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux11",
+    "product_code": "UX-11",
+    "name_ja": "UX-11インパクトドレイク9-60LR",
+    "category_ja": "スターター",
+    "release_date": "2024-12-28",
+    "release_text": "2024.12.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,420（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux11.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939559/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesux ux ",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux11.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-11_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux11.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux12",
+    "product_code": "UX-12",
+    "name_ja": "UX-12ランダムブースターVol.5",
+    "category_ja": "ランダムブースター",
+    "release_date": "2024-12-28",
+    "release_text": "2024.12.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux12.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939566/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux12.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-12_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_ux12.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-drsh",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ドラシエルシールド7-60D",
+    "category_ja": "ブースター",
+    "release_date": "2024-12-28",
+    "release_text": "2024.12.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drsh.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810945567/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg11.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-11_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg11.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux00-db_bc",
+    "product_code": "UX-00",
+    "name_ja": "UX-00【B4ストア限定】 ドランバスター1-60A メタルコート:ブルー FCバルセロナVer.",
+    "category_ja": "スターター",
+    "release_date": "2025-01-25",
+    "release_text": "2025.1.25発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-db_bc.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesux b4_blue_ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg18.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-18_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg18.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux00-hs_bc",
+    "product_code": "UX-00",
+    "name_ja": "UX-00【B4ストア限定】 ベイキックオフセット FCバルセロナVer.",
+    "category_ja": "セット",
+    "release_date": "2025-01-25",
+    "release_text": "2025.1.25発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥6,501（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-hs_bc.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix set balance seriesux b4_blue_ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg19.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-19_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bxg19.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux13",
+    "product_code": "UX-13",
+    "name_ja": "UX-13ゴーレムロック1-60UN",
+    "category_ja": "ブースター",
+    "release_date": "2025-01-25",
+    "release_text": "2025.1.25発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux13.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939573/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesux ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX13.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-13_manual.pdf"
+    ],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX13.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "bx39",
+    "product_code": "BX-39",
+    "name_ja": "BX-39ランダムブースター シェルタードレイクセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2025-02-15",
+    "release_text": "2025.2.15発売",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx39.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939511/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx39.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-39_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_bx39.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-pw",
+    "product_code": "BX-00",
+    "name_ja": "BX-00フェニックスウイング9-60GF メタルコート:ブラック キタニタツヤVer.",
+    "category_ja": "スターター",
+    "release_date": "2025-03-15",
+    "release_text": "2025.3.15発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-pw.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG35.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG35.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-25set",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【タカラトミーモール限定】 ベイブレード25周年記念セット",
+    "category_ja": "セット",
+    "release_date": "2025-03-21",
+    "release_text": "2025.3.21発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥11,000（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-25set.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG12A.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG12B.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG12C.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG12D.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG12A.png",
+        "status": "missing_or_empty"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG12B.png",
+        "status": "missing_or_empty"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG12C.png",
+        "status": "missing_or_empty"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG12D.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "bx40",
+    "product_code": "BX-40",
+    "name_ja": "BX-40ワインダーランチャーL",
+    "category_ja": "ツール",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥880（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx40.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810958765/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx asc2503",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx41",
+    "product_code": "BX-41",
+    "name_ja": "BX-41ラバーカスタムグリップ ガンメタVer.",
+    "category_ja": "ツール",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,320（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx41.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810958482/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx asc2503",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx42",
+    "product_code": "BX-42",
+    "name_ja": "BX-42ラバーカスタムグリップ ブルーVer.",
+    "category_ja": "ツール",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,320（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx42.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810958536/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx asc2503",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx43",
+    "product_code": "BX-43",
+    "name_ja": "BX-43ギアケース ホワイトVer.",
+    "category_ja": "ツール",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,000（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx43.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810958796/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx asc2503",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "cx01",
+    "product_code": "CX-01",
+    "name_ja": "CX-01ドランブレイブS6-60V",
+    "category_ja": "スターター",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939597/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriescx cx asc2503 ",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX01.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-01_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX01.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx02",
+    "product_code": "CX-02",
+    "name_ja": "CX-02ウィザードアークR4-55LO",
+    "category_ja": "スターター",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939603/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter stamina seriescx cx asc2503 ",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX02.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-02_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX02.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx03",
+    "product_code": "CX-03",
+    "name_ja": "CX-03ペルセウスダークB6-80W",
+    "category_ja": "ブースター",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939610/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriescx cx asc2503",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX03.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-03_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX03.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx04",
+    "product_code": "CX-04",
+    "name_ja": "CX-04バトルエントリーセットC",
+    "category_ja": "セット",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥6,501（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx04.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939634/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriescx cx asc2503 ",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_d.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_p.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-04_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_d.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX04_p.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-xc",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ゼノエクスカリバー3-60GF",
+    "category_ja": "スターター",
+    "release_date": "2025-03-29",
+    "release_text": "2025.3.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥3,000（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-xc.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810946823/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesbx bx asc2503 view_timer",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG13.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-13_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG13.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx05",
+    "product_code": "CX-05",
+    "name_ja": "CX-05ランダムブースターVol.6",
+    "category_ja": "ランダムブースター",
+    "release_date": "2025-04-26",
+    "release_text": "2025.4.26発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939627/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriescx cx asc2505",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-05_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX05.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-mit",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】マーベル アイアンマン4-80B/サノス4-60P",
+    "category_ja": "ダブルスターター",
+    "release_date": "2025-04-26",
+    "release_text": "2025.4.26発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,180（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mit.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810980841/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-msv",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】マーベル スパイダーマン3-60F/ヴェノム3-80N",
+    "category_ja": "ダブルスターター",
+    "release_date": "2025-04-26",
+    "release_text": "2025.4.26発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,180（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-msv.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810980858/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-sld",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】スター・ウォーズ ルーク・スカイウォーカー4-80B/ダース・ベイダー4-60P",
+    "category_ja": "ダブルスターター",
+    "release_date": "2025-04-26",
+    "release_text": "2025.4.26発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,180（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sld.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810982340/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-smm",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】スター・ウォーズ マンダロリアン3-60F/モフ・ギデオン3-80N",
+    "category_ja": "ダブルスターター",
+    "release_date": "2025-04-26",
+    "release_text": "2025.4.26発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,180（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-smm.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810982357/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "ux14",
+    "product_code": "UX-14",
+    "name_ja": "UX-14スコーピオスピア0-70Z",
+    "category_ja": "スターター",
+    "release_date": "2025-04-26",
+    "release_text": "2025.4.26発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux14.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810958499/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriesux ux asc2505",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX14.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-14_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX14.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-tom",
+    "product_code": "BX-00",
+    "name_ja": "BX-00トランスフォーマー オプティマスプライム4-60P/メガトロン4-80B",
+    "category_ja": "ダブルスターター",
+    "release_date": "2025-05-17",
+    "release_text": "2025.5.17発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,180（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tom.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810982456/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-tos",
+    "product_code": "BX-00",
+    "name_ja": "BX-00トランスフォーマー オプティマスプライマル3-60F/スタースクリーム3-80N",
+    "category_ja": "ダブルスターター",
+    "release_date": "2025-05-17",
+    "release_text": "2025.5.17発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,180（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tos.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810982487/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "cx06",
+    "product_code": "CX-06",
+    "name_ja": "CX-06ランダムブースター フォックスブラッシュセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2025-05-17",
+    "release_text": "2025.5.17発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810956969/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriescx cx asc2506",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX06.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-06_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX06.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx44",
+    "product_code": "BX-44",
+    "name_ja": "BX-44トリケラプレスM-85BS",
+    "category_ja": "ブースター",
+    "release_date": "2025-06-28",
+    "release_text": "2025.6.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx44.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939528/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesbx bx asc2506 asc2507",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX44.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-44_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX44.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux00-nm",
+    "product_code": "UX-00",
+    "name_ja": "UX-00【アプリ・イベント限定】 ナイトメイル3-85BS メタルコート:ネイビー",
+    "category_ja": "ブースター",
+    "release_date": "2025-07-17",
+    "release_text": "2025.7.17発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-nm.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesux b4_ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG42.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG42.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "cx07",
+    "product_code": "CX-07",
+    "name_ja": "CX-07ペガサスブラストATr",
+    "category_ja": "スターター",
+    "release_date": "2025-07-19",
+    "release_text": "2025.7.19発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810956976/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriescx cx asc2507 asc2508",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX07.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-07_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX07.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx08",
+    "product_code": "CX-08",
+    "name_ja": "CX-08ランダムブースターVol.7",
+    "category_ja": "ランダムブースター",
+    "release_date": "2025-07-19",
+    "release_text": "2025.7.19発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810956983/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriescx cx asc2507 asc2508",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-08_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX08.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-jtm",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】ジュラシック・ワールド T-レックス/モササウルス",
+    "category_ja": "ダブルスターター",
+    "release_date": "2025-07-19",
+    "release_text": "2025.7.19発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,180（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jtm.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810996552/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-jsq",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】ジュラシック・ワールド スピノサウルス/ケツァルコアトルス",
+    "category_ja": "ダブルスターター",
+    "release_date": "2025-07-19",
+    "release_text": "2025.7.19発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,180（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jsq.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810996569/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-rl",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ロックレオーネ6-80GN",
+    "category_ja": "ブースター",
+    "release_date": "2025-07-19",
+    "release_text": "2025.7.19発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-rl.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810957492/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriesbx bx asc2507 asc2508",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG20.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-20_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG20.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx00-pb",
+    "product_code": "CX-00",
+    "name_ja": "CX-00【イベント限定】 ペガサスブラストATr メタルコート:レッド",
+    "category_ja": "スターター",
+    "release_date": "2025-08-03",
+    "release_text": "2025.8.3発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,700（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-pb.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939580/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG45.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG45.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "cx00-wa",
+    "product_code": "CX-00",
+    "name_ja": "CX-00【アプリ・イベント限定】 ウィザードアークR4-55LO メタルコート:ブラック",
+    "category_ja": "ブースター",
+    "release_date": "2025-08-09",
+    "release_text": "2025.8.9発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-wa.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster stamina seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG43.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG43.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx45",
+    "product_code": "BX-45",
+    "name_ja": "BX-45サムライカリバー6-70M",
+    "category_ja": "ブースター",
+    "release_date": "2025-08-09",
+    "release_text": "2025.8.9発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx45.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810939580/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx bx asc2508 asc2509",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX45.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-45_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX45.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux15",
+    "product_code": "UX-15",
+    "name_ja": "UX-15シャークスケイルデッキセット",
+    "category_ja": "セット",
+    "release_date": "2025-08-09",
+    "release_text": "2025.8.9発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810982432/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesux ux asc2508 asc2509",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_2.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_3.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-15_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_2.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX15_3.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx09",
+    "product_code": "CX-09",
+    "name_ja": "CX-09ソルエクリプスD5-70TK",
+    "category_ja": "スターター",
+    "release_date": "2025-09-27",
+    "release_text": "2025.9.27発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810995678/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriescx cx asc2509 asc2510",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX09.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-09_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX09.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx46",
+    "product_code": "BX-46",
+    "name_ja": "BX-46バトルエントリーセット∞",
+    "category_ja": "セット",
+    "release_date": "2025-10-11",
+    "release_text": "2025.10.11発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥7,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx46.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810997610/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx bx asc2510 asc2511",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX46_01.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX46_02.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-46_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX46_01.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX46_02.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx47",
+    "product_code": "BX-47",
+    "name_ja": "BX-47ストリングランチャーL レッドVer.",
+    "category_ja": "ツール",
+    "release_date": "2025-10-11",
+    "release_text": "2025.10.11発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥990（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx47.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810097396/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx asc2510 asc2511",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "ux16",
+    "product_code": "UX-16",
+    "name_ja": "UX-16ランダムブースター クロックミラージュセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2025-10-11",
+    "release_text": "2025.10.11発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,400（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux16.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810990154/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster stamina seriesux ux asc2510 asc2511",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX16.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-16_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX16.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx10",
+    "product_code": "CX-10",
+    "name_ja": "CX-10ウルフハントF0-60DB",
+    "category_ja": "ブースター",
+    "release_date": "2025-11-01",
+    "release_text": "2025.11.1発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,700（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810097242/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster stamina seriescx cx asc2511 asc2512",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX10.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-10_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX10.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx11",
+    "product_code": "CX-11",
+    "name_ja": "CX-11エンペラーマイトデッキセット",
+    "category_ja": "セット",
+    "release_date": "2025-11-01",
+    "release_text": "2025.11.1発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥5,000（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810098775/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriescx cx asc2511 asc2512",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_3.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_2.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-11_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_3.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX11_2.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-bit_silver_white",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ビットセット F/T/B/N シルバー×ホワイト",
+    "category_ja": "セット",
+    "release_date": "2025-11-15",
+    "release_text": "2025.11.15発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥990（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-bit_silver_white.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "bx00-emb",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【アプリ・イベント限定】 ベイエンブレムステッカー 01",
+    "category_ja": "ツール",
+    "release_date": "2025-11-15",
+    "release_text": "2025.11.15発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-emb.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "ux17",
+    "product_code": "UX-17",
+    "name_ja": "UX-17メテオドラグーン3-70J",
+    "category_ja": "スターター",
+    "release_date": "2025-12-27",
+    "release_text": "2025.12.27発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,300（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux17.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810997627/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atackL seriesux ux asc2512 asc2601",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX17.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-17_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX17.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux18",
+    "product_code": "UX-18",
+    "name_ja": "UX-18ランダムブースターVol.8",
+    "category_ja": "ランダムブースター",
+    "release_date": "2025-12-27",
+    "release_text": "2025.12.27発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux18.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810097167/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesux ux asc2512 asc2601",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX18.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-18_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX18.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-drgs",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ドラグーンストーム4-60RA",
+    "category_ja": "ブースター",
+    "release_date": "2025-12-27",
+    "release_text": "2025.12.27発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,700（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drgs.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810099468/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atackL seriesbx bx asc2512 asc2601",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG22.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-22_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG22.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "cx12",
+    "product_code": "CX-12",
+    "name_ja": "CX-12フェニックスフレアZ9-80WW",
+    "category_ja": "ブースター",
+    "release_date": "2026-01-24",
+    "release_text": "2026.1.24発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,700（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810096153/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriescx cx asc2601 asc2602",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX12.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-12_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX12.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx48",
+    "product_code": "BX-48",
+    "name_ja": "BX-48ランダムブースターVol.9",
+    "category_ja": "ランダムブースター",
+    "release_date": "2026-02-14",
+    "release_text": "2026.2.14発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx48.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810096092/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx asc2602 asc2603",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX48.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-48_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX48.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux00-ap_red",
+    "product_code": "UX-00",
+    "name_ja": "UX-00【アプリ・イベント限定】 エアロペガサス3-70A レッドVer.",
+    "category_ja": "ブースター",
+    "release_date": "2026-02-21",
+    "release_text": "2026.2.21発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ap_red.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atack seriesux b4_ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG24.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG24.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-ds_black",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ドランソード1-60V メタルコート:ブラック JリーグVer.",
+    "category_ja": "スターター",
+    "release_date": "2026-03-14",
+    "release_text": "2026.3.14発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds_black.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG52.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG52.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-cd_white",
+    "product_code": "BX-00",
+    "name_ja": "BX-00コバルトドラグーン9-60F メタルコート:ホワイト JリーグVer.",
+    "category_ja": "スターター",
+    "release_date": "2026-03-14",
+    "release_text": "2026.3.14発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cd_white.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atackL seriesbx b4_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG53.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG53.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx13",
+    "product_code": "CX-13",
+    "name_ja": "CX-13バハムートブリッツBK1-50I",
+    "category_ja": "スターター",
+    "release_date": "2026-03-28",
+    "release_text": "2026.3.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810097259/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter  atack seriescx cx_expand asc2603 asc2604 first",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX13.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-13_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX13.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx14",
+    "product_code": "CX-14",
+    "name_ja": "CX-14ナイトフォートレスGV8-70UN",
+    "category_ja": "スターター",
+    "release_date": "2026-03-28",
+    "release_text": "2026.3.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810097266/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter defence seriescx cx_expand asc2603 asc2604 first",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX14.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-14_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX14.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx15",
+    "product_code": "CX-15",
+    "name_ja": "CX-15ラグナレイジFE4-55Y",
+    "category_ja": "ブースター",
+    "release_date": "2026-03-28",
+    "release_text": "2026.3.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810097273/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster stamina seriescx cx_expand asc2603 asc2604",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX15.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-15_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX15.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx16",
+    "product_code": "CX-16",
+    "name_ja": "CX-16スタートダッシュセットC",
+    "category_ja": "セット",
+    "release_date": "2026-03-28",
+    "release_text": "2026.3.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥5,650（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx16.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810097280/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriescx cx_expand asc2603 asc2604",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX16.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-16_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX16.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-sl",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】ストリングランチャー B4ストア限定カラーVer.",
+    "category_ja": "ツール",
+    "release_date": "2026-03-28",
+    "release_text": "2026.3.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,100（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sl.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx b4_blue_bx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG62.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG62.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-ss",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ストームスプリガン2-70M",
+    "category_ja": "スターター",
+    "release_date": "2026-03-28",
+    "release_text": "2026.3.28発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,300（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ss.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810997351/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriesbx bx asc2603 asc2604",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG21.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-21_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG21.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "ux19",
+    "product_code": "UX-19",
+    "name_ja": "UX-19バレットグリフォンH",
+    "category_ja": "スターター",
+    "release_date": "2026-04-25",
+    "release_text": "2026.4.25発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux19.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810096160/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriesux ux_expand asc2604 asc2605",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX19.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-19_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX19.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux00-ss",
+    "product_code": "UX-00",
+    "name_ja": "UX-00【アプリ・イベント限定】 スコーピオスピア0-70Z メタルコート:マゼンタ",
+    "category_ja": "ブースター",
+    "release_date": "2026-04-25",
+    "release_text": "2026.4.25発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ss.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesux b4_ux",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG61.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG61.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx17",
+    "product_code": "CX-17",
+    "name_ja": "CX-17ランダムブースターVol.10",
+    "category_ja": "ランダムブースター",
+    "release_date": "2026-04-25",
+    "release_text": "2026.4.25発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810096146/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriescx cx_expand asc2604 asc2605",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX17.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-17_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX17.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx49",
+    "product_code": "BX-49",
+    "name_ja": "BX-49ドランストライク4-50FF",
+    "category_ja": "スターター",
+    "release_date": "2026-05-16",
+    "release_text": "2026.5.16発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,200（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx49.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810096122/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesbx bx_expand asc2605 asc2606",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX49.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-49_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX49.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx00-db",
+    "product_code": "CX-00",
+    "name_ja": "CX-00【タカラトミーモール・イベント限定】 ドランブレイブS6-60V メタルコート:ブラック",
+    "category_ja": "ブースター",
+    "release_date": "2026-05-30",
+    "release_text": "2026.5.30発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-db.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atack seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG51.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG51.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "ux00-samurai",
+    "product_code": "UX-00",
+    "name_ja": "UX-00サムライセイバー5-60K メタルコート:サムライブルー サッカー日本代表Ver.",
+    "category_ja": "スターター",
+    "release_date": "2026-06-13",
+    "release_text": "2026.6.13発売予定 ※2026.5.16より一部スポーツショップにて先行販売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-samurai.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter balance seriesux b4_blue_ux ",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG54.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-54_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG54.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx51",
+    "product_code": "BX-51",
+    "name_ja": "BX-51ストリングランチャー ブラック×グリーン",
+    "category_ja": "ツール",
+    "release_date": "2026-06-13",
+    "release_text": "2026.6.13発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,100（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx51.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810089261/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx  asc2606 asc2607",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "cx18",
+    "product_code": "CX-18",
+    "name_ja": "CX-18ランダムブースター ブラキオウィップセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2026-06-13",
+    "release_text": "2026.6.13発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810096177/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster stamina seriescx cx_expand asc2606 asc2607",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX18.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-18_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX18.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx00-ba",
+    "product_code": "CX-00",
+    "name_ja": "CX-00【アプリ・イベント限定】 バックスアントラーズB2-60D メタルコート:オレンジ",
+    "category_ja": "ブースター",
+    "release_date": "2026-07-09",
+    "release_text": "2026.7.9発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-ba.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster defence seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG81.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG81.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "cx00-kw",
+    "product_code": "CX-00",
+    "name_ja": "CX-00【アプリ・イベント限定】 クラーケンリグルS3-70O メタルコート:ブルー",
+    "category_ja": "ブースター",
+    "release_date": "2026-07-09",
+    "release_text": "2026.7.9発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-kw.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster stamina seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG80.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG80.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "cx00-hf",
+    "product_code": "CX-00",
+    "name_ja": "CX-00【アプリ・イベント限定】 ホーネットフォートR7-60T メタルコート:イエロー",
+    "category_ja": "ブースター",
+    "release_date": "2026-07-09",
+    "release_text": "2026.7.9発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-hf.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG79.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG79.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "cx00-drb",
+    "product_code": "CX-00",
+    "name_ja": "CX-00【アプリ・イベント限定】 ドレイクブレイブG4-70I メタルコート:ブルー",
+    "category_ja": "ブースター",
+    "release_date": "2026-07-09",
+    "release_text": "2026.7.9発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,900（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-drb.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atack seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXH23.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXH23.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-sp",
+    "product_code": "BX-00",
+    "name_ja": "BX-00ストームペガシス3-70RA",
+    "category_ja": "スターター",
+    "release_date": "2026-07-11",
+    "release_text": "2026.7.11発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,620（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sp.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810096504/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesbx bx asc2607",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG47.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/bx00-sp_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG47.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx50",
+    "product_code": "BX-50",
+    "name_ja": "BX-50ランダムブースターVol.11",
+    "category_ja": "ランダムブースター",
+    "release_date": "2026-07-11",
+    "release_text": "2026.7.11発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx50.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810084174/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster seriesbx bx_expand asc2607",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX50.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-50_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX50.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "ux20",
+    "product_code": "UX-20",
+    "name_ja": "UX-20グローリーワルキューレLF",
+    "category_ja": "スターター",
+    "release_date": "2026-07-11",
+    "release_text": "2026.7.11発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,700（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux20.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810096139/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atack seriesux ux_expand asc2607 first",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX20.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-20_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX20.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx00-ds_v2",
+    "product_code": "BX-00",
+    "name_ja": "BX-00【B4ストア限定】ドランソード3-60F バージョン2.0",
+    "category_ja": "ブースター",
+    "release_date": "2026-08-08",
+    "release_text": "2026.8.8発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds_v2.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atack seriesbx b4_blue_bx_v2",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG49.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-49_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG49.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx57",
+    "product_code": "BX-57",
+    "name_ja": "BX-573on3デッキケース ブラックVer.",
+    "category_ja": "ツール",
+    "release_date": "2026-08-08",
+    "release_text": "2026.8.8発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,100（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx57.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810059905/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx  asc2608",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "ux21",
+    "product_code": "UX-21",
+    "name_ja": "UX-21ヘルズネザーデッキセット",
+    "category_ja": "セット",
+    "release_date": "2026-08-08",
+    "release_text": "2026.8.8発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥4,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810085546/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesux ux_expand asc2608",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21_2.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21_3.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-21_manual.pdf"
+    ],
+    "fetch_status": "HTTP Error 503: Service Unavailable",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21_2.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_UX21_3.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "ux00-gv",
+    "product_code": "UX-00",
+    "name_ja": "UX-00【イベント限定】グローリーワルキューレLF メタルコート:ブルー",
+    "category_ja": "スターター",
+    "release_date": "2026-08-29",
+    "release_text": "2026.8.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-gv.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriesux atack b4_ux_expand",
+    "accessed_date": "2026-10-25",
+    "fetch_status": "HTTP Error 503: Service Unavailable",
+    "page_fetch_status": "failed",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "cx00-eva",
+    "product_code": "CX-00",
+    "name_ja": "CX-00エヴァンゲリオンデッキセット",
+    "category_ja": "セット",
+    "release_date": "2026-08-29",
+    "release_text": "2026.8.29発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥7,500（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_02.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_01.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_03.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-57_manual.pdf"
+    ],
+    "fetch_status": "HTTP Error 503: Service Unavailable",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_02.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_01.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG57_03.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "cx00-tiga",
+    "product_code": "CX-00",
+    "name_ja": "CX-00ティガレイジFT3-60T",
+    "category_ja": "スターター",
+    "release_date": "2026-09-12",
+    "release_text": "2026.9.12発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,750（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-tiga.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix starter seriescx balance b4_blue_cx_expand",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG70.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-70_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG70.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx19",
+    "product_code": "CX-19",
+    "name_ja": "CX-19ランダムブースター クロコトレッドセレクト",
+    "category_ja": "ランダムブースター",
+    "release_date": "2026-09-12",
+    "release_text": "2026.9.12発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810080626/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster randombooster defence seriescx cx_expand asc2609",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX19.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/CX-19_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX19.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx52",
+    "product_code": "BX-52",
+    "name_ja": "BX-52ラスタードラグーン6-60LC",
+    "category_ja": "スターター",
+    "release_date": "2026-10-10",
+    "release_text": "2026.10.10発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥2,300（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx52.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810085553/",
+    "availability": "unknown_not_verified",
+    "classes": "mix starter atackL seriesbx bx_expand asc2610",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX52.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-52_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX52.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx53",
+    "product_code": "BX-53",
+    "name_ja": "BX-53オールインワンセット",
+    "category_ja": "セット",
+    "release_date": "2026-10-10",
+    "release_text": "2026.10.10発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥7,480（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx53.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810073734/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriesbx bx asc2610 first",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX53.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX53_2.png",
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX53_3.png"
+    ],
+    "manual_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BX-53_manual.pdf"
+    ],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX53.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX53_2.png",
+        "status": "downloaded"
+      },
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX53_3.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "bx56",
+    "product_code": "BX-56",
+    "name_ja": "BX-56ストリングランチャーL ホワイト×バイオレット",
+    "category_ja": "ツール",
+    "release_date": "2026-10-10",
+    "release_text": "2026.10.10発売予定",
+    "date_status": "dated_on_or_before_cutoff",
+    "price_text": "¥1,100（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx56.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810058915/",
+    "availability": "unknown_not_verified",
+    "classes": "mix tool seriesbx bx asc2610",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "detail_image_not_found",
+    "page_fetch_status": "ok",
+    "detail_asset_status": []
+  },
+  {
+    "product_key": "cx00-vv",
+    "product_code": "CX-00",
+    "name_ja": "CX-00【アプリ・イベント限定】 ワルキューレボルトS4-70V ガンメタVer.",
+    "category_ja": "ブースター",
+    "release_date": "2026-11-05",
+    "release_text": "2026.11.5発売予定",
+    "date_status": "upcoming",
+    "price_text": "¥1,800（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-vv.html",
+    "store_url": null,
+    "availability": "unknown_not_verified",
+    "classes": "mix booster atack seriescx b4_cx",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG65.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "HTTP Error 404: Not Found",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BXG65.png",
+        "status": "missing_or_empty"
+      }
+    ]
+  },
+  {
+    "product_key": "bx54",
+    "product_code": "BX-54",
+    "name_ja": "BX-54ジークスペリオン0-70LP",
+    "category_ja": "ブースター",
+    "release_date": "2026-11-21",
+    "release_text": "2026.11.21発売予定",
+    "date_status": "upcoming",
+    "price_text": "¥1,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx54.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810080763/",
+    "availability": "unknown_not_verified",
+    "classes": "mix booster balance seriesbx bx_expand asc2611",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX54.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_BX54.png",
+        "status": "downloaded"
+      }
+    ]
+  },
+  {
+    "product_key": "cx20",
+    "product_code": "CX-20",
+    "name_ja": "CX-20カスタマイズセットC",
+    "category_ja": "セット",
+    "release_date": "2026-11-21",
+    "release_text": "2026.11.21発売予定",
+    "date_status": "upcoming",
+    "price_text": "¥6,600（税込）",
+    "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx20.html",
+    "store_url": "https://takaratomymall.jp/shop/g/g4904810077596/",
+    "availability": "unknown_not_verified",
+    "classes": "mix set seriescx cx_expand asc2611",
+    "accessed_date": "2026-10-25",
+    "detail_image_urls": [
+      "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX20.png"
+    ],
+    "manual_urls": [],
+    "fetch_status": "ok",
+    "part_stats_status": "image_extraction_pending",
+    "page_fetch_status": "ok",
+    "detail_asset_status": [
+      {
+        "url": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/_image/detail_CX20.png",
+        "status": "downloaded"
+      }
+    ]
+  }
+]

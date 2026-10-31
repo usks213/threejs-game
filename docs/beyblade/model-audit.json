@@ -1,0 +1,5290 @@
+{
+  "sourceSha256": {
+    "src/beyblade/core/physics.ts": "e2d6696c9ae7d1b8b379eb4ac3fe31a5b102217f8d040d8977b75c7afaee4db5",
+    "src/beyblade/core/body-geometry.ts": "cf155a590761e1f8bbdc6417d980f11978349073b2cdf64375d6767436929e3c",
+    "src/beyblade/core/inertia.ts": "a451fdf648d4c7401591204a815b997bbc57fec178485b489e74243b46da6ed4",
+    "src/beyblade/data/assembly-mass.ts": "e39372952152d2577aca46f83bdbe6ce124c374ba16205a9a79b8d1ff0c38785",
+    "src/beyblade/data/physical-estimates.ts": "1ed5525d1fb3b20deed47c7ea1dde4a3fa5f76abae7ec72ca5c61b0bbb161f0f",
+    "src/beyblade/data/independent-masses.ts": "8fb0ebc0b53986dd1c0771d3b66e37f3c5cc9a0b0f22ef1d9e73a8c7979aa9e8",
+    "src/beyblade/data/shape-facts.ts": "ec6ccb61ce8af569b97eb09eb4337fe3c9cf0016563f95b8db7aadc28a082c68",
+    "src/beyblade/data/expanded-shape-facts.ts": "7c708014a3f78ae56928d2d1f7471848bf7779b050f382aa95b53578a4931c22",
+    "src/beyblade/data/catalog.ts": "281c07b4f7a8a89350ee6d926fa23e53146b07ff7d7157cb1d5b30106006a4a5",
+    "scripts/compare-beyblade-models.ts": "762c5b7ff551e55e188193fda4b1c0997b78d5dfa516e93b45d8978f04623b50"
+  },
+  "summary": {
+    "catalogRows": 311,
+    "modeledRows": 228,
+    "uniqueMechanicalProfiles": 219,
+    "equivalentGroups": [
+      {
+        "members": [
+          {
+            "id": "blade:a347771f4214",
+            "name": "ヘルズサイズ",
+            "fallback": false
+          },
+          {
+            "id": "ratchet:4-60",
+            "name": "4-60",
+            "fallback": false
+          },
+          {
+            "id": "bit:T",
+            "name": "T · テーパー",
+            "fallback": false
+          }
+        ],
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:878139ab424a",
+            "name": "フェニックスウイング メタルコート",
+            "fallback": false
+          },
+          {
+            "id": "blade:c8c198827248",
+            "name": "フェニックスウイング メタルコート:ブラック",
+            "fallback": false
+          }
+        ],
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:8fe87fc8f81d",
+            "name": "ドランダガー メタルコート:ブラック",
+            "fallback": false
+          },
+          {
+            "id": "blade:2f65012272cb",
+            "name": "ドランダガー メタルコート:ホワイト",
+            "fallback": false
+          }
+        ],
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:9b2d38339b86",
+            "name": "ヘルズハンマー メタルコート:ブルー",
+            "fallback": false
+          },
+          {
+            "id": "blade:db1e65b9dc76",
+            "name": "ヘルズハンマー メタルコート:レッド FCバルセロナVer.",
+            "fallback": false
+          }
+        ],
+        "explanation": "同じ公式評価・同じ形状近似を共有するため現モデルでは同等。実物が同等という保証ではありません。"
+      },
+      {
+        "members": [
+          {
+            "id": "ratchet_integrated_blade:e2ba1a713448",
+            "name": "グローリーワルキューレ メタルコート:ホワイト",
+            "fallback": true
+          },
+          {
+            "id": "ratchet_integrated_blade:8f6bf7fe20d5",
+            "name": "グローリーワルキューレ メタルコート:ブルー",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "assembled_blade:16e9ca768210",
+            "name": "ライノリーパーC",
+            "fallback": true
+          },
+          {
+            "id": "assembled_blade:3dfd9c62cce5",
+            "name": "ホエールフレイムM",
+            "fallback": true
+          },
+          {
+            "id": "blade:5f203ab27ca0",
+            "name": "ヴェノム",
+            "fallback": true
+          },
+          {
+            "id": "blade:8910d2dfb26d",
+            "name": "マンダロリアン",
+            "fallback": true
+          },
+          {
+            "id": "blade:975d63b58389",
+            "name": "モフ・ギデオン",
+            "fallback": true
+          },
+          {
+            "id": "blade:23088f6d86b5",
+            "name": "オプティマスプライマル",
+            "fallback": true
+          },
+          {
+            "id": "blade:d64b62825c56",
+            "name": "モササウルス",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:bcaae06d4533",
+            "name": "アイアンマン",
+            "fallback": true
+          },
+          {
+            "id": "blade:1e11cf62b78d",
+            "name": "ルーク・スカイウォーカー",
+            "fallback": true
+          },
+          {
+            "id": "blade:31310d65910a",
+            "name": "オプティマスプライム",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      },
+      {
+        "members": [
+          {
+            "id": "blade:bdfb70df3e48",
+            "name": "サノス",
+            "fallback": true
+          },
+          {
+            "id": "blade:29beff483a6e",
+            "name": "スピノサウルス",
+            "fallback": true
+          }
+        ],
+        "explanation": "同じ既知値または共通の暫定係数により現モデルでは機械的に区別できません。形状未確認を含み、実物の同等性を意味しません。"
+      }
+    ],
+    "sourceInformedBladeRows": 104,
+    "unmodeledBladeRows": 34
+  },
+  "rows": [
+    {
+      "id": "blade:e383f65c06a2",
+      "name": "ドランソード",
+      "canonicalId": "ドランソード",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx01.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 1,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:3-60",
+      "name": "3-60",
+      "canonicalId": "3-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx01.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 2,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:F",
+      "name": "F · フラット",
+      "canonicalId": "F",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx01.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 3,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:a347771f4214",
+      "name": "ヘルズサイズ",
+      "canonicalId": "ヘルズサイズ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 4,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:4-60",
+      "name": "4-60",
+      "canonicalId": "4-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 4,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:T",
+      "name": "T · テーパー",
+      "canonicalId": "T",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 4,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:b28382ef845d",
+      "name": "ウィザードアロー",
+      "canonicalId": "ウィザードアロー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx03.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 5,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:4-80",
+      "name": "4-80",
+      "canonicalId": "4-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx03.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 6,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:B",
+      "name": "B · ボール",
+      "canonicalId": "B",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx03.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 7,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:4f50829c3010",
+      "name": "ナイトシールド",
+      "canonicalId": "ナイトシールド",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx04.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 8,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "ナイトシールド: ダンパーの独立した弾性運動は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:3-80",
+      "name": "3-80",
+      "canonicalId": "3-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx04.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 9,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:N",
+      "name": "N · ニードル",
+      "canonicalId": "N",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx04.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 10,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:9842a9912fcd",
+      "name": "ナイトランス",
+      "canonicalId": "ナイトランス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx13.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 11,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:HN",
+      "name": "HN · ハイニードル",
+      "canonicalId": "HN",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx13.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 12,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:b8ac5ecc6c32",
+      "name": "シャークエッジ",
+      "canonicalId": "シャークエッジ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx14.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 13,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:LF",
+      "name": "LF · ローフラット",
+      "canonicalId": "LF",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx14.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 14,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:01b4b0eddf3a",
+      "name": "レオンクロー",
+      "canonicalId": "レオンクロー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 15,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:5-60",
+      "name": "5-60",
+      "canonicalId": "5-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 16,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:P",
+      "name": "P · ポイント",
+      "canonicalId": "P",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 17,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "P: 中央突起と外周接触の切替は単一先端形状による近似"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:2b9b597818bd",
+      "name": "ヴァイパーテイル",
+      "canonicalId": "ヴァイパーテイル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx16.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 18,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:5-80",
+      "name": "5-80",
+      "canonicalId": "5-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx16.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 19,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:O",
+      "name": "O · オーブ",
+      "canonicalId": "O",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx16.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 20,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:3f0622bf5d21",
+      "name": "ライノホーン",
+      "canonicalId": "ライノホーン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx19.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 21,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:S",
+      "name": "S · スパイク",
+      "canonicalId": "S",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx19.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 22,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:eddd9523b646",
+      "name": "ドランダガー",
+      "canonicalId": "ドランダガー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx20.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 23,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:R",
+      "name": "R · ラッシュ",
+      "canonicalId": "R",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx20.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 24,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:2cfb276eb045",
+      "name": "ヘルズチェイン",
+      "canonicalId": "ヘルズチェイン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx21.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 25,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "上下段で異なる輪郭は単一の共有外形で近似し未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:HT",
+      "name": "HT · ハイテーパー",
+      "canonicalId": "HT",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx21.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 26,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:878139ab424a",
+      "name": "フェニックスウイング メタルコート",
+      "canonicalId": "フェニックスウイング メタルコート",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx23.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 27,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:9-60",
+      "name": "9-60",
+      "canonicalId": "9-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx23.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 28,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:GF",
+      "name": "GF · ギヤフラット",
+      "canonicalId": "GF",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx23.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 29,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:cc1936f0c892",
+      "name": "ワイバーンゲイル",
+      "canonicalId": "ワイバーンゲイル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx24.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 30,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:GB",
+      "name": "GB · ギヤボール",
+      "canonicalId": "GB",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx24.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 31,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:761deea12133",
+      "name": "ユニコーンスティング",
+      "canonicalId": "ユニコーンスティング",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx26.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 32,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:GP",
+      "name": "GP · ギヤポイント",
+      "canonicalId": "GP",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx26.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 33,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "GP: 中央突起と外周接触の切替は単一先端形状による近似"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:df52983497ce",
+      "name": "スフィンクスカウル",
+      "canonicalId": "スフィンクスカウル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx27.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 34,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:9-80",
+      "name": "9-80",
+      "canonicalId": "9-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx27.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 35,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:GN",
+      "name": "GN · ギヤニードル",
+      "canonicalId": "GN",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx27.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 36,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:222a15ff3175",
+      "name": "ドランザースパイラル",
+      "canonicalId": "ドランザースパイラル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 37,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:c0ef929a486d",
+      "name": "ティラノビート",
+      "canonicalId": "ティラノビート",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx31.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 38,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "交互の上下突起は単一の周期斜面による近似。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:4-70",
+      "name": "4-70",
+      "canonicalId": "4-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx31.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 39,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:Q",
+      "name": "Q · クエイク",
+      "canonicalId": "Q",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx31.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 40,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:231af7dadc4f",
+      "name": "ヴァイスタイガー",
+      "canonicalId": "ヴァイスタイガー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx33.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 41,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "弾性ダンパーの独立運動は未再現。",
+            "3区画ごとの異なる斜面作用は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:U",
+      "name": "U · ユナイト",
+      "canonicalId": "U",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx33.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 42,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "U: 中央突起と外周接触の切替は単一先端形状による近似"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:454cb36c266c",
+      "name": "コバルトドラグーン",
+      "canonicalId": "コバルトドラグーン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx34.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 43,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:2-60",
+      "name": "2-60",
+      "canonicalId": "2-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx34.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 44,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "ratchet.attack",
+            "ratchet.defense",
+            "ratchet.stamina"
+          ],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:C",
+      "name": "C · サイクロン",
+      "canonicalId": "C",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx34.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 45,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:04e66a04fcee",
+      "name": "ブラックシェル",
+      "canonicalId": "ブラックシェル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx35.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 46,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:D",
+      "name": "D · ドット",
+      "canonicalId": "D",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx35.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 47,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:6b0cc7a8dcab",
+      "name": "ホエールウェーブ",
+      "canonicalId": "ホエールウェーブ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx36.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 48,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:E",
+      "name": "E · エレベート",
+      "canonicalId": "E",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx36.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 49,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "E: 変形・ガイド・弾性機構の実動作は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:bc8f2f87669e",
+      "name": "ベアスクラッチ",
+      "canonicalId": "ベアスクラッチ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx37.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 50,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:9812353d7858",
+      "name": "クリムゾンガルーダ",
+      "canonicalId": "クリムゾンガルーダ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx38.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 51,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "上下面の異なる接触輪郭は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:TP",
+      "name": "TP · トランスポイント",
+      "canonicalId": "TP",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx38.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 52,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "TP: 中央突起と外周接触の切替は単一先端形状による近似",
+            "TP: 変形・ガイド・弾性機構の実動作は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:51afe033481a",
+      "name": "シェルタードレイク",
+      "canonicalId": "シェルタードレイク",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx39.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 53,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:7-80",
+      "name": "7-80",
+      "canonicalId": "7-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx39.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 54,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:7b41574a649a",
+      "name": "ドライガースラッシュ",
+      "canonicalId": "ドライガースラッシュ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drs.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 55,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:9a232951b352",
+      "name": "ヘルズサイズ メタルコート:ゴールド",
+      "canonicalId": "ヘルズサイズ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-hc.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 56,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:169442cec6ad",
+      "name": "レオンクロー メタルコート:ゴールド",
+      "canonicalId": "レオンクロー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-lc.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 57,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:59902db3ccc8",
+      "name": "シャークエッジ メタルコート:ブルー",
+      "canonicalId": "シャークエッジ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-se.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 58,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:8fe87fc8f81d",
+      "name": "ドランダガー メタルコート:ブラック",
+      "canonicalId": "ドランダガー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-dd.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 59,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:2-80",
+      "name": "2-80",
+      "canonicalId": "2-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-dd.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 60,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:37aa0407b96d",
+      "name": "ドラシエルシールド",
+      "canonicalId": "ドラシエルシールド",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drsh.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 61,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:7-60",
+      "name": "7-60",
+      "canonicalId": "7-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drsh.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 62,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:05447f6e26a3",
+      "name": "トリケラプレス",
+      "canonicalId": "トリケラプレス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx44.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 63,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:M-85",
+      "name": "M-85",
+      "canonicalId": "M-85",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx44.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 64,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:BS",
+      "name": "BS · バウンドスパイク",
+      "canonicalId": "BS",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx44.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 65,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "BS: 変形・ガイド・弾性機構の実動作は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:31017be24b75",
+      "name": "ロックレオーネ",
+      "canonicalId": "ロックレオーネ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-rl.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 66,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:f02a162ce92e",
+      "name": "マンモスタスク メタルコート:ブラック",
+      "canonicalId": "マンモスタスク",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mt.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 67,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:6caaf1029cf7",
+      "name": "ライトニングエルドラゴ アッパー型",
+      "canonicalId": "ライトニングエルドラゴ アッパー型",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ld.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 68,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:06cdcdcb547e",
+      "name": "ライトニングエルドラゴ 連打型",
+      "canonicalId": "ライトニングエルドラゴ 連打型",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ld.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 69,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:446259d9bd09",
+      "name": "ゼノエクスカリバー",
+      "canonicalId": "ゼノエクスカリバー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-xc.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 70,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:06acd4475825",
+      "name": "サムライカリバー",
+      "canonicalId": "サムライカリバー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx45.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 71,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "大小刃の高さ別接触切替は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:6-70",
+      "name": "6-70",
+      "canonicalId": "6-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx45.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 72,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:M",
+      "name": "M · マージ",
+      "canonicalId": "M",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx45.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 73,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:139e4c87d19a",
+      "name": "コバルトドレイク メタルコート:レッド",
+      "canonicalId": "コバルトドレイク",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx46.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 74,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:a6cb8dc5fa76",
+      "name": "ゴートタックル",
+      "canonicalId": "ゴートタックル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx46.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 75,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:7-70",
+      "name": "7-70",
+      "canonicalId": "7-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx46.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 76,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:be725da955f3",
+      "name": "ドランストライク",
+      "canonicalId": "ドランストライク",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx49.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 77,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:4-50",
+      "name": "4-50",
+      "canonicalId": "4-50",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx49.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 78,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:FF",
+      "name": "FF · フリーフラット",
+      "canonicalId": "FF",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx49.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 79,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "FF: 独立したビット／軸受の回転自由度は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:c8c198827248",
+      "name": "フェニックスウイング メタルコート:ブラック",
+      "canonicalId": "フェニックスウイング",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-pw.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 27,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:23829fc81e53",
+      "name": "ストームペガシス",
+      "canonicalId": "ストームペガシス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sp.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 80,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:3-70",
+      "name": "3-70",
+      "canonicalId": "3-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sp.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 81,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:RA",
+      "name": "RA · ラバーアクセル",
+      "canonicalId": "RA",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sp.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 82,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:d26b1265270e",
+      "name": "ドランソード バージョン2.0",
+      "canonicalId": "ドランソード バージョン2.0",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds_v2.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 83,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:ccb85cbca2fb",
+      "name": "ドランソード メタルコート:ブラック",
+      "canonicalId": "ドランソード",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ds_black.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 84,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:c730a98cad8d",
+      "name": "コバルトドラグーン メタルコート:ホワイト",
+      "canonicalId": "コバルトドラグーン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cd_white.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 85,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:994246b106cc",
+      "name": "ドランソード メタルコート:ホワイト",
+      "canonicalId": "ドランソード",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 86,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:DB",
+      "name": "DB · ディスクボール",
+      "canonicalId": "DB",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 87,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:2f65012272cb",
+      "name": "ドランダガー メタルコート:ホワイト",
+      "canonicalId": "ドランダガー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 59,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:f799edc8be75",
+      "name": "ラスタードラグーン",
+      "canonicalId": "ラスタードラグーン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx52.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 88,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "水平偏重心は未計測で、軸対称慣性による近似。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:6-60",
+      "name": "6-60",
+      "canonicalId": "6-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx52.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 89,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:LC",
+      "name": "LC · ローサイクロン",
+      "canonicalId": "LC",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx52.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 90,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:ff418e15d558",
+      "name": "ウィザードアロー バージョン2.0",
+      "canonicalId": "ウィザードアロー バージョン2.0",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx53.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 91,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:eb0d97a8b60e",
+      "name": "ナイトシールド バージョン2.0",
+      "canonicalId": "ナイトシールド バージョン2.0",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx53.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 92,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "弾性ダンパーの独立運動は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:8cb2d8a2e652",
+      "name": "ヘブンズリング",
+      "canonicalId": "ヘブンズリング",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx50.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 93,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:DS",
+      "name": "DS · ディスクスパイク",
+      "canonicalId": "DS",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx50.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 94,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:ad2b5f965feb",
+      "name": "ドランバスター",
+      "canonicalId": "ドランバスター",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux01.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 95,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:1-60",
+      "name": "1-60",
+      "canonicalId": "1-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux01.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 96,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:A",
+      "name": "A",
+      "canonicalId": "A",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux01.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 97,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:cd31341f19d7",
+      "name": "ウィザードロッド",
+      "canonicalId": "ウィザードロッド",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux03.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 98,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:5-70",
+      "name": "5-70",
+      "canonicalId": "5-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux03.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 99,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:5d715900e24e",
+      "name": "レオンクレスト",
+      "canonicalId": "レオンクレスト",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux06.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 100,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:db62de08573e",
+      "name": "シルバーウルフ",
+      "canonicalId": "シルバーウルフ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux08.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 101,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "シルバーウルフ: フリー回転リングは未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:FB",
+      "name": "FB",
+      "canonicalId": "FB",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux08.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 102,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "FB: 独立したビット／軸受の回転自由度は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:2c2e5916ecaf",
+      "name": "ヘルズハンマー",
+      "canonicalId": "ヘルズハンマー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 103,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:H",
+      "name": "H",
+      "canonicalId": "H",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 104,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "H: 変形・ガイド・弾性機構の実動作は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:499eafb03a87",
+      "name": "シノビシャドウ",
+      "canonicalId": "シノビシャドウ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux05.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 105,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:1-80",
+      "name": "1-80",
+      "canonicalId": "1-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux05.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 106,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:MN",
+      "name": "MN",
+      "canonicalId": "MN",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux05.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 107,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:445ddabced48",
+      "name": "フェニックスラダー メタルコート:レッド",
+      "canonicalId": "フェニックスラダー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux07.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 108,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:9-70",
+      "name": "9-70",
+      "canonicalId": "9-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux07.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 109,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:G",
+      "name": "G",
+      "canonicalId": "G",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux07.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 110,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "G: 変形・ガイド・弾性機構の実動作は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:9a5dca49831a",
+      "name": "サムライセイバー",
+      "canonicalId": "サムライセイバー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux09.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 111,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "開閉する小型刃の自由度は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:2-70",
+      "name": "2-70",
+      "canonicalId": "2-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux09.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 112,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:L",
+      "name": "L",
+      "canonicalId": "L",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux09.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 113,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:323e50958606",
+      "name": "ナイトメイル",
+      "canonicalId": "ナイトメイル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux10.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 114,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "内蔵3球の上下運動は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:3-85",
+      "name": "3-85",
+      "canonicalId": "3-85",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux10.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 115,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:f8be3a0d5ad9",
+      "name": "プテラスイング",
+      "canonicalId": "プテラスイング",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux10.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 116,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:5e088f2ac8be",
+      "name": "ティラノビート メタルコート:レッド",
+      "canonicalId": "ティラノビート",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux10.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 117,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "交互の上下突起は単一の周期斜面による近似。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:9b2d38339b86",
+      "name": "ヘルズハンマー メタルコート:ブルー",
+      "canonicalId": "ヘルズハンマー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux10.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 118,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:5ff45cf5dac1",
+      "name": "インパクトドレイク",
+      "canonicalId": "インパクトドレイク",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux11.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 119,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "ラバー接触面の局所摩擦・弾性は未再現（共通材質の近似）。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:LR",
+      "name": "LR",
+      "canonicalId": "LR",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux11.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 120,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:ced7a72bb76a",
+      "name": "ゴーストサークル",
+      "canonicalId": "ゴーストサークル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux12.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 121,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:0-80",
+      "name": "0-80",
+      "canonicalId": "0-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux12.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 122,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:1fc7eb10ca3e",
+      "name": "スコーピオスピア（6枚刃ディフェンス）",
+      "canonicalId": "スコーピオスピア（6枚刃ディフェンス）",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux14.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 123,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "指定した開始時形状のみ。ダッシュ連動6→3枚変形は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:0-70",
+      "name": "0-70",
+      "canonicalId": "0-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux14.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 124,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:Z",
+      "name": "Z",
+      "canonicalId": "Z",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux14.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 125,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "Z: 変形・ガイド・弾性機構の実動作は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:c25691be786b",
+      "name": "スコーピオスピア（3枚刃アタック）",
+      "canonicalId": "スコーピオスピア（3枚刃アタック）",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux14.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 126,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "指定した開始時形状のみ。ダッシュ連動6→3枚変形は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:eafaf5b5b907",
+      "name": "シャークスケイル",
+      "canonicalId": "シャークスケイル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 127,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:UF",
+      "name": "UF",
+      "canonicalId": "UF",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 128,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:778786dd5017",
+      "name": "クロックミラージュ",
+      "canonicalId": "クロックミラージュ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux16.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 129,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "60枚の微細刃は接触サンプル数より細かいため平滑円盤で近似。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:9-65",
+      "name": "9-65",
+      "canonicalId": "9-65",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux16.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 130,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:b0229ac695cd",
+      "name": "メテオドラグーン メタルコート:ホワイト",
+      "canonicalId": "メテオドラグーン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux17.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 131,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "ラバー接触面の局所摩擦・弾性は未再現（共通材質の近似）。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:J",
+      "name": "J",
+      "canonicalId": "J",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux17.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 132,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:a18756b04f6b",
+      "name": "マミーカース",
+      "canonicalId": "マミーカース",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux18.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 133,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "開始時カウンター形状のみ。速度依存の形状変化は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet:7-55",
+      "name": "7-55",
+      "canonicalId": "7-55",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux18.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 134,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet_integrated_blade:1ff7bc955b30",
+      "name": "バレットグリフォン",
+      "canonicalId": "バレットグリフォン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux19.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 135,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "ratchet.height"
+          ],
+          "unsupported": [
+            "バレットと本体の戦闘中分離は未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet_integrated_blade:e2ba1a713448",
+      "name": "グローリーワルキューレ メタルコート:ホワイト",
+      "canonicalId": "グローリーワルキューレ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux20.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 136,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "ratchet.height"
+          ],
+          "unsupported": [
+            "可動攻撃刃のばね弾性・バウンドは未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet_integrated_blade:ca7959ad0dcb",
+      "name": "ヘルズネザー（ノーマルモード）",
+      "canonicalId": "ヘルズネザー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 137,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "ratchet.height"
+          ],
+          "unsupported": [
+            "モード別の高さ・段接触は形状未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet_integrated_blade:64663a49b1ab",
+      "name": "ヘルズネザー（ローモード）",
+      "canonicalId": "ヘルズネザー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 138,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "ratchet.height"
+          ],
+          "unsupported": [
+            "モード別の高さ・段接触は形状未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:9c33dccb7a7e",
+      "name": "ティラノロア",
+      "canonicalId": "ティラノロア",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 139,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:1-70",
+      "name": "1-70",
+      "canonicalId": "1-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 140,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:ab5fa0bf8688",
+      "name": "ヘルズブレイブJ",
+      "canonicalId": "ヘルズブレイブJ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 141,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:ea70ff71bc83",
+      "name": "シルバーウルフ メタルコート:バイオレット",
+      "canonicalId": "シルバーウルフ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 142,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "シルバーウルフ: フリー回転リングは未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:4b1feebf75d7",
+      "name": "ワイバーンホバー",
+      "canonicalId": "ワイバーンホバー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 143,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:8-80",
+      "name": "8-80",
+      "canonicalId": "8-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux21.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 144,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:44568d8812a0",
+      "name": "ドランバスター メタルコート:ホワイト",
+      "canonicalId": "ドランバスター",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bxa02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 145,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:db1e65b9dc76",
+      "name": "ヘルズハンマー メタルコート:レッド FCバルセロナVer.",
+      "canonicalId": "ヘルズハンマー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-hs_bc.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 118,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:8f631a47dd83",
+      "name": "サムライセイバー メタルコート:サムライブルー サッカー日本代表Ver.",
+      "canonicalId": "サムライセイバー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-samurai.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 146,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "開閉する小型刃の自由度は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:K",
+      "name": "K",
+      "canonicalId": "K",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-samurai.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 147,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "K: 変形・ガイド・弾性機構の実動作は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:2e1a7bdd199b",
+      "name": "スコーピオスピア メタルコート:マゼンタ（6枚刃ディフェンス）",
+      "canonicalId": "スコーピオスピア",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ss.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 148,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "指定した開始時形状のみ。ダッシュ連動6→3枚変形は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:66f75bd50e1f",
+      "name": "スコーピオスピア メタルコート:マゼンタ（3枚刃アタック）",
+      "canonicalId": "スコーピオスピア",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-ss.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 149,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "指定した開始時形状のみ。ダッシュ連動6→3枚変形は未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ratchet_integrated_blade:8f6bf7fe20d5",
+      "name": "グローリーワルキューレ メタルコート:ブルー",
+      "canonicalId": "グローリーワルキューレ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-gv.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 136,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "ratchet.height"
+          ],
+          "unsupported": [
+            "可動攻撃刃のばね弾性・バウンドは未再現。",
+            "一体型の実際の分離構造は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:8ee8d8c3477d",
+      "name": "ドランバスター メタルコート:ブルー FCバルセロナVer.",
+      "canonicalId": "ドランバスター",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux00-db_bc.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 150,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:8d47151a5b57",
+      "name": "ゴーレムロック",
+      "canonicalId": "ゴーレムロック",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux13.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 151,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "高さ別の連打面とアッパー面の切替は近似。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:UN",
+      "name": "UN",
+      "canonicalId": "UN",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/ux13.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 152,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:60a6ee564e98",
+      "name": "ナイトメイル メタルコート:ネイビー",
+      "canonicalId": "ナイトメイル",
+      "category": "blade",
+      "source": "https://www.takaratomy.co.jp/support/manual/beyblade/2025072315306.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:aaae1cd47dce",
+      "name": "エアロペガサス レッドVer.",
+      "canonicalId": "エアロペガサス レッドVer.",
+      "category": "blade",
+      "source": "https://www.takaratomy.co.jp/support/manual/beyblade/2026030515753.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:9dae1c2bde26",
+      "name": "ドランブレイブS",
+      "canonicalId": "ドランブレイブS",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 153,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:V",
+      "name": "V",
+      "canonicalId": "V",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 154,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:0a104c98333f",
+      "name": "ドラン",
+      "canonicalId": "ドラン",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:b1411ef24ae3",
+      "name": "ブレイブ",
+      "canonicalId": "ブレイブ",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:8de0b3c47f11",
+      "name": "S",
+      "canonicalId": "S",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx01.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:d2c8b1fa6e30",
+      "name": "ウィザードアークR",
+      "canonicalId": "ウィザードアークR",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 155,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:4-55",
+      "name": "4-55",
+      "canonicalId": "4-55",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 156,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:LO",
+      "name": "LO",
+      "canonicalId": "LO",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 157,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:3095a08e221b",
+      "name": "ウィザード",
+      "canonicalId": "ウィザード",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:afc84a44731e",
+      "name": "アーク",
+      "canonicalId": "アーク",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:8c2574892063",
+      "name": "R",
+      "canonicalId": "R",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx02.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:71c51102a937",
+      "name": "ペルセウスダークB",
+      "canonicalId": "ペルセウスダークB",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 158,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:6-80",
+      "name": "6-80",
+      "canonicalId": "6-80",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 159,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:W",
+      "name": "W",
+      "canonicalId": "W",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 160,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:f1f5c8e6062e",
+      "name": "ペルセウス",
+      "canonicalId": "ペルセウス",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:33935e9c0d7a",
+      "name": "ダーク",
+      "canonicalId": "ダーク",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:df7e70e50215",
+      "name": "B",
+      "canonicalId": "B",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx03.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:632203dad2bf",
+      "name": "ヘルズリーパーT",
+      "canonicalId": "ヘルズリーパーT",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": "連撃",
+          "mechanicalGroup": 161,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        },
+        {
+          "mode": "受け流し",
+          "mechanicalGroup": 162,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:f2c579e3397f",
+      "name": "ヘルズ",
+      "canonicalId": "ヘルズ",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:c269d9f8cc23",
+      "name": "リーパー",
+      "canonicalId": "リーパー",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:e632b7095b0b",
+      "name": "T",
+      "canonicalId": "T",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:16e9ca768210",
+      "name": "ライノリーパーC",
+      "canonicalId": "ライノリーパーC",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 163,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:60c9df2be738",
+      "name": "ライノ",
+      "canonicalId": "ライノ",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:6b23c0d5f35d",
+      "name": "C",
+      "canonicalId": "C",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx05.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:bebaa4b10166",
+      "name": "フォックスブラッシュJ",
+      "canonicalId": "フォックスブラッシュJ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 164,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:GR",
+      "name": "GR",
+      "canonicalId": "GR",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 165,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:b48ee5f7dd37",
+      "name": "フォックス",
+      "canonicalId": "フォックス",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:722ceb1b9cb6",
+      "name": "ブラッシュ",
+      "canonicalId": "ブラッシュ",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:6da43b944e49",
+      "name": "J",
+      "canonicalId": "J",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx06.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:59ce87d86890",
+      "name": "ペガサスブラストA メタルコート:グリーン",
+      "canonicalId": "ペガサスブラストA",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 166,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet_integrated_bit:924e2294eaf7",
+      "name": "Tr",
+      "canonicalId": "Tr",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": "細い軸先（高速回転時）",
+          "mechanicalGroup": 167,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "一体型の実際の分離構造は未再現",
+            "Tr: 変形・ガイド・弾性機構の実動作は未再現",
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        },
+        {
+          "mode": "太い軸先（低速回転時）",
+          "mechanicalGroup": 168,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "一体型の実際の分離構造は未再現",
+            "Tr: 変形・ガイド・弾性機構の実動作は未再現",
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:e280e610eab8",
+      "name": "ペガサス",
+      "canonicalId": "ペガサス",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:4999dbca1002",
+      "name": "ブラスト メタルコート:グリーン",
+      "canonicalId": "ブラスト",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:559aead08264",
+      "name": "A",
+      "canonicalId": "A",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx07.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:bcd145fc6d6f",
+      "name": "ケルベロスフレイムW",
+      "canonicalId": "ケルベロスフレイムW",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 169,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:WB",
+      "name": "WB",
+      "canonicalId": "WB",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 170,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:d273a025bdcf",
+      "name": "ケルベロス",
+      "canonicalId": "ケルベロス",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:9c89b8caa34b",
+      "name": "フレイム",
+      "canonicalId": "フレイム",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:fcb5f40df9be",
+      "name": "W",
+      "canonicalId": "W",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:3dfd9c62cce5",
+      "name": "ホエールフレイムM",
+      "canonicalId": "ホエールフレイムM",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 163,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:ec892ef39471",
+      "name": "ホエール",
+      "canonicalId": "ホエール",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:08f271887ce9",
+      "name": "M",
+      "canonicalId": "M",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx08.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:d3232d13f1f6",
+      "name": "ソルエクリプスD",
+      "canonicalId": "ソルエクリプスD",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": "ダブルアッパー",
+          "mechanicalGroup": 171,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        },
+        {
+          "mode": "ダブルスマッシュ",
+          "mechanicalGroup": 172,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bit:TK",
+      "name": "TK",
+      "canonicalId": "TK",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 173,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "TK: 変形・ガイド・弾性機構の実動作は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:6a68a6272603",
+      "name": "ソル",
+      "canonicalId": "ソル",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:48dc17188e6e",
+      "name": "エクリプス",
+      "canonicalId": "エクリプス",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:3f39d5c348e5",
+      "name": "D",
+      "canonicalId": "D",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx09.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:bfd8e54bacf9",
+      "name": "エンペラーマイトH メタルコート:ブラック",
+      "canonicalId": "エンペラーマイトH",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 174,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet_integrated_bit:0ab06d24be91",
+      "name": "Op",
+      "canonicalId": "Op",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": "防御",
+          "mechanicalGroup": 175,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "一体型の実際の分離構造は未再現",
+            "Op: 変形・ガイド・弾性機構の実動作は未再現",
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        },
+        {
+          "mode": "攻撃",
+          "mechanicalGroup": 176,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "一体型の実際の分離構造は未再現",
+            "Op: 変形・ガイド・弾性機構の実動作は未再現",
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:da659befa47d",
+      "name": "エンペラー（メタルロックチップ）",
+      "canonicalId": "エンペラー（メタルロックチップ）",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:55270999c135",
+      "name": "マイト メタルコート:ブラック",
+      "canonicalId": "マイト",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:44bd7ae60f47",
+      "name": "H",
+      "canonicalId": "H",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:a16566a8ba03",
+      "name": "ゴーレムロック メタルコート:グリーン",
+      "canonicalId": "ゴーレムロック",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 177,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": [
+            "高さ別の連打面とアッパー面の切替は近似。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assembled_blade:59aabefd87eb",
+      "name": "シャークギル",
+      "canonicalId": "シャークギル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx11.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 178,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "assembled_blade:94a3826a8ebf",
+      "name": "フェニックスフレアZ メタルコート:レッド",
+      "canonicalId": "フェニックスフレアZ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 179,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:WW",
+      "name": "WW",
+      "canonicalId": "WW",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 180,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:9c36935cab82",
+      "name": "フェニックス",
+      "canonicalId": "フェニックス",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:539f33b95d30",
+      "name": "フレア メタルコート:レッド",
+      "canonicalId": "フレア",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:bbeebd879e1d",
+      "name": "Z",
+      "canonicalId": "Z",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx12.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:fba2a3074deb",
+      "name": "バハムートブリッツBK",
+      "canonicalId": "バハムートブリッツBK",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 181,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:1-50",
+      "name": "1-50",
+      "canonicalId": "1-50",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 182,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:I",
+      "name": "I",
+      "canonicalId": "I",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 183,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:afe8738cae94",
+      "name": "バハムート",
+      "canonicalId": "バハムート",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "metal_blade:a937bc86b04f",
+      "name": "ブリッツ",
+      "canonicalId": "ブリッツ",
+      "category": "metal_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "over_blade:df7e70e50215",
+      "name": "B",
+      "canonicalId": "B",
+      "category": "over_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:86be9a55762d",
+      "name": "K",
+      "canonicalId": "K",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx13.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:a9d1eb29d1e5",
+      "name": "ナイトフォートレスGV",
+      "canonicalId": "ナイトフォートレスGV",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 184,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:8-70",
+      "name": "8-70",
+      "canonicalId": "8-70",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 185,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:b82156eaa631",
+      "name": "ナイト",
+      "canonicalId": "ナイト",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "metal_blade:773ca3853c51",
+      "name": "フォートレス",
+      "canonicalId": "フォートレス",
+      "category": "metal_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "over_blade:333e0a1e2781",
+      "name": "G",
+      "canonicalId": "G",
+      "category": "over_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:de5a6f78116e",
+      "name": "V",
+      "canonicalId": "V",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx14.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:a15c7d7bc6a1",
+      "name": "ラグナレイジFE",
+      "canonicalId": "ラグナレイジFE",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 186,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:Y",
+      "name": "Y",
+      "canonicalId": "Y",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 187,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:40a2dc6df32e",
+      "name": "ラグナ",
+      "canonicalId": "ラグナ",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "metal_blade:96a45240dd8a",
+      "name": "レイジ",
+      "canonicalId": "レイジ",
+      "category": "metal_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "over_blade:f67ab10ad4e4",
+      "name": "F",
+      "canonicalId": "F",
+      "category": "over_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:a9f51566bd67",
+      "name": "E",
+      "canonicalId": "E",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx15.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:f3e77afd1dbb",
+      "name": "ユニコーンデルタPO",
+      "canonicalId": "ユニコーンデルタPO",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 188,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:GU",
+      "name": "GU",
+      "canonicalId": "GU",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 189,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "GU: 中央突起と外周接触の切替は単一先端形状による近似"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:28b90b526c94",
+      "name": "ユニコーン",
+      "canonicalId": "ユニコーン",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "metal_blade:5c296b7a6fb5",
+      "name": "デルタ",
+      "canonicalId": "デルタ",
+      "category": "metal_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "over_blade:5c62e091b8c0",
+      "name": "P",
+      "canonicalId": "P",
+      "category": "over_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:c4694f2e93d5",
+      "name": "O",
+      "canonicalId": "O",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx17.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:22932b209e68",
+      "name": "ブラキオウィップOW",
+      "canonicalId": "ブラキオウィップOW",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 190,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "bit:Nr",
+      "name": "Nr",
+      "canonicalId": "Nr",
+      "category": "bit",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 191,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "Nr: 独立したビット／軸受の回転自由度は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:e3704f43ad70",
+      "name": "ブラキオ",
+      "canonicalId": "ブラキオ",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "metal_blade:a8efb3f99c60",
+      "name": "ウィップ",
+      "canonicalId": "ウィップ",
+      "category": "metal_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "over_blade:c4694f2e93d5",
+      "name": "O",
+      "canonicalId": "O",
+      "category": "over_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx18.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:1006f19d1bb4",
+      "name": "クロコトレッドTQ",
+      "canonicalId": "クロコトレッドTQ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 192,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:5-50",
+      "name": "5-50",
+      "canonicalId": "5-50",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 193,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:d70bd9ae4981",
+      "name": "クロコ",
+      "canonicalId": "クロコ",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "metal_blade:192792da47b4",
+      "name": "トレッド",
+      "canonicalId": "トレッド",
+      "category": "metal_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "over_blade:e632b7095b0b",
+      "name": "T",
+      "canonicalId": "T",
+      "category": "over_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:4ae81572f06e",
+      "name": "Q",
+      "canonicalId": "Q",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx19.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:a967e6fa0358",
+      "name": "ウルフハントF",
+      "canonicalId": "ウルフハントF",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 194,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "ratchet:0-60",
+      "name": "0-60",
+      "canonicalId": "0-60",
+      "category": "ratchet",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 195,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:d8f0a3f3b1e1",
+      "name": "ウルフ",
+      "canonicalId": "ウルフ",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:4387114ab3c3",
+      "name": "ハント",
+      "canonicalId": "ハント",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assist_blade:f67ab10ad4e4",
+      "name": "F",
+      "canonicalId": "F",
+      "category": "assist_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx10.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:9f6d26058f12",
+      "name": "ウィザードアークR メタルコート:ブラック",
+      "canonicalId": "ウィザードアークR",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-wa.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 196,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "main_blade:4ff9d9d12245",
+      "name": "アーク メタルコート:ブラック",
+      "canonicalId": "アーク",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-wa.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:084283767349",
+      "name": "ティガレイジFT",
+      "canonicalId": "ティガレイジFT",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-tiga.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": "連撃",
+          "mechanicalGroup": 197,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        },
+        {
+          "mode": "受け流し",
+          "mechanicalGroup": 198,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:1b834e0ef138",
+      "name": "ティガ",
+      "canonicalId": "ティガ",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-tiga.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:0e06e9dfbcc1",
+      "name": "エヴァブレイブA メタルコート:バイオレット",
+      "canonicalId": "エヴァブレイブA",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 199,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "lock_chip:716790f2c5ed",
+      "name": "エヴァ",
+      "canonicalId": "エヴァ",
+      "category": "lock_chip",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "main_blade:3a974ff6dcc8",
+      "name": "ブレイブ メタルコート:バイオレット",
+      "canonicalId": "ブレイブ",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:e64afe5d1555",
+      "name": "エヴァアークB メタルコート:オレンジ",
+      "canonicalId": "エヴァアークB",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 200,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "main_blade:8984c884977d",
+      "name": "アーク メタルコート:オレンジ",
+      "canonicalId": "アーク",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:48b5d74aa2f6",
+      "name": "エヴァブラッシュT メタルコート:レッド",
+      "canonicalId": "エヴァブラッシュT",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": "連撃",
+          "mechanicalGroup": 201,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        },
+        {
+          "mode": "受け流し",
+          "mechanicalGroup": 202,
+          "shapeStatus": "unmodeled",
+          "missing": [],
+          "unsupported": [
+            "モードの開始時評価は適用。回転中の自動変形遷移は未再現"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main_blade:322408d3af3f",
+      "name": "ブラッシュ メタルコート:レッド",
+      "canonicalId": "ブラッシュ",
+      "category": "main_blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-eva.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:2a4e9c7886c8",
+      "name": "フェニックスウイング",
+      "canonicalId": "フェニックスウイング",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx23.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 203,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:bcaae06d4533",
+      "name": "アイアンマン",
+      "canonicalId": "アイアンマン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mit.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 204,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:bdfb70df3e48",
+      "name": "サノス",
+      "canonicalId": "サノス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-mit.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 205,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:a74b65b97e86",
+      "name": "スパイダーマン",
+      "canonicalId": "スパイダーマン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-msv.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 206,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:5f203ab27ca0",
+      "name": "ヴェノム",
+      "canonicalId": "ヴェノム",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-msv.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 163,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:1e11cf62b78d",
+      "name": "ルーク・スカイウォーカー",
+      "canonicalId": "ルーク・スカイウォーカー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sld.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 204,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:551fd474cc5b",
+      "name": "ダース・ベイダー",
+      "canonicalId": "ダース・ベイダー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-sld.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 207,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:8910d2dfb26d",
+      "name": "マンダロリアン",
+      "canonicalId": "マンダロリアン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-smm.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 163,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:975d63b58389",
+      "name": "モフ・ギデオン",
+      "canonicalId": "モフ・ギデオン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-smm.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 163,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:31310d65910a",
+      "name": "オプティマスプライム",
+      "canonicalId": "オプティマスプライム",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tom.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 204,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:9d0d674dacc8",
+      "name": "メガトロン",
+      "canonicalId": "メガトロン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tom.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 208,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:23088f6d86b5",
+      "name": "オプティマスプライマル",
+      "canonicalId": "オプティマスプライマル",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tos.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 163,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:f1d99b3b0c7e",
+      "name": "スタースクリーム",
+      "canonicalId": "スタースクリーム",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-tos.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 209,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:50733e7c4914",
+      "name": "ドラグーンストーム",
+      "canonicalId": "ドラグーンストーム",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-drgs.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 210,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:b304f6919730",
+      "name": "ストームスプリガン",
+      "canonicalId": "ストームスプリガン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-ss.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 211,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:96ca2e6dbc9e",
+      "name": "フェニックスフェザー",
+      "canonicalId": "フェニックスフェザー",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/UX-12_manual.pdf",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 212,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:b45f389a0f0c",
+      "name": "コバルトドレイク クリアVer.",
+      "canonicalId": "コバルトドレイク",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cdr.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 213,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:90f0da4568b4",
+      "name": "コバルトドラグーン メタルコート:ブラック",
+      "canonicalId": "コバルトドラグーン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-cd.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 214,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:3a946efa3d4f",
+      "name": "ヘルズチェイン メタルコート:ブラック",
+      "canonicalId": "ヘルズチェイン",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-hch.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 215,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "上下段で異なる輪郭は単一の共有外形で近似し未再現。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:e38ea50588b0",
+      "name": "クロコクランチ メタルコート:グリーン",
+      "canonicalId": "クロコクランチ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:191cb5696242",
+      "name": "サムライスチール メタルコート:ホワイト",
+      "canonicalId": "サムライスチール",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:5f0ad62018d6",
+      "name": "オロチクラスタ",
+      "canonicalId": "オロチクラスタ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:6112c0047e70",
+      "name": "フェニックスウイング メタルコート:ネイビー",
+      "canonicalId": "フェニックスウイング",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:49f5c8debdef",
+      "name": "シャークエッジ メタルコート:ブラック",
+      "canonicalId": "シャークエッジ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:7133813ff43d",
+      "name": "クロックミラージュ メタルコート:ブラック",
+      "canonicalId": "クロックミラージュ",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:c9ff05756e9d",
+      "name": "エアロペガサス ダブルメタルコート:ブルー×シアン",
+      "canonicalId": "エアロペガサス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx53.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 216,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    },
+    {
+      "id": "blade:93408ffb3b93",
+      "name": "ビクトリーヴァルキリー",
+      "canonicalId": "ビクトリーヴァルキリー",
+      "category": "blade",
+      "source": "https://www.takaratomy.co.jp/support/manual/items/4904810946816_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%99%E3%82%A4%E3%83%96%E3%83%AC%E3%83%BC%E3%83%89%EF%BC%92%EF%BC%95%E5%91%A8%E5%B9%B4%E8%A8%98%E5%BF%B5%E3%82%BB%E3%83%83%E3%83%88.pdf",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:b90bc10f7cb8",
+      "name": "ドランソード ホロステッカーVer.",
+      "canonicalId": "ドランソード",
+      "category": "blade",
+      "source": "https://www.takaratomy.co.jp/support/manual/items/4904810946816_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%99%E3%82%A4%E3%83%96%E3%83%AC%E3%83%BC%E3%83%89%EF%BC%92%EF%BC%95%E5%91%A8%E5%B9%B4%E8%A8%98%E5%BF%B5%E3%82%BB%E3%83%83%E3%83%88.pdf",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:457d4e8f04e1",
+      "name": "T-レックス",
+      "canonicalId": "T-レックス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jtm.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 217,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:d64b62825c56",
+      "name": "モササウルス",
+      "canonicalId": "モササウルス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jtm.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 163,
+          "shapeStatus": "unmodeled",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:29beff483a6e",
+      "name": "スピノサウルス",
+      "canonicalId": "スピノサウルス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jsq.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 205,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blade:194bbf365577",
+      "name": "ケツァルコアトルス",
+      "canonicalId": "ケツァルコアトルス",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/bx00-jsq.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 218,
+          "shapeStatus": "source-informed",
+          "missing": [
+            "blade.attack",
+            "blade.defense",
+            "blade.stamina"
+          ],
+          "unsupported": [
+            "外形は画像の概形推定。回転方向・材質配分等の一次説明が不足。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assembled_blade:dcdccab42088",
+      "name": "ペガサスブラストA メタルコート:レッド",
+      "canonicalId": "ペガサスブラストA",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-pb.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:7065e3773418",
+      "name": "ドランブレイブS メタルコート:ブラック",
+      "canonicalId": "ドランブレイブS",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-db.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:09cfe55571b6",
+      "name": "バックスアントラーズB メタルコート:オレンジ",
+      "canonicalId": "バックスアントラーズB",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-ba.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:3c31074160b9",
+      "name": "クラーケンリグルS メタルコート:ブルー",
+      "canonicalId": "クラーケンリグルS",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-kw.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:6c5a73883b3f",
+      "name": "ホーネットフォートR メタルコート:イエロー",
+      "canonicalId": "ホーネットフォートR",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-hf.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:3f9038f62fcd",
+      "name": "ドレイクブレイブG メタルコート:ブルー",
+      "canonicalId": "ドレイクブレイブG",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/lineup/cx00-drb.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "assembled_blade:413aba0d502f",
+      "name": "キッドハントK メタルコート:ホワイト",
+      "canonicalId": "キッドハントK",
+      "category": "blade",
+      "source": "https://beyblade.takaratomy.co.jp/beyblade-x/app/list.html",
+      "status": "not-individually-playable",
+      "reasons": [
+        "構成部品単体は組立済ブレードを通じてのみ評価／発売未確認"
+      ]
+    },
+    {
+      "id": "blade:e5cfb0236667",
+      "name": "フェニックスフェザー メタルコート:オレンジ",
+      "canonicalId": "フェニックスフェザー",
+      "category": "blade",
+      "source": "https://www.takaratomy.co.jp/support/manual/beyblade/2025020514925.html",
+      "status": "modeled",
+      "variants": [
+        {
+          "mode": null,
+          "mechanicalGroup": 219,
+          "shapeStatus": "source-informed",
+          "missing": [],
+          "unsupported": []
+        }
+      ]
+    }
+  ]
+}

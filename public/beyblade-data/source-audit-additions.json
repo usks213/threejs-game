@@ -1,0 +1,276 @@
+[
+  {
+    "category": "blade",
+    "name_ja": "フェニックスフェザー メタルコート:オレンジ",
+    "family": "BX",
+    "official_ratings": {
+      "attack": 55,
+      "defense": 25,
+      "stamina": 35,
+      "height": null,
+      "dash": null,
+      "burst_resistance": null
+    },
+    "rating_scope": "individual_component",
+    "source_urls": [
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2025020514925.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810953685_%EF%BC%A2%EF%BC%B8%EF%BC%A3%EF%BC%8D%EF%BC%90%EF%BC%98%E3%80%80%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B3%E3%83%AD%E3%82%B3%E3%83%AD%E5%A2%97%E5%88%8A%E5%8F%B7%E4%BB%98%E9%8C%B2%E3%80%80%E3%83%95%E3%82%A7%E3%83%8B%E3%83%83%E3%82%AF%E3%82%B9%E3%83%95%E3%82%A7%E3%82%B6%E3%83%BC%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%82%AA%E3%83%AC%E3%83%B3%E3%82%B8.pdf"
+    ],
+    "source_page": 1,
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_render_visually_verified",
+    "physical_parameters": null,
+    "materials": [
+      "亜鉛合金",
+      "PMMA",
+      "MABS"
+    ],
+    "spin_direction": "right",
+    "type": "attack",
+    "parameter_scale": "official_relative_ratings_not_SI",
+    "evidence_release_dates": [
+      "2025-02-28"
+    ],
+    "release_source_url": "https://corocoro-news.jp/news/394782/",
+    "id": "blade:e5cfb0236667",
+    "source_image_urls": [],
+    "availability": "unknown_not_verified",
+    "parameter_status": "verified_numeric_ratings",
+    "display_name_ja": "フェニックスフェザー メタルコート:オレンジ"
+  },
+  {
+    "category": "blade",
+    "name_ja": "クロックミラージュ メタルコート:ブラック 運命の巻戻士Ver.",
+    "family": "UX",
+    "official_ratings": {
+      "attack": null,
+      "defense": null,
+      "stamina": null
+    },
+    "source_urls": [
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026091516182.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810067900_%EF%BC%B5%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B3%E3%83%AD%E3%82%B3%E3%83%AD%E3%82%B3%E3%83%9F%E3%83%83%E3%82%AF%EF%BC%99%E6%9C%88%E5%8F%B7%E5%BF%9C%E5%8B%9F%E8%80%85%E5%85%A8%E5%93%A1%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9%E3%80%80%E3%82%AF%E3%83%AD%E3%83%83%E3%82%AF%E3%83%9F%E3%83%A9%E3%83%BC%E3%82%B8%E3%83%A5%EF%BC%94%EF%BC%8D%EF%BC%95%EF%BC%95%EF%BC%B3%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%80%80%E9%81%8B%E5%91%BD%E3%81%AE%E5%B7%BB%E6%88%BB%E5%A3%AB%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf"
+    ],
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_entire_single_page_visually_checked_no_numeric_ratings",
+    "parameter_status": "unresolved_numeric_ratings_not_in_manual",
+    "physical_parameters": null,
+    "compatibility": {
+      "ratchet_requires": "simple_type",
+      "explicit_examples_allowed": [
+        "4-55",
+        "9-65",
+        "M-85"
+      ],
+      "explicit_examples_disallowed": [
+        "5-70",
+        "Tr"
+      ]
+    }
+  },
+  {
+    "category": "blade",
+    "name_ja": "エアロペガサス レッドVer.",
+    "family": "UX",
+    "official_ratings": {
+      "attack": null,
+      "defense": null,
+      "stamina": null
+    },
+    "source_urls": [
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2026030515753.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810096528_%EF%BC%B5%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%82%A8%E3%82%A2%E3%83%AD%E3%83%9A%E3%82%AC%E3%82%B5%E3%82%B9%EF%BC%93%E3%83%BC%EF%BC%97%EF%BC%90%EF%BC%A1%E3%80%80%E3%83%AC%E3%83%83%E3%83%89%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf"
+    ],
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_entire_single_page_visually_checked_no_numeric_ratings",
+    "parameter_status": "unresolved_numeric_ratings_not_in_manual",
+    "physical_parameters": null
+  },
+  {
+    "category": "blade",
+    "name_ja": "ナイトメイル メタルコート:ネイビー",
+    "family": "UX",
+    "official_ratings": {
+      "attack": null,
+      "defense": null,
+      "stamina": null
+    },
+    "source_urls": [
+      "https://www.takaratomy.co.jp/support/manual/beyblade/2025072315306.html",
+      "https://www.takaratomy.co.jp/support/manual/items/4904810919124_UX-00%20%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%20%E3%83%8A%E3%82%A4%E3%83%88%E3%83%A1%E3%82%A4%E3%83%AB3-85BS%20%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%E3%83%8D%E3%82%A4%E3%83%93%E3%83%BC.pdf"
+    ],
+    "accessed_date": "2026-10-25",
+    "verification": "official_manual_entire_single_page_visually_checked_no_numeric_ratings",
+    "parameter_status": "unresolved_numeric_ratings_not_in_manual",
+    "physical_parameters": null,
+    "availability_evidence": {
+      "status": "official_sale_ended_relaunch_unknown",
+      "ended_at": "2025-12-15T13:00:00+09:00",
+      "source_url": "https://beyblade.takaratomy.co.jp/beyblade-x/news/news251114_2.html",
+      "scope": "rare_bey_ticket_sales",
+      "note": "販売一旦終了告知。市場在庫や以後の再開を断言しない。"
+    }
+  },
+  {
+    "name": "ドランブレイブS メタルコート:ブラック",
+    "status": "checked_no_numeric_chart",
+    "stats": null,
+    "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2026060415940.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810080572_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%83%B3%E3%83%96%E3%83%AC%E3%82%A4%E3%83%96.pdf",
+    "checked_pdf_pages": [
+      1,
+      2
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "ドレイクブレイブG メタルコート:ブルー",
+    "status": "checked_no_numeric_chart",
+    "stats": null,
+    "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916090.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810077398_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%AC%E3%82%A4%E3%82%AF%E3%83%96%E3%83%AC%E3%82%A4%E3%83%96%EF%BC%A7%EF%BC%94%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%A9%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%AB%E3%83%BC.pdf",
+    "checked_pdf_pages": [
+      1,
+      2
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "バックスアントラーズB メタルコート:オレンジ",
+    "status": "checked_no_numeric_chart",
+    "stats": null,
+    "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916089.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810077367_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%90%E3%83%83%E3%82%AF%E3%82%B9%E3%82%A2%E3%83%B3%E3%83%88%E3%83%A9%E3%83%BC%E3%82%BA%EF%BC%A2%EF%BC%92%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%A4%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%82%AA%E3%83%AC%E3%83%B3%E3%82%B8.pdf",
+    "checked_pdf_pages": [
+      1,
+      2
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "クラーケンリグルS メタルコート:ブルー",
+    "status": "checked_no_numeric_chart",
+    "stats": null,
+    "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2026072916088.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810077336_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A2%E3%83%97%E3%83%AA%E3%83%BB%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%82%AF%E3%83%A9%E3%83%BC%E3%82%B1%E3%83%B3%E3%83%AA%E3%82%B0%E3%83%AB%EF%BC%B3%EF%BC%93%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AF%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%96%E3%83%AB%E3%83%BC.pdf",
+    "checked_pdf_pages": [
+      1,
+      2
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "ペガサスブラストA メタルコート:レッド",
+    "status": "numeric_chart_in_red_product_manual_with_illustration_caveat",
+    "stats": {
+      "attack": 75,
+      "defense": 20,
+      "stamina": 20
+    },
+    "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/2025080715379.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810930495_%EF%BC%A3%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E9%99%90%E5%AE%9A%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%83%9A%E3%82%AC%E3%82%B5%E3%82%B9%E3%83%96%E3%83%A9%E3%82%B9%E3%83%88%EF%BC%A1%EF%BC%B4%EF%BD%92%E3%80%80%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%83%AC%E3%83%83%E3%83%89.pdf",
+    "pdf_page": 2,
+    "printed_page": 14,
+    "checked_date": "2026-10-25",
+    "caveat": "赤製品専用説明書のカスタマイズ例にペガサスブラストA75/20/20掲載。ただし先頭ページにCX-07メタルコート:グリーンの線を使用との注記がある。赤固有数値と独立に表記されたものではない。",
+    "additional_custom_example": {
+      "name": "ペガサスアークA",
+      "stats": {
+        "attack": 35,
+        "defense": 20,
+        "stamina": 45
+      },
+      "not_stock_combination": true
+    }
+  },
+  {
+    "name": "ホーネットフォートR メタルコート:イエロー",
+    "status": "no_entry_found_in_official_support_indexes_1_to_4",
+    "stats": null,
+    "source_page": "https://www.takaratomy.co.jp/support/manual/beyblade/index.html",
+    "checked_date": "2026-10-25",
+    "additional_check": {
+      "url": "https://beyblade.takaratomy.co.jp/beyblade-x/manual/BXG-79_manual.pdf",
+      "result": "HTTP404",
+      "basis": "製品HTML内のコメントアウトされた製品説明書URL"
+    }
+  },
+  {
+    "name": "キッドハントK メタルコート:ホワイト",
+    "status": "no_numeric_primary_source_verified",
+    "stats": null,
+    "source_page": "https://corocoro-news.jp/news/402790/",
+    "checked_date": "2026-10-25",
+    "notes": "検索結果で公式記事と商品名称は確認。本文直接取得はメンテナンス画面／web503。公式Xプロフィールはweb403。二次記事の数値流用はしていない。"
+  },
+  {
+    "name": "BX-00 スターター ストームスプリガン2-70M(JANコード:4904810997351)",
+    "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026040315832.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810997351_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%BF%E3%83%BC%E3%80%80%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%E3%82%B9%E3%83%97%E3%83%AA%E3%82%AC%E3%83%B3%EF%BC%92%EF%BC%8D%EF%BC%97%EF%BC%90%EF%BC%AD.pdf",
+    "local_key": "2026040315832",
+    "status": "checked_no_numeric_chart",
+    "checked_pdf_pages": [
+      1,
+      2
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "BX-00 ブースター ドラグーンストーム4-60RA(JANコード:4904810099468)",
+    "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2026010715620.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810099468_%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%89%E3%83%A9%E3%82%B0%E3%83%BC%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%A0%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B2%EF%BC%A1.pdf",
+    "local_key": "2026010715620",
+    "status": "checked_no_numeric_chart",
+    "checked_pdf_pages": [
+      1
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "BXG-23 BX-00 コバルトドレイク4-60F クリアVer.(JANコード:4904810953708)",
+    "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2024111314738.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810953708_%EF%BC%A2%EF%BC%B8%EF%BC%A7%EF%BC%8D%EF%BC%92%EF%BC%93%E3%80%80%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%82%B3%E3%83%90%E3%83%AB%E3%83%88%E3%83%89%E3%83%AC%E3%82%A4%E3%82%AF%EF%BC%94%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%A6%E3%80%80%E3%82%AF%E3%83%AA%E3%82%A2%EF%BC%B6%EF%BD%85%EF%BD%92%EF%BC%8E.pdf",
+    "local_key": "2024111314738",
+    "status": "checked_no_numeric_chart",
+    "checked_pdf_pages": [
+      1
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "BXG-08 BX-00 ブースター ヘルズチェイン5-60HT メタルコート:ブラック(JANコード:4904810939979)",
+    "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2024052214274.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810939979_%EF%BC%A2%EF%BC%B8%EF%BC%A7%EF%BC%8D%EF%BC%90%EF%BC%98%E3%80%80%EF%BC%A2%EF%BC%B8%EF%BC%8D%EF%BC%90%EF%BC%90%E3%80%80%E3%83%96%E3%83%BC%E3%82%B9%E3%82%BF%E3%83%BC%E3%80%80%E3%83%98%E3%83%AB%E3%82%BA%E3%83%81%E3%82%A7%E3%82%A4%E3%83%B3%EF%BC%95%EF%BC%8D.pdf",
+    "local_key": "2024052214274",
+    "status": "checked_no_numeric_chart",
+    "checked_pdf_pages": [
+      1
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "BXC-07 クロコクランチ2-60Qメタルコート:グリーン (JANコード:4904810953678)",
+    "url": "https://www.takaratomy.co.jp/support/manual/beyblade/2025020514924.html",
+    "pdf_url": "https://www.takaratomy.co.jp/support/manual/items/4904810953678_%EF%BC%A2%EF%BC%B8%EF%BC%A3%EF%BC%8D%EF%BC%90%EF%BC%97%E3%80%80%E3%82%AF%E3%83%AD%E3%82%B3%E3%82%AF%E3%83%A9%E3%83%B3%E3%83%81%EF%BC%92%EF%BC%8D%EF%BC%96%EF%BC%90%EF%BC%B1%E3%83%A1%E3%82%BF%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%88%EF%BC%9A%E3%82%B0%E3%83%AA%E3%83%BC%E3%83%B3%20.pdf",
+    "local_key": "2025020514924",
+    "status": "checked_no_numeric_chart",
+    "checked_pdf_pages": [
+      1
+    ],
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "サムライスチール メタルコート:ホワイト",
+    "source_url": "https://shogakukan-comic.jp/news/59015",
+    "image_url": "https://shogakukan-comic.jp/wp-content/uploads/2026/05/282fded35ae4207b264b11c1cab913b7.jpg",
+    "status": "publisher_article_and_image_checked_no_numeric_chart",
+    "checked_date": "2026-10-25"
+  },
+  {
+    "name": "フェニックスフェザー",
+    "source_url": "https://shogakukan-comic.jp/news/47160",
+    "image_url": "https://shogakukan-comic.jp/wp-content/uploads/2024/12/3ffb456a093d7f79f7634de68c880f4c.jpg",
+    "status": "publisher_article_and_image_checked_no_numeric_chart",
+    "checked_date": "2026-10-25"
+  }
+]

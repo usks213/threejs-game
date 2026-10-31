@@ -1,0 +1,395 @@
+{
+  "currentHashes": {
+    "src/beyblade/core/physics.ts": "e2d6696c9ae7d1b8b379eb4ac3fe31a5b102217f8d040d8977b75c7afaee4db5",
+    "src/beyblade/core/types.ts": "cb05388bcfb2da35e4ffcfd5b652f9ea08e4a1fd56bf84c1476fe75e6dd486fd",
+    "src/beyblade/data/physical-estimates.ts": "3fa993d8bbd1937ff0c4f6e436beb74fafc84e3800b5d574b74bec2da4b1ab24"
+  },
+  "baselineHashes": {
+    "src/beyblade/core/physics.ts": "e2d6696c9ae7d1b8b379eb4ac3fe31a5b102217f8d040d8977b75c7afaee4db5",
+    "src/beyblade/core/types.ts": "cb05388bcfb2da35e4ffcfd5b652f9ea08e4a1fd56bf84c1476fe75e6dd486fd",
+    "src/beyblade/data/physical-estimates.ts": "3ef0fede4c0b80e20578bb863fc0d09e6bf72c1eddc389a35d7f94fc822c5a16"
+  },
+  "cases": [
+    {
+      "name": "default",
+      "baseline": {
+        "mass": 0.0335,
+        "duration": 1.0708333333333333,
+        "result": {
+          "winner": 0,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "rail-engage": 5,
+          "rail-release": 5,
+          "dash": 2,
+          "collision": 1,
+          "finish": 1
+        }
+      },
+      "current": {
+        "mass": 0.04169,
+        "duration": 12.804166666666667,
+        "result": {
+          "winner": 0,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "rail-engage": 260,
+          "rail-release": 260,
+          "dash": 2,
+          "finish": 1
+        },
+        "finite": true,
+        "meshTicks": 181,
+        "badMesh": 0,
+        "minRadiusAfterMesh": [
+          0.0678833855594859,
+          0.048940612826641
+        ],
+        "maxExteriorSlowHighSpinSeconds": [
+          0,
+          0.004166666666666667
+        ],
+        "maxPerTickEnergyGain": 0,
+        "maxEndpointDisplacementExcess": 0.0001837463201335137
+      },
+      "maxGearPlanarSpeedGain": 0.683017968388147
+    },
+    {
+      "name": "exact-stuck-Sword-N",
+      "baseline": {
+        "mass": 0.033805,
+        "duration": 1.7666666666666666,
+        "result": {
+          "winner": 1,
+          "finish": "xtreme",
+          "points": 3
+        },
+        "counts": {
+          "rail-engage": 13,
+          "rail-release": 13,
+          "dash": 2,
+          "finish": 1
+        }
+      },
+      "current": {
+        "mass": 0.04385000000000001,
+        "duration": 28.404166666666665,
+        "result": {
+          "winner": 0,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "finish": 1
+        },
+        "finite": true,
+        "meshTicks": 0,
+        "badMesh": 0,
+        "minRadiusAfterMesh": [
+          null,
+          null
+        ],
+        "maxExteriorSlowHighSpinSeconds": [
+          0,
+          0.3833333333333332
+        ],
+        "maxPerTickEnergyGain": 0,
+        "maxEndpointDisplacementExcess": 1.1775293313613308e-05
+      },
+      "maxGearPlanarSpeedGain": 0
+    },
+    {
+      "name": "Sword-F",
+      "baseline": {
+        "mass": 0.03308,
+        "duration": 2.7083333333333335,
+        "result": {
+          "winner": 1,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "rail-engage": 12,
+          "rail-release": 12,
+          "collision": 1,
+          "finish": 1
+        }
+      },
+      "current": {
+        "mass": 0.043320000000000004,
+        "duration": 8.804166666666667,
+        "result": {
+          "winner": 1,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "rail-engage": 33,
+          "rail-release": 33,
+          "collision": 1,
+          "finish": 1
+        },
+        "finite": true,
+        "meshTicks": 16,
+        "badMesh": 0,
+        "minRadiusAfterMesh": [
+          0.00029888280099440756,
+          0.15246644919723526
+        ],
+        "maxExteriorSlowHighSpinSeconds": [
+          0,
+          0
+        ],
+        "maxPerTickEnergyGain": 0,
+        "maxEndpointDisplacementExcess": 0.00016387075934807475
+      },
+      "maxGearPlanarSpeedGain": 0.4122913100219223
+    },
+    {
+      "name": "Sword-R",
+      "baseline": {
+        "mass": 0.033105,
+        "duration": 1.3041666666666667,
+        "result": {
+          "winner": 1,
+          "finish": "burst",
+          "points": 2
+        },
+        "counts": {
+          "rail-engage": 12,
+          "rail-release": 12,
+          "dash": 1,
+          "collision": 3,
+          "burst-split": 1,
+          "finish": 1
+        }
+      },
+      "current": {
+        "mass": 0.04315000000000001,
+        "duration": 2.8541666666666665,
+        "result": {
+          "winner": 0,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "rail-engage": 68,
+          "rail-release": 68,
+          "collision": 3,
+          "finish": 1
+        },
+        "finite": true,
+        "meshTicks": 75,
+        "badMesh": 0,
+        "minRadiusAfterMesh": [
+          0.0740335568276645,
+          0.08357168389121658
+        ],
+        "maxExteriorSlowHighSpinSeconds": [
+          0,
+          0
+        ],
+        "maxPerTickEnergyGain": 0,
+        "maxEndpointDisplacementExcess": 0.0002719991497974377
+      },
+      "maxGearPlanarSpeedGain": 0.41060182377663546
+    },
+    {
+      "name": "Sword-GF",
+      "baseline": {
+        "mass": 0.03288,
+        "duration": 3.875,
+        "result": {
+          "winner": 1,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "rail-engage": 12,
+          "rail-release": 12,
+          "dash": 1,
+          "collision": 2,
+          "finish": 1
+        }
+      },
+      "current": {
+        "mass": 0.042925000000000005,
+        "duration": 3.2,
+        "result": {
+          "winner": 1,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "rail-engage": 9,
+          "rail-release": 9,
+          "collision": 1,
+          "finish": 1
+        },
+        "finite": true,
+        "meshTicks": 1,
+        "badMesh": 0,
+        "minRadiusAfterMesh": [
+          0.05042392051212671,
+          null
+        ],
+        "maxExteriorSlowHighSpinSeconds": [
+          0,
+          0.024999999999999998
+        ],
+        "maxPerTickEnergyGain": 0,
+        "maxEndpointDisplacementExcess": 0.0017447468937665262
+      },
+      "maxGearPlanarSpeedGain": 0.37104822048581765
+    },
+    {
+      "name": "pocket-minus50",
+      "baseline": {
+        "mass": 0.0335,
+        "duration": 0.8583333333333333,
+        "result": {
+          "winner": 1,
+          "finish": "over",
+          "points": 2
+        },
+        "counts": {
+          "rail-engage": 3,
+          "rail-release": 3,
+          "dash": 1,
+          "finish": 1
+        }
+      },
+      "current": {
+        "mass": 0.04169,
+        "duration": 2.2708333333333335,
+        "result": {
+          "winner": 1,
+          "finish": "burst",
+          "points": 2
+        },
+        "counts": {
+          "rail-engage": 80,
+          "rail-release": 80,
+          "dash": 1,
+          "collision": 2,
+          "burst-split": 1,
+          "finish": 1
+        },
+        "finite": true,
+        "meshTicks": 74,
+        "badMesh": 0,
+        "minRadiusAfterMesh": [
+          null,
+          0.048940612826641
+        ],
+        "maxExteriorSlowHighSpinSeconds": [
+          0,
+          0.004166666666666667
+        ],
+        "maxPerTickEnergyGain": 0,
+        "maxEndpointDisplacementExcess": 0.0001837463201335137
+      },
+      "maxGearPlanarSpeedGain": 0.03998179331164553
+    },
+    {
+      "name": "pocket-plus50",
+      "baseline": {
+        "mass": 0.0335,
+        "duration": 8.366666666666667,
+        "result": {
+          "winner": 0,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "collision": 1,
+          "rail-engage": 12,
+          "rail-release": 12,
+          "finish": 1
+        }
+      },
+      "current": {
+        "mass": 0.04169,
+        "duration": 0.625,
+        "result": {
+          "winner": 1,
+          "finish": "over",
+          "points": 2
+        },
+        "counts": {
+          "collision": 3,
+          "finish": 1
+        },
+        "finite": true,
+        "meshTicks": 0,
+        "badMesh": 0,
+        "minRadiusAfterMesh": [
+          null,
+          null
+        ],
+        "maxExteriorSlowHighSpinSeconds": [
+          0,
+          0
+        ],
+        "maxPerTickEnergyGain": 0,
+        "maxEndpointDisplacementExcess": 8.495694416756159e-06
+      },
+      "maxGearPlanarSpeedGain": 0
+    },
+    {
+      "name": "burst-Buster",
+      "baseline": {
+        "mass": 0.032924999999999996,
+        "duration": 1,
+        "result": {
+          "winner": 1,
+          "finish": "burst",
+          "points": 2
+        },
+        "counts": {
+          "rail-engage": 3,
+          "rail-release": 3,
+          "dash": 1,
+          "collision": 7,
+          "burst-split": 1,
+          "finish": 1
+        }
+      },
+      "current": {
+        "mass": 0.04514,
+        "duration": 6.025,
+        "result": {
+          "winner": 1,
+          "finish": "spin",
+          "points": 1
+        },
+        "counts": {
+          "rail-engage": 5,
+          "rail-release": 5,
+          "collision": 4,
+          "dash": 1,
+          "finish": 1
+        },
+        "finite": true,
+        "meshTicks": 10,
+        "badMesh": 0,
+        "minRadiusAfterMesh": [
+          0.0011535151955828194,
+          0.04360471450914803
+        ],
+        "maxExteriorSlowHighSpinSeconds": [
+          0,
+          0
+        ],
+        "maxPerTickEnergyGain": 0,
+        "maxEndpointDisplacementExcess": 0.000679756828340307
+      },
+      "maxGearPlanarSpeedGain": 0.5194861937666235
+    }
+  ],
+  "postAuditNote": "The recorded physical-estimates hash precedes a Barcelona-only canonical-outline correction. All eight tested profile inputs are unchanged in final 1ed5525d1fb3b20deed47c7ea1dde4a3fa5f76abae7ec72ca5c61b0bbb161f0f. Original tested hash retained rather than relabeled."
+}
